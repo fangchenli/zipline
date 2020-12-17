@@ -1,5 +1,17 @@
 dist: xenial
 
+addons:
+  apt:
+    packages: 
+      - libatlas-base-dev
+      - liblapack-dev
+      - gfortran
+      - libgmp-dev
+      - libmpfr-dev
+      - libsuitesparse-dev
+      - swig
+      - libmpc-dev
+
 language: python
 
 fast_finish: true
