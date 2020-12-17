@@ -29,8 +29,7 @@ branches:
 
 before_install:
   - NUMPY_VERSION=1.14.1 PANDAS_VERSION=0.22.0 SCIPY_VERSION=1.0.0 STATSMODELS_VERSION=0.9.0 PANDAS_DATAREADER_VERSION=0.4.0 DASK_VERSION=0.17.1
-  - python -c 'import os,sys,fcntl; flags = fcntl.fcntl(sys.stdout, fcntl.F_GETFL); fcntl.fcntl(sys.stdout, fcntl.F_SETFL, flags&~os.O_NONBLOCK);'
-
+  - .ci/travis/overwrite_requirements.sh
 
 install:
   - |
@@ -42,6 +41,7 @@ install:
     sudo make install
     cd ..
 
+  - python -c 'import os,sys,fcntl; flags = fcntl.fcntl(sys.stdout, fcntl.F_GETFL); fcntl.fcntl(sys.stdout, fcntl.F_SETFL, flags&~os.O_NONBLOCK);'
   - etc/dev-install
 
 before_script:
