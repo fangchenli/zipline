@@ -29,7 +29,7 @@ branches:
 
 before_install:
   - NUMPY_VERSION=1.14.1 PANDAS_VERSION=0.22.0 SCIPY_VERSION=1.0.0 STATSMODELS_VERSION=0.9.0 PANDAS_DATAREADER_VERSION=0.4.0 DASK_VERSION=0.17.1
-  - .ci/travis/overwrite_requirements.sh
+  - source ci/travis/overwrite_requirements.sh
 
 install:
   - |
