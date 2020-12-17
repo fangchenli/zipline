@@ -21,6 +21,7 @@ python:
 
 cache:
   pip: true
+  ccache: true
 
 branches:
   only:
@@ -42,8 +43,6 @@ install:
     cd ..
 
   - etc/dev-install
-  - pip install -r ./etc/requirements_talib.in -c ./etc/requirements_locked.txt
-
 
 before_script:
   - pip freeze | sort
