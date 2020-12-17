@@ -39,6 +39,7 @@ install:
     ./configure --prefix=/usr
     make
     sudo make install
+    
   - etc/dev-install
   - pip install -r ./etc/requirements_talib.in -c ./etc/requirements_locked.txt
 
