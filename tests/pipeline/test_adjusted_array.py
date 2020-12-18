@@ -35,7 +35,6 @@ from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.labelarray import LabelArray
 from zipline.testing import check_arrays
 from zipline.testing.predicates import assert_equal
-from zipline.utils.compat import unicode
 from zipline.utils.numpy_utils import (
     coerce_to_dtype,
     datetime64ns_dtype,
@@ -575,7 +574,7 @@ class AdjustedArrayTestCase(TestCase):
             ),
             _gen_unadjusted_cases(
                 'object_ndarray',
-                make_input=lambda a: a.astype(unicode).astype(object),
+                make_input=lambda a: a.astype(str).astype(object),
                 make_expected_output=as_labelarray(unicode_dtype, u''),
                 missing_value='',
             ),
@@ -595,7 +594,7 @@ class AdjustedArrayTestCase(TestCase):
             _gen_unadjusted_cases(
                 'object_labelarray',
                 make_input=(
-                    lambda a: LabelArray(a.astype(unicode).astype(object), u'')
+                    lambda a: LabelArray(a.astype(str).astype(object), u'')
                 ),
                 make_expected_output=as_labelarray(unicode_dtype, ''),
                 missing_value='',
@@ -665,7 +664,7 @@ class AdjustedArrayTestCase(TestCase):
             ),
             _gen_unadjusted_cases(
                 'object_ndarray',
-                make_input=lambda a: a.astype(unicode).astype(object),
+                make_input=lambda a: a.astype(str).astype(object),
                 make_expected_output=as_labelarray(unicode_dtype, u''),
                 missing_value=u'',
             ),
@@ -685,7 +684,7 @@ class AdjustedArrayTestCase(TestCase):
                 'object_labelarray',
                 make_input=(
                     lambda a: LabelArray(
-                        a.astype(unicode).astype(object),
+                        a.astype(str).astype(object),
                         None,
                     )
                 ),

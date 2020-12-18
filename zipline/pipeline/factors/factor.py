@@ -9,7 +9,7 @@ from textwrap import dedent
 from numpy import empty_like, inf, isnan, nan, where
 from scipy.stats import rankdata
 
-from zipline.utils.compat import wraps
+from functools import wraps
 from zipline.errors import (
     BadPercentileBounds,
     UnknownRankMethod,

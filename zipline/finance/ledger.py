@@ -22,7 +22,7 @@ from math import isnan
 import logbook
 import numpy as np
 import pandas as pd
-from six import iteritems, itervalues, PY2
+from six import iteritems, itervalues
 
 from zipline.assets import Future
 from zipline.finance.transaction import Transaction
@@ -305,28 +305,6 @@ class PositionTracker(object):
         return self._stats
 
 
-if PY2:
-    def move_to_end(ordered_dict, key, last=False):
-        if last:
-            ordered_dict[key] = ordered_dict.pop(key)
-        else:
-            # please don't do this in python 2 ;_;
-            new_first_element = ordered_dict.pop(key)
-
-            # the items (without the given key) in the order they were inserted
-            items = ordered_dict.items()
-
-            # reset the ordered_dict to re-insert in the new order
-            ordered_dict.clear()
-
-            ordered_dict[key] = new_first_element
-
-            # add the items back in their original order
-            ordered_dict.update(items)
-else:
-    move_to_end = OrderedDict.move_to_end
-
-
 PeriodStats = namedtuple(
     'PeriodStats',
     'net_liquidation gross_leverage net_leverage',
@@ -552,9 +530,9 @@ class Ledger(object):
         else:
             self._orders_by_id[order.id] = dt_orders[order.id] = order
             # to preserve the order of the orders by modified date
-            move_to_end(dt_orders, order.id, last=True)
+            OrderedDict.move_to_end(dt_orders, order.id, last=True)
 
-        move_to_end(self._orders_by_id, order.id, last=True)
+        OrderedDict.move_to_end(self._orders_by_id, order.id, last=True)
 
     def process_commission(self, commission):
         """Process the commission.

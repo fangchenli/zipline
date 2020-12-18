@@ -1,6 +1,5 @@
 from interface import implements
-
-from zipline.utils.compat import contextmanager
+from contextlib import contextmanager
 
 from .iface import PipelineHooks
 

@@ -157,7 +157,7 @@ from interface import implements
 import numpy as np
 from odo import odo
 import pandas as pd
-from six import with_metaclass, PY2, itervalues, iteritems
+from six import with_metaclass, itervalues, iteritems
 from toolz import (
     complement,
     compose,
@@ -340,11 +340,6 @@ def new_dataset(expr, missing_values, domain):
     name = expr._name
     if name is None:
         name = next(_new_names)
-
-    # unicode is a name error in py3 but the branch is only hit
-    # when we are in python 2.
-    if PY2 and isinstance(name, unicode):  # pragma: no cover # noqa
-        name = name.encode('utf-8')
 
     return type(name, (DataSet,), class_dict)
 

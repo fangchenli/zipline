@@ -1,6 +1,6 @@
 from interface import implements
-
-from zipline.utils.compat import ExitStack, contextmanager, wraps
+from contextlib import contextmanager, ExitStack
+from functools import wraps
 
 from .iface import PipelineHooks, PIPELINE_HOOKS_CONTEXT_MANAGERS
 from .no import NoHooks

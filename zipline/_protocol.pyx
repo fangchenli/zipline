@@ -19,7 +19,7 @@ from functools import wraps
 import pandas as pd
 import numpy as np
 
-from six import iteritems, PY2, string_types
+from six import iteritems, string_types
 from cpython cimport bool
 from collections import Iterable
 
@@ -35,17 +35,6 @@ from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 cdef bool _is_iterable(obj):
     return isinstance(obj, Iterable) and not isinstance(obj, string_types)
-
-
-if PY2:
-    def no_wraps_py2(f):
-        def dec(g):
-            g.__doc__ = f.__doc__
-            g.__name__ = f.__name__
-            return g
-        return dec
-else:
-    no_wraps_py2 = wraps
 
 
 cdef class check_parameters(object):
@@ -69,7 +58,7 @@ cdef class check_parameters(object):
         self.keys_to_types = dict(zip(keyword_names, types))
 
     def __call__(self, func):
-        @no_wraps_py2(func)
+        @wraps(func)
         def assert_keywords_and_call(*args, **kwargs):
             cdef short i
 

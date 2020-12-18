@@ -16,6 +16,8 @@ from collections import Iterable, namedtuple
 from copy import copy
 import warnings
 from datetime import tzinfo, time
+from contextlib import ExitStack
+
 import logbook
 import pytz
 import pandas as pd
@@ -94,7 +96,6 @@ from zipline.utils.api_support import (
     require_not_initialized,
     ZiplineAPI,
     disallowed_in_before_trading_start)
-from zipline.utils.compat import ExitStack
 from zipline.utils.input_validation import (
     coerce_string,
     ensure_upper_case,

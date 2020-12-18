@@ -20,7 +20,6 @@ from zipline.pipeline.dtypes import (
 )
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import ComputableTerm
-from zipline.utils.compat import unicode
 from zipline.utils.input_validation import expect_types, expect_dtypes
 from zipline.utils.numpy_utils import (
     categorical_dtype,
@@ -131,7 +130,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
     del bad_compare
 
     @string_classifiers_only
-    @expect_types(prefix=(bytes, unicode))
+    @expect_types(prefix=(bytes, str))
     def startswith(self, prefix):
         """
         Construct a Filter matching values starting with ``prefix``.
@@ -154,7 +153,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         )
 
     @string_classifiers_only
-    @expect_types(suffix=(bytes, unicode))
+    @expect_types(suffix=(bytes, str))
     def endswith(self, suffix):
         """
         Construct a Filter matching values ending with ``suffix``.
@@ -177,7 +176,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         )
 
     @string_classifiers_only
-    @expect_types(substring=(bytes, unicode))
+    @expect_types(substring=(bytes, str))
     def has_substring(self, substring):
         """
         Construct a Filter matching values containing ``substring``.
@@ -200,7 +199,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         )
 
     @string_classifiers_only
-    @expect_types(pattern=(bytes, unicode, type(re.compile(''))))
+    @expect_types(pattern=(bytes, str, type(re.compile(''))))
     def matches(self, pattern):
         """
         Construct a Filter that checks regex matches against ``pattern``.
@@ -304,7 +303,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
                     )
                 )
         elif self.dtype == categorical_dtype:
-            if only_contains((bytes, unicode), choices):
+            if only_contains((bytes, str), choices):
                 return ArrayPredicate(
                     term=self,
                     op=LabelArray.element_of,

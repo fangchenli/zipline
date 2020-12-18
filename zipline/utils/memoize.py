@@ -9,7 +9,7 @@ from six.moves._thread import allocate_lock as Lock
 from toolz.sandbox import unzip
 from trading_calendars.utils.memoize import lazyval
 
-from zipline.utils.compat import wraps
+from functools import wraps
 
 
 class classlazyval(lazyval):

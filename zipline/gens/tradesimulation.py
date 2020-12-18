@@ -13,11 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from copy import copy
+from contextlib import ExitStack
+
 from logbook import Logger, Processor
 from zipline.finance.order import ORDER_STATUS
 from zipline.protocol import BarData
 from zipline.utils.api_support import ZiplineAPI
-from zipline.utils.compat import ExitStack
 from six import viewkeys
 
 from zipline.gens.sim_engine import (

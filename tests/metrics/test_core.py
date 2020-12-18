@@ -1,3 +1,5 @@
+from types import MappingProxyType
+
 from zipline.finance.metrics.core import _make_metrics_set_core
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import (
@@ -5,7 +7,6 @@ from zipline.testing.predicates import (
     assert_is,
     assert_raises_str,
 )
-from zipline.utils.compat import mappingproxy
 
 
 class MetricsSetCoreTestCase(ZiplineTestCase):
@@ -17,7 +18,7 @@ class MetricsSetCoreTestCase(ZiplineTestCase):
         )
 
         # make sure this starts empty
-        assert_equal(self.metrics_sets, mappingproxy({}))
+        assert_equal(self.metrics_sets, MappingProxyType({}))
 
     def test_load_not_registered(self):
         msg = "no metrics set registered as 'ayy-lmao', options are: []"
@@ -43,7 +44,7 @@ class MetricsSetCoreTestCase(ZiplineTestCase):
         def ayy_lmao():
             return ayy_lmao_set
 
-        expected_metrics_sets = mappingproxy({'ayy-lmao': ayy_lmao})
+        expected_metrics_sets = MappingProxyType({'ayy-lmao': ayy_lmao})
         assert_equal(self.metrics_sets, expected_metrics_sets)
         assert_is(self.load('ayy-lmao'), ayy_lmao_set)
 
@@ -59,7 +60,7 @@ class MetricsSetCoreTestCase(ZiplineTestCase):
         assert_is(self.load('ayy-lmao'), ayy_lmao_set)
 
         self.unregister('ayy-lmao')
-        assert_equal(self.metrics_sets, mappingproxy({}))
+        assert_equal(self.metrics_sets, MappingProxyType({}))
 
         msg = "no metrics set registered as 'ayy-lmao', options are: []"
         with assert_raises_str(ValueError, msg):
@@ -77,7 +78,7 @@ class MetricsSetCoreTestCase(ZiplineTestCase):
 
         self.register('ayy-lmao', ayy_lmao)
 
-        expected_metrics_sets = mappingproxy({'ayy-lmao': ayy_lmao})
+        expected_metrics_sets = MappingProxyType({'ayy-lmao': ayy_lmao})
         assert_equal(self.metrics_sets, expected_metrics_sets)
         assert_is(self.load('ayy-lmao'), ayy_lmao_set)
 
@@ -94,7 +95,7 @@ class MetricsSetCoreTestCase(ZiplineTestCase):
         assert_is(self.load('ayy-lmao'), ayy_lmao_set)
 
         self.unregister('ayy-lmao')
-        assert_equal(self.metrics_sets, mappingproxy({}))
+        assert_equal(self.metrics_sets, MappingProxyType({}))
 
         msg = "no metrics set registered as 'ayy-lmao', options are: []"
         with assert_raises_str(ValueError, msg):

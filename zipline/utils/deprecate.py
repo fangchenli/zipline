@@ -14,7 +14,7 @@
 # limitations under the License.
 
 import warnings
-from zipline.utils.compat import wraps
+from functools import wraps
 
 
 def deprecated(msg=None, stacklevel=2):

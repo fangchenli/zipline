@@ -10,7 +10,6 @@ from numpy import ndarray
 import pandas as pd
 from toolz import compose
 
-from zipline.utils.compat import unicode
 from zipline.utils.functional import instance
 from zipline.utils.preprocess import preprocess
 from zipline.utils.sentinel import sentinel
@@ -138,8 +137,8 @@ class LabelArray(ndarray):
     --------
     https://docs.scipy.org/doc/numpy-1.11.0/user/basics.subclassing.html
     """
-    SUPPORTED_SCALAR_TYPES = (bytes, unicode, type(None))
-    SUPPORTED_NON_NONE_SCALAR_TYPES = (bytes, unicode)
+    SUPPORTED_SCALAR_TYPES = (bytes, str, type(None))
+    SUPPORTED_NON_NONE_SCALAR_TYPES = (bytes, str)
 
     @preprocess(
         values=coerce(list, partial(np.asarray, dtype=object)),
@@ -774,7 +773,7 @@ class LabelArray(ndarray):
         """
         return self.map_predicate(lambda elem: substring in elem)
 
-    @preprocess(pattern=coerce(from_=(bytes, unicode), to=re.compile))
+    @preprocess(pattern=coerce(from_=(bytes, str), to=re.compile))
     def matches(self, pattern):
         """
         Elementwise regex match.

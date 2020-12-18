@@ -4,7 +4,7 @@ import sqlalchemy as sa
 from toolz.curried import do, operator
 
 from zipline.assets.asset_writer import write_version_info
-from zipline.utils.compat import wraps
+from functools import wraps
 from zipline.errors import AssetDBImpossibleDowngrade
 from zipline.utils.preprocess import preprocess
 from zipline.utils.sqlite_utils import coerce_string_to_eng

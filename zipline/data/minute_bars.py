@@ -17,6 +17,7 @@ import os
 from glob import glob
 from os.path import join
 from textwrap import dedent
+from types import MappingProxyType
 
 from lru import LRU
 import bcolz
@@ -42,7 +43,6 @@ from zipline.gens.sim_engine import NANOS_IN_MINUTE
 from zipline.data.bar_reader import BarReader, NoDataForSid, NoDataOnDate
 from zipline.data.bcolz_daily_bars import check_uint32_safe
 from zipline.utils.cli import maybe_show_progress
-from zipline.utils.compat import mappingproxy
 from zipline.utils.memoize import lazyval
 
 
@@ -912,7 +912,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
     # Wrap the defaults in proxy so that we don't accidentally mutate them in
     # place in the constructor. If a user wants to change the defaults, they
     # can do so by mutating DEFAULT_MINUTELY_SID_CACHE_SIZES.
-    _default_proxy = mappingproxy(DEFAULT_MINUTELY_SID_CACHE_SIZES)
+    _default_proxy = MappingProxyType(DEFAULT_MINUTELY_SID_CACHE_SIZES)
 
     def __init__(self, rootdir, sid_cache_sizes=_default_proxy):
 
