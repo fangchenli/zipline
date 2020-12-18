@@ -2,12 +2,13 @@ import os
 import sqlite3
 from unittest import TestCase
 import warnings
+from contextlib import ExitStack
 
 from logbook import NullHandler, Logger
 import numpy as np
 import pandas as pd
 from pandas.core.common import PerformanceWarning
-from six import with_metaclass, iteritems, itervalues, PY2
+from six import with_metaclass, iteritems, itervalues
 import responses
 from toolz import flip, groupby, merge
 from trading_calendars import (
@@ -31,7 +32,6 @@ from zipline.pipeline.domain import GENERIC, US_EQUITIES
 from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.protocol import BarData
-from zipline.utils.compat import ExitStack
 from zipline.utils.paths import ensure_directory, ensure_directory_containing
 from .core import (
     create_daily_bar_data,
@@ -249,10 +249,6 @@ class ZiplineTestCase(with_metaclass(DebugMROMeta, TestCase)):
             The callback to invoke at the end of each test.
         """
         return self._instance_teardown_stack.callback(callback)
-
-    if PY2:
-        def assertRaisesRegex(self, *args, **kwargs):
-            return self.assertRaisesRegexp(*args, **kwargs)
 
 
 def alias(attr_name):

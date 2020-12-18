@@ -9,7 +9,7 @@ from six import text_type
 import zipline
 from zipline.data import bundles as bundles_module
 from trading_calendars import get_calendar
-from zipline.utils.compat import wraps
+from functools import wraps
 from zipline.utils.cli import Date, Timestamp
 from zipline.utils.run_algo import _run, BenchmarkSpec, load_extensions
 from zipline.extensions import create_args

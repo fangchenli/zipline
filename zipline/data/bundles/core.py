@@ -1,8 +1,10 @@
 from collections import namedtuple
+from contextlib import ExitStack
 import errno
 import os
 import shutil
 import warnings
+from types import MappingProxyType
 
 import click
 from logbook import Logger
@@ -23,7 +25,6 @@ from zipline.utils.cache import (
     working_dir,
     working_file,
 )
-from zipline.utils.compat import ExitStack, mappingproxy
 from zipline.utils.input_validation import ensure_timestamp, optionally
 import zipline.utils.paths as pth
 from zipline.utils.preprocess import preprocess
@@ -201,7 +202,7 @@ def _make_bundle_core():
 
     Returns
     -------
-    bundles : mappingproxy
+    bundles : MappingProxyType
         The mapping of bundles to bundle payloads.
     register : callable
         The function which registers new bundles in the ``bundles`` mapping.
@@ -218,7 +219,7 @@ def _make_bundle_core():
     # Expose _bundles through a proxy so that users cannot mutate this
     # accidentally. Users may go through `register` to update this which will
     # warn when trampling another bundle.
-    bundles = mappingproxy(_bundles)
+    bundles = MappingProxyType(_bundles)
 
     @curry
     def register(name,

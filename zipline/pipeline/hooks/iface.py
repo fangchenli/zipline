@@ -1,5 +1,4 @@
-from zipline.utils.compat import contextmanager as _contextmanager
-
+from contextlib import contextmanager as _contextmanager
 from interface import Interface
 
 

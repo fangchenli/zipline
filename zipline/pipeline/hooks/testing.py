@@ -1,10 +1,10 @@
 from collections import namedtuple
+from contextlib import contextmanager
+from functools import wraps
 
 from .iface import PipelineHooks, PIPELINE_HOOKS_CONTEXT_MANAGERS
 
 from interface import implements
-
-from zipline.utils.compat import contextmanager, wraps
 
 
 Call = namedtuple('Call', 'method_name args kwargs')

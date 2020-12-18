@@ -93,7 +93,6 @@ from zipline.testing.fixtures import (
     WithTmpDir,
     WithInstanceTmpDir,
 )
-from zipline.utils.range import range
 
 
 Case = namedtuple('Case', 'finder inputs as_of country_code expected')

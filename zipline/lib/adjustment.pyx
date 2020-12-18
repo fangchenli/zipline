@@ -7,8 +7,6 @@ cimport numpy as np
 from numpy cimport float64_t, uint8_t, int64_t
 from numpy import asarray, datetime64, float64, int64, bool_, uint8
 
-from zipline.utils.compat import unicode
-
 
 ADJUSTMENT_KIND_NAMES = {
     MULTIPLY: 'MULTIPLY',
@@ -48,7 +46,7 @@ cdef _is_int(object value):
 
 
 cdef _is_obj(object value):
-    return isinstance(value, (bytes, unicode, type(None)))
+    return isinstance(value, (bytes, str, type(None)))
 
 
 cdef _is_bool(object value):

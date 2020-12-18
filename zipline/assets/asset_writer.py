@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import namedtuple
+from contextlib import ExitStack
 import re
 
 import numpy as np
@@ -34,7 +35,6 @@ from zipline.assets.asset_db_schema import (
     metadata,
     version_info,
 )
-from zipline.utils.compat import ExitStack
 from zipline.utils.preprocess import preprocess
 from zipline.utils.range import from_tuple, intersecting_ranges
 from zipline.utils.sqlite_utils import coerce_string_to_eng

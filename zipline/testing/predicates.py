@@ -3,6 +3,7 @@ from contextlib import contextmanager
 import datetime
 from functools import partial
 import re
+from types import MappingProxyType
 
 from nose.tools import (  # noqa
     assert_almost_equal,
@@ -40,7 +41,7 @@ from pandas.util.testing import (
     assert_series_equal,
     assert_index_equal,
 )
-from six import iteritems, viewkeys, PY2
+from six import iteritems, viewkeys
 from six.moves import zip_longest
 from toolz import dissoc, keyfilter
 import toolz.curried.operator as op
@@ -50,7 +51,7 @@ from zipline.dispatch import dispatch
 from zipline.lib.adjustment import Adjustment
 from zipline.lib.labelarray import LabelArray
 from zipline.testing.core import ensure_doctest
-from zipline.utils.compat import getargspec, mappingproxy
+from zipline.utils.compat import getargspec
 from zipline.utils.formatting import s
 from zipline.utils.functional import dzip_exact, instance
 from zipline.utils.math_utils import tolerant_equals
@@ -465,7 +466,7 @@ def assert_dict_equal(result, expected, path=(), msg='', **kwargs):
         viewkeys(result),
         viewkeys(expected),
         msg,
-        path + ('.%s()' % ('viewkeys' if PY2 else 'keys'),),
+        path + ('.%s()' % 'keys',),
         'key',
     )
 
@@ -486,7 +487,7 @@ def assert_dict_equal(result, expected, path=(), msg='', **kwargs):
         raise AssertionError('\n===\n'.join(failures))
 
 
-@assert_equal.register(mappingproxy, mappingproxy)
+@assert_equal.register(MappingProxyType, MappingProxyType)
 def asssert_mappingproxy_equal(result, expected, path=(), msg='', **kwargs):
     # mappingproxies compare like dict but shouldn't compare to dicts
     _check_sets(

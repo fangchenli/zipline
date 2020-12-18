@@ -7,7 +7,7 @@ from pandas import DataFrame, Timestamp
 from six import iteritems
 
 from zipline.lib.labelarray import LabelArray
-from zipline.utils.compat import wraps
+from functools import wraps
 from zipline.pipeline import ExecutionPlan
 from zipline.pipeline.domain import US_EQUITIES
 from zipline.pipeline.engine import SimplePipelineEngine

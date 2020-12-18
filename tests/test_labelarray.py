@@ -8,7 +8,6 @@ from toolz import take
 from zipline.lib.labelarray import LabelArray
 from zipline.testing import check_arrays, parameter_space, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
-from zipline.utils.compat import unicode
 
 
 def rotN(l, N):
@@ -55,7 +54,7 @@ class LabelArrayTestCase(ZiplineTestCase):
         __fail_fast=True,
         compval=['', 'a', 'z', 'not in the array'],
         shape=[(27,), (3, 9), (3, 3, 3)],
-        array_astype=(bytes, unicode, object),
+        array_astype=(bytes, str, object),
         missing_value=('', 'a', 'not in the array', None),
     )
     def test_compare_to_str(self,
@@ -209,7 +208,7 @@ class LabelArrayTestCase(ZiplineTestCase):
         # Test comparison between arr and a like-shap 2D array, a column
         # vector, and a row vector.
         for comparator, dtype, value in product((eq, ne),
-                                                (bytes, unicode, object),
+                                                (bytes, str, object),
                                                 set(self.rowvalues)):
             check_arrays(
                 comparator(arr, np.full_like(strs, value)),

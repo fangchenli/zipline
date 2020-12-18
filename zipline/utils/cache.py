@@ -12,7 +12,6 @@ from tempfile import mkdtemp, NamedTemporaryFile
 
 import pandas as pd
 
-from .compat import PY2
 from .context_tricks import nop_context
 from .paths import ensure_directory
 from .sentinel import sentinel
@@ -225,10 +224,7 @@ class dataframe_cache(MutableMapping):
             self._protocol = int(s[1]) if len(s) == 2 else None
 
             self.serialize = self._serialize_pickle
-            self.deserialize = (
-                pickle.load if PY2 else
-                partial(pickle.load, encoding='latin-1')
-            )
+            self.deserialize = partial(pickle.load, encoding='latin-1')
 
         ensure_directory(self.path)
 

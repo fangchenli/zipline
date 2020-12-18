@@ -14,6 +14,7 @@ import shutil
 import sys
 import tempfile
 from traceback import format_exception
+from functools import wraps
 
 from logbook import TestHandler
 from mock import patch
@@ -29,7 +30,7 @@ from trading_calendars import get_calendar
 
 from zipline.assets import AssetFinder, AssetDBWriter
 from zipline.assets.synthetic import make_simple_equity_info
-from zipline.utils.compat import getargspec, wraps
+from zipline.utils.compat import getargspec
 from zipline.data.data_portal import DataPortal
 from zipline.data.minute_bars import (
     BcolzMinuteBarReader,

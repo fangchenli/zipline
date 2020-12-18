@@ -14,7 +14,7 @@
 # limitations under the License.
 
 import zipline.api
-from zipline.utils.compat import wraps
+from functools import wraps
 from zipline.utils.algo_instance import get_algo_instance, set_algo_instance
 
 

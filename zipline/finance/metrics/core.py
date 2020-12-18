@@ -1,6 +1,5 @@
 from functools import partial
-
-from zipline.utils.compat import mappingproxy
+from types import MappingProxyType
 
 
 def _make_metrics_set_core():
@@ -9,7 +8,7 @@ def _make_metrics_set_core():
 
     Returns
     -------
-    metrics_sets : mappingproxy
+    metrics_sets : MappingProxyType
         The mapping of metrics sets to load functions.
     register : callable
         The function which registers new metrics sets in the ``metrics_sets``
@@ -24,7 +23,7 @@ def _make_metrics_set_core():
     # Expose _metrics_sets through a proxy so that users cannot mutate this
     # accidentally. Users may go through `register` to update this which will
     # warn when trampling another metrics set.
-    metrics_sets = mappingproxy(_metrics_sets)
+    metrics_sets = MappingProxyType(_metrics_sets)
 
     def register(name, function=None):
         """Register a new metrics set.
