@@ -467,9 +467,9 @@ class DataSetMeta(type):
                 # of a root-specialized dataset, which we don't want to create
                 # new specializations of.
                 raise ValueError(
-                    "Can't specialize {dataset} to new domain {new}.".format(
+                    "Can't specialize {dataset} to new domain {new}"
+                    .format(
                         dataset=self.__name__,
-                        current=self.domain,
                         new=domain,
                     )
                 )

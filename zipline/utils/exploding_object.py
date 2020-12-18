@@ -21,6 +21,7 @@ class NamedExplodingObject(object):
         raise AttributeError(
             'attempted to access attribute %r of ExplodingObject %r%s' % (
                 attr,
+                attr,
                 self._name,
             ),
             ' ' + extra_message if extra_message is not None else '',

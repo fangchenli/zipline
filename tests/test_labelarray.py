@@ -10,7 +10,7 @@ from zipline.testing import check_arrays, parameter_space, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
 
 
-def rotN(l, N):
+def rotN(arr, N):
     """
     Rotate a list of elements.
 
@@ -21,8 +21,8 @@ def rotN(l, N):
     >>> rotN(['a', 'b', 'c', 'd'], 3)
     ['d', 'a', 'b', 'c']
     """
-    assert len(l) >= N, "Can't rotate list by longer than its length."
-    return l[N:] + l[:N]
+    assert len(arr) >= N, "Can't rotate list by longer than its length."
+    return arr[N:] + arr[:N]
 
 
 def all_ufuncs():
