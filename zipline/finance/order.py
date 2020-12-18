@@ -14,21 +14,22 @@
 # limitations under the License.
 import math
 import uuid
+from enum import IntEnum
 
 from six import text_type
 
 import zipline.protocol as zp
 from zipline.assets import Asset
-from zipline.utils.enum import enum
 from zipline.utils.input_validation import expect_types
 
-ORDER_STATUS = enum(
-    'OPEN',
-    'FILLED',
-    'CANCELLED',
-    'REJECTED',
-    'HELD',
-)
+
+class ORDER_STATUS(IntEnum):
+    OPEN = 0
+    FILLED = 1
+    CANCELLED = 2
+    REJECTED = 3
+    HELD = 4
+
 
 SELL = 1 << 0
 BUY = 1 << 1
