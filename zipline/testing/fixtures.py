@@ -7,7 +7,7 @@ from contextlib import ExitStack
 from logbook import NullHandler, Logger
 import numpy as np
 import pandas as pd
-from pandas.core.common import PerformanceWarning
+from pandas.errors import PerformanceWarning
 from six import with_metaclass, iteritems, itervalues
 import responses
 from toolz import flip, groupby, merge
