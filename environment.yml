@@ -4,12 +4,14 @@ channels:
 dependencies:
   - python=3.6
   - cython
-  - setuptools<46
+  - setuptools
   - numpy
   - scipy
   - statsmodels
   - numexpr
   - networkx<2.0
+  - pandas=0.22
+  - pandas-datareader
 
   - empyrical
 
@@ -24,6 +26,7 @@ dependencies:
 
   - bcolz
   - h5py
+  - pytables
 
   - lru-dict
   - intervaltree
@@ -55,12 +58,11 @@ dependencies:
   - matplotlib
 
   - blaze
+  - pyyaml
 
   - pip
   - pip:
     - patsy
-    - tables
     - python_version
-    - pandas-datareader<0.90
     - nose-ignore-docstring
-    - pandas==0.22
+    - TA-Lib
