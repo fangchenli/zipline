@@ -479,6 +479,6 @@ class PreprocessTestCase(TestCase):
         errmsg = str(e.exception)
         expected = (
             "fizzbuzz() expected a 2-D array for argument 'x', but got"
-            " a 1-D array instead.".format(qualname=qualname(foo))
+            " a 1-D array instead."
         )
         self.assertEqual(errmsg, expected)
