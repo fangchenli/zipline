@@ -6,8 +6,8 @@ import pandas as pd
 from six import with_metaclass, iteritems
 from collections import namedtuple
 from toolz import groupby
+from enum import IntEnum
 
-from zipline.utils.enum import enum
 from zipline.utils.numpy_utils import vectorized_is_element
 from zipline.assets import Asset
 
@@ -17,10 +17,9 @@ Restriction = namedtuple(
 )
 
 
-RESTRICTION_STATES = enum(
-    'ALLOWED',
-    'FROZEN',
-)
+class RESTRICTION_STATES(IntEnum):
+    ALLOWED = 0
+    FROZEN = 1
 
 
 class Restrictions(with_metaclass(abc.ABCMeta)):

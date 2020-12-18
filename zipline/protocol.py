@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from warnings import warn
+from enum import auto, IntEnum
 
 import pandas as pd
 
 from .assets import Asset
-from .utils.enum import enum
 from ._protocol import BarData, InnerPosition  # noqa
 
 
@@ -48,21 +48,21 @@ class MutableView(object):
 
 # Datasource type should completely determine the other fields of a
 # message with its type.
-DATASOURCE_TYPE = enum(
-    'AS_TRADED_EQUITY',
-    'MERGER',
-    'SPLIT',
-    'DIVIDEND',
-    'TRADE',
-    'TRANSACTION',
-    'ORDER',
-    'EMPTY',
-    'DONE',
-    'CUSTOM',
-    'BENCHMARK',
-    'COMMISSION',
-    'CLOSE_POSITION'
-)
+class DATASOURCE_TYPE(IntEnum):
+    AS_TRADED_EQUITY = auto()
+    MERGER = auto()
+    SPLIT = auto()
+    DIVIDEND = auto()
+    TRADE = auto()
+    TRANSACTION = auto()
+    ORDER = auto()
+    EMPTY = auto()
+    DONE = auto()
+    CUSTOM = auto()
+    BENCHMARK = auto()
+    COMMISSION = auto()
+    CLOSE_POSITION = auto()
+
 
 # Expected fields/index values for a dividend Series.
 DIVIDEND_FIELDS = [
