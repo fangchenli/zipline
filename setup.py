@@ -217,17 +217,6 @@ def install_requires(conda_format=False):
     return read_requirements('etc/requirements.in', conda_format=conda_format)
 
 
-def extras_requires(conda_format=False):
-    extras = {
-        extra: read_requirements('etc/requirements_{0}.in'.format(extra),
-                                 conda_format=conda_format)
-        for extra in ('dev', 'talib')
-    }
-    extras['all'] = [req for reqs in extras.values() for req in reqs]
-
-    return extras
-
-
 def setup_requirements(requirements_path, module_names,
                        conda_format=False):
     module_names = set(module_names)
@@ -284,6 +273,5 @@ setup(
         'Topic :: System :: Distributed Computing',
     ],
     install_requires=install_requires(conda_format=conda_build),
-    extras_require=extras_requires(conda_format=conda_build),
     **conditional_arguments
 )
