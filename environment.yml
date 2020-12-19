@@ -12,6 +12,7 @@ dependencies:
   - networkx<2.0
   - pandas=0.22
   - pandas-datareader
+  - lru-dict
 
   - empyrical
 
