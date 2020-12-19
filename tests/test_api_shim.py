@@ -106,7 +106,7 @@ def initialize(context):
     context.asset2 = sid(2)
 
 def handle_data(context, data):
-    iter_list = list(data.iteritems())
+    iter_list = list(data.items())
     items_list = data.items()
     assert iter_list == items_list
 """

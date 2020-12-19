@@ -220,5 +220,5 @@ def format_attrs(attrs):
     """
     if not attrs:
         return ''
-    entries = ['='.join((key, value)) for key, value in iteritems(attrs)]
+    entries = ['='.join((key, value)) for key, value in attrs.items()]
     return '[' + ', '.join(entries) + ']'
