@@ -20,13 +20,11 @@ alembic
 bcolz
 h5py
 tables
-lru-dict
 intervaltree
 bottleneck
 iso3166
 iso4217
 six
-contextlib2
 python-interface
 multipledispatch
 toolz
@@ -34,7 +32,7 @@ click
 Logbook
 coverage
 nose
-nose-parameterized
+parameterized
 nose-timer
 mock
 testfixtures
@@ -45,6 +43,5 @@ blaze
 pyyaml
 pip
 patsy
-python_version
 nose-ignore-docstring
 TA-Lib
