@@ -13,7 +13,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import print_function
 import os
 import re
 import sys
@@ -268,28 +267,15 @@ setup(
     version=versioneer.get_version(),
     cmdclass=LazyBuildExtCommandClass(versioneer.get_cmdclass()),
     description='A backtester for financial algorithms.',
-    entry_points={
-        'console_scripts': [
-            'zipline = zipline.__main__:main',
-        ],
-    },
     author='Quantopian Inc.',
     author_email='opensource@quantopian.com',
-    packages=find_packages(include=['zipline', 'zipline.*']),
     ext_modules=ext_modules,
-    include_package_data=True,
-    package_data={root.replace(os.sep, '.'):
-                  ['*.pyi', '*.pyx', '*.pxi', '*.pxd']
-                  for root, dirnames, filenames in os.walk('zipline')
-                  if '__pycache__' not in root},
     license='Apache 2.0',
     classifiers=[
         'Development Status :: 4 - Beta',
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Operating System :: OS Independent',
         'Intended Audience :: Science/Research',
