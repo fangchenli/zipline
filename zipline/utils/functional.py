@@ -108,38 +108,6 @@ def _format_unequal_keys(dicts):
     return pformat([sorted(d.keys()) for d in dicts])
 
 
-def dzip_exact(*dicts):
-    """
-    Parameters
-    ----------
-    *dicts : iterable[dict]
-        A sequence of dicts all sharing the same keys.
-
-    Returns
-    -------
-    zipped : dict
-        A dict whose keys are the union of all keys in *dicts, and whose values
-        are tuples of length len(dicts) containing the result of looking up
-        each key in each dict.
-
-    Raises
-    ------
-    ValueError
-        If dicts don't all have the same keys.
-
-    Examples
-    --------
-    >>> result = dzip_exact({'a': 1, 'b': 2}, {'a': 3, 'b': 4})
-    >>> result == {'a': (1, 3), 'b': (2, 4)}
-    True
-    """
-    if not same(*map(keys, dicts)):
-        raise ValueError(
-            "dict keys not all equal:\n\n%s" % _format_unequal_keys(dicts)
-        )
-    return {k: tuple(d[k] for d in dicts) for k in dicts[0]}
-
-
 def _gen_unzip(it, elem_len):
     """Helper for unzip which checks the lengths of each element in it.
     Parameters

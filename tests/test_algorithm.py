@@ -2523,7 +2523,7 @@ def order_stuff(context, data):
         # The last minute packet of each day
         expected_daily = {
             k: np.array([v[389], v[779], v[1169]])
-            for k, v in self.minute_data.items()
+            for k, v in expected_minute.items()
         }
 
         stats = [

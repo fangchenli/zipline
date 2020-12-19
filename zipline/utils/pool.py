@@ -1,8 +1,8 @@
-from itertools import map as imap
+from six.moves import map as imap
 from toolz import compose, identity
 
 
-class ApplyAsyncResult(object):
+class ApplyAsyncResult:
     """An object that boxes results for calls to
     :meth:`~zipline.utils.pool.SequentialPool.apply_async`.
 
@@ -54,7 +54,7 @@ class ApplyAsyncResult(object):
         pass
 
 
-class SequentialPool(object):
+class SequentialPool:
     """A dummy pool object that iterates sequentially in a single thread.
 
     Methods

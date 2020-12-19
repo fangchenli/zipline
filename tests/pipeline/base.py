@@ -18,8 +18,6 @@ from zipline.testing.fixtures import (
     WithTradingSessions,
     ZiplineTestCase,
 )
-
-from zipline.utils.functional import dzip_exact
 from zipline.utils.pandas_utils import explode
 
 
@@ -145,8 +143,10 @@ class BaseUSEquityPipelineTestCase(WithTradingSessions,
         """
         results = self.run_terms(terms, initial_workspace, mask)
 
-        for key, (res, exp) in dzip_exact(results, expected).items():
-            check(res, exp)
+        assert set(results) == set(expected)
+
+        for key in results.keys():
+            check(results[key], expected[key])
 
         return results
 

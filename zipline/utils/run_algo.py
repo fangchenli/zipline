@@ -276,7 +276,7 @@ def load_extensions(default, extensions, strict, environ, reload=False):
             if ext.endswith('.py'):
                 with open(ext) as f:
                     ns = {}
-                    six.exec_(compile(f.read(), ext, 'exec'), ns, ns)
+                    exec(compile(f.read(), ext, 'exec'), ns, ns)
             else:
                 __import__(ext)
         except Exception as e:

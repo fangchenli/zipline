@@ -1032,11 +1032,10 @@ class MultiCountryDailyBarReader(CurrencyAwareSessionBarReader):
         """
         try:
             country_code = self._country_code_for_assets([sid])
-        except ValueError as exc:
+        except ValueError:
             raise NoDataForSid(
                     'Asset not contained in daily pricing file: {}'.format(sid)
                 )
-            from exc
         return self._readers[country_code].get_value(sid, dt, field)
 
     def get_last_traded_dt(self, asset, dt):

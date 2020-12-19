@@ -734,7 +734,7 @@ class AssetFinder(object):
         # particular sid was an equity/future and called this function with a
         # concrete type, but we couldn't actually resolve the asset.  This is
         # an error in our code, not a user-input error.
-        misses = tuple(set(sids) - viewkeys(hits))
+        misses = tuple(set(sids) - hits.keys())
         if misses:
             if querying_equities:
                 raise EquitiesNotFound(sids=misses)

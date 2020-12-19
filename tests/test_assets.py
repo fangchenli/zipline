@@ -1466,7 +1466,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
             )
             self.assertEqual(
                 {type_},
-                {type(asset) for asset in self.open_orders.values()},
+                {type(asset) for asset in results.values()},
             )
             with self.assertRaises(failure_type):
                 lookup(fail_sids)
