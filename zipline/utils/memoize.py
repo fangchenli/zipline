@@ -4,7 +4,7 @@ Tools for memoization of function results.
 from collections import OrderedDict, Sequence
 from itertools import compress
 from weakref import WeakKeyDictionary, ref
-from _thread import allocate_lock 
+from _thread import allocate_lock
 
 from toolz.sandbox import unzip
 from trading_calendars.utils.memoize import lazyval
