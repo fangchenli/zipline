@@ -4,7 +4,7 @@ Module for building a complete daily dataset from Quandl's WIKI dataset.
 from io import BytesIO
 import tarfile
 from zipfile import ZipFile
-from urllib import urlencode
+from urllib.parse import urlencode
 
 from click import progressbar
 from logbook import Logger

@@ -5,7 +5,7 @@ import os
 import requests
 from io import BytesIO
 from zipfile import ZipFile, ZIP_DEFLATED
-from urllib import urlencode
+from urllib.parse import urlencode
 from zipline.testing import test_resource_path, write_compressed
 from zipline.data.bundles.quandl import QUANDL_DATA_URL
 
