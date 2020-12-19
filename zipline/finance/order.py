@@ -16,8 +16,6 @@ import math
 import uuid
 from enum import IntEnum
 
-from six import text_type
-
 import zipline.protocol as zp
 from zipline.assets import Asset
 from zipline.utils.input_validation import expect_types
@@ -256,4 +254,4 @@ class Order(object):
         """
         Unicode representation for this object.
         """
-        return text_type(repr(self))
+        return str(repr(self))

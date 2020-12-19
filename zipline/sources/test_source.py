@@ -20,8 +20,6 @@ A source to be used in testing.
 from datetime import timedelta
 import itertools
 
-from six.moves import range
-
 from zipline.protocol import (
     Event,
     DATASOURCE_TYPE

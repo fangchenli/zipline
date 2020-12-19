@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from contextlib import contextmanager
 import datetime
-from functools import partial
+from functools import partial, zip_longest
 import re
 from types import MappingProxyType
 
@@ -41,8 +41,6 @@ from pandas.util.testing import (
     assert_series_equal,
     assert_index_equal,
 )
-from six import iteritems, viewkeys
-from six.moves import zip_longest
 from toolz import dissoc, keyfilter
 import toolz.curried.operator as op
 
@@ -463,15 +461,15 @@ def _check_sets(result, expected, msg, path, type_):
 @assert_equal.register(dict, dict)
 def assert_dict_equal(result, expected, path=(), msg='', **kwargs):
     _check_sets(
-        viewkeys(result),
-        viewkeys(expected),
+        result.keys(),
+        expected.keys(),
         msg,
         path + ('.%s()' % 'keys',),
         'key',
     )
 
     failures = []
-    for k, (resultv, expectedv) in iteritems(dzip_exact(result, expected)):
+    for k, (resultv, expectedv) in dzip_exact(result, expected).items():
         try:
             assert_equal(
                 resultv,
@@ -499,7 +497,7 @@ def asssert_mappingproxy_equal(result, expected, path=(), msg='', **kwargs):
     )
 
     failures = []
-    for k, resultv in iteritems(result):
+    for k, resultv in result.items():
         # we know this exists because of the _check_sets call above
         expectedv = expected[k]
 

@@ -1,8 +1,6 @@
 """
 Tools for visualizing dependencies between Terms.
 """
-from __future__ import unicode_literals
-
 from contextlib import contextmanager
 import errno
 from functools import partial
@@ -10,7 +8,6 @@ from io import BytesIO
 from subprocess import Popen, PIPE
 
 from networkx import topological_sort
-from six import iteritems
 
 from zipline.pipeline.data import BoundColumn
 from zipline.pipeline import Filter, Factor, Classifier, Term
@@ -72,7 +69,7 @@ def cluster(f, name, **attrs):
 
 def roots(g):
     "Get nodes from graph G with indegree 0"
-    return set(n for n, d in iteritems(g.in_degree()) if d == 0)
+    return set(n for n, d in g.in_degree().items() if d == 0)
 
 
 def filter_nodes(include_asset_exists, nodes):

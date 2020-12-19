@@ -12,9 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import division
-
 from collections import namedtuple, OrderedDict
 from functools import partial
 from math import isnan
@@ -22,7 +19,6 @@ from math import isnan
 import logbook
 import numpy as np
 import pandas as pd
-from six import iteritems, itervalues
 
 from zipline.assets import Future
 from zipline.finance.transaction import Transaction
@@ -244,7 +240,7 @@ class PositionTracker(object):
     def get_positions(self):
         positions = self._positions_store
 
-        for asset, pos in iteritems(self.positions):
+        for asset, pos in self.positions.items():
             # Adds the new position if we didn't have one before, or overwrite
             # one we have currently
             positions[asset] = pos.protocol_position
@@ -254,7 +250,7 @@ class PositionTracker(object):
     def get_position_list(self):
         return [
             pos.to_dict()
-            for asset, pos in iteritems(self.positions)
+            for asset, pos in self.positions.items()
             if pos.amount != 0
         ]
 
@@ -626,7 +622,7 @@ class Ledger(object):
             # flatten the by-day transactions
             return [
                 txn
-                for by_day in itervalues(self._processed_transactions)
+                for by_day in self._processed_transactions.values()
                 for txn in by_day
             ]
 
@@ -649,11 +645,11 @@ class Ledger(object):
         """
         if dt is None:
             # orders by id is already flattened
-            return [o.to_dict() for o in itervalues(self._orders_by_id)]
+            return [o.to_dict() for o in self._orders_by_id.values()]
 
         return [
             o.to_dict()
-            for o in itervalues(self._orders_by_modified.get(dt, {}))
+            for o in self._orders_by_modified.get(dt, {}).values()
         ]
 
     @property
@@ -665,7 +661,7 @@ class Ledger(object):
         payout_last_sale_prices = self._payout_last_sale_prices
 
         total = 0
-        for asset, old_price in iteritems(payout_last_sale_prices):
+        for asset, old_price in payout_last_sale_prices.items():
             position = positions[asset]
             payout_last_sale_prices[asset] = price = position.last_sale_price
             amount = position.amount
@@ -809,7 +805,7 @@ class Ledger(object):
             account.leverage = account.gross_leverage
 
             # apply the overrides
-            for k, v in iteritems(self._account_overrides):
+            for k, v in self._account_overrides.items():
                 setattr(account, k, v)
 
             # the account has been fully synced

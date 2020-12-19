@@ -1,4 +1,4 @@
-from six.moves import map as imap
+from itertools import map as imap
 from toolz import compose, identity
 
 

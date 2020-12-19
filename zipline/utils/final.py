@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
-from six import with_metaclass, iteritems
+from six import with_metaclass
 
 # Consistent error to be thrown in various cases regarding overriding
 # `final` attributes.
@@ -33,7 +33,7 @@ class FinalMeta(type):
     overriding a some methods or attributes.
     """
     def __new__(mcls, name, bases, dict_):
-        for k, v in iteritems(dict_):
+        for k, v in dict_.items():
             if is_final(k, bases):
                 raise _type_error
 

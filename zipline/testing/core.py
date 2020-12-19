@@ -21,8 +21,7 @@ from mock import patch
 from nose.tools import nottest
 from numpy.testing import assert_allclose, assert_array_equal
 import pandas as pd
-from six import itervalues, iteritems, with_metaclass
-from six.moves import filter, map
+from six import with_metaclass
 from sqlalchemy import create_engine
 from testfixtures import TempDirectory
 from toolz import concat, curry
@@ -156,7 +155,7 @@ def assert_single_position(test, zipline):
                 for order in update['daily_perf']['orders']:
                     orders_by_id[order['id']] = order
 
-    for order in itervalues(orders_by_id):
+    for order in orders_by_id.values():
         test.assertEqual(
             order['status'],
             ORDER_STATUS.FILLED,
@@ -602,7 +601,7 @@ def create_daily_df_for_asset(trading_calendar, start_day, end_day,
 
 
 def trades_by_sid_to_dfs(trades_by_sid, index):
-    for sidint, trades in iteritems(trades_by_sid):
+    for sidint, trades in trades_by_sid.items():
         opens = []
         highs = []
         lows = []
@@ -656,7 +655,7 @@ def create_data_portal_from_trade_history(asset_finder, trading_calendar,
         length = len(minutes)
         assets = {}
 
-        for sidint, trades in iteritems(trades_by_sid):
+        for sidint, trades in trades_by_sid.items():
             opens = np.zeros(length)
             highs = np.zeros(length)
             lows = np.zeros(length)
@@ -1393,13 +1392,13 @@ def patch_os_environment(remove=None, **values):
     remove = remove or []
     for key in remove:
         old_values[key] = os.environ.pop(key)
-    for key, value in values.iteritems():
+    for key, value in values.items():
         old_values[key] = os.getenv(key)
         os.environ[key] = value
     try:
         yield
     finally:
-        for old_key, old_value in old_values.iteritems():
+        for old_key, old_value in old_values.items():
             if old_value is None:
                 # Value was not present when we entered, so del it out if it's
                 # still present.

@@ -1,8 +1,6 @@
 """
 Tests for the blaze interface to the pipeline api.
 """
-from __future__ import division
-
 from collections import OrderedDict
 from datetime import timedelta, time
 from functools import partial

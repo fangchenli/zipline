@@ -135,8 +135,6 @@ use them just like any other datasets or columns. For more information on how
 to run a pipeline or using the Pipeline API, see:
 www.quantopian.com/help#pipeline-api
 """
-from __future__ import division, absolute_import
-
 from abc import ABCMeta, abstractproperty
 from functools import partial
 from itertools import count
@@ -157,7 +155,7 @@ from interface import implements
 import numpy as np
 from odo import odo
 import pandas as pd
-from six import with_metaclass, itervalues, iteritems
+from six import with_metaclass
 from toolz import (
     complement,
     compose,
@@ -941,7 +939,7 @@ class BlazeLoader(implements(PipelineLoader)):
                     sids,
                     mask,
                 ),
-                itervalues(groupby(getitem(self._table_expressions), columns)),
+                groupby(getitem(self._table_expressions), columns).values(),
             ),
         )
 
@@ -1075,7 +1073,7 @@ def bind_expression_to_resources(expr, resources):
     # prefixes symbol-manipulation methods with underscores to prevent
     # collisions with data column names.
     return expr._subs({
-        k: bz.data(v, dshape=k.dshape) for k, v in iteritems(resources)
+        k: bz.data(v, dshape=k.dshape) for k, v in resources.items()
     })
 
 

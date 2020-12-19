@@ -32,7 +32,6 @@ from parameterized import parameterized
 import numpy as np
 from numpy import full, int32, int64
 import pandas as pd
-from six import viewkeys
 import sqlalchemy as sa
 
 from zipline.assets import (
@@ -49,7 +48,6 @@ from zipline.assets.synthetic import (
     make_rotating_equity_info,
     make_simple_equity_info,
 )
-from six import itervalues, integer_types
 from toolz import valmap, concat
 
 from zipline.assets.asset_writer import (
@@ -369,10 +367,6 @@ class AssetTestCase(TestCase):
         self.assertEqual(int64(23), s_23)
         self.assertEqual(s_23, int32(23))
         self.assertEqual(s_23, int64(23))
-        # Check all int types (includes long on py2):
-        for int_type in integer_types:
-            self.assertEqual(int_type(23), s_23)
-            self.assertEqual(s_23, int_type(23))
 
         self.assertNotEqual(s_23, s_24)
         self.assertNotEqual(s_23, 24)
@@ -550,7 +544,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         )
         self.write_assets(equities=frame)
         assets = self.asset_finder.retrieve_equities(sids)
-        assert_equal(viewkeys(assets), set(sids))
+        assert_equal(assets.keys(), set(sids))
 
     def test_lookup_symbol_delimited(self):
         as_of = pd.Timestamp('2013-01-01', tz='UTC')
@@ -1472,7 +1466,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
             )
             self.assertEqual(
                 {type_},
-                {type(asset) for asset in itervalues(results)},
+                {type(asset) for asset in self.open_orders.values()},
             )
             with self.assertRaises(failure_type):
                 lookup(fail_sids)

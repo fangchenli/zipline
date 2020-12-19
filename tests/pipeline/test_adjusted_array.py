@@ -2,7 +2,7 @@
 Tests for chunked adjustments.
 """
 from collections import namedtuple
-from itertools import chain, product
+from itertools import chain, product, zip_longest
 from string import ascii_lowercase, ascii_uppercase
 from textwrap import dedent
 from unittest import TestCase
@@ -15,7 +15,6 @@ from numpy import (
     dtype,
     full,
 )
-from six.moves import zip_longest
 from toolz import curry
 
 from zipline.errors import WindowLengthNotPositive, WindowLengthTooLong

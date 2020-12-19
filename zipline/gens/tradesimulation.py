@@ -19,7 +19,6 @@ from logbook import Logger, Processor
 from zipline.finance.order import ORDER_STATUS
 from zipline.protocol import BarData
 from zipline.utils.api_support import ZiplineAPI
-from six import viewkeys
 
 from zipline.gens.sim_engine import (
     BAR,
@@ -162,8 +161,8 @@ class AlgorithmSimulator(object):
 
             # handle any splits that impact any positions or any open orders.
             assets_we_care_about = (
-                viewkeys(metrics_tracker.positions) |
-                viewkeys(algo.blotter.open_orders)
+                metrics_tracker.positions.keys() |
+                algo.blotter.open_orders.keys()
             )
 
             if assets_we_care_about:
