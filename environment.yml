@@ -28,7 +28,6 @@ dependencies:
   - h5py
   - pytables
 
-  - lru-dict
   - intervaltree
   - bottleneck
 
@@ -36,7 +35,6 @@ dependencies:
   - iso4217
 
   - six
-  - contextlib2
   - python-interface
   - multipledispatch
   - toolz
@@ -46,7 +44,7 @@ dependencies:
 
   - coverage
   - nose
-  - nose-parameterized
+  - parameterized
   - nose-timer
 
   - mock
@@ -63,6 +61,5 @@ dependencies:
   - pip
   - pip:
     - patsy
-    - python_version
     - nose-ignore-docstring
     - TA-Lib
