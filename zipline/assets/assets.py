@@ -1528,8 +1528,7 @@ class AssetConvertible(with_metaclass(ABCMeta)):
 
 AssetConvertible.register(Integral)
 AssetConvertible.register(Asset)
-for _type in str:
-    AssetConvertible.register(_type)
+AssetConvertible.register(str)
 
 
 class NotAssetConvertible(ValueError):
