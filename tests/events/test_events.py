@@ -20,8 +20,6 @@ import warnings
 
 from parameterized import parameterized
 import pandas as pd
-from six import iteritems
-from six.moves import range, map
 from trading_calendars import get_calendar
 
 import zipline.utils.events
@@ -246,7 +244,7 @@ class RuleTestCase(object):
         classes_to_ignore = [TradingDayOfWeekRule, TradingDayOfMonthRule]
 
         dem = {
-            k for k, v in iteritems(vars(zipline.utils.events))
+            k for k, v in vars(zipline.utils.events).items()
             if isinstance(v, type) and
             issubclass(v, self.class_) and
             v is not self.class_ and

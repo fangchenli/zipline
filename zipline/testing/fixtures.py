@@ -8,7 +8,7 @@ from logbook import NullHandler, Logger
 import numpy as np
 import pandas as pd
 from pandas.errors import PerformanceWarning
-from six import with_metaclass, iteritems, itervalues
+from six import with_metaclass
 import responses
 from toolz import flip, groupby, merge
 from trading_calendars import (
@@ -476,7 +476,7 @@ class WithAssetFinder(WithDefaultDateBounds):
     def exchange_names(cls):
         """A list of canonical exchange names for all exchanges in this suite.
         """
-        infos = itervalues(cls.asset_finder.exchange_info)
+        infos = cls.asset_finder.exchange_info.values()
         return sorted(i.canonical_name for i in infos)
 
     @classlazyval
@@ -542,7 +542,7 @@ class WithTradingCalendars(object):
                         '{0}_calendar'.format(cal_str.lower()), calendar)
                 cls.trading_calendars[cal_str] = calendar
 
-            type_to_cal = iteritems(cls.TRADING_CALENDAR_FOR_ASSET_TYPE)
+            type_to_cal = cls.TRADING_CALENDAR_FOR_ASSET_TYPE.items()
             for asset_type, cal_str in type_to_cal:
                 calendar = get_calendar(cal_str)
                 cls.trading_calendars[asset_type] = calendar

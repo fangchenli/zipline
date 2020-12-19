@@ -8,7 +8,6 @@ from unittest import TestCase
 from parameterized import parameterized
 from numpy import arange, array, dtype
 import pytz
-from six import PY3
 
 from zipline.utils.preprocess import call, preprocess
 from zipline.utils.input_validation import (
@@ -28,11 +27,7 @@ def noop(func, argname, argvalue):
     return argvalue
 
 
-if PY3:
-    qualname = attrgetter('__qualname__')
-else:
-    def qualname(ob):
-        return '.'.join((__name__, ob.__name__))
+qualname = attrgetter('__qualname__')
 
 
 class PreprocessTestCase(TestCase):

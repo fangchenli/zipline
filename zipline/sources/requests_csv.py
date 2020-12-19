@@ -3,6 +3,7 @@ from collections import namedtuple
 import hashlib
 from textwrap import dedent
 import warnings
+from io import StringIO
 
 from logbook import Logger
 import numpy
@@ -10,7 +11,7 @@ import pandas as pd
 from pandas import read_csv
 import pytz
 import requests
-from six import StringIO, iteritems, with_metaclass
+from six import with_metaclass
 
 from zipline.errors import (
     MultipleSymbolsFound,
@@ -120,7 +121,7 @@ SHARED_REQUESTS_KWARGS = {
 
 
 def mask_requests_args(url, validating=False, params_checker=None, **kwargs):
-    requests_kwargs = {key: val for (key, val) in iteritems(kwargs)
+    requests_kwargs = {key: val for (key, val) in kwargs.items()
                        if key in ALLOWED_REQUESTS_KWARGS}
     if params_checker is not None:
         url, s_params = params_checker(url)
@@ -242,7 +243,7 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
         return parsed
 
     def mask_pandas_args(self, kwargs):
-        pandas_kwargs = {key: val for (key, val) in iteritems(kwargs)
+        pandas_kwargs = {key: val for (key, val) in kwargs.items()
                          if key in ALLOWED_READ_CSV_KWARGS}
         if 'usecols' in pandas_kwargs:
             usecols = pandas_kwargs['usecols']
@@ -413,7 +414,7 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
             # the dt column is dropped. So, we need to manually copy
             # dt into the event.
             event.dt = dt
-            for k, v in series.iteritems():
+            for k, v in series.items():
                 # convert numpy integer types to
                 # int. This assumes we are on a 64bit
                 # platform that will not lose information
@@ -491,7 +492,7 @@ class PandasRequestsCSV(PandasCSV):
                                **kwargs)
 
         remaining_kwargs = {
-            k: v for k, v in iteritems(kwargs)
+            k: v for k, v in kwargs.items()
             if k not in self.requests_kwargs
         }
 

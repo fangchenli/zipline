@@ -121,6 +121,9 @@ ext_modules = [
     ),
 ]
 
+for extention in ext_modules:
+    extention.cython_directives = {"language_level": "3"}
+
 
 STR_TO_CMP = {
     '<': lt,

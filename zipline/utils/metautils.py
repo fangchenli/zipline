@@ -1,6 +1,6 @@
 from operator import attrgetter
 
-import six
+from six import with_metaclass
 
 
 def compose_types(a, *cs):
@@ -108,4 +108,4 @@ def with_metaclasses(metaclasses, *bases):
     inheritance. This means that they must delegate all calls to ``super()``
     instead of inlining their super class by name.
     """
-    return six.with_metaclass(compose_types(*metaclasses), *bases)
+    return with_metaclass(compose_types(*metaclasses), *bases)

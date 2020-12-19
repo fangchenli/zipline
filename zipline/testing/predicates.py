@@ -2,6 +2,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 import datetime
 from functools import partial
+from itertools import zip_longest
 import re
 from types import MappingProxyType
 
@@ -41,8 +42,6 @@ from pandas.util.testing import (
     assert_series_equal,
     assert_index_equal,
 )
-from six import iteritems, viewkeys
-from six.moves import zip_longest
 from toolz import dissoc, keyfilter
 import toolz.curried.operator as op
 
@@ -53,7 +52,7 @@ from zipline.lib.labelarray import LabelArray
 from zipline.testing.core import ensure_doctest
 from zipline.utils.compat import getargspec
 from zipline.utils.formatting import s
-from zipline.utils.functional import dzip_exact, instance
+from zipline.utils.functional import instance
 from zipline.utils.math_utils import tolerant_equals
 from zipline.utils.numpy_utils import (
     assert_array_compare,
@@ -463,20 +462,22 @@ def _check_sets(result, expected, msg, path, type_):
 @assert_equal.register(dict, dict)
 def assert_dict_equal(result, expected, path=(), msg='', **kwargs):
     _check_sets(
-        viewkeys(result),
-        viewkeys(expected),
+        result.keys(),
+        expected.keys(),
         msg,
         path + ('.%s()' % 'keys',),
         'key',
     )
 
+    assert set(result) == set(expected)
+
     failures = []
-    for k, (resultv, expectedv) in iteritems(dzip_exact(result, expected)):
+    for key in result.keys():
         try:
             assert_equal(
-                resultv,
-                expectedv,
-                path=path + ('[%r]' % (k,),),
+                result[key],
+                expected[key],
+                path=path + ('[%r]' % (key,),),
                 msg=msg,
                 **kwargs
             )
@@ -499,7 +500,7 @@ def asssert_mappingproxy_equal(result, expected, path=(), msg='', **kwargs):
     )
 
     failures = []
-    for k, resultv in iteritems(result):
+    for k, resultv in result.items():
         # we know this exists because of the _check_sets call above
         expectedv = expected[k]
 

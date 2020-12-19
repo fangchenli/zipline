@@ -4,7 +4,6 @@ Base class for Pipeline API unit tests.
 import numpy as np
 from numpy import arange, prod
 from pandas import DataFrame, Timestamp
-from six import iteritems
 
 from zipline.lib.labelarray import LabelArray
 from functools import wraps
@@ -19,8 +18,6 @@ from zipline.testing.fixtures import (
     WithTradingSessions,
     ZiplineTestCase,
 )
-
-from zipline.utils.functional import dzip_exact
 from zipline.utils.pandas_utils import explode
 
 
@@ -40,7 +37,7 @@ def with_defaults(**default_funcs):
     def decorator(f):
         @wraps(f)
         def method(self, *args, **kwargs):
-            for name, func in iteritems(default_funcs):
+            for name, func in default_funcs.items():
                 if name not in kwargs:
                     kwargs[name] = func(self)
             return f(self, *args, **kwargs)
@@ -146,8 +143,10 @@ class BaseUSEquityPipelineTestCase(WithTradingSessions,
         """
         results = self.run_terms(terms, initial_workspace, mask)
 
-        for key, (res, exp) in dzip_exact(results, expected).items():
-            check(res, exp)
+        assert set(results) == set(expected)
+
+        for key in results.keys():
+            check(results[key], expected[key])
 
         return results
 

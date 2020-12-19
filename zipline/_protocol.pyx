@@ -19,7 +19,6 @@ from functools import wraps
 import pandas as pd
 import numpy as np
 
-from six import iteritems, string_types
 from cpython cimport bool
 from collections import Iterable
 
@@ -34,7 +33,7 @@ from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 
 cdef bool _is_iterable(obj):
-    return isinstance(obj, Iterable) and not isinstance(obj, string_types)
+    return isinstance(obj, Iterable) and not isinstance(obj, str)
 
 
 cdef class check_parameters(object):
@@ -89,7 +88,7 @@ cdef class check_parameters(object):
                     )
 
             # verify type of each kwarg
-            for keyword, arg in iteritems(kwargs):
+            for keyword, arg in kwargs.items():
                 if keyword in ('assets', 'fields') and _is_iterable(arg):
                     if len(arg) == 0:
                         continue
@@ -244,7 +243,7 @@ cdef class BarData:
         return dt
 
     @check_parameters(('assets', 'fields'),
-                      ((Asset, ContinuousFuture) + string_types, string_types))
+                      ((Asset, ContinuousFuture, str), str))
     def current(self, assets, fields):
         """
         Returns the "current" value of the given fields for the given assets
@@ -592,9 +591,9 @@ cdef class BarData:
 
     @check_parameters(('assets', 'fields', 'bar_count',
                        'frequency'),
-                      ((Asset, ContinuousFuture) + string_types, string_types,
+                      ((Asset, ContinuousFuture, str), str,
                        int,
-                       string_types))
+                       str))
     def history(self, assets, fields, bar_count, frequency):
         """
         Returns a trailing window of length ``bar_count`` containing data for
@@ -655,7 +654,7 @@ cdef class BarData:
         If the current simulation time is not a valid market time, we use the
         last market close instead.
         """
-        if isinstance(fields, string_types):
+        if isinstance(fields, str):
             single_asset = isinstance(assets, PricingDataAssociable)
 
             if single_asset:
@@ -717,7 +716,7 @@ cdef class BarData:
                     }
 
                     df_dict = {field: df * adjs[field]
-                               for field, df in iteritems(df_dict)}
+                               for field, df in df_dict.items()}
 
                 # returned dataframe whose columns are the fields, indexed by
                 # dt.
@@ -746,7 +745,7 @@ cdef class BarData:
                     }
 
                     df_dict = {field: df * adjs[field]
-                               for field, df in iteritems(df_dict)}
+                               for field, df in df_dict.items()}
 
                 # returned panel has:
                 # items: fields
@@ -811,12 +810,6 @@ cdef class BarData:
         self._warn_deprecated("Iterating over the assets in `data` is "
                         "deprecated.")
         return [(asset, self[asset]) for asset in self._calculate_universe()]
-
-    def iteritems(self):
-        self._warn_deprecated("Iterating over the assets in `data` is "
-                        "deprecated.")
-        for asset in self._calculate_universe():
-            yield asset, self[asset]
 
     def __len__(self):
         self._warn_deprecated("Iterating over the assets in `data` is "

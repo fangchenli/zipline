@@ -30,7 +30,6 @@ from pandas import (
     to_datetime,
     Timestamp,
 )
-from six import iteritems, viewkeys
 from toolz import compose
 from trading_calendars import get_calendar
 
@@ -230,8 +229,8 @@ class BcolzDailyBarWriter(object):
             dtype=self._csv_dtypes,
         )
         return self.write(
-            ((asset, read(path)) for asset, path in iteritems(asset_map)),
-            assets=viewkeys(asset_map),
+            ((asset, read(path)) for asset, path in asset_map.items()),
+            assets=asset_map.keys(),
             show_progress=show_progress,
             invalid_data_behavior=invalid_data_behavior,
         )
@@ -482,27 +481,21 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
     def _first_rows(self):
         return {
             int(asset_id): start_index
-            for asset_id, start_index in iteritems(
-                self._table.attrs['first_row'],
-            )
+            for asset_id, start_index in self._table.attrs['first_row'].items()
         }
 
     @lazyval
     def _last_rows(self):
         return {
             int(asset_id): end_index
-            for asset_id, end_index in iteritems(
-                self._table.attrs['last_row'],
-            )
+            for asset_id, end_index in self._table.attrs['last_row'].items()
         }
 
     @lazyval
     def _calendar_offsets(self):
         return {
             int(id_): offset
-            for id_, offset in iteritems(
-                self._table.attrs['calendar_offset'],
-            )
+            for id_, offset in self._table.attrs['calendar_offset'].items()
         }
 
     @lazyval

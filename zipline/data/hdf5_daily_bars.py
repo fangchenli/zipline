@@ -98,14 +98,12 @@ Sample layout of the full file with multiple countries.
 """
 
 
-from functools import partial
+from functools import partial, reduce
 
 import h5py
 import logbook
 import numpy as np
 import pandas as pd
-from six import iteritems, raise_from, viewkeys
-from six.moves import reduce
 
 from zipline.data.bar_reader import (
     NoDataAfterDate,
@@ -861,7 +859,7 @@ class MultiCountryDailyBarReader(CurrencyAwareSessionBarReader):
         self._readers = readers
         self._country_map = pd.concat([
             pd.Series(index=reader.sids, data=country_code)
-            for country_code, reader in iteritems(readers)
+            for country_code, reader in readers.items()
         ])
 
     @classmethod
@@ -895,7 +893,7 @@ class MultiCountryDailyBarReader(CurrencyAwareSessionBarReader):
     def countries(self):
         """A set-like object of the country codes supplied by this reader.
         """
-        return viewkeys(self._readers)
+        return self._readers.keys()
 
     def _country_code_for_assets(self, assets):
         country_codes = self._country_map.get(assets)
@@ -1034,13 +1032,10 @@ class MultiCountryDailyBarReader(CurrencyAwareSessionBarReader):
         """
         try:
             country_code = self._country_code_for_assets([sid])
-        except ValueError as exc:
-            raise_from(
-                NoDataForSid(
+        except ValueError:
+            raise NoDataForSid(
                     'Asset not contained in daily pricing file: {}'.format(sid)
-                ),
-                exc
-            )
+                )
         return self._readers[country_code].get_value(sid, dt, field)
 
     def get_last_traded_dt(self, asset, dt):

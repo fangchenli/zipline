@@ -4,13 +4,12 @@ Module for building a complete daily dataset from Quandl's WIKI dataset.
 from io import BytesIO
 import tarfile
 from zipfile import ZipFile
+from urllib.parse import urlencode
 
 from click import progressbar
 from logbook import Logger
 import pandas as pd
 import requests
-from six.moves.urllib.parse import urlencode
-from six import iteritems
 from trading_calendars import register_calendar_alias
 
 from . import core as bundles
@@ -168,7 +167,7 @@ def parse_dividends(data, show_progress):
 def parse_pricing_and_vol(data,
                           sessions,
                           symbol_map):
-    for asset_id, symbol in iteritems(symbol_map):
+    for asset_id, symbol in symbol_map.items():
         asset_data = data.xs(
             symbol,
             level=1

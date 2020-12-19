@@ -7,13 +7,12 @@ from uuid import uuid4
 from functools import wraps
 
 from toolz.curried.operator import getitem
-from six import viewkeys, exec_, PY3
 
 from zipline.utils.compat import getargspec
 
 
 _code_argorder = (
-    ('co_argcount', 'co_kwonlyargcount') if PY3 else ('co_argcount',)
+    ('co_argcount', 'co_kwonlyargcount')
 ) + (
     'co_nlocals',
     'co_stacksize',
@@ -101,7 +100,7 @@ def preprocess(*_unused, **processors):
             )
 
         # Ensure that all processors map to valid names.
-        bad_names = viewkeys(processors) - argset
+        bad_names = processors.keys() - argset
         if bad_names:
             raise TypeError(
                 "Got processors for unknown arguments: %s." % bad_names
@@ -217,7 +216,7 @@ def _build_preprocessed_function(func,
     )
 
     exec_locals = {}
-    exec_(compiled, exec_globals, exec_locals)
+    exec(compiled, exec_globals, exec_locals)
     new_func = exec_locals[func.__name__]
 
     code = new_func.__code__

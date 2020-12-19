@@ -1,5 +1,3 @@
-from six import iteritems
-
 import numpy as np
 import pandas as pd
 from pandas import NaT
@@ -41,7 +39,7 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
                  currency_codes,
                  verify_indices=True):
         self._frames = frames
-        self._values = {key: frame.values for key, frame in iteritems(frames)}
+        self._values = {key: frame.values for key, frame in frames.items()}
         self._calendar = calendar
         self._currency_codes = currency_codes
 

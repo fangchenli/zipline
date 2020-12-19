@@ -18,7 +18,6 @@ from operator import attrgetter
 from numpy import dtype
 import pandas as pd
 from pytz import timezone
-from six import iteritems, string_types, PY3
 from toolz import valmap, complement, compose
 import toolz.curried.operator as op
 
@@ -27,24 +26,7 @@ from zipline.utils.functional import getattrs
 from zipline.utils.preprocess import call, preprocess
 
 
-if PY3:
-    _qualified_name = attrgetter('__qualname__')
-else:
-    def _qualified_name(obj):
-        """
-        Return the fully-qualified name (ignoring inner classes) of a type.
-        """
-        # If the obj has an explicitly-set __qualname__, use it.
-        try:
-            return getattr(obj, '__qualname__')
-        except AttributeError:
-            pass
-
-        # If not, build our own __qualname__ as best we can.
-        module = obj.__module__
-        if module in ('__builtin__', '__main__', 'builtins'):
-            return obj.__name__
-        return '.'.join([module, obj.__name__])
+_qualified_name = attrgetter('__qualname__')
 
 
 def verify_indices_all_unique(obj):
@@ -127,7 +109,7 @@ def optionally(preprocessor):
 
 
 def ensure_upper_case(func, argname, arg):
-    if isinstance(arg, string_types):
+    if isinstance(arg, str):
         return arg.upper()
     else:
         raise TypeError(
@@ -182,7 +164,7 @@ def ensure_timezone(func, argname, arg):
     """
     if isinstance(arg, tzinfo):
         return arg
-    if isinstance(arg, string_types):
+    if isinstance(arg, str):
         return timezone(arg)
 
     raise TypeError(
@@ -244,7 +226,7 @@ def expect_dtypes(__funcname=_qualified_name, **named):
     TypeError: ...foo() expected a value with dtype 'int8' for argument 'x',
     but got 'float64' instead.
     """
-    for name, type_ in iteritems(named):
+    for name, type_ in named.items():
         if not isinstance(type_, (dtype, tuple)):
             raise TypeError(
                 "expect_dtypes() expected a numpy dtype or tuple of dtypes"
@@ -313,7 +295,7 @@ def expect_kinds(**named):
     TypeError: ...foo() expected a numpy object of kind 'i' for argument 'x',
     but got 'f' instead.
     """
-    for name, kind in iteritems(named):
+    for name, kind in named.items():
         if not isinstance(kind, (str, tuple)):
             raise TypeError(
                 "expect_dtype_kinds() expected a string or tuple of strings"
@@ -380,7 +362,7 @@ def expect_types(__funcname=_qualified_name, **named):
     or __new__ methods to make errors refer to the class name instead of the
     function name.
     """
-    for name, type_ in iteritems(named):
+    for name, type_ in named.items():
         if not isinstance(type_, (type, tuple)):
             raise TypeError(
                 "expect_types() expected a type or tuple of types for "
@@ -701,7 +683,7 @@ def _expect_bounded(make_bounded_check, __funcname, **named):
             and t != (None, None)
         )
 
-    for name, bounds in iteritems(named):
+    for name, bounds in named.items():
         if not valid_bounds(bounds):
             raise TypeError(
                 "expect_bounded() expected a tuple of bounds for"
@@ -834,14 +816,14 @@ class error_keywords(object):
     def __call__(self, func):
         @wraps(func)
         def assert_keywords_and_call(*args, **kwargs):
-            for field, message in iteritems(self.messages):
+            for field, message in self.messages.items():
                 if field in kwargs:
                     raise TypeError(message)
             return func(*args, **kwargs)
         return assert_keywords_and_call
 
 
-coerce_string = partial(coerce, string_types)
+coerce_string = partial(coerce, str)
 
 
 def validate_keys(dict_, expected, funcname):

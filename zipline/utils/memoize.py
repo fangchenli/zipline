@@ -4,8 +4,8 @@ Tools for memoization of function results.
 from collections import OrderedDict, Sequence
 from itertools import compress
 from weakref import WeakKeyDictionary, ref
+from _thread import allocate_lock
 
-from six.moves._thread import allocate_lock as Lock
 from toolz.sandbox import unzip
 from trading_calendars.utils.memoize import lazyval
 
@@ -54,7 +54,7 @@ def _weak_lru_cache(maxsize=100):
 
         hits, misses = [0], [0]
         kwd_mark = (object(),)    # separates positional and keyword args
-        lock = Lock()             # needed because OrderedDict isn't threadsafe
+        lock = allocate_lock()    # needed because OrderedDict isn't threadsafe
 
         if maxsize is None:
             cache = _WeakArgsDict()  # cache without ordering or size limit

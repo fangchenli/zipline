@@ -20,7 +20,7 @@ from numpy import (
     int64,
     zeros
 )
-from six import iteritems, with_metaclass
+from six import with_metaclass
 
 from zipline.utils.memoize import lazyval
 
@@ -51,7 +51,7 @@ class AssetDispatchBarReader(with_metaclass(ABCMeta)):
         self._readers = readers
         self._last_available_dt = last_available_dt
 
-        for t, r in iteritems(self._readers):
+        for t, r in self._readers.items():
             assert trading_calendar == r.trading_calendar, \
                 "All readers must share target trading_calendar. " \
                 "Reader={0} for type={1} uses calendar={2} which does not " \
@@ -124,7 +124,7 @@ class AssetDispatchBarReader(with_metaclass(ABCMeta)):
 
         for i, field in enumerate(fields):
             out = self._make_raw_array_out(field, shape)
-            for t, arrays in iteritems(batched_arrays):
+            for t, arrays in batched_arrays.items():
                 out[:, out_pos[t]] = arrays[i]
             results.append(out)
 

@@ -2,8 +2,6 @@ from functools import reduce
 from operator import itemgetter
 from pprint import pformat
 
-from six import viewkeys, iteritems
-from six.moves import map, zip
 from toolz import curry, flip
 
 from .sentinel import sentinel
@@ -108,38 +106,6 @@ def same(*values):
 
 def _format_unequal_keys(dicts):
     return pformat([sorted(d.keys()) for d in dicts])
-
-
-def dzip_exact(*dicts):
-    """
-    Parameters
-    ----------
-    *dicts : iterable[dict]
-        A sequence of dicts all sharing the same keys.
-
-    Returns
-    -------
-    zipped : dict
-        A dict whose keys are the union of all keys in *dicts, and whose values
-        are tuples of length len(dicts) containing the result of looking up
-        each key in each dict.
-
-    Raises
-    ------
-    ValueError
-        If dicts don't all have the same keys.
-
-    Examples
-    --------
-    >>> result = dzip_exact({'a': 1, 'b': 2}, {'a': 3, 'b': 4})
-    >>> result == {'a': (1, 3), 'b': (2, 4)}
-    True
-    """
-    if not same(*map(viewkeys, dicts)):
-        raise ValueError(
-            "dict keys not all equal:\n\n%s" % _format_unequal_keys(dicts)
-        )
-    return {k: tuple(d[k] for d in dicts) for k in dicts[0]}
 
 
 def _gen_unzip(it, elem_len):
@@ -401,7 +367,7 @@ def invert(d):
     {1: {'a', 'c'}, 2: {'b'}}
     """
     out = {}
-    for k, v in iteritems(d):
+    for k, v in d.items():
         try:
             out[v].add(k)
         except KeyError:
@@ -417,4 +383,4 @@ def keysorted(d):
     >>> keysorted({'c': 1, 'b': 2, 'a': 3})
     [('a', 3), ('b', 2), ('c', 1)]
     """
-    return sorted(iteritems(d), key=itemgetter(0))
+    return sorted(d.items(), key=itemgetter(0))

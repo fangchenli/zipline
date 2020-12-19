@@ -3,7 +3,7 @@ from numpy import vectorize
 from functools import partial, reduce
 import operator
 import pandas as pd
-from six import with_metaclass, iteritems
+from six import with_metaclass
 from collections import namedtuple
 from toolz import groupby
 from enum import IntEnum
@@ -170,7 +170,7 @@ class HistoricalRestrictions(Restrictions):
                 restrictions_for_asset, key=lambda x: x.effective_date
             )
             for asset, restrictions_for_asset
-            in iteritems(groupby(lambda x: x.asset, restrictions))
+            in groupby(lambda x: x.asset, restrictions).items()
         }
 
     def is_restricted(self, assets, dt):
