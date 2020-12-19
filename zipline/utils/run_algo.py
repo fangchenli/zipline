@@ -13,7 +13,6 @@ except ImportError:
     PYGMENTS = False
 import logbook
 import pandas as pd
-import six
 from toolz import concatv
 from trading_calendars import get_calendar
 
@@ -177,13 +176,13 @@ def _run(handle_data,
             "No PipelineLoader registered for column %s." % column
         )
 
-    if isinstance(metrics_set, six.string_types):
+    if isinstance(metrics_set, str):
         try:
             metrics_set = metrics.load(metrics_set)
         except ValueError as e:
             raise _RunAlgoError(str(e))
 
-    if isinstance(blotter, six.string_types):
+    if isinstance(blotter, str):
         try:
             blotter = load(Blotter, blotter)
         except ValueError as e:

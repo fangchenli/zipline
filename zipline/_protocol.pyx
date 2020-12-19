@@ -591,9 +591,9 @@ cdef class BarData:
 
     @check_parameters(('assets', 'fields', 'bar_count',
                        'frequency'),
-                      ((Asset, ContinuousFuture) + string_types, string_types,
+                      ((Asset, ContinuousFuture) + str, str,
                        int,
-                       string_types))
+                       str))
     def history(self, assets, fields, bar_count, frequency):
         """
         Returns a trailing window of length ``bar_count`` containing data for
@@ -654,7 +654,7 @@ cdef class BarData:
         If the current simulation time is not a valid market time, we use the
         last market close instead.
         """
-        if isinstance(fields, string_types):
+        if isinstance(fields, str):
             single_asset = isinstance(assets, PricingDataAssociable)
 
             if single_asset:

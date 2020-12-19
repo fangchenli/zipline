@@ -7,7 +7,6 @@ import numpy as np
 from numpy import integer as any_integer
 import pandas as pd
 from pandas import Timestamp
-import six
 import sqlite3
 
 from zipline.utils.functional import keysorted
@@ -357,7 +356,7 @@ class SQLiteAdjustmentWriter(object):
     def __init__(self, conn_or_path, equity_daily_bar_reader, overwrite=False):
         if isinstance(conn_or_path, sqlite3.Connection):
             self.conn = conn_or_path
-        elif isinstance(conn_or_path, six.string_types):
+        elif isinstance(conn_or_path, str):
             if overwrite:
                 try:
                     remove(conn_or_path)

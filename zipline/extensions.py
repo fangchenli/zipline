@@ -1,5 +1,5 @@
 import re
-import six
+
 from toolz import curry
 
 
@@ -73,7 +73,7 @@ def update_namespace(namespace, path, name):
         setattr(namespace, path[0], name)
     else:
         if hasattr(namespace, path[0]):
-            if isinstance(getattr(namespace, path[0]), six.string_types):
+            if isinstance(getattr(namespace, path[0]), str):
                 raise ValueError("Conflicting assignments at namespace"
                                  " level '%s'" % path[0])
         else:
