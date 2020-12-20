@@ -1,5 +1,6 @@
 cimport numpy as np
 
+
 cdef class Asset:
 
     cdef readonly np.int64_t sid

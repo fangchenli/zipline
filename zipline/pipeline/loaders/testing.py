@@ -1,8 +1,8 @@
 """
 Loaders for zipline.pipeline.data.testing datasets.
 """
-from .synthetic import EyeLoader, SeededRandomLoader
 from ..data.testing import TestingDataSet
+from .synthetic import EyeLoader, SeededRandomLoader
 
 
 def make_eye_loader(dates, sids):
@@ -13,10 +13,7 @@ def make_eye_loader(dates, sids):
     return EyeLoader(TestingDataSet.columns, dates, sids)
 
 
-def make_seeded_random_loader(seed,
-                              dates,
-                              sids,
-                              columns=TestingDataSet.columns):
+def make_seeded_random_loader(seed, dates, sids, columns=TestingDataSet.columns):
     """
     Make a PipelineLoader that emits random arrays seeded with `seed` for the
     columns in ``TestingDataSet``.

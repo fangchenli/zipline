@@ -1,9 +1,6 @@
-from interface import implements
 from datashape import istabular
+from interface import implements
 
-from .core import (
-    bind_expression_to_resources,
-)
 from zipline.pipeline.common import (
     EVENT_DATE_FIELD_NAME,
     FISCAL_QUARTER_FIELD_NAME,
@@ -15,12 +12,14 @@ from zipline.pipeline.loaders.base import PipelineLoader
 from zipline.pipeline.loaders.blaze.utils import load_raw_data
 from zipline.pipeline.loaders.earnings_estimates import (
     NextEarningsEstimatesLoader,
-    PreviousEarningsEstimatesLoader,
-    required_estimates_fields,
-    metadata_columns,
-    PreviousSplitAdjustedEarningsEstimatesLoader,
     NextSplitAdjustedEarningsEstimatesLoader,
+    PreviousEarningsEstimatesLoader,
+    PreviousSplitAdjustedEarningsEstimatesLoader,
+    metadata_columns,
+    required_estimates_fields,
 )
+
+from .core import bind_expression_to_resources
 
 
 class BlazeEstimatesLoader(implements(PipelineLoader)):
@@ -60,6 +59,7 @@ class BlazeEstimatesLoader(implements(PipelineLoader)):
     If the '{TS_FIELD_NAME}' field is not included it is assumed that we
     start the backtest with knowledge of all announcements.
     """
+
     __doc__ = __doc__.format(
         SID_FIELD_NAME=SID_FIELD_NAME,
         TS_FIELD_NAME=TS_FIELD_NAME,
@@ -68,22 +68,17 @@ class BlazeEstimatesLoader(implements(PipelineLoader)):
         EVENT_DATE_FIELD_NAME=EVENT_DATE_FIELD_NAME,
     )
 
-    def __init__(self,
-                 expr,
-                 columns,
-                 resources=None,
-                 odo_kwargs=None,
-                 checkpoints=None):
+    def __init__(
+        self, expr, columns, resources=None, odo_kwargs=None, checkpoints=None
+    ):
 
         dshape = expr.dshape
         if not istabular(dshape):
             raise ValueError(
-                'expression dshape must be tabular, got: %s' % dshape,
+                "expression dshape must be tabular, got: %s" % dshape,
             )
 
-        required_cols = list(
-            required_estimates_fields(columns)
-        )
+        required_cols = list(required_estimates_fields(columns))
         self._expr = bind_expression_to_resources(
             expr[required_cols],
             resources,
@@ -94,8 +89,7 @@ class BlazeEstimatesLoader(implements(PipelineLoader)):
 
     def load_adjusted_array(self, domain, columns, dates, sids, mask):
         # Only load requested columns.
-        requested_column_names = [self._columns[column.name]
-                                  for column in columns]
+        requested_column_names = [self._columns[column.name] for column in columns]
 
         raw = load_raw_data(
             sids,
@@ -126,26 +120,23 @@ class BlazePreviousEstimatesLoader(BlazeEstimatesLoader):
 
 
 class BlazeSplitAdjustedEstimatesLoader(BlazeEstimatesLoader):
-    def __init__(self,
-                 expr,
-                 columns,
-                 split_adjustments_loader,
-                 split_adjusted_column_names,
-                 split_adjusted_asof,
-                 **kwargs):
+    def __init__(
+        self,
+        expr,
+        columns,
+        split_adjustments_loader,
+        split_adjusted_column_names,
+        split_adjusted_asof,
+        **kwargs,
+    ):
         self._split_adjustments = split_adjustments_loader
         self._split_adjusted_column_names = split_adjusted_column_names
         self._split_adjusted_asof = split_adjusted_asof
-        super(BlazeSplitAdjustedEstimatesLoader, self).__init__(
-            expr,
-            columns,
-            **kwargs
-        )
+        super(BlazeSplitAdjustedEstimatesLoader, self).__init__(expr, columns, **kwargs)
 
     def load_adjusted_array(self, domain, columns, dates, sids, mask):
         # Only load requested columns.
-        requested_column_names = [self._columns[column.name]
-                                  for column in columns]
+        requested_column_names = [self._columns[column.name] for column in columns]
 
         requested_spilt_adjusted_columns = [
             column_name
@@ -180,7 +171,5 @@ class BlazeNextSplitAdjustedEstimatesLoader(BlazeSplitAdjustedEstimatesLoader):
     loader = NextSplitAdjustedEarningsEstimatesLoader
 
 
-class BlazePreviousSplitAdjustedEstimatesLoader(
-    BlazeSplitAdjustedEstimatesLoader
-):
+class BlazePreviousSplitAdjustedEstimatesLoader(BlazeSplitAdjustedEstimatesLoader):
     loader = PreviousSplitAdjustedEarningsEstimatesLoader

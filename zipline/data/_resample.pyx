@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from cython cimport boundscheck, wraparound
-from numpy import finfo, float64, nan, isnan
-from numpy cimport intp_t, float64_t, uint32_t
+
+from numpy import finfo, float64, isnan, nan
+
+from numpy cimport float64_t, intp_t, uint32_t
+
 
 @boundscheck(False)
 @wraparound(False)

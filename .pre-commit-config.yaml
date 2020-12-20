@@ -1,13 +1,28 @@
-repos:
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: 'v2.4.0'
-  hooks:
-  - id: check-added-large-files
-  - id: check-merge-conflict
-  - id: end-of-file-fixer
-  - id: trailing-whitespace
+# This file is taking from pandas.
 
-- repo: https://gitlab.com/pycqa/flake8
-  rev: '3.7.9'
-  hooks:
-  - id: flake8
+minimum_pre_commit_version: '2.9.2'
+repos:
+-   repo: https://github.com/python/black
+    rev: 20.8b1
+    hooks:
+    -   id: black
+-   repo: https://gitlab.com/pycqa/flake8
+    rev: 3.8.4
+    hooks:
+    -   id: flake8
+-   repo: https://github.com/PyCQA/isort
+    rev: 5.6.4
+    hooks:
+    -   id: isort
+        types: [text] # overwrite upstream `types: [python]`
+        types_or: [python, cython]
+-   repo: local
+    hooks:
+    -   id: pip_to_conda
+        name: Generate pip dependency from conda
+        description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
+        language: python
+        entry: python scripts/generate_pip_deps_from_conda.py
+        files: ^(environment.yml|requirements-dev.txt)$
+        pass_filenames: false
+        additional_dependencies: [pyyaml]

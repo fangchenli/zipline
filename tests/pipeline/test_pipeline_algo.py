@@ -1,77 +1,50 @@
 """
 Tests for Algorithms using the Pipeline API.
 """
-from os.path import (
-    dirname,
-    join,
-    realpath,
-)
+from os.path import dirname, join, realpath
 
-from parameterized import parameterized
 import numpy as np
-from numpy import (
-    array,
-    arange,
-    full_like,
-    float64,
-    nan,
-    uint32,
-)
+from numpy import arange, array, float64, full_like, nan, uint32
 from numpy.testing import assert_almost_equal
 import pandas as pd
-from pandas import (
-    concat,
-    DataFrame,
-    date_range,
-    read_csv,
-    Series,
-    Timestamp,
-)
+from pandas import DataFrame, Series, Timestamp, concat, date_range, read_csv
+from parameterized import parameterized
 from trading_calendars import get_calendar
 
-from zipline.api import (
-    attach_pipeline,
-    pipeline_output,
-    get_datetime,
-)
+from zipline.api import attach_pipeline, get_datetime, pipeline_output
 from zipline.errors import (
     AttachPipelineAfterInitialize,
-    PipelineOutputDuringInitialize,
-    NoSuchPipeline,
     DuplicatePipelineName,
+    NoSuchPipeline,
+    PipelineOutputDuringInitialize,
 )
 from zipline.finance.trading import SimulationParameters
 from zipline.lib.adjustment import MULTIPLY
-from zipline.pipeline import Pipeline, CustomFactor
-from zipline.pipeline.factors import VWAP
+from zipline.pipeline import CustomFactor, Pipeline
 from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.factors import VWAP
+from zipline.pipeline.loaders.equity_pricing_loader import USEquityPricingLoader
 from zipline.pipeline.loaders.frame import DataFrameLoader
-from zipline.pipeline.loaders.equity_pricing_loader import (
-    USEquityPricingLoader,
-)
-from zipline.testing import (
-    str_to_seconds
-)
-from zipline.testing import create_empty_splits_mergers_frame
+from zipline.testing import create_empty_splits_mergers_frame, str_to_seconds
 from zipline.testing.fixtures import (
-    WithMakeAlgo,
     WithAdjustmentReader,
     WithBcolzEquityDailyBarReaderFromCSVs,
+    WithMakeAlgo,
     ZiplineTestCase,
 )
 from zipline.utils.pandas_utils import normalize_date
 
 TEST_RESOURCE_PATH = join(
     dirname(dirname(realpath(__file__))),  # zipline_repo/tests
-    'resources',
-    'pipeline_inputs',
+    "resources",
+    "pipeline_inputs",
 )
 
 
 def rolling_vwap(df, length):
     "Simple rolling vwap implementation for testing"
-    closes = df['close'].values
-    volumes = df['volume'].values
+    closes = df["close"].values
+    volumes = df["volume"].values
     product = closes * volumes
     out = full_like(closes, nan)
     for upper_bound in range(length, len(closes) + 1):
@@ -82,12 +55,11 @@ def rolling_vwap(df, length):
 
 
 class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
-    START_DATE = pd.Timestamp('2014-01-01', tz='utc')
-    END_DATE = pd.Timestamp('2014-02-01', tz='utc')
-    dates = date_range(START_DATE, END_DATE, freq=get_calendar("NYSE").day,
-                       tz='utc')
+    START_DATE = pd.Timestamp("2014-01-01", tz="utc")
+    END_DATE = pd.Timestamp("2014-02-01", tz="utc")
+    dates = date_range(START_DATE, END_DATE, freq=get_calendar("NYSE").day, tz="utc")
 
-    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    SIM_PARAMS_DATA_FREQUENCY = "daily"
     DATA_PORTAL_USE_MINUTE_DATA = False
 
     # FIXME: This currently uses benchmark returns from the trading
@@ -96,34 +68,36 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
 
     @classmethod
     def make_equity_info(cls):
-        cls.equity_info = ret = DataFrame.from_records([
-            {
-                'sid': 1,
-                'symbol': 'A',
-                'start_date': cls.dates[10],
-                'end_date': cls.dates[13],
-                'exchange': 'NYSE',
-            },
-            {
-                'sid': 2,
-                'symbol': 'B',
-                'start_date': cls.dates[11],
-                'end_date': cls.dates[14],
-                'exchange': 'NYSE',
-            },
-            {
-                'sid': 3,
-                'symbol': 'C',
-                'start_date': cls.dates[12],
-                'end_date': cls.dates[15],
-                'exchange': 'NYSE',
-            },
-        ])
+        cls.equity_info = ret = DataFrame.from_records(
+            [
+                {
+                    "sid": 1,
+                    "symbol": "A",
+                    "start_date": cls.dates[10],
+                    "end_date": cls.dates[13],
+                    "exchange": "NYSE",
+                },
+                {
+                    "sid": 2,
+                    "symbol": "B",
+                    "start_date": cls.dates[11],
+                    "end_date": cls.dates[14],
+                    "exchange": "NYSE",
+                },
+                {
+                    "sid": 3,
+                    "symbol": "C",
+                    "start_date": cls.dates[12],
+                    "end_date": cls.dates[15],
+                    "exchange": "NYSE",
+                },
+            ]
+        )
         return ret
 
     @classmethod
     def make_exchanges_info(cls, *args, **kwargs):
-        return DataFrame({'exchange': ['NYSE'], 'country_code': ['US']})
+        return DataFrame({"exchange": ["NYSE"], "country_code": ["US"]})
 
     @classmethod
     def make_equity_daily_bar_data(cls, country_code, sids):
@@ -136,11 +110,11 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
         for sid in sids:
             yield sid, DataFrame(
                 {
-                    'open': cls.closes[sid].values,
-                    'high': cls.closes[sid].values,
-                    'low': cls.closes[sid].values,
-                    'close': cls.closes[sid].values,
-                    'volume': cls.volumes[sid].values,
+                    "open": cls.closes[sid].values,
+                    "high": cls.closes[sid].values,
+                    "low": cls.closes[sid].values,
+                    "close": cls.closes[sid].values,
+                    "volume": cls.volumes[sid].values,
                 },
                 index=cls.dates,
             )
@@ -158,23 +132,25 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
         cls.split_asset = cls.assets[0]
         cls.split_date = cls.split_asset.start_date + cls.trading_day
         cls.split_ratio = 0.5
-        cls.adjustments = DataFrame.from_records([
-            {
-                'sid': cls.split_asset.sid,
-                'value': cls.split_ratio,
-                'kind': MULTIPLY,
-                'start_date': Timestamp('NaT'),
-                'end_date': cls.split_date,
-                'apply_date': cls.split_date,
-            }
-        ])
+        cls.adjustments = DataFrame.from_records(
+            [
+                {
+                    "sid": cls.split_asset.sid,
+                    "value": cls.split_ratio,
+                    "kind": MULTIPLY,
+                    "start_date": Timestamp("NaT"),
+                    "end_date": cls.split_date,
+                    "apply_date": cls.split_date,
+                }
+            ]
+        )
 
         cls.default_sim_params = SimulationParameters(
             start_session=cls.first_asset_start,
             end_session=cls.last_asset_end,
             trading_calendar=cls.trading_calendar,
-            emission_rate='daily',
-            data_frequency='daily',
+            emission_rate="daily",
+            data_frequency="daily",
         )
 
     def make_algo_kwargs(self, **overrides):
@@ -192,9 +168,9 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
 
         # View of the data on/after the split.
         self.adj_closes = adj_closes = self.closes.copy()
-        adj_closes.ix[:self.split_date, self.split_asset] *= self.split_ratio
+        adj_closes.ix[: self.split_date, self.split_asset] *= self.split_ratio
         self.adj_volumes = adj_volumes = self.volumes.copy()
-        adj_volumes.ix[:self.split_date, self.split_asset] *= self.split_ratio
+        adj_volumes.ix[: self.split_date, self.split_asset] *= self.split_ratio
 
         self.pipeline_close_loader = DataFrameLoader(
             column=USEquityPricing.close,
@@ -229,11 +205,12 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
         """
         Assert that calling attach_pipeline after initialize raises correctly.
         """
+
         def initialize(context):
             pass
 
         def late_attach(context, data):
-            attach_pipeline(Pipeline(), 'test')
+            attach_pipeline(Pipeline(), "test")
             raise AssertionError("Shouldn't make it past attach_pipeline!")
 
         algo = self.make_algo(
@@ -260,9 +237,10 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
         """
         Assert that calling pipeline_output after initialize raises correctly.
         """
+
         def initialize(context):
-            attach_pipeline(Pipeline(), 'test')
-            pipeline_output('test')
+            attach_pipeline(Pipeline(), "test")
+            pipeline_output("test")
             raise AssertionError("Shouldn't make it past pipeline_output()")
 
         def handle_data(context, data):
@@ -284,14 +262,15 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
         """
         Assert that calling add_pipeline after initialize raises appropriately.
         """
+
         def initialize(context):
-            attach_pipeline(Pipeline(), 'test')
+            attach_pipeline(Pipeline(), "test")
 
         def handle_data(context, data):
             raise AssertionError("Shouldn't make it past before_trading_start")
 
         def before_trading_start(context, data):
-            pipeline_output('not_test')
+            pipeline_output("not_test")
             raise AssertionError("Shouldn't make it past pipeline_output!")
 
         algo = self.make_algo(
@@ -303,29 +282,32 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
         with self.assertRaises(NoSuchPipeline):
             algo.run()
 
-    @parameterized.expand([('default', None),
-                           ('day', 1),
-                           ('week', 5),
-                           ('year', 252),
-                           ('all_but_one_day', 'all_but_one_day'),
-                           ('custom_iter', 'custom_iter')])
+    @parameterized.expand(
+        [
+            ("default", None),
+            ("day", 1),
+            ("week", 5),
+            ("year", 252),
+            ("all_but_one_day", "all_but_one_day"),
+            ("custom_iter", "custom_iter"),
+        ]
+    )
     def test_assets_appear_on_correct_days(self, test_name, chunks):
         """
         Assert that assets appear at correct times during a backtest, with
         correctly-adjusted close price values.
         """
 
-        if chunks == 'all_but_one_day':
+        if chunks == "all_but_one_day":
             chunks = (
-                self.dates.get_loc(self.last_asset_end) -
-                self.dates.get_loc(self.first_asset_start)
+                self.dates.get_loc(self.last_asset_end)
+                - self.dates.get_loc(self.first_asset_start)
             ) - 1
-        elif chunks == 'custom_iter':
+        elif chunks == "custom_iter":
             chunks = []
             st = np.random.RandomState(12345)
-            remaining = (
-                self.dates.get_loc(self.last_asset_end) -
-                self.dates.get_loc(self.first_asset_start)
+            remaining = self.dates.get_loc(self.last_asset_end) - self.dates.get_loc(
+                self.first_asset_start
             )
             while remaining > 0:
                 chunk = st.randint(3)
@@ -333,18 +315,18 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
                 remaining -= chunk
 
         def initialize(context):
-            p = attach_pipeline(Pipeline(), 'test', chunks=chunks)
-            p.add(USEquityPricing.close.latest, 'close')
+            p = attach_pipeline(Pipeline(), "test", chunks=chunks)
+            p.add(USEquityPricing.close.latest, "close")
 
         def handle_data(context, data):
-            results = pipeline_output('test')
+            results = pipeline_output("test")
             date = get_datetime().normalize()
             for asset in self.assets:
                 # Assets should appear iff they exist today and yesterday.
                 exists_today = self.exists(date, asset)
                 existed_yesterday = self.exists(date - self.trading_day, asset)
                 if exists_today and existed_yesterday:
-                    latest = results.loc[asset, 'close']
+                    latest = results.loc[asset, "close"]
                     self.assertEqual(latest, self.expected_close(date, asset))
                 else:
                     self.assertNotIn(asset, results.index)
@@ -365,16 +347,17 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
         Test that we can attach multiple pipelines and access the correct
         output based on the pipeline name.
         """
-        def initialize(context):
-            pipeline_close = attach_pipeline(Pipeline(), 'test_close')
-            pipeline_volume = attach_pipeline(Pipeline(), 'test_volume')
 
-            pipeline_close.add(USEquityPricing.close.latest, 'close')
-            pipeline_volume.add(USEquityPricing.volume.latest, 'volume')
+        def initialize(context):
+            pipeline_close = attach_pipeline(Pipeline(), "test_close")
+            pipeline_volume = attach_pipeline(Pipeline(), "test_volume")
+
+            pipeline_close.add(USEquityPricing.close.latest, "close")
+            pipeline_volume.add(USEquityPricing.volume.latest, "volume")
 
         def handle_data(context, data):
-            closes = pipeline_output('test_close')
-            volumes = pipeline_output('test_volume')
+            closes = pipeline_output("test_close")
+            volumes = pipeline_output("test_volume")
             date = get_datetime().normalize()
             for asset in self.assets:
                 # Assets should appear iff they exist today and yesterday.
@@ -382,12 +365,10 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
                 existed_yesterday = self.exists(date - self.trading_day, asset)
                 if exists_today and existed_yesterday:
                     self.assertEqual(
-                        closes.loc[asset, 'close'],
-                        self.expected_close(date, asset)
+                        closes.loc[asset, "close"], self.expected_close(date, asset)
                     )
                     self.assertEqual(
-                        volumes.loc[asset, 'volume'],
-                        self.expected_volume(date, asset)
+                        volumes.loc[asset, "volume"], self.expected_volume(date, asset)
                     )
                 else:
                     self.assertNotIn(asset, closes.index)
@@ -411,9 +392,10 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
         Test that we raise an error when we try to attach a pipeline with a
         name that already exists for another attached pipeline.
         """
+
         def initialize(context):
-            attach_pipeline(Pipeline(), 'test')
-            attach_pipeline(Pipeline(), 'test')
+            attach_pipeline(Pipeline(), "test")
+            attach_pipeline(Pipeline(), "test")
 
         algo = self.make_algo(initialize=initialize)
         with self.assertRaises(DuplicatePipelineName):
@@ -424,58 +406,63 @@ class MockDailyBarSpotReader(object):
     """
     A BcolzDailyBarReader which returns a constant value for spot price.
     """
+
     def get_value(self, sid, day, column):
         return 100.0
 
 
-class PipelineAlgorithmTestCase(WithMakeAlgo,
-                                WithBcolzEquityDailyBarReaderFromCSVs,
-                                WithAdjustmentReader,
-                                ZiplineTestCase):
+class PipelineAlgorithmTestCase(
+    WithMakeAlgo,
+    WithBcolzEquityDailyBarReaderFromCSVs,
+    WithAdjustmentReader,
+    ZiplineTestCase,
+):
     AAPL = 1
     MSFT = 2
     BRK_A = 3
     ASSET_FINDER_EQUITY_SIDS = AAPL, MSFT, BRK_A
-    ASSET_FINDER_EQUITY_SYMBOLS = 'AAPL', 'MSFT', 'BRK_A'
-    START_DATE = Timestamp('2014', tz='UTC')
-    END_DATE = Timestamp('2015', tz='UTC')
+    ASSET_FINDER_EQUITY_SYMBOLS = "AAPL", "MSFT", "BRK_A"
+    START_DATE = Timestamp("2014", tz="UTC")
+    END_DATE = Timestamp("2015", tz="UTC")
 
-    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    SIM_PARAMS_DATA_FREQUENCY = "daily"
     DATA_PORTAL_USE_MINUTE_DATA = False
 
     # FIXME: This currently uses benchmark returns from the trading
     # environment.
     BENCHMARK_SID = None
 
-    ASSET_FINDER_COUNTRY_CODE = 'US'
+    ASSET_FINDER_COUNTRY_CODE = "US"
 
     @classmethod
     def make_equity_daily_bar_data(cls, country_code, sids):
         resources = {
-            cls.AAPL: join(TEST_RESOURCE_PATH, 'AAPL.csv'),
-            cls.MSFT: join(TEST_RESOURCE_PATH, 'MSFT.csv'),
-            cls.BRK_A: join(TEST_RESOURCE_PATH, 'BRK-A.csv'),
+            cls.AAPL: join(TEST_RESOURCE_PATH, "AAPL.csv"),
+            cls.MSFT: join(TEST_RESOURCE_PATH, "MSFT.csv"),
+            cls.BRK_A: join(TEST_RESOURCE_PATH, "BRK-A.csv"),
         }
         cls.raw_data = raw_data = {
-            asset: read_csv(path, parse_dates=['day']).set_index('day')
+            asset: read_csv(path, parse_dates=["day"]).set_index("day")
             for asset, path in resources.items()
         }
         # Add 'price' column as an alias because all kinds of stuff in zipline
         # depends on it being present. :/
         for frame in raw_data.values():
-            frame['price'] = frame['close']
+            frame["price"] = frame["close"]
 
         return resources
 
     @classmethod
     def make_splits_data(cls):
-        return DataFrame.from_records([
-            {
-                'effective_date': str_to_seconds('2014-06-09'),
-                'ratio': (1 / 7.0),
-                'sid': cls.AAPL,
-            }
-        ])
+        return DataFrame.from_records(
+            [
+                {
+                    "effective_date": str_to_seconds("2014-06-09"),
+                    "ratio": (1 / 7.0),
+                    "sid": cls.AAPL,
+                }
+            ]
+        )
 
     @classmethod
     def make_mergers_data(cls):
@@ -483,14 +470,19 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
 
     @classmethod
     def make_dividends_data(cls):
-        return pd.DataFrame(array([], dtype=[
-            ('sid', uint32),
-            ('amount', float64),
-            ('record_date', 'datetime64[ns]'),
-            ('ex_date', 'datetime64[ns]'),
-            ('declared_date', 'datetime64[ns]'),
-            ('pay_date', 'datetime64[ns]'),
-        ]))
+        return pd.DataFrame(
+            array(
+                [],
+                dtype=[
+                    ("sid", uint32),
+                    ("amount", float64),
+                    ("record_date", "datetime64[ns]"),
+                    ("ex_date", "datetime64[ns]"),
+                    ("declared_date", "datetime64[ns]"),
+                    ("pay_date", "datetime64[ns]"),
+                ],
+            )
+        )
 
     @classmethod
     def init_class_fixtures(cls):
@@ -499,11 +491,9 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
             cls.bcolz_equity_daily_bar_reader,
             cls.adjustment_reader,
         )
-        cls.dates = cls.raw_data[cls.AAPL].index.tz_localize('UTC')
-        cls.AAPL_split_date = Timestamp("2014-06-09", tz='UTC')
-        cls.assets = cls.asset_finder.retrieve_all(
-            cls.ASSET_FINDER_EQUITY_SIDS
-        )
+        cls.dates = cls.raw_data[cls.AAPL].index.tz_localize("UTC")
+        cls.AAPL_split_date = Timestamp("2014-06-09", tz="UTC")
+        cls.assets = cls.asset_finder.retrieve_all(cls.ASSET_FINDER_EQUITY_SIDS)
 
     def make_algo_kwargs(self, **overrides):
         return self.merge_with_inherited_algo_kwargs(
@@ -527,9 +517,9 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
         # 9 get divided by the split ratio, and volumes get multiplied by the
         # split ratio.
         adj = {k: v.copy() for k, v in self.raw_data.items()}
-        for column in 'open', 'high', 'low', 'close':
+        for column in "open", "high", "low", "close":
             adj[AAPL].ix[:split_loc, column] /= split_ratio
-        adj[AAPL].ix[:split_loc, 'volume'] *= split_ratio
+        adj[AAPL].ix[:split_loc, "volume"] *= split_ratio
 
         # length -> asset -> expected vwap
         vwaps = {length: {} for length in window_lengths}
@@ -542,10 +532,7 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
                 # algorithm. (We can't show the close price for day N until day
                 # N + 1.)
                 vwaps[length][asset] = concat(
-                    [
-                        raw_vwap[:split_loc - 1],
-                        adj_vwap[split_loc - 1:]
-                    ]
+                    [raw_vwap[: split_loc - 1], adj_vwap[split_loc - 1 :]]
                 ).shift(1, self.trading_calendar.day)
 
         # Make sure all the expected vwaps have the same dates.
@@ -558,13 +545,11 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
         # Spot check expectations near the AAPL split.
         # length 1 vwap for the morning before the split should be the close
         # price of the previous day.
-        before_split = vwaps[1][AAPL].loc[split_date -
-                                          self.trading_calendar.day]
+        before_split = vwaps[1][AAPL].loc[split_date - self.trading_calendar.day]
         assert_almost_equal(before_split, 647.3499, decimal=2)
         assert_almost_equal(
             before_split,
-            raw[AAPL].loc[split_date - (2 * self.trading_calendar.day),
-                          'close'],
+            raw[AAPL].loc[split_date - (2 * self.trading_calendar.day), "close"],
             decimal=2,
         )
 
@@ -574,28 +559,29 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
         assert_almost_equal(on_split, 645.5700 / split_ratio, decimal=2)
         assert_almost_equal(
             on_split,
-            raw[AAPL].loc[split_date -
-                          self.trading_calendar.day, 'close'] / split_ratio,
+            raw[AAPL].loc[split_date - self.trading_calendar.day, "close"]
+            / split_ratio,
             decimal=2,
         )
 
         # length 1 vwap on the day after the split should be the as-traded
         # close on the split day.
-        after_split = vwaps[1][AAPL].loc[split_date +
-                                         self.trading_calendar.day]
+        after_split = vwaps[1][AAPL].loc[split_date + self.trading_calendar.day]
         assert_almost_equal(after_split, 93.69999, decimal=2)
         assert_almost_equal(
             after_split,
-            raw[AAPL].loc[split_date, 'close'],
+            raw[AAPL].loc[split_date, "close"],
             decimal=2,
         )
 
         return vwaps
 
-    @parameterized.expand([
-        (True,),
-        (False,),
-    ])
+    @parameterized.expand(
+        [
+            (True,),
+            (False,),
+        ]
+    )
     def test_handle_adjustment(self, set_screen):
         AAPL, MSFT, BRK_A = assets = self.assets
 
@@ -614,16 +600,16 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
                 context.vwaps.append(factor)
                 pipeline.add(factor, name=name)
 
-            filter_ = (USEquityPricing.close.latest > 300)
-            pipeline.add(filter_, 'filter')
+            filter_ = USEquityPricing.close.latest > 300
+            pipeline.add(filter_, "filter")
             if set_screen:
                 pipeline.set_screen(filter_)
 
-            attach_pipeline(pipeline, 'test')
+            attach_pipeline(pipeline, "test")
 
         def handle_data(context, data):
             today = normalize_date(get_datetime())
-            results = pipeline_output('test')
+            results = pipeline_output("test")
             expect_over_300 = {
                 AAPL: today < self.AAPL_split_date,
                 MSFT: False,
@@ -636,7 +622,7 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
                     continue
 
                 asset_results = results.loc[asset]
-                self.assertEqual(asset_results['filter'], should_pass_filter)
+                self.assertEqual(asset_results["filter"], should_pass_filter)
                 for length in vwaps:
                     computed = results.loc[asset, vwap_key(length)]
                     expected = vwaps[length][asset].loc[today]
@@ -654,10 +640,10 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
             sim_params=SimulationParameters(
                 start_session=self.dates[max(window_lengths)],
                 end_session=self.dates[-1],
-                data_frequency='daily',
-                emission_rate='daily',
+                data_frequency="daily",
+                emission_rate="daily",
                 trading_calendar=self.trading_calendar,
-            )
+            ),
         )
 
     def test_empty_pipeline(self):
@@ -666,10 +652,10 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
         count = [0]
 
         def initialize(context):
-            pipeline = attach_pipeline(Pipeline(), 'test')
+            pipeline = attach_pipeline(Pipeline(), "test")
 
             vwap = VWAP(window_length=10)
-            pipeline.add(vwap, 'vwap')
+            pipeline.add(vwap, "vwap")
 
             # Nothing should have prices less than 0.
             pipeline.set_screen(vwap < 0)
@@ -678,7 +664,7 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
             pass
 
         def before_trading_start(context, data):
-            context.results = pipeline_output('test')
+            context.results = pipeline_output("test")
             self.assertTrue(context.results.empty)
             count[0] += 1
 
@@ -689,10 +675,10 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
             sim_params=SimulationParameters(
                 start_session=self.dates[0],
                 end_session=self.dates[-1],
-                data_frequency='daily',
-                emission_rate='daily',
+                data_frequency="daily",
+                emission_rate="daily",
                 trading_calendar=self.trading_calendar,
-            )
+            ),
         )
 
         self.assertTrue(count[0] > 0)
@@ -711,10 +697,10 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
         )
 
         def initialize(context):
-            pipeline = attach_pipeline(Pipeline(), 'test')
+            pipeline = attach_pipeline(Pipeline(), "test")
 
             vwap = VWAP(window_length=10)
-            pipeline.add(vwap, 'vwap')
+            pipeline.add(vwap, "vwap")
 
             # Nothing should have prices less than 0.
             pipeline.set_screen(vwap < 0)
@@ -723,7 +709,7 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
             pass
 
         def before_trading_start(context, data):
-            context.results = pipeline_output('test')
+            context.results = pipeline_output("test")
             self.assertTrue(context.results.empty)
             count[0] += 1
 
@@ -734,10 +720,10 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
             sim_params=SimulationParameters(
                 start_session=self.dates[0],
                 end_session=current_day,
-                data_frequency='daily',
-                emission_rate='daily',
+                data_frequency="daily",
+                emission_rate="daily",
                 trading_calendar=self.trading_calendar,
-            )
+            ),
         )
 
         self.assertTrue(count[0] > 0)
@@ -746,9 +732,9 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
 class PipelineSequenceTestCase(WithMakeAlgo, ZiplineTestCase):
 
     # run algorithm for 3 days
-    START_DATE = pd.Timestamp('2014-12-29', tz='utc')
-    END_DATE = pd.Timestamp('2014-12-31', tz='utc')
-    ASSET_FINDER_COUNTRY_CODE = 'US'
+    START_DATE = pd.Timestamp("2014-12-29", tz="utc")
+    END_DATE = pd.Timestamp("2014-12-31", tz="utc")
+    ASSET_FINDER_COUNTRY_CODE = "US"
 
     def get_pipeline_loader(self):
         raise AssertionError("Loading terms for pipeline with no inputs")
@@ -768,13 +754,13 @@ class PipelineSequenceTestCase(WithMakeAlgo, ZiplineTestCase):
                 trace.append("CustomFactor call")
 
         def initialize(context):
-            pipeline = attach_pipeline(Pipeline(), 'my_pipeline')
+            pipeline = attach_pipeline(Pipeline(), "my_pipeline")
             test_factor = TestFactor()
-            pipeline.add(test_factor, 'test_factor')
+            pipeline.add(test_factor, "test_factor")
 
         def before_trading_start(context, data):
             trace.append("BTS call")
-            pipeline_output('my_pipeline')
+            pipeline_output("my_pipeline")
 
         self.run_algorithm(
             initialize=initialize,

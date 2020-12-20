@@ -1,20 +1,12 @@
-from interface import implements
 from datashape import istabular
+from interface import implements
 
-from .core import (
-    bind_expression_to_resources,
-)
-from zipline.pipeline.common import (
-    SID_FIELD_NAME,
-    TS_FIELD_NAME,
-    EVENT_DATE_FIELD_NAME,
-)
+from zipline.pipeline.common import EVENT_DATE_FIELD_NAME, SID_FIELD_NAME, TS_FIELD_NAME
 from zipline.pipeline.loaders.base import PipelineLoader
 from zipline.pipeline.loaders.blaze.utils import load_raw_data
-from zipline.pipeline.loaders.events import (
-    EventsLoader,
-    required_event_fields,
-)
+from zipline.pipeline.loaders.events import EventsLoader, required_event_fields
+
+from .core import bind_expression_to_resources
 
 
 class BlazeEventsLoader(implements(PipelineLoader)):
@@ -52,21 +44,25 @@ class BlazeEventsLoader(implements(PipelineLoader)):
     start the backtest with knowledge of all announcements.
     """
 
-    __doc__ = __doc__.format(SID_FIELD_NAME=SID_FIELD_NAME,
-                             TS_FIELD_NAME=TS_FIELD_NAME,
-                             EVENT_DATE_FIELD_NAME=EVENT_DATE_FIELD_NAME)
+    __doc__ = __doc__.format(
+        SID_FIELD_NAME=SID_FIELD_NAME,
+        TS_FIELD_NAME=TS_FIELD_NAME,
+        EVENT_DATE_FIELD_NAME=EVENT_DATE_FIELD_NAME,
+    )
 
-    def __init__(self,
-                 expr,
-                 next_value_columns,
-                 previous_value_columns,
-                 resources=None,
-                 odo_kwargs=None):
+    def __init__(
+        self,
+        expr,
+        next_value_columns,
+        previous_value_columns,
+        resources=None,
+        odo_kwargs=None,
+    ):
 
         dshape = expr.dshape
         if not istabular(dshape):
             raise ValueError(
-                'expression dshape must be tabular, got: %s' % dshape,
+                "expression dshape must be tabular, got: %s" % dshape,
             )
 
         required_cols = list(

@@ -14,12 +14,7 @@
 # limitations under the License.
 from abc import ABCMeta, abstractmethod
 
-from numpy import (
-    full,
-    nan,
-    int64,
-    zeros
-)
+from numpy import full, int64, nan, zeros
 from six import with_metaclass
 
 from zipline.utils.memoize import lazyval
@@ -39,6 +34,7 @@ class AssetDispatchBarReader(with_metaclass(ABCMeta)):
         If not provided, infers it by using the min of the
         last_available_dt values of the underlying readers.
     """
+
     def __init__(
         self,
         trading_calendar,
@@ -52,11 +48,13 @@ class AssetDispatchBarReader(with_metaclass(ABCMeta)):
         self._last_available_dt = last_available_dt
 
         for t, r in self._readers.items():
-            assert trading_calendar == r.trading_calendar, \
-                "All readers must share target trading_calendar. " \
-                "Reader={0} for type={1} uses calendar={2} which does not " \
+            assert trading_calendar == r.trading_calendar, (
+                "All readers must share target trading_calendar. "
+                "Reader={0} for type={1} uses calendar={2} which does not "
                 "match the desired shared calendar={3} ".format(
-                    r, t, r.trading_calendar, trading_calendar)
+                    r, t, r.trading_calendar, trading_calendar
+                )
+            )
 
     @abstractmethod
     def _dt_window_size(self, start_dt, end_dt):
@@ -70,7 +68,7 @@ class AssetDispatchBarReader(with_metaclass(ABCMeta)):
         return self._dt_window_size(start_dt, end_dt), num_sids
 
     def _make_raw_array_out(self, field, shape):
-        if field != 'volume' and field != 'sid':
+        if field != "volume" and field != "sid":
             out = full(shape, nan)
         else:
             out = zeros(shape, dtype=int64)
@@ -113,11 +111,10 @@ class AssetDispatchBarReader(with_metaclass(ABCMeta)):
             out_pos[t].append(i)
 
         batched_arrays = {
-            t: self._readers[t].load_raw_arrays(fields,
-                                                start_dt,
-                                                end_dt,
-                                                sid_groups[t])
-            for t in asset_types if sid_groups[t]}
+            t: self._readers[t].load_raw_arrays(fields, start_dt, end_dt, sid_groups[t])
+            for t in asset_types
+            if sid_groups[t]
+        }
 
         results = []
         shape = self._make_raw_array_shape(start_dt, end_dt, len(sids))
@@ -132,18 +129,16 @@ class AssetDispatchBarReader(with_metaclass(ABCMeta)):
 
 
 class AssetDispatchMinuteBarReader(AssetDispatchBarReader):
-
     def _dt_window_size(self, start_dt, end_dt):
         return len(self.trading_calendar.minutes_in_range(start_dt, end_dt))
 
 
 class AssetDispatchSessionBarReader(AssetDispatchBarReader):
-
     def _dt_window_size(self, start_dt, end_dt):
         return len(self.trading_calendar.sessions_in_range(start_dt, end_dt))
 
     @lazyval
     def sessions(self):
         return self.trading_calendar.sessions_in_range(
-            self.first_trading_day,
-            self.last_available_dt)
+            self.first_trading_day, self.last_available_dt
+        )

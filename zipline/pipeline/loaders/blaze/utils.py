@@ -2,11 +2,7 @@ from zipline.pipeline.common import SID_FIELD_NAME
 from zipline.pipeline.loaders.blaze.core import ffill_query_in_range
 
 
-def load_raw_data(assets,
-                  data_query_cutoff_times,
-                  expr,
-                  odo_kwargs,
-                  checkpoints=None):
+def load_raw_data(assets, data_query_cutoff_times, expr, odo_kwargs, checkpoints=None):
     """
     Given an expression representing data to load, perform normalization and
     forward-filling and return the data, materialized. Only accepts data with a
@@ -41,8 +37,5 @@ def load_raw_data(assets,
         odo_kwargs=odo_kwargs,
     )
     sids = raw[SID_FIELD_NAME]
-    raw.drop(
-        sids[~sids.isin(assets)].index,
-        inplace=True
-    )
+    raw.drop(sids[~sids.isin(assets)].index, inplace=True)
     return raw

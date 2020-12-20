@@ -1,13 +1,15 @@
 """
 Script for rebuilding the samples for the Quandl tests.
 """
-import os
-import requests
 from io import BytesIO
-from zipfile import ZipFile, ZIP_DEFLATED
+import os
 from urllib.parse import urlencode
-from zipline.testing import test_resource_path, write_compressed
+from zipfile import ZIP_DEFLATED, ZipFile
+
+import requests
+
 from zipline.data.bundles.quandl import QUANDL_DATA_URL
+from zipline.testing import test_resource_path, write_compressed
 
 
 def format_table_query(api_key,

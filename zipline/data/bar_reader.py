@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABCMeta, abstractmethod, abstractproperty
+
 from six import with_metaclass
 
 
@@ -19,6 +20,7 @@ class NoDataOnDate(Exception):
     """
     Raised when a spot price cannot be found for the sid and date.
     """
+
     pass
 
 
@@ -34,10 +36,11 @@ class NoDataForSid(Exception):
     """
     Raised when the requested sid is missing from the pricing data.
     """
+
     pass
 
 
-OHLCV = ('open', 'high', 'low', 'close', 'volume')
+OHLCV = ("open", "high", "low", "close", "volume")
 
 
 class BarReader(with_metaclass(ABCMeta, object)):

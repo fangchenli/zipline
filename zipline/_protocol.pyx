@@ -12,21 +12,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import warnings
 from contextlib import contextmanager
 from functools import wraps
+import warnings
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from cpython cimport bool
+
 from collections import Iterable
 
-from zipline.assets import (
-    AssetConvertible,
-    PricingDataAssociable,
-)
+from zipline.assets import AssetConvertible, PricingDataAssociable
+
 from zipline.assets._assets cimport Asset, Future
+
 from zipline.assets.continuous_futures import ContinuousFuture
 from zipline.utils.pandas_utils import normalize_date
 from zipline.zipline_warnings import ZiplineDeprecationWarning

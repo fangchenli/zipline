@@ -14,10 +14,13 @@
 # limitations under the License.
 
 cimport numpy as np
+
 import numpy as np
 import pandas as pd
+
 cimport cython
 from cpython cimport bool
+
 
 cdef np.int64_t _nanos_in_minute = 60000000000
 NANOS_IN_MINUTE = _nanos_in_minute

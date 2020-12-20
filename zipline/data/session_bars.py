@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import abstractproperty, abstractmethod
+from abc import abstractmethod, abstractproperty
 
 from zipline.data.bar_reader import BarReader
 
@@ -20,9 +20,10 @@ class SessionBarReader(BarReader):
     """
     Reader for OHCLV pricing data at a session frequency.
     """
+
     @property
     def data_frequency(self):
-        return 'session'
+        return "session"
 
     @abstractproperty
     def sessions(self):
@@ -36,7 +37,6 @@ class SessionBarReader(BarReader):
 
 
 class CurrencyAwareSessionBarReader(SessionBarReader):
-
     @abstractmethod
     def currency_codes(self, sids):
         """

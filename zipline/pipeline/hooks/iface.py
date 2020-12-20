@@ -1,6 +1,6 @@
 from contextlib import contextmanager as _contextmanager
-from interface import Interface
 
+from interface import Interface
 
 # Keep track of which methods of PipelineHooks are contextmanagers. Used by
 # DelegatingHooks to properly delegate to sub-hooks.

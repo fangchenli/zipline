@@ -1,32 +1,29 @@
 """
 Utilities for validating inputs to user-facing API functions.
 """
+from functools import wraps
 from textwrap import dedent
 from types import CodeType
 from uuid import uuid4
-from functools import wraps
 
 from toolz.curried.operator import getitem
 
 from zipline.utils.compat import getargspec
 
-
-_code_argorder = (
-    ('co_argcount', 'co_kwonlyargcount')
-) + (
-    'co_nlocals',
-    'co_stacksize',
-    'co_flags',
-    'co_code',
-    'co_consts',
-    'co_names',
-    'co_varnames',
-    'co_filename',
-    'co_name',
-    'co_firstlineno',
-    'co_lnotab',
-    'co_freevars',
-    'co_cellvars',
+_code_argorder = (("co_argcount", "co_kwonlyargcount")) + (
+    "co_nlocals",
+    "co_stacksize",
+    "co_flags",
+    "co_code",
+    "co_consts",
+    "co_names",
+    "co_varnames",
+    "co_filename",
+    "co_name",
+    "co_firstlineno",
+    "co_lnotab",
+    "co_freevars",
+    "co_cellvars",
 )
 
 NO_DEFAULT = object()
@@ -95,20 +92,22 @@ def preprocess(*_unused, **processors):
         # Arguments can be declared as tuples in Python 2.
         if not all(isinstance(arg, str) for arg in args):
             raise TypeError(
-                "Can't validate functions using tuple unpacking: %s" %
-                (argspec,)
+                "Can't validate functions using tuple unpacking: %s" % (argspec,)
             )
 
         # Ensure that all processors map to valid names.
         bad_names = processors.keys() - argset
         if bad_names:
-            raise TypeError(
-                "Got processors for unknown arguments: %s." % bad_names
-            )
+            raise TypeError("Got processors for unknown arguments: %s." % bad_names)
 
         return _build_preprocessed_function(
-            f, processors, args_defaults, varargs, varkw,
+            f,
+            processors,
+            args_defaults,
+            varargs,
+            varkw,
         )
+
     return _decorator
 
 
@@ -133,29 +132,27 @@ def call(f):
     >>> foo(1)
     2
     """
+
     @wraps(f)
     def processor(func, argname, arg):
         return f(arg)
+
     return processor
 
 
-def _build_preprocessed_function(func,
-                                 processors,
-                                 args_defaults,
-                                 varargs,
-                                 varkw):
+def _build_preprocessed_function(func, processors, args_defaults, varargs, varkw):
     """
     Build a preprocessed function with the same signature as `func`.
 
     Uses `exec` internally to build a function that actually has the same
     signature as `func.
     """
-    format_kwargs = {'func_name': func.__name__}
+    format_kwargs = {"func_name": func.__name__}
 
     def mangle(name):
-        return 'a' + uuid4().hex + name
+        return "a" + uuid4().hex + name
 
-    format_kwargs['mangled_func'] = mangled_funcname = mangle(func.__name__)
+    format_kwargs["mangled_func"] = mangled_funcname = mangle(func.__name__)
 
     def make_processor_assignment(arg, processor_name):
         template = "{arg} = {processor}({func}, '{arg}', {arg})"
@@ -165,19 +162,19 @@ def _build_preprocessed_function(func,
             func=mangled_funcname,
         )
 
-    exec_globals = {mangled_funcname: func, 'wraps': wraps}
+    exec_globals = {mangled_funcname: func, "wraps": wraps}
     defaults_seen = 0
-    default_name_template = 'a' + uuid4().hex + '_%d'
+    default_name_template = "a" + uuid4().hex + "_%d"
     signature = []
     call_args = []
     assignments = []
     star_map = {
-        varargs: '*',
-        varkw: '**',
+        varargs: "*",
+        varkw: "**",
     }
 
     def name_as_arg(arg):
-        return star_map.get(arg, '') + arg
+        return star_map.get(arg, "") + arg
 
     for arg, default in args_defaults:
         if default is NO_DEFAULT:
@@ -185,11 +182,11 @@ def _build_preprocessed_function(func,
         else:
             default_name = default_name_template % defaults_seen
             exec_globals[default_name] = default
-            signature.append('='.join([name_as_arg(arg), default_name]))
+            signature.append("=".join([name_as_arg(arg), default_name]))
             defaults_seen += 1
 
         if arg in processors:
-            procname = mangle('_processor_' + arg)
+            procname = mangle("_processor_" + arg)
             exec_globals[procname] = processors[arg]
             assignments.append(make_processor_assignment(arg, procname))
 
@@ -204,15 +201,15 @@ def _build_preprocessed_function(func,
         """
     ).format(
         func_name=func.__name__,
-        signature=', '.join(signature),
-        assignments='\n    '.join(assignments),
+        signature=", ".join(signature),
+        assignments="\n    ".join(assignments),
         wrapped_funcname=mangled_funcname,
-        call_args=', '.join(call_args),
+        call_args=", ".join(call_args),
     )
     compiled = compile(
         exec_str,
         func.__code__.co_filename,
-        mode='exec',
+        mode="exec",
     )
 
     exec_locals = {}
@@ -220,11 +217,7 @@ def _build_preprocessed_function(func,
     new_func = exec_locals[func.__name__]
 
     code = new_func.__code__
-    args = {
-        attr: getattr(code, attr)
-        for attr in dir(code)
-        if attr.startswith('co_')
-    }
+    args = {attr: getattr(code, attr) for attr in dir(code) if attr.startswith("co_")}
     # Copy the firstlineno out of the underlying function so that exceptions
     # get raised with the correct traceback.
     # This also makes dynamic source inspection (like IPython `??` operator)
@@ -242,6 +235,6 @@ def _build_preprocessed_function(func,
             # nothing for us to correct.
             return new_func
 
-    args['co_firstlineno'] = original_code.co_firstlineno
+    args["co_firstlineno"] = original_code.co_firstlineno
     new_func.__code__ = CodeType(*map(getitem(args), _code_argorder))
     return new_func

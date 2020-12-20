@@ -3,31 +3,25 @@ from contextlib import ExitStack
 import errno
 import os
 import shutil
-import warnings
 from types import MappingProxyType
+import warnings
 
 import click
 from logbook import Logger
 import pandas as pd
+from toolz import complement, curry, take
 from trading_calendars import get_calendar
-from toolz import curry, complement, take
 
-from ..adjustments import SQLiteAdjustmentReader, SQLiteAdjustmentWriter
-from ..bcolz_daily_bars import BcolzDailyBarReader, BcolzDailyBarWriter
-from ..minute_bars import (
-    BcolzMinuteBarReader,
-    BcolzMinuteBarWriter,
-)
-from zipline.assets import AssetDBWriter, AssetFinder, ASSET_DB_VERSION
+from zipline.assets import ASSET_DB_VERSION, AssetDBWriter, AssetFinder
 from zipline.assets.asset_db_migrations import downgrade
-from zipline.utils.cache import (
-    dataframe_cache,
-    working_dir,
-    working_file,
-)
+from zipline.utils.cache import dataframe_cache, working_dir, working_file
 from zipline.utils.input_validation import ensure_timestamp, optionally
 import zipline.utils.paths as pth
 from zipline.utils.preprocess import preprocess
+
+from ..adjustments import SQLiteAdjustmentReader, SQLiteAdjustmentWriter
+from ..bcolz_daily_bars import BcolzDailyBarReader, BcolzDailyBarWriter
+from ..minute_bars import BcolzMinuteBarReader, BcolzMinuteBarWriter
 
 log = Logger(__name__)
 
@@ -68,25 +62,25 @@ def cache_path(bundle_name, environ=None):
 
 
 def adjustment_db_relative(bundle_name, timestr):
-    return bundle_name, timestr, 'adjustments.sqlite'
+    return bundle_name, timestr, "adjustments.sqlite"
 
 
 def cache_relative(bundle_name):
-    return bundle_name, '.cache'
+    return bundle_name, ".cache"
 
 
 def daily_equity_relative(bundle_name, timestr):
-    return bundle_name, timestr, 'daily_equities.bcolz'
+    return bundle_name, timestr, "daily_equities.bcolz"
 
 
 def minute_equity_relative(bundle_name, timestr):
-    return bundle_name, timestr, 'minute_equities.bcolz'
+    return bundle_name, timestr, "minute_equities.bcolz"
 
 
 def asset_db_relative(bundle_name, timestr, db_version=None):
     db_version = ASSET_DB_VERSION if db_version is None else db_version
 
-    return bundle_name, timestr, 'assets-%d.sqlite' % db_version
+    return bundle_name, timestr, "assets-%d.sqlite" % db_version
 
 
 def to_bundle_ingest_dirname(ts):
@@ -103,7 +97,7 @@ def to_bundle_ingest_dirname(ts):
     name : str
         The name of the directory for this ingestion.
     """
-    return ts.isoformat().replace(':', ';')
+    return ts.isoformat().replace(":", ";")
 
 
 def from_bundle_ingest_dirname(cs):
@@ -119,48 +113,52 @@ def from_bundle_ingest_dirname(cs):
     ts : pandas.Timestamp
         The time when this ingestion happened.
     """
-    return pd.Timestamp(cs.replace(';', ':'))
+    return pd.Timestamp(cs.replace(";", ":"))
 
 
 def ingestions_for_bundle(bundle, environ=None):
     return sorted(
-        (from_bundle_ingest_dirname(ing)
-         for ing in os.listdir(pth.data_path([bundle], environ))
-         if not pth.hidden(ing)),
+        (
+            from_bundle_ingest_dirname(ing)
+            for ing in os.listdir(pth.data_path([bundle], environ))
+            if not pth.hidden(ing)
+        ),
         reverse=True,
     )
 
 
 RegisteredBundle = namedtuple(
-    'RegisteredBundle',
-    ['calendar_name',
-     'start_session',
-     'end_session',
-     'minutes_per_day',
-     'ingest',
-     'create_writers']
+    "RegisteredBundle",
+    [
+        "calendar_name",
+        "start_session",
+        "end_session",
+        "minutes_per_day",
+        "ingest",
+        "create_writers",
+    ],
 )
 
 BundleData = namedtuple(
-    'BundleData',
-    'asset_finder equity_minute_bar_reader equity_daily_bar_reader '
-    'adjustment_reader',
+    "BundleData",
+    "asset_finder equity_minute_bar_reader equity_daily_bar_reader "
+    "adjustment_reader",
 )
 
 BundleCore = namedtuple(
-    'BundleCore',
-    'bundles register unregister ingest load clean',
+    "BundleCore",
+    "bundles register unregister ingest load clean",
 )
 
 
 class UnknownBundle(click.ClickException, LookupError):
-    """Raised if no bundle with the given name was registered.
-    """
+    """Raised if no bundle with the given name was registered."""
+
     exit_code = 1
 
     def __init__(self, name):
         super(UnknownBundle, self).__init__(
-            'No bundle registered with the name %r' % name,
+            "No bundle registered with the name %r" % name,
         )
         self.name = name
 
@@ -181,11 +179,13 @@ class BadClean(click.ClickException, ValueError):
     --------
     clean
     """
+
     def __init__(self, before, after, keep_last):
         super(BadClean, self).__init__(
-            'Cannot pass a combination of `before` and `after` with '
-            '`keep_last`. Must pass one. '
-            'Got: before=%r, after=%r, keep_last=%r\n' % (
+            "Cannot pass a combination of `before` and `after` with "
+            "`keep_last`. Must pass one. "
+            "Got: before=%r, after=%r, keep_last=%r\n"
+            % (
                 before,
                 after,
                 keep_last,
@@ -222,13 +222,15 @@ def _make_bundle_core():
     bundles = MappingProxyType(_bundles)
 
     @curry
-    def register(name,
-                 f,
-                 calendar_name='NYSE',
-                 start_session=None,
-                 end_session=None,
-                 minutes_per_day=390,
-                 create_writers=True):
+    def register(
+        name,
+        f,
+        calendar_name="NYSE",
+        start_session=None,
+        end_session=None,
+        minutes_per_day=390,
+        create_writers=True,
+    ):
         """Register a data bundle ingest function.
 
         Parameters
@@ -295,7 +297,7 @@ def _make_bundle_core():
         """
         if name in bundles:
             warnings.warn(
-                'Overwriting bundle with name %r' % name,
+                "Overwriting bundle with name %r" % name,
                 stacklevel=3,
             )
 
@@ -335,11 +337,13 @@ def _make_bundle_core():
         except KeyError:
             raise UnknownBundle(name)
 
-    def ingest(name,
-               environ=os.environ,
-               timestamp=None,
-               assets_versions=(),
-               show_progress=False):
+    def ingest(
+        name,
+        environ=os.environ,
+        timestamp=None,
+        assets_versions=(),
+        show_progress=False,
+    ):
         """Ingest data for a given bundle.
 
         Parameters
@@ -374,23 +378,22 @@ def _make_bundle_core():
 
         if timestamp is None:
             timestamp = pd.Timestamp.utcnow()
-        timestamp = timestamp.tz_convert('utc').tz_localize(None)
+        timestamp = timestamp.tz_convert("utc").tz_localize(None)
 
         timestr = to_bundle_ingest_dirname(timestamp)
         cachepath = cache_path(name, environ=environ)
         pth.ensure_directory(pth.data_path([name, timestr], environ=environ))
         pth.ensure_directory(cachepath)
-        with dataframe_cache(cachepath, clean_on_failure=False) as cache, \
-                ExitStack() as stack:
+        with dataframe_cache(
+            cachepath, clean_on_failure=False
+        ) as cache, ExitStack() as stack:
             # we use `cleanup_on_failure=False` so that we don't purge the
             # cache directory if the load fails in the middle
             if bundle.create_writers:
-                wd = stack.enter_context(working_dir(
-                    pth.data_path([], environ=environ))
+                wd = stack.enter_context(
+                    working_dir(pth.data_path([], environ=environ))
                 )
-                daily_bars_path = wd.ensure_dir(
-                    *daily_equity_relative(name, timestr)
-                )
+                daily_bars_path = wd.ensure_dir(*daily_equity_relative(name, timestr))
                 daily_bar_writer = BcolzDailyBarWriter(
                     daily_bars_path,
                     calendar,
@@ -426,9 +429,11 @@ def _make_bundle_core():
                 asset_db_writer = None
                 adjustment_db_writer = None
                 if assets_versions:
-                    raise ValueError('Need to ingest a bundle that creates '
-                                     'writers in order to downgrade the assets'
-                                     ' db.')
+                    raise ValueError(
+                        "Need to ingest a bundle that creates "
+                        "writers in order to downgrade the assets"
+                        " db."
+                    )
             log.info("Ingesting {}.", name)
             bundle.ingest(
                 environ,
@@ -445,9 +450,13 @@ def _make_bundle_core():
             )
 
             for version in sorted(set(assets_versions), reverse=True):
-                version_path = wd.getpath(*asset_db_relative(
-                    name, timestr, db_version=version,
-                ))
+                version_path = wd.getpath(
+                    *asset_db_relative(
+                        name,
+                        timestr,
+                        db_version=version,
+                    )
+                )
                 with working_file(version_path) as wf:
                     shutil.copy2(assets_db_path, wf.path)
                     downgrade(wf.path, version)
@@ -473,19 +482,21 @@ def _make_bundle_core():
                 pth.data_path([bundle_name], environ=environ),
             )
             return pth.data_path(
-                [bundle_name,
-                 max(
-                     filter(complement(pth.hidden), candidates),
-                     key=from_bundle_ingest_dirname,
-                 )],
+                [
+                    bundle_name,
+                    max(
+                        filter(complement(pth.hidden), candidates),
+                        key=from_bundle_ingest_dirname,
+                    ),
+                ],
                 environ=environ,
             )
         except (ValueError, OSError) as e:
-            if getattr(e, 'errno', errno.ENOENT) != errno.ENOENT:
+            if getattr(e, "errno", errno.ENOENT) != errno.ENOENT:
                 raise
             raise ValueError(
-                'no data for bundle {bundle!r} on or before {timestamp}\n'
-                'maybe you need to run: $ zipline ingest -b {bundle}'.format(
+                "no data for bundle {bundle!r} on or before {timestamp}\n"
+                "maybe you need to run: $ zipline ingest -b {bundle}".format(
                     bundle=bundle_name,
                     timestamp=timestamp,
                 ),
@@ -531,11 +542,7 @@ def _make_bundle_core():
         before=optionally(ensure_timestamp),
         after=optionally(ensure_timestamp),
     )
-    def clean(name,
-              before=None,
-              after=None,
-              keep_last=None,
-              environ=os.environ):
+    def clean(name, before=None, after=None, keep_last=None, environ=os.environ):
         """Clean up data that was created with ``ingest`` or
         ``$ python -m zipline ingest``
 
@@ -583,16 +590,15 @@ def _make_bundle_core():
 
         if before is after is keep_last is None:
             raise BadClean(before, after, keep_last)
-        if ((before is not None or after is not None) and
-                keep_last is not None):
+        if (before is not None or after is not None) and keep_last is not None:
             raise BadClean(before, after, keep_last)
 
         if keep_last is None:
+
             def should_clean(name):
                 dt = from_bundle_ingest_dirname(name)
-                return (
-                    (before is not None and dt < before) or
-                    (after is not None and dt > after)
+                return (before is not None and dt < before) or (
+                    after is not None and dt > after
                 )
 
         elif keep_last >= 0:
@@ -600,6 +606,7 @@ def _make_bundle_core():
 
             def should_clean(name):
                 return name not in last_n_dts
+
         else:
             raise BadClean(before, after, keep_last)
 

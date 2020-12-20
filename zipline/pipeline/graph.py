@@ -4,8 +4,9 @@ Dependency-Graph representation of Pipeline API terms.
 import uuid
 
 import networkx as nx
-from zipline.utils.memoize import lazyval
+
 from zipline.pipeline.visualize import display_graph
+from zipline.utils.memoize import lazyval
 
 from .term import LoadableTerm
 
@@ -19,7 +20,7 @@ class CyclicDependency(Exception):
 #
 # (Yes, technically, a user can import this file and pass this as the name of a
 # column. If you do that you deserve whatever bizarre failure you cause.)
-SCREEN_NAME = 'screen_' + uuid.uuid4().hex
+SCREEN_NAME = "screen_" + uuid.uuid4().hex
 
 
 class TermGraph(object):
@@ -52,6 +53,7 @@ class TermGraph(object):
     --------
     ExecutionPlan
     """
+
     def __init__(self, terms):
         self.graph = nx.DiGraph()
 
@@ -107,8 +109,7 @@ class TermGraph(object):
 
     @property
     def screen_name(self):
-        """Name of the specially-designated ``screen`` term for the pipeline.
-        """
+        """Name of the specially-designated ``screen`` term for the pipeline."""
         return SCREEN_NAME
 
     def execution_order(self, workspace, refcounts):
@@ -128,14 +129,17 @@ class TermGraph(object):
             Reference counts for terms to be computed. Terms with reference
             counts of 0 do not need to be computed.
         """
-        return list(nx.topological_sort(
-            self.graph.subgraph(
-                {
-                    term for term, refcount in refcounts.items()
-                    if refcount > 0 and term not in workspace
-                },
-            ),
-        ))
+        return list(
+            nx.topological_sort(
+                self.graph.subgraph(
+                    {
+                        term
+                        for term, refcount in refcounts.items()
+                        if refcount > 0 and term not in workspace
+                    },
+                ),
+            )
+        )
 
     def ordered(self):
         return iter(nx.topological_sort(self.graph))
@@ -146,15 +150,15 @@ class TermGraph(object):
 
     @lazyval
     def jpeg(self):
-        return display_graph(self, 'jpeg')
+        return display_graph(self, "jpeg")
 
     @lazyval
     def png(self):
-        return display_graph(self, 'png')
+        return display_graph(self, "png")
 
     @lazyval
     def svg(self):
-        return display_graph(self, 'svg')
+        return display_graph(self, "svg")
 
     def _repr_png_(self):
         return self.png.data
@@ -259,12 +263,8 @@ class ExecutionPlan(TermGraph):
     outputs
     offset
     """
-    def __init__(self,
-                 domain,
-                 terms,
-                 start_date,
-                 end_date,
-                 min_extra_rows=0):
+
+    def __init__(self, domain, terms, start_date, end_date, min_extra_rows=0):
         super(ExecutionPlan, self).__init__(terms)
 
         # Specialize all the LoadableTerms in the graph to our domain, so that
@@ -279,8 +279,7 @@ class ExecutionPlan(TermGraph):
         # lazyval, and we don't want its result to be cached until after we've
         # specialized.
         specializations = {
-            t: t.specialize(domain)
-            for t in self.graph if isinstance(t, LoadableTerm)
+            t: t.specialize(domain) for t in self.graph if isinstance(t, LoadableTerm)
         }
         self.graph = nx.relabel_nodes(self.graph, specializations)
 
@@ -298,12 +297,7 @@ class ExecutionPlan(TermGraph):
 
         self._assert_all_loadable_terms_specialized_to(domain)
 
-    def set_extra_rows(self,
-                       term,
-                       all_dates,
-                       start_date,
-                       end_date,
-                       min_extra_rows):
+    def set_extra_rows(self, term, all_dates, start_date, end_date, min_extra_rows):
         # Specialize any loadable terms before adding extra rows.
         term = maybe_specialize(term, self.domain)
 
@@ -318,8 +312,10 @@ class ExecutionPlan(TermGraph):
         )
         if extra_rows_for_term < min_extra_rows:
             raise ValueError(
-                "term %s requested fewer rows than the minimum of %d" % (
-                    term, min_extra_rows,
+                "term %s requested fewer rows than the minimum of %d"
+                % (
+                    term,
+                    min_extra_rows,
                 )
             )
 
@@ -450,23 +446,16 @@ class ExecutionPlan(TermGraph):
         :meth:`zipline.pipeline.graph.ExecutionPlan.offset`
         :meth:`zipline.pipeline.Term.dependencies`
         """
-        return {
-            term: attrs['extra_rows']
-            for term, attrs in self.graph.node.items()
-        }
+        return {term: attrs["extra_rows"] for term, attrs in self.graph.node.items()}
 
     def _ensure_extra_rows(self, term, N):
         """
         Ensure that we're going to compute at least N extra rows of `term`.
         """
         attrs = self.graph.node[term]
-        attrs['extra_rows'] = max(N, attrs.get('extra_rows', 0))
+        attrs["extra_rows"] = max(N, attrs.get("extra_rows", 0))
 
-    def mask_and_dates_for_term(self,
-                                term,
-                                root_mask_term,
-                                workspace,
-                                all_dates):
+    def mask_and_dates_for_term(self, term, root_mask_term, workspace, all_dates):
         """
         Load mask and mask row labels for term.
 
@@ -493,15 +482,12 @@ class ExecutionPlan(TermGraph):
 
         # This offset is computed against root_mask_term because that is what
         # determines the shape of the top-level dates array.
-        dates_offset = (
-            self.extra_rows[root_mask_term] - self.extra_rows[term]
-        )
+        dates_offset = self.extra_rows[root_mask_term] - self.extra_rows[term]
 
         return workspace[mask][mask_offset:], all_dates[dates_offset:]
 
     def _assert_all_loadable_terms_specialized_to(self, domain):
-        """Make sure that we've specialized all loadable terms in the graph.
-        """
+        """Make sure that we've specialized all loadable terms in the graph."""
         for term in self.graph.node:
             if isinstance(term, LoadableTerm):
                 assert term.domain is domain
@@ -510,8 +496,7 @@ class ExecutionPlan(TermGraph):
 # XXX: This function exists because we currently only specialize LoadableTerms
 #      when running a Pipeline on a given domain.
 def maybe_specialize(term, domain):
-    """Specialize a term if it's loadable.
-    """
+    """Specialize a term if it's loadable."""
     if isinstance(term, LoadableTerm):
         return term.specialize(domain)
     return term

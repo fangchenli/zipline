@@ -38,6 +38,8 @@ nose-timer
 mock
 testfixtures
 responses
+isort
+black
 flake8
 matplotlib
 blaze

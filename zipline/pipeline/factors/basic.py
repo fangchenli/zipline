@@ -1,7 +1,9 @@
 """Simple common factors.
 """
 from numbers import Number
+
 from numpy import (
+    NINF,
     arange,
     average,
     clip,
@@ -11,7 +13,6 @@ from numpy import (
     full,
     isnan,
     log,
-    NINF,
     sqrt,
     sum as np_sum,
     unique,
@@ -19,20 +20,11 @@ from numpy import (
 
 from zipline.pipeline.data import EquityPricing
 from zipline.utils.input_validation import expect_types
-from zipline.utils.math_utils import (
-    nanargmax,
-    nanmax,
-    nanmean,
-    nanstd,
-    nansum,
-)
-from zipline.utils.numpy_utils import (
-    float64_dtype,
-    ignore_nanwarnings,
-)
+from zipline.utils.math_utils import nanargmax, nanmax, nanmean, nanstd, nansum
+from zipline.utils.numpy_utils import float64_dtype, ignore_nanwarnings
 
-from .factor import CustomFactor
 from ..mixins import SingleInputMixin
+from .factor import CustomFactor
 
 
 class Returns(CustomFactor):
@@ -41,6 +33,7 @@ class Returns(CustomFactor):
 
     **Default Inputs**: [EquityPricing.close]
     """
+
     inputs = [EquityPricing.close]
     window_safe = True
 
@@ -69,6 +62,7 @@ class PercentChange(SingleInputMixin, CustomFactor):
     -----
     Percent change is calculated as ``(new - old) / abs(old)``.
     """
+
     window_safe = True
 
     def _validate(self):
@@ -91,6 +85,7 @@ class DailyReturns(Returns):
 
     **Default Inputs**: [EquityPricing.close]
     """
+
     inputs = [EquityPricing.close]
     window_safe = True
     window_length = 2
@@ -104,6 +99,7 @@ class SimpleMovingAverage(SingleInputMixin, CustomFactor):
 
     **Default Window Length**: None
     """
+
     # numpy's nan functions throw warnings when passed an array containing only
     # nans, but they still returns the desired value (nan), so we ignore the
     # warning.
@@ -121,6 +117,7 @@ class WeightedAverageValue(CustomFactor):
 
     **Default Window Length:** None
     """
+
     def compute(self, today, assets, out, base, weight):
         out[:] = nansum(base * weight, axis=0) / nansum(weight, axis=0)
 
@@ -133,6 +130,7 @@ class VWAP(WeightedAverageValue):
 
     **Default Window Length:** None
     """
+
     inputs = (EquityPricing.close, EquityPricing.volume)
 
 
@@ -144,6 +142,7 @@ class MaxDrawdown(SingleInputMixin, CustomFactor):
 
     **Default Window Length:** None
     """
+
     ctx = ignore_nanwarnings()
 
     def compute(self, today, assets, out, data):
@@ -153,7 +152,7 @@ class MaxDrawdown(SingleInputMixin, CustomFactor):
 
         # TODO: Accelerate this loop in Cython or Numba.
         for i, end in enumerate(drawdown_ends):
-            peak = nanmax(data[:end + 1, i])
+            peak = nanmax(data[: end + 1, i])
             out[i] = (peak - data[end, i]) / data[end, i]
 
 
@@ -165,6 +164,7 @@ class AverageDollarVolume(CustomFactor):
 
     **Default Window Length:** None
     """
+
     inputs = [EquityPricing.close, EquityPricing.volume]
 
     def compute(self, today, assets, out, close, volume):
@@ -222,7 +222,8 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
     from_halflife
     from_center_of_mass
     """
-    params = ('decay_rate',)
+
+    params = ("decay_rate",)
 
     @classmethod
     @expect_types(span=Number)
@@ -256,18 +257,13 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
         :class:`ExponentialWeightedMovingStdDev`.
         """
         if span <= 1:
-            raise ValueError(
-                "`span` must be a positive number. %s was passed." % span
-            )
+            raise ValueError("`span` must be a positive number. %s was passed." % span)
 
-        decay_rate = (1.0 - (2.0 / (1.0 + span)))
+        decay_rate = 1.0 - (2.0 / (1.0 + span))
         assert 0.0 < decay_rate <= 1.0
 
         return cls(
-            inputs=inputs,
-            window_length=window_length,
-            decay_rate=decay_rate,
-            **kwargs
+            inputs=inputs, window_length=window_length, decay_rate=decay_rate, **kwargs
         )
 
     @classmethod
@@ -306,22 +302,15 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
             raise ValueError(
                 "`span` must be a positive number. %s was passed." % halflife
             )
-        decay_rate = exp(log(.5) / halflife)
+        decay_rate = exp(log(0.5) / halflife)
         assert 0.0 < decay_rate <= 1.0
 
         return cls(
-            inputs=inputs,
-            window_length=window_length,
-            decay_rate=decay_rate,
-            **kwargs
+            inputs=inputs, window_length=window_length, decay_rate=decay_rate, **kwargs
         )
 
     @classmethod
-    def from_center_of_mass(cls,
-                            inputs,
-                            window_length,
-                            center_of_mass,
-                            **kwargs):
+    def from_center_of_mass(cls, inputs, window_length, center_of_mass, **kwargs):
         """
         Convenience constructor for passing `decay_rate` in terms of center of
         mass.
@@ -355,7 +344,7 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
             inputs=inputs,
             window_length=window_length,
             decay_rate=(1.0 - (1.0 / (1.0 + center_of_mass))),
-            **kwargs
+            **kwargs,
         )
 
 
@@ -389,6 +378,7 @@ class ExponentialWeightedMovingAverage(_ExponentialWeightedFactor):
     --------
     :meth:`pandas.DataFrame.ewm`
     """
+
     def compute(self, today, assets, out, data, decay_rate):
         out[:] = average(
             data,
@@ -434,9 +424,9 @@ class ExponentialWeightedMovingStdDev(_ExponentialWeightedFactor):
         mean = average(data, axis=0, weights=weights)
         variance = average((data - mean) ** 2, axis=0, weights=weights)
 
-        squared_weight_sum = (np_sum(weights) ** 2)
-        bias_correction = (
-            squared_weight_sum / (squared_weight_sum - np_sum(weights ** 2))
+        squared_weight_sum = np_sum(weights) ** 2
+        bias_correction = squared_weight_sum / (
+            squared_weight_sum - np_sum(weights ** 2)
         )
         out[:] = sqrt(variance * bias_correction)
 
@@ -449,6 +439,7 @@ class LinearWeightedMovingAverage(SingleInputMixin, CustomFactor):
 
     **Default Window Length**: None
     """
+
     # numpy's nan functions throw warnings when passed an array containing only
     # nans, but they still returns the desired value (nan), so we ignore the
     # warning.
@@ -484,12 +475,13 @@ class AnnualizedVolatility(CustomFactor):
         The number of time units per year. Defaults is 252, the number of NYSE
         trading days in a normal year.
     """
+
     inputs = [Returns(window_length=2)]
-    params = {'annualization_factor': 252.0}
+    params = {"annualization_factor": 252.0}
     window_length = 252
 
     def compute(self, today, assets, out, returns, annualization_factor):
-        out[:] = nanstd(returns, axis=0) * (annualization_factor ** .5)
+        out[:] = nanstd(returns, axis=0) * (annualization_factor ** 0.5)
 
 
 class PeerCount(SingleInputMixin, CustomFactor):
@@ -501,6 +493,7 @@ class PeerCount(SingleInputMixin, CustomFactor):
 
     **Default Window Length:** 1
     """
+
     window_length = 1
 
     def _validate(self):
@@ -513,9 +506,7 @@ class PeerCount(SingleInputMixin, CustomFactor):
 
     def compute(self, today, assets, out, classifier_values):
         # Convert classifier array to group label int array
-        group_labels, null_label = self.inputs[0]._to_integral(
-            classifier_values[0]
-        )
+        group_labels, null_label = self.inputs[0]._to_integral(classifier_values[0])
         _, inverse, counts = unique(  # Get counts, idx of unique groups
             group_labels,
             return_counts=True,
@@ -559,8 +550,9 @@ class Clip(CustomFactor):
     --------
     numpy.clip
     """
+
     window_length = 1
-    params = ('min_bound', 'max_bound')
+    params = ("min_bound", "max_bound")
 
     def compute(self, today, assets, out, values, min_bound, max_bound):
         clip(values[-1], min_bound, max_bound, out=out)

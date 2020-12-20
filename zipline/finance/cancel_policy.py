@@ -13,16 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import abc
-
 from abc import abstractmethod
+
 from six import with_metaclass
 
 from zipline.gens.sim_engine import SESSION_END
 
 
 class CancelPolicy(with_metaclass(abc.ABCMeta)):
-    """Abstract cancellation policy interface.
-    """
+    """Abstract cancellation policy interface."""
 
     @abstractmethod
     def should_cancel(self, event):
@@ -54,6 +53,7 @@ class EODCancel(CancelPolicy):
     warn_on_cancel : bool, optional
         Should a warning be raised if this causes an order to be cancelled?
     """
+
     def __init__(self, warn_on_cancel=True):
         self.warn_on_cancel = warn_on_cancel
 
@@ -62,8 +62,8 @@ class EODCancel(CancelPolicy):
 
 
 class NeverCancel(CancelPolicy):
-    """Orders are never automatically canceled.
-    """
+    """Orders are never automatically canceled."""
+
     def __init__(self):
         self.warn_on_cancel = False
 

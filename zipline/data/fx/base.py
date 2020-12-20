@@ -1,12 +1,11 @@
-from interface import default, Interface
-
+from interface import Interface, default
 import numpy as np
 import pandas as pd
 
-from zipline.utils.sentinel import sentinel
 from zipline.lib._factorize import factorize_strings
+from zipline.utils.sentinel import sentinel
 
-DEFAULT_FX_RATE = sentinel('DEFAULT_FX_RATE')
+DEFAULT_FX_RATE = sentinel("DEFAULT_FX_RATE")
 
 
 class FXRateReader(Interface):
@@ -108,7 +107,7 @@ class FXRateReader(Interface):
             rate,
             quote,
             bases=np.array([base], dtype=object),
-            dts=pd.DatetimeIndex([dt], tz='UTC'),
+            dts=pd.DatetimeIndex([dt], tz="UTC"),
         )
         return rates_2d[0, 0]
 
@@ -145,9 +144,6 @@ class FXRateReader(Interface):
         # for calling get_rates.
         unique_dts, dts_ix = np.unique(dts.values, return_inverse=True)
         rates_2d = self.get_rates(
-            rate,
-            quote,
-            unique_bases,
-            pd.DatetimeIndex(unique_dts, tz='utc')
+            rate, quote, unique_bases, pd.DatetimeIndex(unique_dts, tz="utc")
         )
         return rates_2d[dts_ix, bases_ix]

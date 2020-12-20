@@ -4,28 +4,28 @@ Functions for ranking and sorting.
 cimport cython
 from cpython cimport bool
 from numpy cimport (
-    float64_t,
-    import_array,
-    intp_t,
-    int64_t,
-    ndarray,
     NPY_DOUBLE,
     NPY_MERGESORT,
     PyArray_ArgSort,
     PyArray_DIMS,
     PyArray_EMPTY,
+    float64_t,
+    import_array,
+    int64_t,
+    intp_t,
+    ndarray,
     uint8_t,
 )
+
 from numpy import apply_along_axis, float64, isnan, nan, zeros_like
 from scipy.stats import rankdata
 
 from zipline.utils.numpy_utils import (
-    is_missing,
+    datetime64ns_dtype,
     float64_dtype,
     int64_dtype,
-    datetime64ns_dtype,
+    is_missing,
 )
-
 
 import_array()
 

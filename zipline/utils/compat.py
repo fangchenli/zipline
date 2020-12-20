@@ -27,6 +27,6 @@ def getargspec(f):
 
 
 __all__ = [
-    'consistent_round',
-    'values_as_list',
+    "consistent_round",
+    "values_as_list",
 ]

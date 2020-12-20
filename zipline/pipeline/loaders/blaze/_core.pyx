@@ -1,31 +1,26 @@
-from cpython cimport (
-    PyDict_GetItem,
-    PyObject,
-    PyList_New,
-    PyList_SET_ITEM,
-)
+from cpython cimport PyDict_GetItem, PyList_New, PyList_SET_ITEM, PyObject
+
 from bisect import bisect_right, insort_left
 
 cimport cython
 cimport numpy as np
+
 import numpy as np
 import pandas as pd
 from toolz import sliding_window
 from trading_calendars.utils.pandas_utils import days_at_time
 
 from zipline.lib.adjusted_array import AdjustedArray
+
 from zipline.lib.adjustment cimport (
     AdjustmentKind,
     DatetimeIndex_t,
-    make_adjustment_from_indices_fused,
     column_type,
+    make_adjustment_from_indices_fused,
 )
+
 from zipline.lib.labelarray import LabelArray
-from zipline.pipeline.common import (
-    AD_FIELD_NAME,
-    SID_FIELD_NAME,
-    TS_FIELD_NAME
-)
+from zipline.pipeline.common import AD_FIELD_NAME, SID_FIELD_NAME, TS_FIELD_NAME
 
 
 cdef bint isnan(np.float64_t value):

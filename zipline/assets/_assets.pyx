@@ -18,20 +18,16 @@
 Cythonized Asset object.
 """
 cimport cython
-from cpython.number cimport PyNumber_Index
-from cpython.object cimport (
-    Py_EQ,
-    Py_NE,
-    Py_GE,
-    Py_LE,
-    Py_GT,
-    Py_LT,
-)
 from cpython cimport bool
+from cpython.number cimport PyNumber_Index
+from cpython.object cimport Py_EQ, Py_GE, Py_GT, Py_LE, Py_LT, Py_NE
 
 import numpy as np
+
 from numpy cimport int64_t
+
 import warnings
+
 cimport numpy as np
 
 from trading_calendars import get_calendar

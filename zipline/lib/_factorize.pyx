@@ -1,9 +1,10 @@
 """
 Factorization algorithms.
 """
+cimport numpy as np
 from cpython cimport Py_LT
 from libc.math cimport log
-cimport numpy as np
+
 import numpy as np
 
 from zipline.utils.numpy_utils import unsigned_int_dtype_with_size_in_bytes

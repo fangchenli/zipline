@@ -3,7 +3,7 @@
 from interface import implements
 import numpy as np
 
-from .base import FXRateReader, DEFAULT_FX_RATE
+from .base import DEFAULT_FX_RATE, FXRateReader
 from .utils import check_dts
 
 
@@ -51,7 +51,7 @@ class InMemoryFXRateReader(implements(FXRateReader)):
         # method a lot, so we implement our own indexing logic.
 
         values = df.values
-        row_ixs = df.index.searchsorted(dts, side='right') - 1
+        row_ixs = df.index.searchsorted(dts, side="right") - 1
         col_ixs = df.columns.get_indexer(bases)
 
         out = values[:, col_ixs][row_ixs]

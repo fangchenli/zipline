@@ -12,13 +12,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from datetime import datetime
+from functools import partial
+
+from dateutil import rrule
 import pandas as pd
 import pytz
+
 # import warnings
 
-from datetime import datetime
-from dateutil import rrule
-from functools import partial
 
 # from zipline.zipline_warnings import ZiplineDeprecationWarning
 
@@ -38,8 +40,8 @@ from functools import partial
 #     stacklevel=1,
 # )
 
-start = pd.Timestamp('1990-01-01', tz='UTC')
-end_base = pd.Timestamp('today', tz='UTC')
+start = pd.Timestamp("1990-01-01", tz="UTC")
+end_base = pd.Timestamp("today", tz="UTC")
 # Give an aggressive buffer for logic that needs to use the next trading
 # day or minute.
 end = end_base + pd.Timedelta(days=365)
@@ -62,16 +64,12 @@ def get_non_trading_days(start, end):
         byweekday=(rrule.SA, rrule.SU),
         cache=True,
         dtstart=start,
-        until=end
+        until=end,
     )
     non_trading_rules.append(weekends)
 
     new_years = rrule.rrule(
-        rrule.MONTHLY,
-        byyearday=1,
-        cache=True,
-        dtstart=start,
-        until=end
+        rrule.MONTHLY, byyearday=1, cache=True, dtstart=start, until=end
     )
     non_trading_rules.append(new_years)
 
@@ -81,7 +79,7 @@ def get_non_trading_days(start, end):
         byweekday=rrule.MO,
         cache=True,
         dtstart=start,
-        until=end
+        until=end,
     )
     non_trading_rules.append(new_years_sunday)
 
@@ -91,7 +89,7 @@ def get_non_trading_days(start, end):
         byweekday=(rrule.MO(+3)),
         cache=True,
         dtstart=datetime(1998, 1, 1, tzinfo=pytz.utc),
-        until=end
+        until=end,
     )
     non_trading_rules.append(mlk_day)
 
@@ -101,16 +99,12 @@ def get_non_trading_days(start, end):
         byweekday=(rrule.MO(3)),
         cache=True,
         dtstart=start,
-        until=end
+        until=end,
     )
     non_trading_rules.append(presidents_day)
 
     good_friday = rrule.rrule(
-        rrule.DAILY,
-        byeaster=-2,
-        cache=True,
-        dtstart=start,
-        until=end
+        rrule.DAILY, byeaster=-2, cache=True, dtstart=start, until=end
     )
     non_trading_rules.append(good_friday)
 
@@ -120,17 +114,12 @@ def get_non_trading_days(start, end):
         byweekday=(rrule.MO(-1)),
         cache=True,
         dtstart=start,
-        until=end
+        until=end,
     )
     non_trading_rules.append(memorial_day)
 
     july_4th = rrule.rrule(
-        rrule.MONTHLY,
-        bymonth=7,
-        bymonthday=4,
-        cache=True,
-        dtstart=start,
-        until=end
+        rrule.MONTHLY, bymonth=7, bymonthday=4, cache=True, dtstart=start, until=end
     )
     non_trading_rules.append(july_4th)
 
@@ -141,7 +130,7 @@ def get_non_trading_days(start, end):
         byweekday=rrule.MO,
         cache=True,
         dtstart=start,
-        until=end
+        until=end,
     )
     non_trading_rules.append(july_4th_sunday)
 
@@ -152,7 +141,7 @@ def get_non_trading_days(start, end):
         byweekday=rrule.FR,
         cache=True,
         dtstart=start,
-        until=end
+        until=end,
     )
     non_trading_rules.append(july_4th_saturday)
 
@@ -162,7 +151,7 @@ def get_non_trading_days(start, end):
         byweekday=(rrule.MO(1)),
         cache=True,
         dtstart=start,
-        until=end
+        until=end,
     )
     non_trading_rules.append(labor_day)
 
@@ -172,17 +161,12 @@ def get_non_trading_days(start, end):
         byweekday=(rrule.TH(4)),
         cache=True,
         dtstart=start,
-        until=end
+        until=end,
     )
     non_trading_rules.append(thanksgiving)
 
     christmas = rrule.rrule(
-        rrule.MONTHLY,
-        bymonth=12,
-        bymonthday=25,
-        cache=True,
-        dtstart=start,
-        until=end
+        rrule.MONTHLY, bymonth=12, bymonthday=25, cache=True, dtstart=start, until=end
     )
     non_trading_rules.append(christmas)
 
@@ -193,7 +177,7 @@ def get_non_trading_days(start, end):
         byweekday=rrule.MO,
         cache=True,
         dtstart=start,
-        until=end
+        until=end,
     )
     non_trading_rules.append(christmas_sunday)
 
@@ -205,7 +189,7 @@ def get_non_trading_days(start, end):
         byweekday=rrule.FR,
         cache=True,
         dtstart=start,
-        until=end
+        until=end,
     )
     non_trading_rules.append(christmas_saturday)
 
@@ -231,8 +215,7 @@ def get_non_trading_days(start, end):
     # 30
 
     for day_num in range(11, 17):
-        non_trading_days.append(
-            datetime(2001, 9, day_num, tzinfo=pytz.utc))
+        non_trading_days.append(datetime(2001, 9, day_num, tzinfo=pytz.utc))
 
     # Add closings due to Hurricane Sandy in 2012
     # https://en.wikipedia.org/wiki/Hurricane_sandy
@@ -249,8 +232,7 @@ def get_non_trading_days(start, end):
     # 28 29 30 31
 
     for day_num in range(29, 31):
-        non_trading_days.append(
-            datetime(2012, 10, day_num, tzinfo=pytz.utc))
+        non_trading_days.append(datetime(2012, 10, day_num, tzinfo=pytz.utc))
 
     # Misc closings from NYSE listing.
     # http://www.nyse.com/pdfs/closings.pdf
@@ -272,9 +254,9 @@ trading_day = pd.tseries.offsets.CDay(holidays=non_trading_days)
 
 
 def get_trading_days(start, end, trading_day=trading_day):
-    return pd.date_range(start=start.date(),
-                         end=end.date(),
-                         freq=trading_day).tz_localize('UTC')
+    return pd.date_range(
+        start=start.date(), end=end.date(), freq=trading_day
+    ).tz_localize("UTC")
 
 
 trading_days = get_trading_days(start, end)
@@ -307,7 +289,7 @@ def get_early_closes(start, end):
         bymonthday=range(23, 30),
         cache=True,
         dtstart=start,
-        until=end
+        until=end,
     )
     early_close_rules.append(day_after_thanksgiving)
 
@@ -318,7 +300,7 @@ def get_early_closes(start, end):
         byweekday=(rrule.MO, rrule.TU, rrule.WE, rrule.TH),
         cache=True,
         dtstart=start,
-        until=end
+        until=end,
     )
     early_close_rules.append(christmas_eve)
 
@@ -330,7 +312,7 @@ def get_early_closes(start, end):
         cache=True,
         dtstart=start,
         # valid 1993-2007
-        until=min(end, datetime(2007, 12, 31, tzinfo=pytz.utc))
+        until=min(end, datetime(2007, 12, 31, tzinfo=pytz.utc)),
     )
     early_close_rules.append(friday_after_christmas)
 
@@ -341,7 +323,7 @@ def get_early_closes(start, end):
         byweekday=(rrule.MO, rrule.TU, rrule.TH),
         cache=True,
         dtstart=start,
-        until=end
+        until=end,
     )
     early_close_rules.append(day_before_independence_day)
 
@@ -353,7 +335,7 @@ def get_early_closes(start, end):
         cache=True,
         dtstart=start,
         # starting in 2013: wednesday before independence day
-        until=min(end, datetime(2012, 12, 31, tzinfo=pytz.utc))
+        until=min(end, datetime(2012, 12, 31, tzinfo=pytz.utc)),
     )
     early_close_rules.append(day_after_independence_day)
 
@@ -365,7 +347,7 @@ def get_early_closes(start, end):
         cache=True,
         # starting in 2013
         dtstart=max(start, datetime(2013, 1, 1, tzinfo=pytz.utc)),
-        until=max(end, datetime(2013, 1, 1, tzinfo=pytz.utc))
+        until=max(end, datetime(2013, 1, 1, tzinfo=pytz.utc)),
     )
     early_close_rules.append(wednesday_before_independence_day)
 
@@ -392,37 +374,31 @@ early_closes = get_early_closes(start, end)
 
 def get_open_and_close(day, early_closes):
     market_open = pd.Timestamp(
-        datetime(
-            year=day.year,
-            month=day.month,
-            day=day.day,
-            hour=9,
-            minute=31),
-        tz='US/Eastern').tz_convert('UTC')
+        datetime(year=day.year, month=day.month, day=day.day, hour=9, minute=31),
+        tz="US/Eastern",
+    ).tz_convert("UTC")
     # 1 PM if early close, 4 PM otherwise
     close_hour = 13 if day in early_closes else 16
     market_close = pd.Timestamp(
-        datetime(
-            year=day.year,
-            month=day.month,
-            day=day.day,
-            hour=close_hour),
-        tz='US/Eastern').tz_convert('UTC')
+        datetime(year=day.year, month=day.month, day=day.day, hour=close_hour),
+        tz="US/Eastern",
+    ).tz_convert("UTC")
 
     return market_open, market_close
 
 
 def get_open_and_closes(trading_days, early_closes, get_open_and_close):
-    open_and_closes = pd.DataFrame(index=trading_days,
-                                   columns=('market_open', 'market_close'))
+    open_and_closes = pd.DataFrame(
+        index=trading_days, columns=("market_open", "market_close")
+    )
 
     get_o_and_c = partial(get_open_and_close, early_closes=early_closes)
 
-    open_and_closes['market_open'], open_and_closes['market_close'] = \
-        zip(*open_and_closes.index.map(get_o_and_c))
+    open_and_closes["market_open"], open_and_closes["market_close"] = zip(
+        *open_and_closes.index.map(get_o_and_c)
+    )
 
     return open_and_closes
 
 
-open_and_closes = get_open_and_closes(trading_days, early_closes,
-                                      get_open_and_close)
+open_and_closes = get_open_and_closes(trading_days, early_closes, get_open_and_close)

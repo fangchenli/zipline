@@ -18,24 +18,20 @@
 Cythonized ContinuousFutures object.
 """
 cimport cython
-from cpython.number cimport PyNumber_Index
-from cpython.object cimport (
-    Py_EQ,
-    Py_NE,
-    Py_GE,
-    Py_LE,
-    Py_GT,
-    Py_LT,
-)
 from cpython cimport bool
+from cpython.number cimport PyNumber_Index
+from cpython.object cimport Py_EQ, Py_GE, Py_GT, Py_LE, Py_LT, Py_NE
 
 from functools import partial
 
 from numpy import array, empty, iinfo
-from numpy cimport long_t, int64_t
+
+from numpy cimport int64_t, long_t
+
+import warnings
+
 from pandas import Timestamp
 from trading_calendars import get_calendar
-import warnings
 
 
 def delivery_predicate(codes, contract):

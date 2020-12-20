@@ -1,8 +1,8 @@
 cimport cython
+cimport numpy as np
 from cpython cimport PyObject
 from libc.math cimport sqrt
 
-cimport numpy as np
 import numpy as np
 import pandas as pd
 

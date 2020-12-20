@@ -1,10 +1,9 @@
 import numpy as np
 import pandas as pd
 from pandas import NaT
-
 from trading_calendars import TradingCalendar
 
-from zipline.data.bar_reader import OHLCV, NoDataOnDate, NoDataForSid
+from zipline.data.bar_reader import OHLCV, NoDataForSid, NoDataOnDate
 from zipline.data.session_bars import CurrencyAwareSessionBarReader
 from zipline.utils.input_validation import expect_types, validate_keys
 from zipline.utils.pandas_utils import check_indexes_all_same
@@ -27,17 +26,14 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
         Whether or not to verify that input data is correctly aligned to the
         given calendar. Default is True.
     """
+
     @expect_types(
         frames=dict,
         calendar=TradingCalendar,
         verify_indices=bool,
         currency_codes=pd.Series,
     )
-    def __init__(self,
-                 frames,
-                 calendar,
-                 currency_codes,
-                 verify_indices=True):
+    def __init__(self, frames, calendar, currency_codes, verify_indices=True):
         self._frames = frames
         self._values = {key: frame.values for key, frame in frames.items()}
         self._calendar = calendar
@@ -47,13 +43,12 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
         if verify_indices:
             verify_frames_aligned(list(frames.values()), calendar)
 
-        self._sessions = frames['close'].index
-        self._sids = frames['close'].columns
+        self._sessions = frames["close"].index
+        self._sids = frames["close"].columns
 
     @classmethod
     def from_panel(cls, panel, calendar, currency_codes):
-        """Helper for construction from a pandas.Panel.
-        """
+        """Helper for construction from a pandas.Panel."""
         return cls(dict(panel.iteritems()), calendar, currency_codes)
 
     @property
@@ -124,7 +119,7 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
                        NaT if no trade is found before the given dt.
         """
         try:
-            return self.frames['close'].loc[:, asset.sid].last_valid_index()
+            return self.frames["close"].loc[:, asset.sid].last_valid_index()
         except IndexError:
             return NaT
 

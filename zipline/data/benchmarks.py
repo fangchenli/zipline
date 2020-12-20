@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logbook
-
 import pandas as pd
 
 log = logbook.Logger(__name__)
@@ -37,16 +36,18 @@ def get_benchmark_returns_from_file(filelike):
 
     df = pd.read_csv(
         filelike,
-        index_col=['date'],
-        parse_dates=['date'],
-    ).tz_localize('utc')
+        index_col=["date"],
+        parse_dates=["date"],
+    ).tz_localize("utc")
 
-    if 'return' not in df.columns:
-        raise ValueError("The column 'return' not found in the "
-                         "benchmark file \n"
-                         "Expected benchmark file format :\n"
-                         "date, return\n"
-                         "2020-01-02 00:00:00+00:00,0.01\n"
-                         "2020-01-03 00:00:00+00:00,-0.02\n")
+    if "return" not in df.columns:
+        raise ValueError(
+            "The column 'return' not found in the "
+            "benchmark file \n"
+            "Expected benchmark file format :\n"
+            "date, return\n"
+            "2020-01-02 00:00:00+00:00,0.01\n"
+            "2020-01-03 00:00:00+00:00,-0.02\n"
+        )
 
-    return df['return'].sort_index()
+    return df["return"].sort_index()

@@ -1,7 +1,7 @@
 from .core import (  # noqa
+    EPOCH,
     AssetID,
     AssetIDPlusDay,
-    EPOCH,
     ExplodingObject,
     FakeDataPortal,
     FetcherDataPortal,

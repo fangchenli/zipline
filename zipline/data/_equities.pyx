@@ -13,24 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import bcolz
+
 cimport cython
 from cpython cimport bool
 
-from numpy import (
-    array,
-    float64,
-    full,
-    intp,
-    uint32,
-    zeros,
-)
-from numpy cimport (
-    float64_t,
-    intp_t,
-    ndarray,
-    uint32_t,
-    uint8_t,
-)
+from numpy import array, float64, full, intp, uint32, zeros
+
+from numpy cimport float64_t, intp_t, ndarray, uint8_t, uint32_t
 from numpy.math cimport NAN
 
 ctypedef object carray_t

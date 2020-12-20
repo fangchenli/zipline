@@ -14,20 +14,22 @@
 # limitations under the License.
 
 
-import pytz
+from datetime import datetime
+from hashlib import md5
 import numbers
 
-from hashlib import md5
-from datetime import datetime
+import pytz
+
 from zipline.protocol import DATASOURCE_TYPE
 
 
 def hash_args(*args, **kwargs):
     """Define a unique string for any set of representable args."""
-    arg_string = '_'.join([str(arg) for arg in args])
-    kwarg_string = '_'.join([str(key) + '=' + str(value)
-                             for key, value in kwargs.items()])
-    combined = ':'.join([arg_string, kwarg_string])
+    arg_string = "_".join([str(arg) for arg in args])
+    kwarg_string = "_".join(
+        [str(key) + "=" + str(value) for key, value in kwargs.items()]
+    )
+    combined = ":".join([arg_string, kwarg_string])
 
     hasher = md5()
     hasher.update(bytes(combined))

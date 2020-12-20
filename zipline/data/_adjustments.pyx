@@ -12,31 +12,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from cpython cimport (
-    bool,
-    PyDict_Contains,
-    PySet_Add,
-)
+from cpython cimport PyDict_Contains, PySet_Add, bool
 
 from itertools import chain
-from numpy import (
-    int64,
-    uint32,
-    zeros,
-)
+
+from numpy import int64, uint32, zeros
+
 from numpy cimport float64_t, int64_t, ndarray
+
 from pandas import Timestamp
 
 ctypedef object Timestamp_t
 ctypedef object DatetimeIndex_t
 ctypedef object Int64Index_t
 
-from zipline.lib.adjustment import Float64Multiply
 from zipline.assets.asset_writer import (
     SQLITE_MAX_VARIABLE_NUMBER as SQLITE_MAX_IN_STATEMENT,
 )
+from zipline.lib.adjustment import Float64Multiply
 from zipline.utils.pandas_utils import timedelta_to_integral_seconds
-
 
 _SID_QUERY_TEMPLATE = """
 SELECT DISTINCT sid FROM {0}

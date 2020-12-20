@@ -142,61 +142,41 @@ import warnings
 from weakref import WeakKeyDictionary
 
 import blaze as bz
-from datashape import (
-    Date,
-    DateTime,
-    Option,
-    String,
-    isrecord,
-    isscalar,
-    integral,
-)
+from datashape import Date, DateTime, Option, String, integral, isrecord, isscalar
 from interface import implements
 import numpy as np
 from odo import odo
 import pandas as pd
 from six import with_metaclass
-from toolz import (
-    complement,
-    compose,
-    first,
-    flip,
-    groupby,
-    memoize,
-    merge,
-)
+from toolz import complement, compose, first, flip, groupby, memoize, merge
 import toolz.curried.operator as op
 from toolz.curried.operator import getitem
 
-from zipline.pipeline.common import (
-    AD_FIELD_NAME,
-    SID_FIELD_NAME,
-    TS_FIELD_NAME
-)
-from zipline.pipeline.data.dataset import DataSet, Column
+from zipline.lib.adjusted_array import can_represent_dtype
+from zipline.pipeline.common import AD_FIELD_NAME, SID_FIELD_NAME, TS_FIELD_NAME
+from zipline.pipeline.data.dataset import Column, DataSet
 from zipline.pipeline.domain import GENERIC
 from zipline.pipeline.loaders.base import PipelineLoader
 from zipline.pipeline.sentinels import NotSpecified
-from zipline.lib.adjusted_array import can_represent_dtype
 from zipline.utils.input_validation import expect_element
 from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning
 from zipline.utils.pool import SequentialPool
+
 try:
-    from ._core import (  # noqa
+    from ._core import (
         adjusted_arrays_from_rows_with_assets,
         adjusted_arrays_from_rows_without_assets,
-        baseline_arrays_from_rows_with_assets,  # reexport
-        baseline_arrays_from_rows_without_assets,  # reexport
         getname,
     )
+    from ._core import baseline_arrays_from_rows_with_assets  # noqa; reexport
+    from ._core import baseline_arrays_from_rows_without_assets  # reexport
 except ImportError:
+
     def getname(column):
-        return column.get('blaze_column_name', column.name)
+        return column.get("blaze_column_name", column.name)
 
     def barf(*args, **kwargs):
-        raise RuntimeError(
-            "zipline.pipeline.loaders.blaze._core failed to import"
-        )
+        raise RuntimeError("zipline.pipeline.loaders.blaze._core failed to import")
 
     adjusted_arrays_from_rows_with_assets = barf
     adjusted_arrays_from_rows_without_assets = barf
@@ -213,7 +193,7 @@ traversable_nodes = (
     bz.expr.Label,
 )
 is_invalid_deltas_node = complement(flip(isinstance, valid_deltas_node_types))
-get__name__ = op.attrgetter('__name__')
+get__name__ = op.attrgetter("__name__")
 
 
 class InvalidField(with_metaclass(ABCMeta)):
@@ -227,9 +207,10 @@ class InvalidField(with_metaclass(ABCMeta)):
     type_ : dshape
         The shape of the field.
     """
+
     @abstractproperty
     def error_format(self):  # pragma: no cover
-        raise NotImplementedError('error_format')
+        raise NotImplementedError("error_format")
 
     def __init__(self, field, type_):
         self._field = field
@@ -242,18 +223,14 @@ class InvalidField(with_metaclass(ABCMeta)):
 
 
 class NonNumpyField(InvalidField):
-    error_format = (
-        "field '{field}' was a non numpy compatible type: '{type_}'"
-    )
+    error_format = "field '{field}' was a non numpy compatible type: '{type_}'"
 
 
 class NonPipelineField(InvalidField):
-    error_format = (
-        "field '{field}' was a non Pipeline API compatible type: '{type_}'"
-    )
+    error_format = "field '{field}' was a non Pipeline API compatible type: '{type_}'"
 
 
-_new_names = ('BlazeDataSet_%d' % n for n in count())
+_new_names = ("BlazeDataSet_%d" % n for n in count())
 
 
 def datashape_type_to_numpy(type_):
@@ -276,11 +253,11 @@ def datashape_type_to_numpy(type_):
     if isinstance(type_, Option):
         type_ = type_.ty
     if isinstance(type_, DateTime):
-        return np.dtype('datetime64[ns]')
+        return np.dtype("datetime64[ns]")
     if isinstance(type_, String):
         return np.dtype(object)
     if type_ in integral:
-        return np.dtype('int64')
+        return np.dtype("int64")
     else:
         return type_.to_numpy_dtype()
 
@@ -313,7 +290,7 @@ def new_dataset(expr, missing_values, domain):
     the same type.
     """
     missing_values = dict(missing_values)
-    class_dict = {'ndim': 2 if SID_FIELD_NAME in expr.fields else 1}
+    class_dict = {"ndim": 2 if SID_FIELD_NAME in expr.fields else 1}
     for name, type_ in expr.dshape.measure.fields:
         # Don't generate a column for sid or timestamp, since they're
         # implicitly the labels if the arrays that will be passed to pipeline
@@ -330,10 +307,11 @@ def new_dataset(expr, missing_values, domain):
             col = NonPipelineField(name, type_)
         class_dict[name] = col
 
-    if 'domain' in class_dict:
-        raise ValueError("Got a column named 'domain' in new_dataset(). "
-                         "'domain' is reserved.")
-    class_dict['domain'] = domain
+    if "domain" in class_dict:
+        raise ValueError(
+            "Got a column named 'domain' in new_dataset(). " "'domain' is reserved."
+        )
+    class_dict["domain"] = domain
 
     name = expr._name
     if name is None:
@@ -363,10 +341,10 @@ def _check_resources(name, expr, resources):
         return
     bound = expr._resources()
     if not bound and resources is None:
-        raise ValueError('no resources provided to compute %s' % name)
+        raise ValueError("no resources provided to compute %s" % name)
     if bound and resources:
         raise ValueError(
-            'explicit and implicit resources provided to compute %s' % name,
+            "explicit and implicit resources provided to compute %s" % name,
         )
 
 
@@ -406,18 +384,19 @@ class NoMetaDataWarning(UserWarning):
     field : {'deltas',  'checkpoints'}
         The field that was looked up.
     """
+
     def __init__(self, expr, field):
         self._expr = expr
         self._field = field
 
     def __str__(self):
-        return 'No %s could be inferred from expr: %s' % (
+        return "No %s could be inferred from expr: %s" % (
             self._field,
             self._expr,
         )
 
 
-no_metadata_rules = frozenset({'warn', 'raise', 'ignore'})
+no_metadata_rules = frozenset({"warn", "raise", "ignore"})
 
 
 def _get_metadata(field, expr, metadata_expr, no_metadata_rule):
@@ -449,17 +428,15 @@ def _get_metadata(field, expr, metadata_expr, no_metadata_rule):
     try:
         # The error produced by expr[field_name] when field_name doesn't exist
         # is very expensive. Avoid that cost by doing the check ourselves.
-        field_name = '_'.join(((expr._name or ''), field))
+        field_name = "_".join(((expr._name or ""), field))
         child = expr._child
         if field_name not in child.fields:
             raise AttributeError(field_name)
         return child[field_name]
     except (ValueError, AttributeError):
-        if no_metadata_rule == 'raise':
-            raise ValueError(
-                "no %s table could be reflected for %s" % (field, expr)
-            )
-        elif no_metadata_rule == 'warn':
+        if no_metadata_rule == "raise":
+            raise ValueError("no %s table could be reflected for %s" % (field, expr))
+        elif no_metadata_rule == "warn":
             warnings.warn(NoMetaDataWarning(expr, field), stacklevel=4)
     return None
 
@@ -479,8 +456,8 @@ def _ad_as_ts(expr):
     """
     return (
         None
-        if expr is None else
-        bz.transform(expr, **{TS_FIELD_NAME: expr[AD_FIELD_NAME]})
+        if expr is None
+        else bz.transform(expr, **{TS_FIELD_NAME: expr[AD_FIELD_NAME]})
     )
 
 
@@ -508,8 +485,7 @@ def _ensure_timestamp_field(dataset_expr, deltas, checkpoints):
     measure = dataset_expr.dshape.measure
     if TS_FIELD_NAME not in measure.names:
         dataset_expr = bz.transform(
-            dataset_expr,
-            **{TS_FIELD_NAME: dataset_expr[AD_FIELD_NAME]}
+            dataset_expr, **{TS_FIELD_NAME: dataset_expr[AD_FIELD_NAME]}
         )
         deltas = _ad_as_ts(deltas)
         checkpoints = _ad_as_ts(checkpoints)
@@ -523,16 +499,18 @@ def _ensure_timestamp_field(dataset_expr, deltas, checkpoints):
     no_deltas_rule=no_metadata_rules,
     no_checkpoints_rule=no_metadata_rules,
 )
-def from_blaze(expr,
-               deltas='auto',
-               checkpoints='auto',
-               loader=None,
-               resources=None,
-               odo_kwargs=None,
-               missing_values=None,
-               domain=GENERIC,
-               no_deltas_rule='warn',
-               no_checkpoints_rule='warn'):
+def from_blaze(
+    expr,
+    deltas="auto",
+    checkpoints="auto",
+    loader=None,
+    resources=None,
+    odo_kwargs=None,
+    missing_values=None,
+    domain=GENERIC,
+    no_deltas_rule="warn",
+    no_checkpoints_rule="warn",
+):
     """Create a Pipeline API object from a blaze expression.
 
     Parameters
@@ -584,30 +562,34 @@ def from_blaze(expr,
         is passed, a ``BoundColumn`` on the dataset that would be constructed
         from passing the parent is returned.
     """
-    if 'auto' in {deltas, checkpoints}:
+    if "auto" in {deltas, checkpoints}:
         invalid_nodes = tuple(filter(is_invalid_deltas_node, expr._subterms()))
         if invalid_nodes:
             raise TypeError(
-                'expression with auto %s may only contain (%s) nodes,'
-                " found: %s" % (
-                    ' or '.join(
-                        ['deltas'] if deltas is not None else [] +
-                        ['checkpoints'] if checkpoints is not None else [],
+                "expression with auto %s may only contain (%s) nodes,"
+                " found: %s"
+                % (
+                    " or ".join(
+                        ["deltas"]
+                        if deltas is not None
+                        else [] + ["checkpoints"]
+                        if checkpoints is not None
+                        else [],
                     ),
-                    ', '.join(map(get__name__, valid_deltas_node_types)),
-                    ', '.join(
+                    ", ".join(map(get__name__, valid_deltas_node_types)),
+                    ", ".join(
                         set(map(compose(get__name__, type), invalid_nodes)),
                     ),
                 ),
             )
     deltas = _get_metadata(
-        'deltas',
+        "deltas",
         expr,
         deltas,
         no_deltas_rule,
     )
     checkpoints = _get_metadata(
-        'checkpoints',
+        "checkpoints",
         expr,
         checkpoints,
         no_checkpoints_rule,
@@ -616,9 +598,10 @@ def from_blaze(expr,
     # Check if this is a single column out of a dataset.
     if bz.ndim(expr) != 1:
         raise TypeError(
-            'expression was not tabular or array-like,'
-            ' %s dimensions: %d' % (
-                'too many' if bz.ndim(expr) > 1 else 'not enough',
+            "expression was not tabular or array-like,"
+            " %s dimensions: %d"
+            % (
+                "too many" if bz.ndim(expr) > 1 else "not enough",
                 bz.ndim(expr),
             ),
         )
@@ -663,28 +646,31 @@ def from_blaze(expr,
         checkpoints,
     )
 
-    if deltas is not None and (sorted(deltas.dshape.measure.fields) !=
-                               sorted(measure.fields)):
+    if deltas is not None and (
+        sorted(deltas.dshape.measure.fields) != sorted(measure.fields)
+    ):
         raise TypeError(
-            'baseline measure != deltas measure:\n%s != %s' % (
+            "baseline measure != deltas measure:\n%s != %s"
+            % (
                 measure,
                 deltas.dshape.measure,
             ),
         )
-    if (checkpoints is not None and
-        (sorted(checkpoints.dshape.measure.fields) !=
-         sorted(measure.fields))):
+    if checkpoints is not None and (
+        sorted(checkpoints.dshape.measure.fields) != sorted(measure.fields)
+    ):
         raise TypeError(
-            'baseline measure != checkpoints measure:\n%s != %s' % (
+            "baseline measure != checkpoints measure:\n%s != %s"
+            % (
                 measure,
                 checkpoints.dshape.measure,
             ),
         )
 
     # Ensure that we have a data resource to execute the query against.
-    _check_resources('expr', dataset_expr, resources)
-    _check_resources('deltas', deltas, resources)
-    _check_resources('checkpoints', checkpoints, resources)
+    _check_resources("expr", dataset_expr, resources)
+    _check_resources("deltas", deltas, resources)
+    _check_resources("checkpoints", checkpoints, resources)
 
     # Create or retrieve the Pipeline API dataset.
     if missing_values is None:
@@ -695,12 +681,10 @@ def from_blaze(expr,
     (loader if loader is not None else global_loader).register_dataset(
         ds,
         bind_expression_to_resources(dataset_expr, resources),
-        bind_expression_to_resources(deltas, resources)
-        if deltas is not None else
-        None,
+        bind_expression_to_resources(deltas, resources) if deltas is not None else None,
         bind_expression_to_resources(checkpoints, resources)
-        if checkpoints is not None else
-        None,
+        if checkpoints is not None
+        else None,
         odo_kwargs=odo_kwargs,
     )
     if single_column is not None:
@@ -709,7 +693,7 @@ def from_blaze(expr,
     return ds
 
 
-getdataset = op.attrgetter('dataset')
+getdataset = op.attrgetter("dataset")
 
 
 class ExprData(object):
@@ -727,11 +711,8 @@ class ExprData(object):
     odo_kwargs : dict, optional
         The keyword arguments to forward to the odo calls internally.
     """
-    def __init__(self,
-                 expr,
-                 deltas=None,
-                 checkpoints=None,
-                 odo_kwargs=None):
+
+    def __init__(self, expr, deltas=None, checkpoints=None, odo_kwargs=None):
         self.expr = expr
         self.deltas = deltas
         self.checkpoints = checkpoints
@@ -739,14 +720,14 @@ class ExprData(object):
 
     def replace(self, **kwargs):
         base_kwargs = {
-            'expr': self.expr,
-            'deltas': self.deltas,
-            'checkpoints': self.checkpoints,
-            'odo_kwargs': self._odo_kwargs,
+            "expr": self.expr,
+            "deltas": self.deltas,
+            "checkpoints": self.checkpoints,
+            "odo_kwargs": self._odo_kwargs,
         }
         invalid_kwargs = set(kwargs) - set(base_kwargs)
         if invalid_kwargs:
-            raise TypeError('invalid param(s): %s' % sorted(invalid_kwargs))
+            raise TypeError("invalid param(s): %s" % sorted(invalid_kwargs))
 
         base_kwargs.update(kwargs)
         return type(self)(**base_kwargs)
@@ -767,13 +748,11 @@ class ExprData(object):
     def __repr__(self):
         # If the expressions have _resources() then the repr will
         # drive computation so we take the str here.
-        return (
-            'ExprData(expr=%s, deltas=%s, checkpoints=%s, odo_kwargs=%r)' % (
-                self.expr,
-                self.deltas,
-                self.checkpoints,
-                self.odo_kwargs,
-            )
+        return "ExprData(expr=%s, deltas=%s, checkpoints=%s, odo_kwargs=%r)" % (
+            self.expr,
+            self.deltas,
+            self.checkpoints,
+            self.odo_kwargs,
         )
 
     @staticmethod
@@ -781,22 +760,24 @@ class ExprData(object):
         return a is b is None or a.isidentical(b)
 
     def __hash__(self):
-        return hash((
-            self.expr,
-            self.deltas,
-            self.checkpoints,
-            id(self._odo_kwargs),
-        ))
+        return hash(
+            (
+                self.expr,
+                self.deltas,
+                self.checkpoints,
+                id(self._odo_kwargs),
+            )
+        )
 
     def __eq__(self, other):
         if not isinstance(other, ExprData):
             return NotImplemented
 
         return (
-            self._expr_eq(self.expr, other.expr) and
-            self._expr_eq(self.deltas, other.deltas) and
-            self._expr_eq(self.checkpoints, other.checkpoints) and
-            self._odo_kwargs is other._odo_kwargs
+            self._expr_eq(self.expr, other.expr)
+            and self._expr_eq(self.deltas, other.deltas)
+            and self._expr_eq(self.checkpoints, other.checkpoints)
+            and self._odo_kwargs is other._odo_kwargs
         )
 
 
@@ -827,6 +808,7 @@ class BlazeLoader(implements(PipelineLoader)):
     :class:`zipline.utils.pool.SequentialPool`
     :class:`multiprocessing.Pool`
     """
+
     def __init__(self, dsmap=None, pool=SequentialPool()):
         # explicitly public
         self.pool = pool
@@ -858,12 +840,9 @@ class BlazeLoader(implements(PipelineLoader)):
             return self
         raise KeyError(column)
 
-    def register_dataset(self,
-                         dataset,
-                         expr,
-                         deltas=None,
-                         checkpoints=None,
-                         odo_kwargs=None):
+    def register_dataset(
+        self, dataset, expr, deltas=None, checkpoints=None, odo_kwargs=None
+    ):
         """Explicitly map a datset to a collection of blaze expressions.
 
         Parameters
@@ -892,12 +871,9 @@ class BlazeLoader(implements(PipelineLoader)):
         for column in dataset.columns:
             self._table_expressions[column] = expr_data
 
-    def register_column(self,
-                        column,
-                        expr,
-                        deltas=None,
-                        checkpoints=None,
-                        odo_kwargs=None):
+    def register_column(
+        self, column, expr, deltas=None, checkpoints=None, odo_kwargs=None
+    ):
         """Explicitly map a single bound column to a collection of blaze
         expressions. The expressions need to have ``timestamp`` and ``as_of``
         columns.
@@ -943,22 +919,17 @@ class BlazeLoader(implements(PipelineLoader)):
             ),
         )
 
-    def _load_dataset(self,
-                      dates,
-                      data_query_cutoff_times,
-                      assets,
-                      mask,
-                      columns):
+    def _load_dataset(self, dates, data_query_cutoff_times, assets, mask, columns):
         try:
             (expr_data,) = {self._table_expressions[c] for c in columns}
         except ValueError:
             raise AssertionError(
-                'all columns must share the same expression data',
+                "all columns must share the same expression data",
             )
 
         expr, deltas, checkpoints, odo_kwargs = expr_data
 
-        have_sids = (first(columns).dataset.ndim == 2)
+        have_sids = first(columns).dataset.ndim == 2
         added_query_fields = {AD_FIELD_NAME, TS_FIELD_NAME} | (
             {SID_FIELD_NAME} if have_sids else set()
         )
@@ -1003,8 +974,8 @@ class BlazeLoader(implements(PipelineLoader)):
         )
         materialized_deltas = (
             self.pool.apply(collect_expr, (deltas, lower))
-            if deltas is not None else
-            None
+            if deltas is not None
+            else None
         )
 
         # If the rows that come back from the blaze backend are constructed
@@ -1014,7 +985,8 @@ class BlazeLoader(implements(PipelineLoader)):
         with ignore_pandas_nan_categorical_warning():
             all_rows = pd.concat(
                 filter(
-                    lambda df: df is not None, (
+                    lambda df: df is not None,
+                    (
                         materialized_checkpoints,
                         materialized_expr_deferred.get(),
                         materialized_deltas,
@@ -1025,7 +997,7 @@ class BlazeLoader(implements(PipelineLoader)):
             )
 
         all_rows[TS_FIELD_NAME] = all_rows[TS_FIELD_NAME].astype(
-            'datetime64[ns]',
+            "datetime64[ns]",
         )
         all_rows.sort_values([TS_FIELD_NAME, AD_FIELD_NAME], inplace=True)
 
@@ -1072,9 +1044,7 @@ def bind_expression_to_resources(expr, resources):
     # _subs stands for substitute.  It's not actually private, blaze just
     # prefixes symbol-manipulation methods with underscores to prevent
     # collisions with data column names.
-    return expr._subs({
-        k: bz.data(v, dshape=k.dshape) for k, v in resources.items()
-    })
+    return expr._subs({k: bz.data(v, dshape=k.dshape) for k, v in resources.items()})
 
 
 def get_materialized_checkpoints(checkpoints, colnames, lower_dt, odo_kwargs):
@@ -1096,11 +1066,7 @@ def get_materialized_checkpoints(checkpoints, colnames, lower_dt, odo_kwargs):
     """
     if checkpoints is not None:
         ts = checkpoints[TS_FIELD_NAME]
-        checkpoints_ts = odo(
-            ts[ts < lower_dt].max(),
-            pd.Timestamp,
-            **odo_kwargs
-        )
+        checkpoints_ts = odo(ts[ts < lower_dt].max(), pd.Timestamp, **odo_kwargs)
         if pd.isnull(checkpoints_ts):
             # We don't have a checkpoint for before our start date so just
             # don't constrain the lower date.
@@ -1108,9 +1074,7 @@ def get_materialized_checkpoints(checkpoints, colnames, lower_dt, odo_kwargs):
             lower = None
         else:
             materialized_checkpoints = odo(
-                checkpoints[ts == checkpoints_ts][colnames],
-                pd.DataFrame,
-                **odo_kwargs
+                checkpoints[ts == checkpoints_ts][colnames], pd.DataFrame, **odo_kwargs
             )
             lower = checkpoints_ts
     else:
@@ -1119,12 +1083,9 @@ def get_materialized_checkpoints(checkpoints, colnames, lower_dt, odo_kwargs):
     return lower, materialized_checkpoints
 
 
-def ffill_query_in_range(expr,
-                         lower,
-                         upper,
-                         checkpoints=None,
-                         odo_kwargs=None,
-                         ts_field=TS_FIELD_NAME):
+def ffill_query_in_range(
+    expr, lower, upper, checkpoints=None, odo_kwargs=None, ts_field=TS_FIELD_NAME
+):
     """Query a blaze expression in a given time range properly forward filling
     from values that fall before the lower date.
 
@@ -1167,13 +1128,9 @@ def ffill_query_in_range(expr,
     raw = pd.concat(
         (
             materialized_checkpoints,
-            odo(
-                expr[pred],
-                pd.DataFrame,
-                **odo_kwargs
-            ),
+            odo(expr[pred], pd.DataFrame, **odo_kwargs),
         ),
         ignore_index=True,
     )
-    raw.loc[:, ts_field] = raw.loc[:, ts_field].astype('datetime64[ns]')
+    raw.loc[:, ts_field] = raw.loc[:, ts_field].astype("datetime64[ns]")
     return raw

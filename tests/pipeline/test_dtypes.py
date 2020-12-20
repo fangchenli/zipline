@@ -1,15 +1,10 @@
 from zipline.errors import UnsupportedDataType
 from zipline.pipeline import CustomClassifier, CustomFactor, CustomFilter
-from zipline.pipeline.dtypes import (
-    CLASSIFIER_DTYPES,
-    FACTOR_DTYPES,
-    FILTER_DTYPES,
-)
+from zipline.pipeline.dtypes import CLASSIFIER_DTYPES, FACTOR_DTYPES, FILTER_DTYPES
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.testing import parameter_space
 from zipline.testing.fixtures import ZiplineTestCase
-from zipline.utils.numpy_utils import int64_dtype, bool_dtype
-
+from zipline.utils.numpy_utils import bool_dtype, int64_dtype
 
 missing_values = {
     int64_dtype: -1,
@@ -36,6 +31,7 @@ class DtypeTestCase(ZiplineTestCase):
         @parameter_space(dtype_=dtypes)
         def test(self, dtype_):
             with self.assertRaises(UnsupportedDataType) as e:
+
                 class Incorrect(cls):
                     missing_value = missing_values.get(dtype_, NotSpecified)
                     inputs = []
@@ -58,12 +54,12 @@ class DtypeTestCase(ZiplineTestCase):
     test_custom_classifier_factor_dtypes = incorrect_dtype(
         CustomClassifier,
         FACTOR_DTYPES - CLASSIFIER_DTYPES,
-        'CustomFactor',
+        "CustomFactor",
     )
     test_custom_classifier_filter_dtypes = incorrect_dtype(
         CustomClassifier,
         FILTER_DTYPES - CLASSIFIER_DTYPES,
-        'CustomFilter',
+        "CustomFilter",
     )
 
     test_custom_factor_correct_dtypes = correct_dtype(
@@ -73,12 +69,12 @@ class DtypeTestCase(ZiplineTestCase):
     test_custom_factor_classifier_dtypes = incorrect_dtype(
         CustomFactor,
         CLASSIFIER_DTYPES - FACTOR_DTYPES,
-        'CustomClassifier',
+        "CustomClassifier",
     )
     test_custom_factor_filter_dtypes = incorrect_dtype(
         CustomFactor,
         FILTER_DTYPES - FACTOR_DTYPES,
-        'CustomFilter',
+        "CustomFilter",
     )
 
     test_custom_filter_correct_dtypes = correct_dtype(
@@ -88,7 +84,7 @@ class DtypeTestCase(ZiplineTestCase):
     test_custom_filter_classifier_dtypes = incorrect_dtype(
         CustomFilter,
         CLASSIFIER_DTYPES - FILTER_DTYPES,
-        'CustomClassifier',
+        "CustomClassifier",
     )
 
     # This test is special because int64 is in both the ``FACTOR_DTYPES``
@@ -99,5 +95,5 @@ class DtypeTestCase(ZiplineTestCase):
     test_custom_filter_factor_dtypes = incorrect_dtype(
         CustomFilter,
         FACTOR_DTYPES - FILTER_DTYPES - CLASSIFIER_DTYPES,
-        'CustomFactor',
+        "CustomFactor",
     )

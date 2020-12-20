@@ -7,3 +7,23 @@ requires = [
     "numpy"
 ]
 build_backend = "setuptools.build_meta"
+
+[tool.black]
+target-version = ['py36']
+exclude = '''
+(
+    asv_bench/env
+  | \.egg
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.nox
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | setup.py
+)
+'''

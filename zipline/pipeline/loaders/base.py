@@ -1,12 +1,11 @@
 """
 Base class for Pipeline API data loaders.
 """
-from interface import default, Interface
+from interface import Interface, default
 
 
 class PipelineLoader(Interface):
-    """Interface for PipelineLoaders.
-    """
+    """Interface for PipelineLoaders."""
 
     def load_adjusted_array(self, domain, columns, dates, sids, mask):
         """

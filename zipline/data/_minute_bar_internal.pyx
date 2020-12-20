@@ -1,7 +1,10 @@
-from numpy cimport ndarray, long_t
+from numpy cimport long_t, ndarray
+
 from numpy import searchsorted
-from cpython cimport bool
+
 cimport cython
+from cpython cimport bool
+
 
 cdef inline int int_min(int a, int b): return a if a <= b else b
 

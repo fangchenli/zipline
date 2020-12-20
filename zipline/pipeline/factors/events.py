@@ -3,6 +3,7 @@ Factors describing information about event data (e.g. earnings
 announcements, acquisitions, dividends, etc.).
 """
 from numpy import newaxis
+
 from zipline.utils.numpy_utils import (
     NaTD,
     busday_count_mask_NaT,
@@ -48,6 +49,7 @@ class BusinessDaysSincePreviousEvent(Factor):
         recency_filter = (days_since_event <= 5)
 
     """
+
     window_length = 0
     dtype = float64_dtype
 
@@ -83,6 +85,7 @@ class BusinessDaysUntilNextEvent(Factor):
 
     Assets for which the event date is `NaT` will produce a value of `NaN`.
     """
+
     window_length = 0
     dtype = float64_dtype
 
