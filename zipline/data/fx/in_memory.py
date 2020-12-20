@@ -44,7 +44,7 @@ class InMemoryFXRateReader(implements(FXRateReader)):
         #
         # (df
         #  .reindex(dts, side='right')
-        #  .reindex_axis(cols, axis='columns')
+        #  .reindex(cols, axis='columns')
         #  .values)
         #
         # But pandas' performance on the above is not great, and we call this
