@@ -508,6 +508,7 @@ def render(pieces, style):
         "date": pieces.get("date"),
     }
 
+
 def get_versions():
     """Get version information or return default if unable to do so."""
     # I am in _version.py, which lives at ROOT/VERSIONFILE_SOURCE. If we have
