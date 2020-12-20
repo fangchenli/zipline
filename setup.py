@@ -23,58 +23,15 @@ from os.path import (
     join,
 )
 from distutils.version import StrictVersion
-from setuptools import (
-    Extension,
-    find_packages,
-    setup,
-)
 
+from setuptools import Extension, setup
+from setuptools.command.build_ext import build_ext
+import numpy
 import versioneer
 
 
-class LazyBuildExtCommandClass(dict):
-    """
-    Lazy command class that defers operations requiring Cython and numpy until
-    they've actually been downloaded and installed by setup_requires.
-    """
-    def __contains__(self, key):
-        return (
-            key == 'build_ext'
-            or super(LazyBuildExtCommandClass, self).__contains__(key)
-        )
-
-    def __setitem__(self, key, value):
-        if key == 'build_ext':
-            raise AssertionError("build_ext overridden!")
-        super(LazyBuildExtCommandClass, self).__setitem__(key, value)
-
-    def __getitem__(self, key):
-        if key != 'build_ext':
-            return super(LazyBuildExtCommandClass, self).__getitem__(key)
-
-        from Cython.Distutils import build_ext as cython_build_ext
-        import numpy
-
-        # Cython_build_ext isn't a new-style class in Py2.
-        class build_ext(cython_build_ext, object):
-            """
-            Custom build_ext command that lazily adds numpy's include_dir to
-            extensions.
-            """
-            def build_extensions(self):
-                """
-                Lazily append numpy's include directory to Extension includes.
-
-                This is done here rather than at module scope because setup.py
-                may be run before numpy has been installed, in which case
-                importing numpy and calling `numpy.get_include()` will fail.
-                """
-                numpy_incl = numpy.get_include()
-                for ext in self.extensions:
-                    ext.include_dirs.append(numpy_incl)
-
-                super(build_ext, self).build_extensions()
-        return build_ext
+cmdclass = versioneer.get_cmdclass()
+cmdclass["build_ext"] = build_ext
 
 
 def window_specialization(typename):
@@ -121,8 +78,11 @@ ext_modules = [
     ),
 ]
 
-for extention in ext_modules:
-    extention.cython_directives = {"language_level": "3"}
+numpy_include = numpy.get_include()
+for ext in ext_modules:
+    ext.cython_directives = {"language_level": "3"}
+    ext.include_dirs.append(numpy_include)
+    ext.define_macros.append(("NPY_NO_DEPRECATED_API", "0"))
 
 
 STR_TO_CMP = {
@@ -137,8 +97,7 @@ STR_TO_CMP = {
 SYS_VERSION = '.'.join(list(map(str, sys.version_info[:3])))
 
 
-def _filter_requirements(lines_iter, filter_names=None,
-                         filter_sys_version=False):
+def _filter_requirements(lines_iter):
     for line in lines_iter:
         line = line.strip()
         if not line or line.startswith('#'):
@@ -149,10 +108,7 @@ def _filter_requirements(lines_iter, filter_names=None,
             raise AssertionError("Could not parse requirement: %r" % line)
 
         name = match.group('name')
-        if filter_names is not None and name not in filter_names:
-            continue
-
-        if filter_sys_version and match.group('pyspec'):
+        if match.group('pyspec'):
             pycomp, pyspec = match.group('pycomp', 'pyspec')
             comp = STR_TO_CMP[pycomp]
             pyver_spec = StrictVersion(pyspec)
@@ -173,108 +129,19 @@ REQ_PATTERN = re.compile(
 )
 
 
-def _conda_format(req):
-    def _sub(m):
-        name = m.group('name').lower()
-        if name == 'numpy':
-            return 'numpy x.x'
-        if name == 'tables':
-            name = 'pytables'
-
-        comp, spec = m.group('comp', 'spec')
-        if comp and spec:
-            formatted = '%s %s%s' % (name, comp, spec)
-        else:
-            formatted = name
-        pycomp, pyspec = m.group('pycomp', 'pyspec')
-        if pyspec:
-            # Compare the two-digit string versions as ints.
-            selector = ' # [int(py) %s int(%s)]' % (
-                pycomp, ''.join(pyspec.split('.')[:2]).ljust(2, '0')
-            )
-            return formatted + selector
-
-        return formatted
-
-    return REQ_PATTERN.sub(_sub, req, 1)
-
-
-def read_requirements(path,
-                      conda_format=False,
-                      filter_names=None):
+def read_requirements(path):
     """
     Read a requirements file, expressed as a path relative to Zipline root.
     """
     real_path = join(dirname(abspath(__file__)), path)
     with open(real_path) as f:
-        reqs = _filter_requirements(f.readlines(), filter_names=filter_names,
-                                    filter_sys_version=not conda_format)
-
-        if conda_format:
-            reqs = map(_conda_format, reqs)
-
+        reqs = _filter_requirements(f.readlines())
         return list(reqs)
 
 
-def install_requires(conda_format=False):
-    return read_requirements('etc/requirements.in', conda_format=conda_format)
-
-
-def setup_requirements(requirements_path, module_names,
-                       conda_format=False):
-    module_names = set(module_names)
-    module_lines = read_requirements(requirements_path,
-                                     conda_format=conda_format,
-                                     filter_names=module_names)
-
-    if len(set(module_lines)) != len(module_names):
-        raise AssertionError(
-            "Missing requirements. Looking for %s, but found %s."
-            % (module_names, module_lines)
-        )
-    return module_lines
-
-
-conda_build = os.path.basename(sys.argv[0]) in ('conda-build',  # unix
-                                                'conda-build-script.py')  # win
-
-setup_requires = setup_requirements(
-    'etc/requirements_build.in',
-    ('Cython', 'numpy'),
-    conda_format=conda_build,
-)
-
-conditional_arguments = {
-    'setup_requires' if not conda_build else 'build_requires': setup_requires,
-}
-
-if 'sdist' in sys.argv:
-    with open('README.rst') as f:
-        conditional_arguments['long_description'] = f.read()
-
-
 setup(
-    name='zipline',
-    url="https://zipline.io",
     version=versioneer.get_version(),
-    cmdclass=LazyBuildExtCommandClass(versioneer.get_cmdclass()),
-    description='A backtester for financial algorithms.',
-    author='Quantopian Inc.',
-    author_email='opensource@quantopian.com',
+    cmdclass=cmdclass,
     ext_modules=ext_modules,
-    license='Apache 2.0',
-    classifiers=[
-        'Development Status :: 4 - Beta',
-        'License :: OSI Approved :: Apache Software License',
-        'Natural Language :: English',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 3.6',
-        'Operating System :: OS Independent',
-        'Intended Audience :: Science/Research',
-        'Topic :: Office/Business :: Financial',
-        'Topic :: Scientific/Engineering :: Information Analysis',
-        'Topic :: System :: Distributed Computing',
-    ],
-    install_requires=install_requires(conda_format=conda_build),
-    **conditional_arguments
+    install_requires=read_requirements('requirements-dev.txt'),
 )
