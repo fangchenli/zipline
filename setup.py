@@ -13,21 +13,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from distutils.version import StrictVersion
+from operator import eq, ge, gt, le, lt
 import os
+from os.path import abspath, dirname, join
 import re
 import sys
-from operator import lt, gt, eq, le, ge
-from os.path import (
-    abspath,
-    dirname,
-    join,
-)
-from distutils.version import StrictVersion
-from setuptools import (
-    Extension,
-    find_packages,
-    setup,
-)
+
+from setuptools import Extension, setup
 
 import versioneer
 

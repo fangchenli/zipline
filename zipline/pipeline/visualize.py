@@ -9,9 +9,9 @@ from subprocess import PIPE, Popen
 
 from networkx import topological_sort
 
-from zipline.pipeline import Classifier, Factor, Filter, Term
-from zipline.pipeline.data import BoundColumn
-from zipline.pipeline.term import AssetExists
+from zipline.pipeline.data import BoundColumn  # isort:skip
+from zipline.pipeline import Classifier, Factor, Filter, Term  # isort:skip
+from zipline.pipeline.term import AssetExists  # isort:skip
 
 
 class NoIPython(Exception):
