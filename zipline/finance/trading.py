@@ -17,10 +17,9 @@ import logbook
 import pandas as pd
 
 from zipline.utils.memoize import remember_last
-from zipline.utils.pandas_utils import normalize_date
+
 
 log = logbook.Logger('Trading')
-
 
 DEFAULT_CAPITAL_BASE = 1e5
 
@@ -50,8 +49,8 @@ class SimulationParameters(object):
         # chop off any minutes or hours on the given start and end dates,
         # as we only support session labels here (and we represent session
         # labels as midnight UTC).
-        self._start_session = normalize_date(start_session)
-        self._end_session = normalize_date(end_session)
+        self._start_session = start_session.normalize()
+        self._end_session = end_session.normalize()
         self._capital_base = capital_base
 
         self._emission_rate = emission_rate

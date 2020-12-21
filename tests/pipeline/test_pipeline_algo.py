@@ -59,7 +59,7 @@ from zipline.testing.fixtures import (
     WithBcolzEquityDailyBarReaderFromCSVs,
     ZiplineTestCase,
 )
-from zipline.utils.pandas_utils import normalize_date
+
 
 TEST_RESOURCE_PATH = join(
     dirname(dirname(realpath(__file__))),  # zipline_repo/tests
@@ -622,7 +622,7 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
             attach_pipeline(pipeline, 'test')
 
         def handle_data(context, data):
-            today = normalize_date(get_datetime())
+            today = get_datetime().normalize()
             results = pipeline_output('test')
             expect_over_300 = {
                 AAPL: today < self.AAPL_split_date,

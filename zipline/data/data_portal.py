@@ -58,10 +58,7 @@ from zipline.utils.math_utils import (
     nanstd
 )
 from zipline.utils.memoize import remember_last, weak_lru_cache
-from zipline.utils.pandas_utils import (
-    normalize_date,
-    timedelta_to_integral_minutes,
-)
+from zipline.utils.pandas_utils import timedelta_to_integral_minutes
 from zipline.errors import HistoryWindowStartsBeforeData
 
 
@@ -419,7 +416,7 @@ class DataPortal(object):
                     (isinstance(asset, (Asset, ContinuousFuture))))
 
     def _get_fetcher_value(self, asset, field, dt):
-        day = normalize_date(dt)
+        day = dt.normalize()
 
         try:
             return \
@@ -1254,7 +1251,7 @@ class DataPortal(object):
         if self._extra_source_df is None:
             return []
 
-        day = normalize_date(dt)
+        day = dt.normalize()
 
         if day in self._extra_source_df.index:
             assets = self._extra_source_df.loc[day]['sid']

@@ -34,7 +34,7 @@ from zipline.utils.cache import ExpiringCache
 from zipline.utils.math_utils import number_of_decimal_places
 from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import float64_dtype
-from zipline.utils.pandas_utils import find_in_sorted_index, normalize_date
+from zipline.utils.pandas_utils import find_in_sorted_index
 
 # Default number of decimal places used for rounding asset prices.
 DEFAULT_ASSET_PRICE_DECIMALS = 3
@@ -92,8 +92,8 @@ class HistoryCompatibleUSEquityAdjustmentReader(object):
             The adjustments as a dict of loc -> Float64Multiply
         """
         sid = int(asset)
-        start = normalize_date(dts[0])
-        end = normalize_date(dts[-1])
+        start = dts[0].normalize()
+        end = dts[-1].normalize()
         adjs = {}
         if field != 'volume':
             mergers = self._adjustments_reader.get_adjustments_for_sid(
