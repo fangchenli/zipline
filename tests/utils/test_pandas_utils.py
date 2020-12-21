@@ -1,12 +1,9 @@
 """
 Tests for zipline/utils/pandas_utils.py
 """
-from unittest import skipIf
-
 import pandas as pd
 
 from zipline.testing import parameter_space, ZiplineTestCase
-from zipline.testing.predicates import assert_equal
 from zipline.utils.pandas_utils import nearest_unequal_elements
 
 
