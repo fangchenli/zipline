@@ -100,7 +100,6 @@ from zipline.utils.input_validation import (
     optionally,
 )
 from zipline.utils.numpy_utils import int64_dtype
-from zipline.utils.pandas_utils import normalize_date
 from zipline.utils.cache import ExpiringCache
 from zipline.utils.pandas_utils import clear_dataframe_indexer_caches
 
@@ -1157,7 +1156,7 @@ class TradingAlgorithm(object):
         # Make sure the asset exists, and that there is a last price for it.
         # FIXME: we should use BarData's can_trade logic here, but I haven't
         # yet found a good way to do that.
-        normalized_date = normalize_date(self.datetime)
+        normalized_date = self.datetime.normalize()
 
         if normalized_date < asset.start_date:
             raise CannotOrderDelistedAsset(
@@ -1201,7 +1200,7 @@ class TradingAlgorithm(object):
             )
 
         if asset.auto_close_date:
-            day = normalize_date(self.get_datetime())
+            day = self.get_datetime().normalize()
 
             if day > min(asset.end_date, asset.auto_close_date):
                 # If we are after the asset's end date or auto close date, warn
@@ -2319,7 +2318,7 @@ class TradingAlgorithm(object):
         """
         Internal implementation of `pipeline_output`.
         """
-        today = normalize_date(self.get_datetime())
+        today = self.get_datetime().normalize()
         try:
             data = self._pipeline_cache.get(name, today)
         except KeyError:

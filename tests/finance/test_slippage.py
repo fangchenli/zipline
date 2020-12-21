@@ -52,7 +52,6 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
 )
 from zipline.utils.classproperty import classproperty
-from zipline.utils.pandas_utils import normalize_date
 
 
 TestOrder = namedtuple('TestOrder', 'limit direction')
@@ -1107,8 +1106,8 @@ class OrdersStopTestCase(WithSimParams,
             )),
         )
         days = pd.date_range(
-            start=normalize_date(self.minutes[0]),
-            end=normalize_date(self.minutes[-1])
+            start=self.minutes[0].normalize(),
+            end=self.minutes[-1].normalize()
         )
         with tmp_bcolz_equity_minute_bar_reader(
                 self.trading_calendar, days, assets) as reader:

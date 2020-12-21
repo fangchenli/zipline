@@ -28,7 +28,6 @@ from zipline.assets import (
 )
 from zipline.assets._assets cimport Asset, Future
 from zipline.assets.continuous_futures import ContinuousFuture
-from zipline.utils.pandas_utils import normalize_date
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 
@@ -568,7 +567,7 @@ cdef class BarData:
             })
 
     cdef bool _is_stale_for_asset(self, asset, dt, adjusted_dt, data_portal):
-        session_label = normalize_date(dt) # FIXME
+        session_label = dt.normalize()
 
         if not asset.is_alive_for_session(session_label):
             return False

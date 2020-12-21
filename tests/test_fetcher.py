@@ -406,7 +406,7 @@ def handle_data(context, data):
             algocode = """
 from pandas import Timestamp
 from zipline.api import fetch_csv, record, sid, get_datetime
-from zipline.utils.pandas_utils import normalize_date
+
 
 def initialize(context):
     fetch_csv(
@@ -421,7 +421,7 @@ def initialize(context):
     context.bar_count = 0
 
 def handle_data(context, data):
-    expected = context.expected_sids[normalize_date(get_datetime())]
+    expected = context.expected_sids[get_datetime().normalize()]
     actual = data.fetcher_assets
     for stk in expected:
         if stk not in actual:
