@@ -60,7 +60,7 @@ from functools import partial
 
 from six import with_metaclass
 from numpy import array, arange
-from pandas import DataFrame, MultiIndex
+from pandas import DataFrame, MultiIndex, concat
 from toolz import groupby
 
 from zipline.lib.adjusted_array import ensure_adjusted_array, ensure_ndarray
@@ -78,9 +78,7 @@ from .domain import Domain, GENERIC
 from .graph import maybe_specialize
 from .hooks import DelegatingHooks
 from .term import AssetExists, InputDates, LoadableTerm
-
 from zipline.utils.date_utils import compute_date_range_chunks
-from zipline.utils.pandas_utils import categorical_df_concat
 
 
 class PipelineEngine(with_metaclass(ABCMeta)):
@@ -345,14 +343,14 @@ class SimplePipelineEngine(PipelineEngine):
             chunks = [run_pipeline(s, e) for s, e in ranges]
 
         if len(chunks) == 1:
-            # OPTIMIZATION: Don't make an extra copy in `categorical_df_concat`
-            # if we don't have to.
             return chunks[0]
 
         # Filter out empty chunks. Empty dataframes lose dtype information,
         # which makes concatenation fail.
         nonempty_chunks = [c for c in chunks if len(c)]
-        return categorical_df_concat(nonempty_chunks, inplace=True)
+
+        # pandas would fill missing columns with NaT
+        return concat(nonempty_chunks)
 
     def run_pipeline(self, pipeline, start_date, end_date, hooks=None):
         """
