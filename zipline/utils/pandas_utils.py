@@ -2,7 +2,6 @@
 Utilities for working with pandas objects.
 """
 from contextlib import contextmanager
-from copy import deepcopy
 from itertools import product
 import operator as op
 import warnings
@@ -242,47 +241,6 @@ def clear_dataframe_indexer_caches(df):
             delattr(df, attr)
         except AttributeError:
             pass
-
-
-def categorical_df_concat(df_list, inplace=False):
-    """
-    Prepare list of pandas DataFrames to be used as input to pd.concat.
-    Ensure any columns of type 'category' have the same categories across each
-    dataframe.
-
-    Parameters
-    ----------
-    df_list : list
-        List of dataframes with same columns.
-    inplace : bool
-        True if input list can be modified. Default is False.
-
-    Returns
-    -------
-    concatenated : df
-        Dataframe of concatenated list.
-    """
-
-    if not inplace:
-        df_list = deepcopy(df_list)
-
-    # Assert each dataframe has the same columns/dtypes
-    df = df_list[0]
-    if not all([(df.dtypes.equals(df_i.dtypes)) for df_i in df_list[1:]]):
-        raise ValueError("Input DataFrames must have the same columns/dtypes.")
-
-    categorical_columns = df.columns[df.dtypes == 'category']
-
-    for col in categorical_columns:
-        new_categories = _sort_set_none_first(
-            _union_all(frame[col].cat.categories for frame in df_list)
-        )
-
-        with ignore_pandas_nan_categorical_warning():
-            for df in df_list:
-                df[col].cat.set_categories(new_categories, inplace=True)
-
-    return pd.concat(df_list)
 
 
 def _union_all(iterables):
