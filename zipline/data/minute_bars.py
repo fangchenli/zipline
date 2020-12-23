@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 import json
 import os
 from glob import glob
@@ -29,7 +29,6 @@ import numpy as np
 import pandas as pd
 from pandas import HDFStore
 import tables
-from six import with_metaclass
 from toolz import keymap, valmap
 from trading_calendars import get_calendar
 
@@ -1292,7 +1291,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
         return results
 
 
-class MinuteBarUpdateReader(with_metaclass(ABCMeta, object)):
+class MinuteBarUpdateReader(ABC):
     """
     Abstract base class for minute update readers.
     """

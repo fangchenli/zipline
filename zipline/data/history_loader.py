@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import (
-    ABCMeta,
+    ABC,
     abstractmethod,
     abstractproperty,
 )
@@ -22,8 +22,6 @@ from numpy import concatenate
 from lru import LRU
 from pandas import isnull
 from toolz import sliding_window
-
-from six import with_metaclass
 
 from zipline.assets import Equity, Future
 from zipline.assets.continuous_futures import ContinuousFuture
@@ -293,7 +291,7 @@ class SlidingWindow(object):
         return self.current
 
 
-class HistoryLoader(with_metaclass(ABCMeta)):
+class HistoryLoader(ABC):
     """
     Loader for sliding history windows, with support for adjustments.
 

@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import OrderedDict
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
-from six import with_metaclass
 
 from zipline.data._resample import (
     _minute_to_session_open,
@@ -598,7 +597,7 @@ class MinuteResampleSessionBarReader(SessionBarReader):
             self._minute_bar_reader.get_last_traded_dt(asset, dt))
 
 
-class ReindexBarReader(with_metaclass(ABCMeta)):
+class ReindexBarReader(ABC):
     """
     A base class for readers which reindexes results, filling in the additional
     indices with empty data.

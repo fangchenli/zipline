@@ -135,7 +135,7 @@ use them just like any other datasets or columns. For more information on how
 to run a pipeline or using the Pipeline API, see:
 www.quantopian.com/help#pipeline-api
 """
-from abc import ABCMeta, abstractproperty
+from abc import ABC, abstractproperty
 from functools import partial
 from itertools import count
 import warnings
@@ -155,7 +155,6 @@ from interface import implements
 import numpy as np
 from odo import odo
 import pandas as pd
-from six import with_metaclass
 from toolz import (
     complement,
     compose,
@@ -216,7 +215,7 @@ is_invalid_deltas_node = complement(flip(isinstance, valid_deltas_node_types))
 get__name__ = op.attrgetter('__name__')
 
 
-class InvalidField(with_metaclass(ABCMeta)):
+class InvalidField(ABC):
     """A field that raises an exception indicating that the
     field was invalid.
 

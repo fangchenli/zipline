@@ -55,10 +55,9 @@ implements the following algorithm for executing pipelines:
    into "narrow" format, with output labels dictated by the Pipeline's
    screen. This logic lives in SimplePipelineEngine._to_narrow.
 """
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from functools import partial
 
-from six import with_metaclass
 from numpy import array, arange
 from pandas import DataFrame, MultiIndex, concat
 from toolz import groupby
@@ -81,7 +80,7 @@ from .term import AssetExists, InputDates, LoadableTerm
 from zipline.utils.date_utils import compute_date_range_chunks
 
 
-class PipelineEngine(with_metaclass(ABCMeta)):
+class PipelineEngine(ABC):
 
     @abstractmethod
     def run_pipeline(self, pipeline, start_date, end_date, hooks=None):

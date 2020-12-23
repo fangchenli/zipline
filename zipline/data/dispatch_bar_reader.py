@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 
 from numpy import (
     full,
@@ -20,12 +20,11 @@ from numpy import (
     int64,
     zeros
 )
-from six import with_metaclass
 
 from zipline.utils.memoize import lazyval
 
 
-class AssetDispatchBarReader(with_metaclass(ABCMeta)):
+class AssetDispatchBarReader(ABC):
     """
 
     Parameters

@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from collections import namedtuple
 import hashlib
 from textwrap import dedent
@@ -11,7 +11,6 @@ import pandas as pd
 from pandas import read_csv
 import pytz
 import requests
-from six import with_metaclass
 
 from zipline.errors import (
     MultipleSymbolsFound,
@@ -142,7 +141,7 @@ def mask_requests_args(url, validating=False, params_checker=None, **kwargs):
     return request_pair(requests_kwargs, url)
 
 
-class PandasCSV(with_metaclass(ABCMeta, object)):
+class PandasCSV(ABC):
 
     def __init__(self,
                  pre_func,

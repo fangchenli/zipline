@@ -1,12 +1,13 @@
-import abc
-from numpy import vectorize
+from abc import ABC, abstractmethod
+from enum import IntEnum
 from functools import partial, reduce
 import operator
-import pandas as pd
-from six import with_metaclass
 from collections import namedtuple
+
+from numpy import vectorize
+import pandas as pd
 from toolz import groupby
-from enum import IntEnum
+
 
 from zipline.utils.numpy_utils import vectorized_is_element
 from zipline.assets import Asset
@@ -22,13 +23,13 @@ class RESTRICTION_STATES(IntEnum):
     FROZEN = 1
 
 
-class Restrictions(with_metaclass(abc.ABCMeta)):
+class Restrictions(ABC):
     """
     Abstract restricted list interface, representing a set of assets that an
     algorithm is restricted from trading.
     """
 
-    @abc.abstractmethod
+    @abstractmethod
     def is_restricted(self, assets, dt):
         """
         Is the asset restricted (RestrictionStates.FROZEN) on the given dt?
