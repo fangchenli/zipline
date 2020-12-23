@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import ABCMeta
+from abc import ABC
 import array
 import binascii
 from collections import deque, namedtuple
@@ -25,7 +25,6 @@ from logbook import Logger
 import numpy as np
 import pandas as pd
 from pandas import isnull
-from six import with_metaclass
 import sqlalchemy as sa
 from toolz import (
     compose,
@@ -1516,7 +1515,7 @@ class AssetFinder(object):
         return tuple(sids.tolist())
 
 
-class AssetConvertible(with_metaclass(ABCMeta)):
+class AssetConvertible(ABC):
     """
     ABC for types that are convertible to integer-representations of
     Assets.
@@ -1535,7 +1534,7 @@ class NotAssetConvertible(ValueError):
     pass
 
 
-class PricingDataAssociable(with_metaclass(ABCMeta)):
+class PricingDataAssociable(ABC):
     """
     ABC for types that can be associated with pricing data.
 

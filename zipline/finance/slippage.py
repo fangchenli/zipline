@@ -78,7 +78,7 @@ def fill_price_worse_than_limit_price(fill_price, order):
     return False
 
 
-class SlippageModel(with_metaclass(FinancialModelMeta)):
+class SlippageModel(metaclass=FinancialModelMeta):
     """
     Abstract base class for slippage models.
 

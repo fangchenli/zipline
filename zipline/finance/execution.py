@@ -13,22 +13,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import abc
+from abc import ABC, abstractmethod
 from sys import float_info
-from six import with_metaclass
+
 from numpy import isfinite
 import zipline.utils.math_utils as zp_math
 from zipline.errors import BadOrderParameters
 from zipline.utils.compat import consistent_round
 
 
-class ExecutionStyle(with_metaclass(abc.ABCMeta)):
+class ExecutionStyle(ABC):
     """Base class for order execution styles.
     """
 
     _exchange = None
 
-    @abc.abstractmethod
+    @abstractmethod
     def get_limit_price(self, is_buy):
         """
         Get the limit price for this order.
@@ -36,7 +36,7 @@ class ExecutionStyle(with_metaclass(abc.ABCMeta)):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
+    @abstractmethod
     def get_stop_price(self, is_buy):
         """
         Get the stop price for this order.

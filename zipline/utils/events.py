@@ -12,12 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import ABCMeta, abstractmethod
+from abc import ABC, ABCMeta, abstractmethod
 from collections import namedtuple
 import warnings
 import datetime
 
-from six import with_metaclass
 import numpy as np
 import pandas as pd
 import pytz
@@ -237,7 +236,7 @@ class Event(namedtuple('Event', ['rule', 'callback'])):
             self.callback(context, data)
 
 
-class EventRule(with_metaclass(ABCMeta)):
+class EventRule(ABC):
     """A rule defining when a scheduled function should execute.
     """
     # Instances of EventRule are assigned a calendar instance when scheduling
@@ -471,7 +470,7 @@ class NotHalfDay(StatelessRule):
             not in self.cal.early_closes
 
 
-class TradingDayOfWeekRule(with_metaclass(ABCMeta, StatelessRule)):
+class TradingDayOfWeekRule(StatelessRule):
     @preprocess(n=lossless_float_to_int('TradingDayOfWeekRule'))
     def __init__(self, n, invert):
         if not 0 <= n < MAX_WEEK_RANGE:
@@ -514,7 +513,7 @@ class NDaysBeforeLastTradingDayOfWeek(TradingDayOfWeekRule):
         super(NDaysBeforeLastTradingDayOfWeek, self).__init__(n, invert=True)
 
 
-class TradingDayOfMonthRule(with_metaclass(ABCMeta, StatelessRule)):
+class TradingDayOfMonthRule(StatelessRule):
 
     @preprocess(n=lossless_float_to_int('TradingDayOfMonthRule'))
     def __init__(self, n, invert):
