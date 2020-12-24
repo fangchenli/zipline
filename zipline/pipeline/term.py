@@ -151,7 +151,7 @@ class Term(ABC):
             return cls._term_cache[identity]
         except KeyError:
             new_instance = cls._term_cache[identity] = \
-                super(Term, cls).__new__(cls)._init(
+                super().__new__(cls)._init(
                     domain=domain,
                     dtype=dtype,
                     missing_value=missing_value,
@@ -529,7 +529,7 @@ class ComputableTerm(Term):
         if window_length is NotSpecified:
             window_length = cls.window_length
 
-        return super(ComputableTerm, cls).__new__(
+        return super().__new__(
             cls,
             inputs=inputs,
             outputs=outputs,
@@ -544,7 +544,7 @@ class ComputableTerm(Term):
         self.outputs = outputs
         self.window_length = window_length
         self.mask = mask
-        return super(ComputableTerm, self)._init(*args, **kwargs)
+        return super()._init(*args, **kwargs)
 
     @classmethod
     def _static_identity(cls,
@@ -555,7 +555,7 @@ class ComputableTerm(Term):
                          *args,
                          **kwargs):
         return (
-            super(ComputableTerm, cls)._static_identity(*args, **kwargs),
+            super()._static_identity(*args, **kwargs),
             inputs,
             outputs,
             window_length,
@@ -563,7 +563,7 @@ class ComputableTerm(Term):
         )
 
     def _validate(self):
-        super(ComputableTerm, self)._validate()
+        super()._validate()
 
         # Check inputs.
         if self.inputs is NotSpecified:
@@ -605,7 +605,7 @@ class ComputableTerm(Term):
 
         if self.mask is NotSpecified:
             # This isn't user error, this is a bug in our code.
-            raise AssertionError("{term} has no mask".format(term=self))
+            raise AssertionError(f"{self} has no mask")
 
         if self.window_length > 1:
             for child in self.inputs:

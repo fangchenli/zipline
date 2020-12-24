@@ -38,7 +38,7 @@ class classlazyval(lazyval):
     # then we would need to use a metaclass to track the name of the
     # descriptor.
     def __get__(self, instance, owner):
-        return super(classlazyval, self).__get__(owner, owner)
+        return super().__get__(owner, owner)
 
 
 def _weak_lru_cache(maxsize=100):
@@ -165,7 +165,7 @@ class _WeakArgs(Sequence):
             return h
 
 
-class _WeakArgsDict(WeakKeyDictionary, object):
+class _WeakArgsDict(WeakKeyDictionary):
     def __delitem__(self, key):
         del self.data[_WeakArgs(key)]
 
@@ -173,7 +173,7 @@ class _WeakArgsDict(WeakKeyDictionary, object):
         return self.data[_WeakArgs(key)]
 
     def __repr__(self):
-        return '%s(%r)' % (type(self).__name__, self.data)
+        return '{}({!r})'.format(type(self).__name__, self.data)
 
     def __setitem__(self, key, value):
         self.data[_WeakArgs(key, self._remove)] = value
@@ -189,9 +189,9 @@ class _WeakArgsDict(WeakKeyDictionary, object):
         return self.data.pop(_WeakArgs(key), *args)
 
 
-class _WeakArgsOrderedDict(_WeakArgsDict, object):
+class _WeakArgsOrderedDict(_WeakArgsDict):
     def __init__(self):
-        super(_WeakArgsOrderedDict, self).__init__()
+        super().__init__()
         self.data = OrderedDict()
 
     def popitem(self, last=True):

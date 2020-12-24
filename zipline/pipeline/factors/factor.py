@@ -220,18 +220,18 @@ def binary_operator(op):
         elif isinstance(other, Term):
             if self is other:
                 return return_type(
-                    "x_0 {op} x_0".format(op=op),
+                    f"x_0 {op} x_0",
                     (self,),
                     dtype=binop_return_dtype(op, self.dtype, other.dtype),
                 )
             return return_type(
-                "x_0 {op} x_1".format(op=op),
+                f"x_0 {op} x_1",
                 (self, other),
                 dtype=binop_return_dtype(op, self.dtype, other.dtype),
             )
         elif isinstance(other, Number):
             return return_type(
-                "x_0 {op} ({constant})".format(op=op, constant=other),
+                f"x_0 {op} ({other})",
                 binds=(self,),
                 # .dtype access is safe here because coerce_numbers_to_my_dtype
                 # will convert any input numbers to numpy equivalents.
@@ -273,7 +273,7 @@ def reflected_binary_operator(op):
         # the corresponding left-binding method will be called.
         elif isinstance(other, Number):
             return NumExprFactor(
-                "{constant} {op} x_0".format(op=op, constant=other),
+                f"{other} {op} x_0",
                 binds=(self,),
                 dtype=binop_return_dtype(op, other.dtype, self.dtype),
             )
@@ -310,13 +310,13 @@ def unary_operator(op):
         # invoked.
         if isinstance(self, NumericalExpression):
             return NumExprFactor(
-                "{op}({expr})".format(op=op, expr=self._expr),
+                f"{op}({self._expr})",
                 self.inputs,
                 dtype=float64_dtype,
             )
         else:
             return NumExprFactor(
-                "{op}x_0".format(op=op),
+                f"{op}x_0",
                 (self,),
                 dtype=float64_dtype,
             )
@@ -346,13 +346,13 @@ def function_application(func):
     def mathfunc(self):
         if isinstance(self, NumericalExpression):
             return NumExprFactor(
-                "{func}({expr})".format(func=func, expr=self._expr),
+                f"{func}({self._expr})",
                 self.inputs,
                 dtype=float64_dtype,
             )
         else:
             return NumExprFactor(
-                "{func}(x_0)".format(func=func),
+                f"{func}(x_0)",
                 (self,),
                 dtype=float64_dtype,
             )
@@ -391,7 +391,7 @@ CORRELATION_METHOD_NOTE = dedent(
 )
 
 
-class summary_funcs(object):
+class summary_funcs:
     """Namespace of functions meant to be used with DailySummary.
     """
 
@@ -1421,7 +1421,7 @@ class GroupedRowTransform(Factor):
         if groupby is NotSpecified:
             groupby = Everything(mask=mask)
 
-        return super(GroupedRowTransform, cls).__new__(
+        return super().__new__(
             GroupedRowTransform,
             transform=transform,
             transform_args=transform_args,
@@ -1435,12 +1435,12 @@ class GroupedRowTransform(Factor):
     def _init(self, transform, transform_args, *args, **kwargs):
         self._transform = transform
         self._transform_args = transform_args
-        return super(GroupedRowTransform, self)._init(*args, **kwargs)
+        return super()._init(*args, **kwargs)
 
     @classmethod
     def _static_identity(cls, transform, transform_args, *args, **kwargs):
         return (
-            super(GroupedRowTransform, cls)._static_identity(*args, **kwargs),
+            super()._static_identity(*args, **kwargs),
             transform,
             transform_args,
         )
@@ -1499,7 +1499,7 @@ class Rank(SingleInputMixin, Factor):
     window_safe = True
 
     def __new__(cls, factor, method, ascending, mask):
-        return super(Rank, cls).__new__(
+        return super().__new__(
             cls,
             inputs=(factor,),
             method=method,
@@ -1510,12 +1510,12 @@ class Rank(SingleInputMixin, Factor):
     def _init(self, method, ascending, *args, **kwargs):
         self._method = method
         self._ascending = ascending
-        return super(Rank, self)._init(*args, **kwargs)
+        return super()._init(*args, **kwargs)
 
     @classmethod
     def _static_identity(cls, method, ascending, *args, **kwargs):
         return (
-            super(Rank, cls)._static_identity(*args, **kwargs),
+            super()._static_identity(*args, **kwargs),
             method,
             ascending,
         )
@@ -1529,7 +1529,7 @@ class Rank(SingleInputMixin, Factor):
                 method=self._method,
                 choices=set(_RANK_METHODS),
             )
-        return super(Rank, self)._validate()
+        return super()._validate()
 
     def _compute(self, arrays, dates, assets, mask):
         """
@@ -1549,7 +1549,7 @@ class Rank(SingleInputMixin, Factor):
             # Don't include mask in repr if it's the default.
             mask_info = ""
         else:
-            mask_info = ", mask={}".format(self.mask.recursive_repr())
+            mask_info = f", mask={self.mask.recursive_repr()}"
 
         return "{type}({input_}, method='{method}'{mask_info})".format(
             type=type(self).__name__,
@@ -1713,7 +1713,7 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
 
     def _validate(self):
         try:
-            super(CustomFactor, self)._validate()
+            super()._validate()
         except UnsupportedDataType:
             if self.dtype in CLASSIFIER_DTYPES:
                 raise UnsupportedDataType(
@@ -1732,12 +1732,12 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
     def __getattribute__(self, name):
         outputs = object.__getattribute__(self, 'outputs')
         if outputs is NotSpecified:
-            return super(CustomFactor, self).__getattribute__(name)
+            return super().__getattribute__(name)
         elif name in outputs:
             return RecarrayField(factor=self, attribute=name)
         else:
             try:
-                return super(CustomFactor, self).__getattribute__(name)
+                return super().__getattribute__(name)
             except AttributeError:
                 raise AttributeError(
                     'Instance of {factor} has no output named {attr!r}. '
@@ -1763,7 +1763,7 @@ class RecarrayField(SingleInputMixin, Factor):
     A single field from a multi-output factor.
     """
     def __new__(cls, factor, attribute):
-        return super(RecarrayField, cls).__new__(
+        return super().__new__(
             cls,
             attribute=attribute,
             inputs=[factor],
@@ -1776,12 +1776,12 @@ class RecarrayField(SingleInputMixin, Factor):
 
     def _init(self, attribute, *args, **kwargs):
         self._attribute = attribute
-        return super(RecarrayField, self)._init(*args, **kwargs)
+        return super()._init(*args, **kwargs)
 
     @classmethod
     def _static_identity(cls, attribute, *args, **kwargs):
         return (
-            super(RecarrayField, cls)._static_identity(*args, **kwargs),
+            super()._static_identity(*args, **kwargs),
             attribute,
         )
 
@@ -1821,7 +1821,7 @@ class DailySummary(SingleInputMixin, Factor):
                 .format(dtype),
             )
 
-        return super(DailySummary, cls).__new__(
+        return super().__new__(
             cls,
             inputs=[input_],
             dtype=dtype,

@@ -93,7 +93,7 @@ class WithInternationalDailyBarData(zf.WithAssetFinder):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithInternationalDailyBarData, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         cls.daily_bar_sessions = {}
         cls.daily_bar_data = {}
@@ -134,7 +134,7 @@ class WithInternationalPricingPipelineEngine(zf.WithFXRates,
 
     @classmethod
     def init_class_fixtures(cls):
-        (super(WithInternationalPricingPipelineEngine, cls)
+        (super()
          .init_class_fixtures())
 
         adjustments = NullAdjustmentReader()

@@ -147,7 +147,7 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(ClosesAndVolumes, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.first_asset_start = min(cls.equity_info.start_date)
         cls.last_asset_end = max(cls.equity_info.end_date)
         cls.assets = cls.asset_finder.retrieve_all(cls.asset_finder.sids)
@@ -188,7 +188,7 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
         )
 
     def init_instance_fixtures(self):
-        super(ClosesAndVolumes, self).init_instance_fixtures()
+        super().init_instance_fixtures()
 
         # View of the data on/after the split.
         self.adj_closes = adj_closes = self.closes.copy()
@@ -420,7 +420,7 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
             algo.run()
 
 
-class MockDailyBarSpotReader(object):
+class MockDailyBarSpotReader:
     """
     A BcolzDailyBarReader which returns a constant value for spot price.
     """
@@ -494,7 +494,7 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(PipelineAlgorithmTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.pipeline_loader = USEquityPricingLoader.without_fx(
             cls.bcolz_equity_daily_bar_reader,
             cls.adjustment_reader,

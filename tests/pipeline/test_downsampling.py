@@ -767,7 +767,7 @@ class TestDownsampledRowwiseOperation(WithAssetFinder, ZiplineTestCase):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(TestDownsampledRowwiseOperation, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.pipeline_engine = SimplePipelineEngine(
             get_loader=lambda c: ExplodingObject(),
             asset_finder=cls.asset_finder,

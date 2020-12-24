@@ -69,7 +69,7 @@ def cluster(f, name, **attrs):
 
 def roots(g):
     "Get nodes from graph G with indegree 0"
-    return set(n for n, d in g.in_degree().items() if d == 0)
+    return {n for n, d in g.in_degree().items() if d == 0}
 
 
 def filter_nodes(include_asset_exists, nodes):
@@ -182,11 +182,11 @@ def add_term_node(f, term):
 
 
 def declare_node(f, name, attributes):
-    writeln(f, "{0} {1};".format(name, format_attrs(attributes)))
+    writeln(f, "{} {};".format(name, format_attrs(attributes)))
 
 
 def add_edge(f, source, dest):
-    writeln(f, "{0} -> {1};".format(source, dest))
+    writeln(f, f"{source} -> {dest};")
 
 
 def attrs_for_node(term, **overrides):

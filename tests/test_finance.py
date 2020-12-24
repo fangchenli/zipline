@@ -56,7 +56,7 @@ class FinanceTestCase(zf.WithAssetFinder,
     end = END_DATE = pd.Timestamp('2006-12-31', tz='utc')
 
     def init_instance_fixtures(self):
-        super(FinanceTestCase, self).init_instance_fixtures()
+        super().init_instance_fixtures()
         self.zipline_test_config = {'sid': 133}
 
     # TODO: write tests for short sales

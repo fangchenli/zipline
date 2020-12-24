@@ -45,7 +45,7 @@ class Returns(CustomFactor):
     window_safe = True
 
     def _validate(self):
-        super(Returns, self)._validate()
+        super()._validate()
         if self.window_length < 2:
             raise ValueError(
                 "'Returns' expected a window length of at least 2, but was "
@@ -72,7 +72,7 @@ class PercentChange(SingleInputMixin, CustomFactor):
     window_safe = True
 
     def _validate(self):
-        super(PercentChange, self)._validate()
+        super()._validate()
         if self.window_length < 2:
             raise ValueError(
                 "'PercentChange' expected a window length"
@@ -504,7 +504,7 @@ class PeerCount(SingleInputMixin, CustomFactor):
     window_length = 1
 
     def _validate(self):
-        super(PeerCount, self)._validate()
+        super()._validate()
         if self.window_length != 1:
             raise ValueError(
                 "'PeerCount' expected a window length of 1, but was given"

@@ -1,4 +1,4 @@
-class NamedExplodingObject(object):
+class NamedExplodingObject:
     """An object which has no attributes but produces a more informative
     error message when accessed.
 
@@ -19,7 +19,7 @@ class NamedExplodingObject(object):
     def __getattr__(self, attr):
         extra_message = self._extra_message
         raise AttributeError(
-            'attempted to access attribute %r of ExplodingObject %r%s' % (
+            'attempted to access attribute {!r} of ExplodingObject {!r}{}'.format(
                 attr,
                 attr,
                 self._name,
@@ -28,7 +28,7 @@ class NamedExplodingObject(object):
         )
 
     def __repr__(self):
-        return '%s(%r%s)' % (
+        return '{}({!r}{})'.format(
             type(self).__name__,
             self._name,
             # show that there is an extra message but truncate it to be

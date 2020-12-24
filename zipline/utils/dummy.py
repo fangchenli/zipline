@@ -1,5 +1,4 @@
-
-class DummyMapping(object):
+class DummyMapping:
     """
     Dummy object used to provide a mapping interface for singular values.
     """

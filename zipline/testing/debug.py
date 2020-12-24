@@ -15,7 +15,7 @@ def debug_mro_failure(name, bases):
         output_file = None
 
     # Return a nicely formatted error describing the cycle.
-    lines = ["Cycle found when trying to compute MRO for {}:\n".format(name)]
+    lines = [f"Cycle found when trying to compute MRO for {name}:\n"]
     for source, dest in list(zip(cycle, cycle[1:])) + [(cycle[-1], cycle[0])]:
         label = verbosify_label(graph.get_edge_data(source, dest)['label'])
         lines.append("{} comes before {}: cause={}"
@@ -37,7 +37,7 @@ def debug_mro_failure(name, bases):
             )
         except Exception as e:
             lines.append(
-                "Failed to write GraphViz graph. Error was {}".format(e)
+                f"Failed to write GraphViz graph. Error was {e}"
             )
 
     return '\n'.join(lines)

@@ -30,7 +30,7 @@ class SentinelTestCase(TestCase):
         self.assertIn(a.__doc__, msg)
         # strip the 'c' in case ``__file__`` is a .pyc and we are running this
         # test twice in the same process...
-        self.assertIn('%s:%s' % (__file__.rstrip('c'), line + 1), msg)
+        self.assertIn('{}:{}'.format(__file__.rstrip('c'), line + 1), msg)
 
     def test_memo(self):
         self.assertIs(sentinel('a'), sentinel('a'))

@@ -60,7 +60,7 @@ def str_to_ts(dt_str):
     return pd.Timestamp(dt_str, tz='UTC')
 
 
-class WithBarDataChecks(object):
+class WithBarDataChecks:
     def assert_same(self, val1, val2):
         try:
             self.assertEqual(val1, val2)
@@ -190,7 +190,7 @@ class TestMinuteBarData(WithCreateBarData,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(TestMinuteBarData, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         cls.ASSET1 = cls.asset_finder.retrieve_asset(1)
         cls.ASSET2 = cls.asset_finder.retrieve_asset(2)
@@ -498,7 +498,7 @@ class TestMinuteBarData(WithCreateBarData,
         day = self.equity_minute_bar_days[1]
 
         eight_fortyfive_am_eastern = \
-            pd.Timestamp("{0}-{1}-{2} 8:45".format(
+            pd.Timestamp("{}-{}-{} 8:45".format(
                 day.year, day.month, day.day),
                 tz='US/Eastern'
             )
@@ -670,7 +670,7 @@ class TestMinuteBarData(WithCreateBarData,
         # Current day is 1/06/16
         day = self.equity_daily_bar_days[1]
         eight_fortyfive_am_eastern = \
-            pd.Timestamp("{0}-{1}-{2} 8:45".format(
+            pd.Timestamp("{}-{}-{} 8:45".format(
                 day.year, day.month, day.day),
                 tz='US/Eastern'
             )
@@ -776,7 +776,7 @@ class TestMinuteBarDataFuturesCalendar(WithCreateBarData,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(TestMinuteBarDataFuturesCalendar, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.trading_calendar = get_calendar('CMES')
 
     def test_can_trade_multiple_exchange_closed(self):
@@ -876,7 +876,7 @@ class TestDailyBarData(WithCreateBarData,
 
     @classmethod
     def make_equity_info(cls):
-        frame = super(TestDailyBarData, cls).make_equity_info()
+        frame = super().make_equity_info()
         frame.loc[[1, 2], 'end_date'] = pd.Timestamp('2016-01-08', tz='UTC')
         return frame
 
@@ -970,7 +970,7 @@ class TestDailyBarData(WithCreateBarData,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(TestDailyBarData, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         cls.ASSET1 = cls.asset_finder.retrieve_asset(1)
         cls.ASSET2 = cls.asset_finder.retrieve_asset(2)

@@ -205,7 +205,7 @@ class TALIBAlgorithm(TradingAlgorithm):
         else:
             self.talib_transforms = kwargs['talib']
 
-        self.talib_results = dict((t, []) for t in self.talib_transforms)
+        self.talib_results = {t: [] for t in self.talib_transforms}
 
     def handle_data(self, data):
         for t in self.talib_transforms:

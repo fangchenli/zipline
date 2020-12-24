@@ -37,8 +37,8 @@ cmdclass["build_ext"] = build_ext
 def window_specialization(typename):
     """Make an extension for an AdjustedArrayWindow specialization."""
     return Extension(
-        'zipline.lib._{name}window'.format(name=typename),
-        ['zipline/lib/_{name}window.pyx'.format(name=typename)],
+        f'zipline.lib._{typename}window',
+        [f'zipline/lib/_{typename}window.pyx'],
         depends=['zipline/lib/_windowtemplate.pxi'],
     )
 

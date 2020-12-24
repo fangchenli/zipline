@@ -153,7 +153,7 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(_DailyBarsTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         cls.sessions = cls.trading_calendar.sessions_in_range(
             cls.trading_calendar.minute_to_session_label(TEST_CALENDAR_START),
@@ -567,7 +567,7 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(BcolzDailyBarTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         cls.daily_bar_reader = cls.bcolz_equity_daily_bar_reader
 
@@ -712,7 +712,7 @@ class _HDF5DailyBarTestCase(WithHDF5EquityMultiCountryDailyBarReader,
                             _DailyBarsTestCase):
     @classmethod
     def init_class_fixtures(cls):
-        super(_HDF5DailyBarTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         cls.daily_bar_reader = cls.hdf5_equity_daily_bar_reader
 

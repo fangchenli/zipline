@@ -209,7 +209,7 @@ def days_and_sids_for_frames(frames):
     return frames[0].index.values, frames[0].columns.values
 
 
-class HDF5DailyBarWriter(object):
+class HDF5DailyBarWriter:
     """
     Class capable of writing daily OHLCV data to disk in a format that
     can be read efficiently by HDF5DailyBarReader.
@@ -524,7 +524,7 @@ class HDF5DailyBarReader(CurrencyAwareSessionBarReader):
         """
         if h5_file.attrs['version'] != VERSION:
             raise ValueError(
-                'mismatched version: file is of version %s, expected %s' % (
+                'mismatched version: file is of version {}, expected {}'.format(
                     h5_file.attrs['version'],
                     VERSION,
                 ),
@@ -1034,7 +1034,7 @@ class MultiCountryDailyBarReader(CurrencyAwareSessionBarReader):
             country_code = self._country_code_for_assets([sid])
         except ValueError:
             raise NoDataForSid(
-                    'Asset not contained in daily pricing file: {}'.format(sid)
+                    f'Asset not contained in daily pricing file: {sid}'
                 )
         return self._readers[country_code].get_value(sid, dt, field)
 
@@ -1093,5 +1093,5 @@ def check_sids_arrays_match(left, right, message):
     if diff.any():
         (bad_locs,) = np.where(diff)
         raise ValueError(
-            "{}:\n Indices with differences: {}".format(message, bad_locs)
+            f"{message}:\n Indices with differences: {bad_locs}"
         )

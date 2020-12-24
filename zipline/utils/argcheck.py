@@ -34,21 +34,21 @@ def singleton(cls):
 
 
 @singleton
-class Ignore(object):
+class Ignore:
     def __str__(self):
         return 'Argument.ignore'
     __repr__ = __str__
 
 
 @singleton
-class NoDefault(object):
+class NoDefault:
     def __str__(self):
         return 'Argument.no_default'
     __repr__ = __str__
 
 
 @singleton
-class AnyDefault(object):
+class AnyDefault:
     def __str__(self):
         return 'Argument.any_default'
     __repr__ = __str__
@@ -65,7 +65,7 @@ class Argument(namedtuple('Argument', ['name', 'default'])):
     ignore = Ignore()
 
     def __new__(cls, name=ignore, default=ignore):
-        return super(Argument, cls).__new__(cls, name, default)
+        return super().__new__(cls, name, default)
 
     def __str__(self):
         if self.has_no_default(self) or self.ignore_default(self):
@@ -74,7 +74,7 @@ class Argument(namedtuple('Argument', ['name', 'default'])):
             return '='.join([str(self.name), str(self.default)])
 
     def __repr__(self):
-        return 'Argument(%s, %s)' % (repr(self.name), repr(self.default))
+        return 'Argument({}, {})'.format(repr(self.name), repr(self.default))
 
     def _defaults_match(self, arg):
         return any(map(Argument.ignore_default, [self, arg])) \
@@ -301,14 +301,14 @@ class NotEnoughArguments(BadCallable):
     The callback does not accept enough arguments.
     """
     def __init__(self, callable_, args, starargs, kwargs, missing_args):
-        super(NotEnoughArguments, self).__init__(
+        super().__init__(
             callable_, args, starargs, kwargs
         )
         self.missing_args = missing_args
 
     def __str__(self):
         missing_args = list(map(str, self.missing_args))
-        return '%s is missing argument%s: %s' % (
+        return '{} is missing argument{}: {}'.format(
             self.format_callable(),
             's' if len(missing_args) > 1 else '',
             ', '.join(missing_args),

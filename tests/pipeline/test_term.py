@@ -675,7 +675,7 @@ class ObjectIdentityTestCase(TestCase):
                 self.assertIsInstance(column.latest, Factor)
             else:
                 self.fail(
-                    "Unknown dtype %s for column %s" % (column.dtype, column)
+                    f"Unknown dtype {column.dtype} for column {column}"
                 )
             # These should be the same value, plus this has the convenient
             # property of correctly handling `NaN`.

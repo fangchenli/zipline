@@ -254,7 +254,7 @@ class HDF5FXReaderTestCase(zp_fixtures.WithTmpDir,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(HDF5FXReaderTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
         path = cls.tmpdir.getpath('fx_rates.h5')
         cls.h5_fx_reader = cls.write_h5_fx_rates(path)
 

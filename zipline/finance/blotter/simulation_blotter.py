@@ -45,7 +45,7 @@ class SimulationBlotter(Blotter):
                  equity_commission=None,
                  future_commission=None,
                  cancel_policy=None):
-        super(SimulationBlotter, self).__init__(cancel_policy=cancel_policy)
+        super().__init__(cancel_policy=cancel_policy)
 
         # these orders are aggregated by asset
         self.open_orders = defaultdict(list)

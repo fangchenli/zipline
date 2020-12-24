@@ -57,7 +57,7 @@ class BaseUSEquityPipelineTestCase(WithTradingSessions,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(BaseUSEquityPipelineTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         cls.default_asset_exists_mask = cls.asset_finder.lifetimes(
             cls.nyse_sessions[-30:],

@@ -83,7 +83,7 @@ def specialize_any_integer(d):
     return out
 
 
-class SQLiteAdjustmentReader(object):
+class SQLiteAdjustmentReader:
     """
     Loads adjustments based on corporate actions from a SQLite database.
 
@@ -310,7 +310,7 @@ class SQLiteAdjustmentReader(object):
         )
 
         result = pd.read_sql(
-            'select * from "{}"'.format(table_name),
+            f'select * from "{table_name}"',
             self.conn,
             index_col='index',
             **kwargs
@@ -334,7 +334,7 @@ class SQLiteAdjustmentReader(object):
         return out
 
 
-class SQLiteAdjustmentWriter(object):
+class SQLiteAdjustmentWriter:
     """
     Writer for data to be read by SQLiteAdjustmentReader
 
@@ -419,7 +419,7 @@ class SQLiteAdjustmentWriter(object):
     def write_frame(self, tablename, frame):
         if tablename not in SQLITE_ADJUSTMENT_TABLENAMES:
             raise ValueError(
-                "Adjustment table %s not in %s" % (
+                "Adjustment table {} not in {}".format(
                     tablename,
                     SQLITE_ADJUSTMENT_TABLENAMES,
                 )

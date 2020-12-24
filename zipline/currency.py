@@ -5,7 +5,7 @@ _ALL_CURRENCIES = {}
 
 
 @total_ordering
-class Currency(object):
+class Currency:
     """A currency identifier, as defined by ISO-4217.
 
     Parameters
@@ -31,10 +31,10 @@ class Currency(object):
                     name = ISO4217Currency(code).currency_name
                 except ValueError:
                     raise ValueError(
-                        "{!r} is not a valid currency code.".format(code)
+                        f"{code!r} is not a valid currency code."
                     )
 
-            obj = _ALL_CURRENCIES[code] = super(Currency, cls).__new__(cls)
+            obj = _ALL_CURRENCIES[code] = super().__new__(cls)
             obj._code = code
             obj._name = name
             return obj

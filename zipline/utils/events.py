@@ -180,7 +180,7 @@ def lossless_float_to_int(funcname, func, argname, arg):
     raise TypeError(arg)
 
 
-class EventManager(object):
+class EventManager:
     """Manages a list of Event objects.
     This manages the logic for checking the rules and dispatching to the
     handle_data function of the Events.
@@ -502,7 +502,7 @@ class NthTradingDayOfWeek(TradingDayOfWeekRule):
     This is zero-indexed, n=0 is the first trading day of the week.
     """
     def __init__(self, n):
-        super(NthTradingDayOfWeek, self).__init__(n, invert=False)
+        super().__init__(n, invert=False)
 
 
 class NDaysBeforeLastTradingDayOfWeek(TradingDayOfWeekRule):
@@ -510,7 +510,7 @@ class NDaysBeforeLastTradingDayOfWeek(TradingDayOfWeekRule):
     A rule that triggers n days before the last trading day of the week.
     """
     def __init__(self, n):
-        super(NDaysBeforeLastTradingDayOfWeek, self).__init__(n, invert=True)
+        super().__init__(n, invert=True)
 
 
 class TradingDayOfMonthRule(StatelessRule):
@@ -547,7 +547,7 @@ class NthTradingDayOfMonth(TradingDayOfMonthRule):
     This is zero-indexed, n=0 is the first trading day of the month.
     """
     def __init__(self, n):
-        super(NthTradingDayOfMonth, self).__init__(n, invert=False)
+        super().__init__(n, invert=False)
 
 
 class NDaysBeforeLastTradingDayOfMonth(TradingDayOfMonthRule):
@@ -555,7 +555,7 @@ class NDaysBeforeLastTradingDayOfMonth(TradingDayOfMonthRule):
     A rule that triggers n days before the last trading day of the month.
     """
     def __init__(self, n):
-        super(NDaysBeforeLastTradingDayOfMonth, self).__init__(n, invert=True)
+        super().__init__(n, invert=True)
 
 
 # Stateful rules
@@ -588,7 +588,7 @@ class OncePerDay(StatefulRule):
         self.date = None
         self.next_date = None
 
-        super(OncePerDay, self).__init__(rule)
+        super().__init__(rule)
 
     def should_trigger(self, dt):
         if self.date is None or dt >= self.next_date:
@@ -607,7 +607,7 @@ class OncePerDay(StatefulRule):
 
 # Factory API
 
-class date_rules(object):
+class date_rules:
     """
     Factories for date-based :func:`~zipline.api.schedule_function` rules.
 
@@ -692,7 +692,7 @@ class date_rules(object):
         return NDaysBeforeLastTradingDayOfWeek(n=days_offset)
 
 
-class time_rules(object):
+class time_rules:
     """Factories for time-based :func:`~zipline.api.schedule_function` rules.
 
     See Also
@@ -769,7 +769,7 @@ class time_rules(object):
     every_minute = Always
 
 
-class calendars(object):
+class calendars:
     US_EQUITIES = sentinel('US_EQUITIES')
     US_FUTURES = sentinel('US_FUTURES')
 
@@ -791,7 +791,7 @@ def _check_if_not_called(v):
 
         name = getattr(v, '__name__', None)
 
-    msg = 'invalid rule: %r' % (v,)
+    msg = f'invalid rule: {v!r}'
     if name is not None:
         msg += ' (hint: did you mean %s())' % name
 

@@ -55,7 +55,7 @@ class ContinuousFuturesTestCase(zf.WithCreateBarData,
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
     ASSET_FINDER_FUTURE_CHAIN_PREDICATES = {
-        'BZ': partial(delivery_predicate, set(['F', 'H'])),
+        'BZ': partial(delivery_predicate, {'F', 'H'}),
     }
 
     @classmethod
@@ -1281,7 +1281,7 @@ class RollFinderTestCase(zf.WithBcolzFutureDailyBarReader,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(RollFinderTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         cls.volume_roll_finder = VolumeRollFinder(
             cls.trading_calendar,
@@ -1795,7 +1795,7 @@ class OrderedContractsTestCase(zf.WithAssetFinder, zf.ZiplineTestCase):
 
         oc = OrderedContracts('BA', contracts,
                               chain_predicate=partial(delivery_predicate,
-                                                      set(['F', 'H'])))
+                                                      {'F', 'H'}))
 
         # Test sid 1 as days increment, as the sessions march forward
         # a contract should be added per day, until all defined contracts

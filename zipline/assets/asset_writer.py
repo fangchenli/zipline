@@ -316,7 +316,7 @@ def _check_symbol_mappings(df, exchanges, asset_exchange):
                 len(ambigious),
                 '' if len(ambigious) == 1 else 's',
                 '\n'.join(
-                    '%s (%s):\n  intersections: %s\n  %s' % (
+                    '{} ({}):\n  intersections: {}\n  {}'.format(
                         symbol,
                         country_code,
                         tuple(map(_format_range, intersections)),
@@ -439,11 +439,11 @@ def write_version_info(conn, version_table, version_value):
     conn.execute(sa.insert(version_table, values={'version': version_value}))
 
 
-class _empty(object):
+class _empty:
     columns = ()
 
 
-class AssetDBWriter(object):
+class AssetDBWriter:
     """Class used to write data to an assets db.
 
     Parameters

@@ -66,7 +66,7 @@ class AdjustmentTestCase(TestCase):
         )
         self.assertEqual(result, expected)
 
-    @parameterized.expand([("some text",), ("some text".encode(),), (None,)])
+    @parameterized.expand([("some text",), (b"some text",), (None,)])
     def test_make_object_adjustment(self, value):
         result = adj.make_adjustment_from_indices(
             1, 2, 3, 4,
@@ -84,7 +84,7 @@ class AdjustmentTestCase(TestCase):
         self.assertEqual(result, expected)
 
     def test_unsupported_type(self):
-        class SomeClass(object):
+        class SomeClass:
             pass
 
         with self.assertRaises(TypeError) as e:

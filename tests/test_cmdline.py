@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 
 import zipline.__main__ as main
 import zipline
@@ -19,7 +19,7 @@ from zipline.extensions import (
 class CmdLineTestCase(WithTmpDir, ZiplineTestCase):
 
     def init_instance_fixtures(self):
-        super(CmdLineTestCase, self).init_instance_fixtures()
+        super().init_instance_fixtures()
 
     def test_parse_args(self):
         n = Namespace()

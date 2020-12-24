@@ -46,7 +46,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(SliceTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         # Using the date at index 14 as the start date because when running
         # pipelines, especially those involving correlations or regressions, we
@@ -532,7 +532,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         my_asset = self.asset_finder.retrieve_asset(self.sids[0])
         slice_ = Returns(window_length=2)[my_asset]
         result = repr(slice_)
-        self.assertEqual(result, "Returns(...)[{}]".format(my_asset))
+        self.assertEqual(result, f"Returns(...)[{my_asset}]")
 
     def test_slice_subtypes(self):
         my_asset = self.asset_finder.retrieve_asset(self.sids[0])

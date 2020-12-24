@@ -22,7 +22,7 @@ class CyclicDependency(Exception):
 SCREEN_NAME = 'screen_' + uuid.uuid4().hex
 
 
-class TermGraph(object):
+class TermGraph:
     """
     An abstract representation of Pipeline Term dependencies.
 
@@ -265,7 +265,7 @@ class ExecutionPlan(TermGraph):
                  start_date,
                  end_date,
                  min_extra_rows=0):
-        super(ExecutionPlan, self).__init__(terms)
+        super().__init__(terms)
 
         # Specialize all the LoadableTerms in the graph to our domain, so that
         # when the engine requests an execution order, we emit the specialized

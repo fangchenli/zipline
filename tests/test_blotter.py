@@ -54,7 +54,7 @@ class BlotterTestCase(WithCreateBarData,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(BlotterTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.asset_24 = cls.asset_finder.retrieve_asset(24)
         cls.asset_25 = cls.asset_finder.retrieve_asset(25)
         cls.future_cl = cls.asset_finder.retrieve_asset(1000)

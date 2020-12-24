@@ -34,7 +34,7 @@ class LabelArrayTestCase(ZiplineTestCase):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(LabelArrayTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         cls.rowvalues = row = ['', 'a', 'b', 'ab', 'a', '', 'b', 'ab', 'z']
         cls.strs = np.array([rotN(row, i) for i in range(3)], dtype=object)

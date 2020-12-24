@@ -161,7 +161,7 @@ class PreprocessTestCase(TestCase):
         ]
 
         for decorator in decorators:
-            class Foo(object):
+            class Foo:
 
                 @decorator
                 def method(self, a, b, c=3):
@@ -204,7 +204,7 @@ class PreprocessTestCase(TestCase):
 
     def test_expect_types_custom_funcname(self):
 
-        class Foo(object):
+        class Foo:
             @expect_types(__funcname='ArgleBargle', a=int)
             def __init__(self, a):
                 self.a = a
@@ -289,7 +289,7 @@ class PreprocessTestCase(TestCase):
 
         set_ = {'a', 'b'}
 
-        class Foo(object):
+        class Foo:
             @expect_element(__funcname='ArgleBargle', a=set_)
             def __init__(self, a):
                 self.a = a
@@ -367,7 +367,7 @@ class PreprocessTestCase(TestCase):
 
         allowed_dtypes = (dtype('datetime64[ns]'), dtype('float'))
 
-        class Foo(object):
+        class Foo:
             @expect_dtypes(__funcname='Foo', a=allowed_dtypes)
             def __init__(self, a):
                 self.a = a

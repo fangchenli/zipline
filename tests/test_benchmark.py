@@ -246,7 +246,7 @@ class BenchmarkSpecTestCase(WithTmpDir,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(BenchmarkSpecTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         zero_returns_index = pd.date_range(
             cls.START_DATE,
@@ -257,7 +257,7 @@ class BenchmarkSpecTestCase(WithTmpDir,
         cls.zero_returns = pd.Series(index=zero_returns_index, data=0.0)
 
     def init_instance_fixtures(self):
-        super(BenchmarkSpecTestCase, self).init_instance_fixtures()
+        super().init_instance_fixtures()
         self.log_handler = self.enter_instance_context(make_test_handler(self))
 
     @classmethod

@@ -92,7 +92,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(TestConstantPrice, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         cls.equity = cls.asset_finder.retrieve_asset(
             cls.asset_finder.equities_sids[0],
@@ -1332,7 +1332,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(TestFixedReturns, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         cls.equity = cls.asset_finder.retrieve_asset(
             cls.asset_finder.equities_sids[0],
@@ -1384,7 +1384,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         cls.future_opens.name = None
 
     def init_instance_fixtures(self):
-        super(TestFixedReturns, self).init_instance_fixtures()
+        super().init_instance_fixtures()
 
         if self.DATA_PORTAL_FIRST_TRADING_DAY is None:
             if self.DATA_PORTAL_USE_MINUTE_DATA:

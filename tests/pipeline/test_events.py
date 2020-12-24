@@ -56,11 +56,11 @@ class EventDataSet(DataSet):
 
     previous_string_custom_missing = Column(
         dtype=categorical_dtype,
-        missing_value=u"<<NULL>>",
+        missing_value="<<NULL>>",
     )
     next_string_custom_missing = Column(
         dtype=categorical_dtype,
-        missing_value=u"<<NULL>>",
+        missing_value="<<NULL>>",
     )
 
 
@@ -154,7 +154,7 @@ class EventIndexerTestCase(ZiplineTestCase):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(EventIndexerTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.events = make_events(add_nulls=False).sort_values('event_date')
         cls.events.reset_index(inplace=True)
 
@@ -293,7 +293,7 @@ class EventsLoaderEmptyTestCase(WithAssetFinder,
     def init_class_fixtures(cls):
         cls.ASSET_FINDER_EQUITY_SIDS = [0, 1]
         cls.ASSET_FINDER_EQUITY_SYMBOLS = ['A', 'B']
-        super(EventsLoaderEmptyTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
     def frame_containing_all_missing_values(self, index, columns):
         frame = pd.DataFrame(
@@ -409,7 +409,7 @@ class EventsLoaderTestCase(WithAssetFinder,
         cls.ASSET_FINDER_EQUITY_SYMBOLS = [
             's' + str(n) for n in cls.ASSET_FINDER_EQUITY_SIDS
         ]
-        super(EventsLoaderTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         cls.engine = SimplePipelineEngine(
             lambda c: cls.loader,

@@ -224,5 +224,5 @@ def check_stoplimit_prices(price, label):
 
     if price < 0:
         raise BadOrderParameters(
-            msg="Can't place a {} order with a negative price.".format(label)
+            msg=f"Can't place a {label} order with a negative price."
         )

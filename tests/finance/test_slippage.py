@@ -95,7 +95,7 @@ class SlippageTestCase(WithCreateBarData,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(SlippageTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.ASSET133 = cls.asset_finder.retrieve_asset(133)
 
     def test_allowed_asset_types(self):
@@ -627,7 +627,7 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(VolumeShareSlippageTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.ASSET133 = cls.asset_finder.retrieve_asset(133)
         cls.ASSET1000 = cls.asset_finder.retrieve_asset(1000)
 
@@ -749,7 +749,7 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(VolatilityVolumeShareTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.ASSET = cls.asset_finder.retrieve_asset(1000)
 
     @classmethod
@@ -767,9 +767,7 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
     @classmethod
     def make_future_minute_bar_data(cls):
         data = list(
-            super(
-                VolatilityVolumeShareTestCase, cls,
-            ).make_future_minute_bar_data()
+            super().make_future_minute_bar_data()
         )
         # Make the first month's worth of data NaN to simulate cases where a
         # futures contract does not exist yet.
@@ -961,7 +959,7 @@ class OrdersStopTestCase(WithSimParams,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(OrdersStopTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.ASSET133 = cls.asset_finder.retrieve_asset(133)
 
     STOP_ORDER_CASES = {
@@ -1173,7 +1171,7 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(FixedBasisPointsSlippageTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.ASSET133 = cls.asset_finder.retrieve_asset(133)
 
     @parameterized.expand([

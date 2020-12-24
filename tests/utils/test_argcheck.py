@@ -253,7 +253,7 @@ class TestArgCheck(TestCase):
             verify_callable_argspec(h, expected_args)
 
     def test_bound_method(self):
-        class C(object):
+        class C:
             def f(self, a, b):
                 pass
 

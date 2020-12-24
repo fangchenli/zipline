@@ -80,7 +80,7 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
     # - merger on 2015-01-05 and 2015-01-06
     @classmethod
     def init_class_fixtures(cls):
-        super(WithHistory, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.trading_days = cls.trading_calendar.sessions_in_range(
             cls.TRADING_START_DT,
             cls.TRADING_END_DT
@@ -1662,7 +1662,7 @@ class MinuteEquityHistoryTestCase(WithHistory,
                 np.testing.assert_allclose(
                     window[-1],
                     expected,
-                    err_msg="at minute {}".format(minute),
+                    err_msg=f"at minute {minute}",
                 )
 
 

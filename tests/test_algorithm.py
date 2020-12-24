@@ -1543,7 +1543,7 @@ def handle_data(context, data):
             else:
                 commission_line = \
                     "set_commission(commission.PerShare(0.02, " \
-                    "min_trade_cost={0}))".format(minimum_commission)
+                    "min_trade_cost={}))".format(minimum_commission)
 
             # verify order -> transaction -> portfolio position.
             # --------------
@@ -1567,7 +1567,7 @@ def initialize(context):
                             price_impact=0.05
                        )
     set_slippage(model)
-    {0}
+    {}
 
     context.count = 2
     context.incr = 0
@@ -1778,7 +1778,7 @@ def initialize(context):
     pass
 
 def handle_data(context, data):
-    {0}(sid(0), 10)
+    {}(sid(0), 10)
         """.format(order_str),
                 sim_params=params,
             )
@@ -1846,7 +1846,7 @@ def handle_data(context, data):
         with self.assertRaises(TypeError) as cm:
             algo.run()
 
-        expected = "Expected %s argument to be of type %s%s" % (
+        expected = "Expected {} argument to be of type {}{}".format(
             keyword,
             'or iterable of type ' if inputs[2] else '',
             inputs[1]
@@ -2654,7 +2654,7 @@ class TestTradingControls(zf.WithMakeAlgo,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(TestTradingControls, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.asset = cls.asset_finder.retrieve_asset(cls.sid)
         cls.another_asset = cls.asset_finder.retrieve_asset(134)
 
@@ -3700,7 +3700,7 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(TestDailyEquityAutoClose, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.assets = (
             cls.asset_finder.retrieve_all(cls.asset_finder.equities_sids)
         )
@@ -4046,7 +4046,7 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(TestMinutelyEquityAutoClose, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.assets = (
             cls.asset_finder.retrieve_all(cls.asset_finder.equities_sids)
         )
@@ -4301,7 +4301,7 @@ class TestOrderAfterDelist(zf.WithMakeAlgo, zf.ZiplineTestCase):
     # XXX: This suite doesn't use the data in its DataPortal; it uses a
     # FakeDataPortal with different mock data.
     def init_instance_fixtures(self):
-        super(TestOrderAfterDelist, self).init_instance_fixtures()
+        super().init_instance_fixtures()
         self.data_portal = FakeDataPortal(self.asset_finder)
 
     @parameterized.expand([

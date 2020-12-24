@@ -64,7 +64,7 @@ def main():
             for file_ in glob(TEMP_LOCATION_GLOB):
                 base = basename(file_)
 
-                print("%s -> %s" % (file_, base))
+                print(f"{file_} -> {base}")
                 ensure_not_exists(base)
                 move(file_, '.')
     finally:

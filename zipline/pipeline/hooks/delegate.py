@@ -49,7 +49,7 @@ class DelegatingHooks(implements(PipelineHooks)):
             # sub-hook.
             return hooks[0]
         else:
-            self = super(DelegatingHooks, cls).__new__(cls)
+            self = super().__new__(cls)
             self._hooks = hooks
             return self
 

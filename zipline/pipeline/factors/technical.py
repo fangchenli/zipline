@@ -210,11 +210,11 @@ class IchimokuKinkoHyo(CustomFactor):
     window_length = 52
 
     def _validate(self):
-        super(IchimokuKinkoHyo, self)._validate()
+        super()._validate()
         for k, v in self.params.items():
             if v > self.window_length:
                 raise ValueError(
-                    '%s must be <= the window_length: %s > %s' % (
+                    '{} must be <= the window_length: {} > {}'.format(
                         k, v, self.window_length,
                     ),
                 )
@@ -355,7 +355,7 @@ class MovingAverageConvergenceDivergenceSignal(CustomFactor):
                 )
             )
 
-        return super(MovingAverageConvergenceDivergenceSignal, cls).__new__(
+        return super().__new__(
             cls,
             fast_period=fast_period,
             slow_period=slow_period,

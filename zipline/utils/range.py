@@ -62,7 +62,7 @@ def maybe_from_tuple(tup_or_range):
         return tup_or_range
 
     raise ValueError(
-        'maybe_from_tuple expects a tuple or range, got %r: %r' % (
+        'maybe_from_tuple expects a tuple or range, got {!r}: {!r}'.format(
             type(tup_or_range).__name__,
             tup_or_range,
         ),
@@ -186,8 +186,7 @@ def sorted_diff(rs, ss):
     else:
         next(ss)
 
-    for t in sorted_diff(rs, ss):
-        yield t
+    yield from sorted_diff(rs, ss)
 
 
 def intersecting_ranges(ranges):

@@ -42,7 +42,7 @@ class PositiveWindowLengthMixin(Term):
     Validation mixin enforcing that a Term gets a positive WindowLength
     """
     def _validate(self):
-        super(PositiveWindowLengthMixin, self)._validate()
+        super()._validate()
         if not self.windowed:
             raise WindowLengthNotPositive(window_length=self.window_length)
 
@@ -52,7 +52,7 @@ class SingleInputMixin(Term):
     Validation mixin enforcing that a Term gets a length-1 inputs list.
     """
     def _validate(self):
-        super(SingleInputMixin, self)._validate()
+        super()._validate()
         num_inputs = len(self.inputs)
         if num_inputs != 1:
             raise ValueError(
@@ -69,7 +69,7 @@ class StandardOutputs(Term):
     Validation mixin enforcing that a Term cannot produce non-standard outputs.
     """
     def _validate(self):
-        super(StandardOutputs, self)._validate()
+        super()._validate()
         if self.outputs is not NotSpecified:
             raise ValueError(
                 "{typename} does not support custom outputs,"
@@ -87,7 +87,7 @@ class RestrictedDTypeMixin(Term):
     ALLOWED_DTYPES = NotSpecified
 
     def _validate(self):
-        super(RestrictedDTypeMixin, self)._validate()
+        super()._validate()
         assert self.ALLOWED_DTYPES is not NotSpecified, (
             "ALLOWED_DTYPES not supplied on subclass "
             "of RestrictedDTypeMixin: %s." % type(self).__name__
@@ -131,7 +131,7 @@ class CustomTermMixin(Term):
                 )
             )
 
-        return super(CustomTermMixin, cls).__new__(
+        return super().__new__(
             cls,
             inputs=inputs,
             outputs=outputs,
@@ -264,7 +264,7 @@ class LatestMixin(SingleInputMixin):
         out[:] = data[-1]
 
     def _validate(self):
-        super(LatestMixin, self)._validate()
+        super()._validate()
         if self.inputs[0].dtype != self.dtype:
             raise TypeError(
                 "{name} expected an input of dtype {expected}, "
@@ -330,7 +330,7 @@ class AliasedMixin(SingleInputMixin, UniversalMixin):
     Mixin for aliased terms.
     """
     def __new__(cls, term, name):
-        return super(AliasedMixin, cls).__new__(
+        return super().__new__(
             cls,
             inputs=(term,),
             outputs=term.outputs,
@@ -344,12 +344,12 @@ class AliasedMixin(SingleInputMixin, UniversalMixin):
 
     def _init(self, name, *args, **kwargs):
         self.name = name
-        return super(AliasedMixin, self)._init(*args, **kwargs)
+        return super()._init(*args, **kwargs)
 
     @classmethod
     def _static_identity(cls, name, *args, **kwargs):
         return (
-            super(AliasedMixin, cls)._static_identity(*args, **kwargs),
+            super()._static_identity(*args, **kwargs),
             name,
         )
 
@@ -393,7 +393,7 @@ class DownsampledMixin(StandardOutputs, UniversalMixin):
     @expect_types(term=Term)
     @expect_downsample_frequency
     def __new__(cls, term, frequency):
-        return super(DownsampledMixin, cls).__new__(
+        return super().__new__(
             cls,
             inputs=term.inputs,
             outputs=term.outputs,
@@ -409,12 +409,12 @@ class DownsampledMixin(StandardOutputs, UniversalMixin):
     def _init(self, frequency, wrapped_term, *args, **kwargs):
         self._frequency = frequency
         self._wrapped_term = wrapped_term
-        return super(DownsampledMixin, self)._init(*args, **kwargs)
+        return super()._init(*args, **kwargs)
 
     @classmethod
     def _static_identity(cls, frequency, wrapped_term, *args, **kwargs):
         return (
-            super(DownsampledMixin, cls)._static_identity(*args, **kwargs),
+            super()._static_identity(*args, **kwargs),
             frequency,
             wrapped_term,
         )
@@ -592,7 +592,7 @@ class SliceMixin(UniversalMixin):
     should construct instances via indexing, e.g. `MyFactor()[Asset(24)]`.
     """
     def __new__(cls, term, asset):
-        return super(SliceMixin, cls).__new__(
+        return super().__new__(
             cls,
             asset=asset,
             inputs=[term],
@@ -612,12 +612,12 @@ class SliceMixin(UniversalMixin):
 
     def _init(self, asset, *args, **kwargs):
         self._asset = asset
-        return super(SliceMixin, self)._init(*args, **kwargs)
+        return super()._init(*args, **kwargs)
 
     @classmethod
     def _static_identity(cls, asset, *args, **kwargs):
         return (
-            super(SliceMixin, cls)._static_identity(*args, **kwargs),
+            super()._static_identity(*args, **kwargs),
             asset,
         )
 
@@ -655,7 +655,7 @@ class IfElseMixin(UniversalMixin):
 
     @expect_dtypes(condition=bool_dtype)
     def __new__(cls, condition, if_true, if_false):
-        return super(IfElseMixin, cls).__new__(
+        return super().__new__(
             cls,
             inputs=[condition, if_true, if_false],
             dtype=if_true.dtype,

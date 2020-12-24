@@ -113,8 +113,8 @@ def ensure_upper_case(func, argname, arg):
         return arg.upper()
     else:
         raise TypeError(
-            "{0}() expected argument '{1}' to"
-            " be a string, but got {2} instead.".format(
+            "{}() expected argument '{}' to"
+            " be a string, but got {} instead.".format(
                 func.__name__,
                 argname,
                 arg,
@@ -808,7 +808,7 @@ def coerce_types(**kwargs):
     return preprocess(**valmap(_coerce, kwargs))
 
 
-class error_keywords(object):
+class error_keywords:
 
     def __init__(self, *args, **kwargs):
         self.messages = kwargs

@@ -44,7 +44,7 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(ExamplesTests, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         register('test', lambda *args: None)
         cls.add_class_callback(partial(unregister, 'test'))

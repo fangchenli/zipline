@@ -164,5 +164,5 @@ def verify_frames_aligned(frames, calendar):
 
     check_indexes_all_same(
         [indexes[0], cal_sessions],
-        "DataFrame index doesn't match {} calendar:".format(calendar.name),
+        f"DataFrame index doesn't match {calendar.name} calendar:",
     )

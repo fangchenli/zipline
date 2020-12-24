@@ -53,7 +53,7 @@ class FetcherCSVRedirectError(ZiplineError):
         self.new_url = kwargs["new_url"]
         self.extra = kwargs["extra"]
 
-        super(FetcherCSVRedirectError, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 # The following optional arguments are supported for
@@ -367,7 +367,7 @@ class PandasCSV(ABC):
             no_sid_count = length_before_drop - len(df)
             if no_sid_count:
                 logger.warn(
-                    "Dropped {} rows from fetched csv.".format(no_sid_count),
+                    f"Dropped {no_sid_count} rows from fetched csv.",
                     no_sid_count,
                     extra={'syslog': True},
                 )
@@ -497,7 +497,7 @@ class PandasRequestsCSV(PandasCSV):
 
         self.namestring = type(self).__name__
 
-        super(PandasRequestsCSV, self).__init__(
+        super().__init__(
             pre_func,
             post_func,
             asset_finder,

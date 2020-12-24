@@ -31,7 +31,7 @@ class BaseAliasTestCase(BaseUSEquityPipelineTestCase):
     def test_repr(self):
         assert_equal(
             repr(self.Term().alias('ayy lmao')),
-            "Aliased%s(Term(...), name='ayy lmao')" % (
+            "Aliased{}(Term(...), name='ayy lmao')".format(
                 self.Term.__base__.__name__,
             ),
         )

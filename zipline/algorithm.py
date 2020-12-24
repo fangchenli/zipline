@@ -136,12 +136,12 @@ AttachedPipeline = namedtuple('AttachedPipeline', 'pipe chunks eager')
 
 class NoBenchmark(ValueError):
     def __init__(self):
-        super(NoBenchmark, self).__init__(
+        super().__init__(
             'Must specify either benchmark_sid or benchmark_returns.',
         )
 
 
-class TradingAlgorithm(object):
+class TradingAlgorithm:
     """A class that represents a trading strategy and parameters to execute
     the strategy.
 
@@ -1160,13 +1160,13 @@ class TradingAlgorithm(object):
 
         if normalized_date < asset.start_date:
             raise CannotOrderDelistedAsset(
-                msg="Cannot order {0}, as it started trading on"
-                    " {1}.".format(asset.symbol, asset.start_date)
+                msg="Cannot order {}, as it started trading on"
+                    " {}.".format(asset.symbol, asset.start_date)
             )
         elif normalized_date > asset.end_date:
             raise CannotOrderDelistedAsset(
-                msg="Cannot order {0}, as it stopped trading on"
-                    " {1}.".format(asset.symbol, asset.end_date)
+                msg="Cannot order {}, as it stopped trading on"
+                    " {}.".format(asset.symbol, asset.end_date)
             )
         else:
             last_price = \
@@ -1174,7 +1174,7 @@ class TradingAlgorithm(object):
 
             if np.isnan(last_price):
                 raise CannotOrderDelistedAsset(
-                    msg="Cannot order {0} on {1} as there is no last "
+                    msg="Cannot order {} on {} as there is no last "
                         "price for the security.".format(asset.symbol,
                                                          self.datetime)
                 )
@@ -1206,10 +1206,10 @@ class TradingAlgorithm(object):
                 # If we are after the asset's end date or auto close date, warn
                 # the user that they can't place an order for this asset, and
                 # return None.
-                log.warn("Cannot place order for {0}, as it has de-listed. "
+                log.warn("Cannot place order for {}, as it has de-listed. "
                          "Any existing positions for this asset will be "
                          "liquidated on "
-                         "{1}.".format(asset.symbol, asset.auto_close_date))
+                         "{}.".format(asset.symbol, asset.auto_close_date))
 
                 return False
 

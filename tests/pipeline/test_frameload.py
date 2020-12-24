@@ -3,7 +3,7 @@ Tests for zipline.pipeline.loaders.frame.DataFrameLoader.
 """
 from unittest import TestCase
 
-from mock import patch
+from unittest.mock import patch
 from numpy import arange, ones
 from numpy.testing import assert_array_equal
 from pandas import (

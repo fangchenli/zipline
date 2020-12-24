@@ -62,7 +62,7 @@ from zipline.utils.numpy_utils import (
 
 @instance
 @ensure_doctest
-class wildcard(object):
+class wildcard:
     """An object that compares equal to any other object.
 
     This is useful when using :func:`~zipline.testing.predicates.assert_equal`
@@ -93,7 +93,7 @@ class wildcard(object):
         return '<%s>' % type(self).__name__
 
 
-class instance_of(object):
+class instance_of:
     """An object that compares equal to any instance of a given type or types.
 
     Parameters
@@ -125,7 +125,7 @@ class instance_of(object):
 
     def __repr__(self):
         typenames = tuple(t.__name__ for t in self.types)
-        return '%s(%s%s)' % (
+        return '{}({}{})'.format(
             type(self).__name__,
             (
                 typenames[0]
@@ -236,7 +236,7 @@ def assert_is_subclass(subcls, cls, msg=''):
         An extra assertion message to print if this fails.
     """
     assert issubclass(subcls, cls), (
-        '%s is not a subclass of %s\n%s' % (
+        '{} is not a subclass of {}\n{}'.format(
             _safe_cls_name(subcls),
             _safe_cls_name(cls),
             msg,
@@ -257,7 +257,7 @@ def assert_is_not_subclass(not_subcls, cls, msg=''):
         An extra assertion message to print if this fails.
     """
     assert not issubclass(not_subcls, cls), (
-        '%s is a subclass of %s\n%s' % (
+        '{} is a subclass of {}\n{}'.format(
             _safe_cls_name(not_subcls),
             _safe_cls_name(cls),
             msg,
@@ -278,7 +278,7 @@ def assert_regex(result, expected, msg=''):
         An extra assertion message to print if this fails.
     """
     assert re.search(expected, result), (
-        '%s%r not found in %r' % (_fmt_msg(msg), expected, result)
+        '{}{!r} not found in {!r}'.format(_fmt_msg(msg), expected, result)
     )
 
 
@@ -289,7 +289,7 @@ def _assert_raises_helper(do_check, exc_type, msg):
     except exc_type as e:
         do_check(e)
     else:
-        raise AssertionError('%s%s was not raised' % (_fmt_msg(msg), exc_type))
+        raise AssertionError('{}{} was not raised'.format(_fmt_msg(msg), exc_type))
 
 
 def assert_raises_regex(exc, pattern, msg=''):
@@ -307,7 +307,7 @@ def assert_raises_regex(exc, pattern, msg=''):
     """
     def check_exception(e):
         assert re.search(pattern, str(e)), (
-            '%s%r not found in %r' % (_fmt_msg(msg), pattern, str(e))
+            '{}{!r} not found in {!r}'.format(_fmt_msg(msg), pattern, str(e))
         )
 
     return _assert_raises_helper(
@@ -363,7 +363,7 @@ def make_assert_equal_assertion_error(assertion_message, path, msg):
     This doesn't raise the exception, it only returns it.
     """
     return AssertionError(
-        '%s%s\n%s' % (
+        '{}{}\n{}'.format(
             _fmt_msg(msg),
             assertion_message,
             _fmt_path(path),
@@ -389,7 +389,7 @@ def assert_equal(result, expected, path=(), msg='', **kwargs):
     """
     if result != expected:
         raise make_assert_equal_assertion_error(
-            '%s != %s' % (result, expected),
+            f'{result} != {expected}',
             path,
             msg,
         )
@@ -410,7 +410,7 @@ def assert_float_equal(result,
         rtol=float_rtol,
         atol=float_atol,
         equal_nan=float_equal_nan,
-    ), '%s%s != %s with rtol=%s and atol=%s%s\n%s' % (
+    ), '{}{} != {} with rtol={} and atol={}{}\n{}'.format(
         _fmt_msg(msg),
         result,
         expected,
@@ -437,21 +437,21 @@ def _check_sets(result, expected, msg, path, type_):
     if result != expected:
         if result > expected:
             diff = result - expected
-            msg = 'extra %s in result: %r' % (s(type_, diff), diff)
+            msg = 'extra {} in result: {!r}'.format(s(type_, diff), diff)
         elif result < expected:
             diff = expected - result
-            msg = 'result is missing %s: %r' % (s(type_, diff), diff)
+            msg = 'result is missing {}: {!r}'.format(s(type_, diff), diff)
         else:
             in_result = result - expected
             in_expected = expected - result
-            msg = '%s only in result: %s\n%s only in expected: %s' % (
+            msg = '{} only in result: {}\n{} only in expected: {}'.format(
                 s(type_, in_result),
                 in_result,
                 s(type_, in_expected),
                 in_expected,
             )
         raise AssertionError(
-            '%ss do not match\n%s%s' % (
+            '{}s do not match\n{}{}'.format(
                 type_,
                 _fmt_msg(msg),
                 _fmt_path(path),
@@ -477,7 +477,7 @@ def assert_dict_equal(result, expected, path=(), msg='', **kwargs):
             assert_equal(
                 result[key],
                 expected[key],
-                path=path + ('[%r]' % (key,),),
+                path=path + (f'[{key!r}]',),
                 msg=msg,
                 **kwargs
             )
@@ -508,7 +508,7 @@ def asssert_mappingproxy_equal(result, expected, path=(), msg='', **kwargs):
             assert_equal(
                 resultv,
                 expectedv,
-                path=path + ('[%r]' % (k,),),
+                path=path + (f'[{k!r}]',),
                 msg=msg,
                 **kwargs
             )
@@ -754,23 +754,23 @@ def assert_timestamp_and_datetime_equal(result,
 @assert_equal.register(slice, slice)
 def assert_slice_equal(result, expected, path=(), msg=''):
     diff_start = (
-        ('starts are not equal: %s != %s' % (result.start, result.stop))
+        (f'starts are not equal: {result.start} != {result.stop}')
         if result.start != expected.start else
         ''
     )
     diff_stop = (
-        ('stops are not equal: %s != %s' % (result.stop, result.stop))
+        (f'stops are not equal: {result.stop} != {result.stop}')
         if result.stop != expected.stop else
         ''
     )
     diff_step = (
-        ('steps are not equal: %s != %s' % (result.step, result.stop))
+        (f'steps are not equal: {result.step} != {result.stop}')
         if result.step != expected.step else
         ''
     )
     diffs = diff_start, diff_stop, diff_step
 
-    assert not any(diffs), '%s%s\n%s' % (
+    assert not any(diffs), '{}{}\n{}'.format(
         _fmt_msg(msg),
         '\n'.join(filter(None, diffs)),
         _fmt_path(path),
@@ -799,7 +799,7 @@ def assert_asset_equal(result, expected, path=(), msg='', **kwargs):
 
 def assert_isidentical(result, expected, msg=''):
     assert result.isidentical(expected), (
-        '%s%s is not identical to %s' % (_fmt_msg(msg), result, expected)
+        '{}{} is not identical to {}'.format(_fmt_msg(msg), result, expected)
     )
 
 

@@ -119,7 +119,7 @@ class AssetDispatchSessionBarTestCase(WithBcolzEquityDailyBarReader,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(AssetDispatchSessionBarTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         readers = {
             Equity: ReindexSessionBarReader(
@@ -254,7 +254,7 @@ class AssetDispatchMinuteBarTestCase(WithBcolzEquityMinuteBarReader,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(AssetDispatchMinuteBarTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         readers = {
             Equity: ReindexMinuteBarReader(

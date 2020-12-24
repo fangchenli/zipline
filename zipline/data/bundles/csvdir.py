@@ -120,7 +120,7 @@ def csvdir_bundle(environ,
         raise ValueError("%s is not a directory" % csvdir)
 
     if not tframes:
-        tframes = set(["daily", "minute"]).intersection(os.listdir(csvdir))
+        tframes = {"daily", "minute"}.intersection(os.listdir(csvdir))
 
         if not tframes:
             raise ValueError("'daily' and 'minute' directories "
@@ -173,13 +173,13 @@ def _pricing_iter(csvdir, symbols, metadata, divs_splits, show_progress):
                              label='Loading custom pricing data: ') as it:
         files = os.listdir(csvdir)
         for sid, symbol in enumerate(it):
-            logger.debug('%s: sid %s' % (symbol, sid))
+            logger.debug(f'{symbol}: sid {sid}')
 
             try:
                 fname = [fname for fname in files
                          if '%s.csv' % symbol in fname][0]
             except IndexError:
-                raise ValueError("%s.csv file is not in %s" % (symbol, csvdir))
+                raise ValueError(f"{symbol}.csv file is not in {csvdir}")
 
             dfr = read_csv(os.path.join(csvdir, fname),
                            parse_dates=[0],

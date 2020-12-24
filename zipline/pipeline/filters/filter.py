@@ -93,11 +93,11 @@ def binary_operator(op):
                 raise BadBinaryOperator(op, self, other)
             if self is other:
                 return NumExprFilter.create(
-                    "x_0 {op} x_0".format(op=op),
+                    f"x_0 {op} x_0",
                     (self,),
                 )
             return NumExprFilter.create(
-                "x_0 {op} x_1".format(op=op),
+                f"x_0 {op} x_1",
                 (self, other),
             )
         elif isinstance(other, int):  # Note that this is true for bool as well
@@ -125,11 +125,11 @@ def unary_operator(op):
         # invoked.
         if isinstance(self, NumericalExpression):
             return NumExprFilter.create(
-                "{op}({expr})".format(op=op, expr=self._expr),
+                f"{op}({self._expr})",
                 self.inputs,
             )
         else:
-            return NumExprFilter.create("{op}x_0".format(op=op), (self,))
+            return NumExprFilter.create(f"{op}x_0", (self,))
 
     unary_operator.__doc__ = "Unary Operator: '%s'" % op
     return unary_operator
@@ -210,7 +210,7 @@ class Filter(RestrictedDTypeMixin, ComputableTerm):
     def _validate(self):
         # Run superclass validation first so that we handle `dtype not passed`
         # before this.
-        retval = super(Filter, self)._validate()
+        retval = super()._validate()
         if self.dtype != bool_dtype:
             raise UnsupportedDataType(
                 typename=type(self).__name__,
@@ -339,7 +339,7 @@ class NumExprFilter(NumericalExpression, Filter):
         """
         Compute our result with numexpr, then re-apply `mask`.
         """
-        return super(NumExprFilter, self)._compute(
+        return super()._compute(
             arrays,
             dates,
             assets,
@@ -359,7 +359,7 @@ class NullFilter(SingleInputMixin, Filter):
     window_length = 0
 
     def __new__(cls, term):
-        return super(NullFilter, cls).__new__(
+        return super().__new__(
             cls,
             inputs=(term,),
         )
@@ -383,7 +383,7 @@ class NotNullFilter(SingleInputMixin, Filter):
     window_length = 0
 
     def __new__(cls, term):
-        return super(NotNullFilter, cls).__new__(
+        return super().__new__(
             cls,
             inputs=(term,),
         )
@@ -411,7 +411,7 @@ class PercentileFilter(SingleInputMixin, Filter):
     window_length = 0
 
     def __new__(cls, factor, min_percentile, max_percentile, mask):
-        return super(PercentileFilter, cls).__new__(
+        return super().__new__(
             cls,
             inputs=(factor,),
             mask=mask,
@@ -422,12 +422,12 @@ class PercentileFilter(SingleInputMixin, Filter):
     def _init(self, min_percentile, max_percentile, *args, **kwargs):
         self._min_percentile = min_percentile
         self._max_percentile = max_percentile
-        return super(PercentileFilter, self)._init(*args, **kwargs)
+        return super()._init(*args, **kwargs)
 
     @classmethod
     def _static_identity(cls, min_percentile, max_percentile, *args, **kwargs):
         return (
-            super(PercentileFilter, cls)._static_identity(*args, **kwargs),
+            super()._static_identity(*args, **kwargs),
             min_percentile,
             max_percentile,
         )
@@ -442,7 +442,7 @@ class PercentileFilter(SingleInputMixin, Filter):
                 max_percentile=self._max_percentile,
                 upper_bound=100.0
             )
-        return super(PercentileFilter, self)._validate()
+        return super()._validate()
 
     def _compute(self, arrays, dates, assets, mask):
         """
@@ -533,7 +533,7 @@ class CustomFilter(PositiveWindowLengthMixin, CustomTermMixin, Filter):
     """
     def _validate(self):
         try:
-            super(CustomFilter, self)._validate()
+            super()._validate()
         except UnsupportedDataType:
             if self.dtype in CLASSIFIER_DTYPES:
                 raise UnsupportedDataType(
@@ -569,7 +569,7 @@ class ArrayPredicate(SingleInputMixin, Filter):
     @expect_types(term=Term, opargs=tuple)
     def __new__(cls, term, op, opargs):
         hash(opargs)  # fail fast if opargs isn't hashable.
-        return super(ArrayPredicate, cls).__new__(
+        return super().__new__(
             ArrayPredicate,
             op=op,
             opargs=opargs,
@@ -606,16 +606,16 @@ class SingleAsset(Filter):
     window_length = 1
 
     def __new__(cls, asset):
-        return super(SingleAsset, cls).__new__(cls, asset=asset)
+        return super().__new__(cls, asset=asset)
 
     def _init(self, asset, *args, **kwargs):
         self._asset = asset
-        return super(SingleAsset, self)._init(*args, **kwargs)
+        return super()._init(*args, **kwargs)
 
     @classmethod
     def _static_identity(cls, asset, *args, **kwargs):
         return (
-            super(SingleAsset, cls)._static_identity(*args, **kwargs), asset,
+            super()._static_identity(*args, **kwargs), asset,
         )
 
     def _compute(self, arrays, dates, assets, mask):
@@ -631,7 +631,7 @@ class SingleAsset(Filter):
 
     def graph_repr(self):
         # Graphviz interprets `\l` as "divide label into lines, left-justified"
-        return "SingleAsset:\\l  asset: {!r}\\l".format(self._asset)
+        return f"SingleAsset:\\l  asset: {self._asset!r}\\l"
 
 
 class StaticSids(Filter):
@@ -653,7 +653,7 @@ class StaticSids(Filter):
 
     def __new__(cls, sids):
         sids = frozenset(sids)
-        return super(StaticSids, cls).__new__(cls, sids=sids)
+        return super().__new__(cls, sids=sids)
 
     def _compute(self, arrays, dates, sids, mask):
         my_columns = sids.isin(self.params['sids'])
@@ -675,7 +675,7 @@ class StaticAssets(StaticSids):
     """
     def __new__(cls, assets):
         sids = frozenset(asset.sid for asset in assets)
-        return super(StaticAssets, cls).__new__(cls, sids)
+        return super().__new__(cls, sids)
 
 
 class AllPresent(CustomFilter, SingleInputMixin, StandardOutputs):
@@ -688,7 +688,7 @@ class AllPresent(CustomFilter, SingleInputMixin, StandardOutputs):
                 "Input to filter `AllPresent` cannot be a Filter."
             )
 
-        return super(AllPresent, self)._validate()
+        return super()._validate()
 
     def compute(self, today, assets, out, value):
         if isinstance(value, LabelArray):
@@ -710,7 +710,7 @@ class MaximumFilter(Filter, StandardOutputs):
             from zipline.pipeline.classifiers import Everything
             groupby = Everything()
 
-        return super(MaximumFilter, cls).__new__(
+        return super().__new__(
             cls,
             inputs=(factor, groupby),
             mask=mask,

@@ -272,7 +272,7 @@ def _encode_continuous_future_sid(root_symbol,
 Lifetimes = namedtuple('Lifetimes', 'sid start end')
 
 
-class AssetFinder(object):
+class AssetFinder:
     """
     An AssetFinder is an interface to a database of Asset metadata written by
     an ``AssetDBWriter``.
@@ -1112,7 +1112,7 @@ class AssetFinder(object):
                 field_name,
                 value,
             ]
-            assert owners, 'empty owners list for %r, %r' % (field_name, value)
+            assert owners, f'empty owners list for {field_name!r}, {value!r}'
         except KeyError:
             # no equity has ever held this value
             raise ValueNotFoundForField(field=field_name, value=value)
@@ -1170,7 +1170,7 @@ class AssetFinder(object):
                 field_name,
                 sid,
             ]
-            assert periods, 'empty periods list for %r, %r' % (field_name, sid)
+            assert periods, f'empty periods list for {field_name!r}, {sid!r}'
         except KeyError:
             raise NoValueForSid(field=field_name, sid=sid)
 

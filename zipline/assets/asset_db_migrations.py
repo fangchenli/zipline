@@ -46,13 +46,13 @@ def alter_columns(op, name, *columns, **kwargs):
         # will just get recreated.
         for table in name, tmp_name:
             try:
-                op.drop_index('ix_%s_%s' % (table, column.name))
+                op.drop_index(f'ix_{table}_{column.name}')
             except sa.exc.OperationalError:
                 pass
 
     op.create_table(name, *columns)
     op.execute(
-        'insert into %s select %s from %s' % (
+        'insert into {} select {} from {}'.format(
             name,
             selection_string,
             tmp_name,

@@ -277,7 +277,7 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
 
     @classmethod
     def make_equity_info(cls):
-        frame = super(MinuteToDailyAggregationTestCase, cls).make_equity_info()
+        frame = super().make_equity_info()
         # Make equity 4 start a day behind the data start to exercise assets
         # which not alive for the session.
         frame.loc[[4], 'start_date'] = pd.Timestamp('2016-03-16', tz='UTC')
@@ -309,7 +309,7 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
             yield sid, frame
 
     def init_instance_fixtures(self):
-        super(MinuteToDailyAggregationTestCase, self).init_instance_fixtures()
+        super().init_instance_fixtures()
         # Set up a fresh data portal for each test, since order of calling
         # needs to be tested.
         self.equity_daily_aggregator = DailyHistoryAggregator(
@@ -385,9 +385,9 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
             repeat_results.append(value)
 
         assert_almost_equal(results, EXPECTED_AGGREGATION[asset][field],
-                            err_msg='sid={0} field={1}'.format(asset, field))
+                            err_msg=f'sid={asset} field={field}')
         assert_almost_equal(repeat_results, EXPECTED_AGGREGATION[asset][field],
-                            err_msg='sid={0} field={1}'.format(asset, field))
+                            err_msg=f'sid={asset} field={field}')
 
     @parameterized.expand([
         ('open_sid_1', 'open', 1),
@@ -430,7 +430,7 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
             self.assertIsInstance(value, Real)
             assert_almost_equal(value,
                                 EXPECTED_AGGREGATION[sid][field][i],
-                                err_msg='sid={0} field={1} dt={2}'.format(
+                                err_msg='sid={} field={} dt={}'.format(
                                     sid, field, minute))
 
             # Call a second time with the same dt, to prevent regression
@@ -442,7 +442,7 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
             self.assertIsInstance(value, Real)
             assert_almost_equal(value,
                                 EXPECTED_AGGREGATION[sid][field][i],
-                                err_msg='sid={0} field={1} dt={2}'.format(
+                                err_msg='sid={} field={} dt={}'.format(
                                     sid, field, minute))
 
     @parameterized.expand(OHLCV)
@@ -477,11 +477,11 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
         for asset in assets:
             assert_almost_equal(results[asset],
                                 EXPECTED_AGGREGATION[asset][field],
-                                err_msg='sid={0} field={1}'.format(
+                                err_msg='sid={} field={}'.format(
                                     asset, field))
             assert_almost_equal(repeat_results[asset],
                                 EXPECTED_AGGREGATION[asset][field],
-                                err_msg='sid={0} field={1}'.format(
+                                err_msg='sid={} field={}'.format(
                                     asset, field))
 
     @parameterized.expand(OHLCV)
@@ -503,7 +503,7 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
                 assert_almost_equal(
                     value,
                     EXPECTED_AGGREGATION[asset][field][i],
-                    err_msg='sid={0} field={1} dt={2}'.format(
+                    err_msg='sid={} field={} dt={}'.format(
                         asset, field, minute))
 
             # Call a second time with the same dt, to prevent regression
@@ -519,7 +519,7 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
                 assert_almost_equal(
                     value,
                     EXPECTED_AGGREGATION[asset][field][i],
-                    err_msg='sid={0} field={1} dt={2}'.format(
+                    err_msg='sid={} field={} dt={}'.format(
                         asset, field, minute))
 
 
@@ -544,12 +544,11 @@ class TestMinuteToSession(WithEquityMinuteBarData,
 
     @classmethod
     def make_equity_minute_bar_data(cls):
-        for sid, frame in EQUITY_CASES.items():
-            yield sid, frame
+        yield from EQUITY_CASES.items()
 
     @classmethod
     def init_class_fixtures(cls):
-        super(TestMinuteToSession, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.equity_frames = {
             sid: frame for sid, frame in cls.make_equity_minute_bar_data()}
 
@@ -560,7 +559,7 @@ class TestMinuteToSession(WithEquityMinuteBarData,
             result = minute_frame_to_session_frame(frame, self.nyse_calendar)
             assert_almost_equal(expected.values,
                                 result.values,
-                                err_msg='sid={0}'.format(sid))
+                                err_msg=f'sid={sid}')
 
 
 class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
@@ -595,7 +594,7 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
             yield sid, frame
 
     def init_instance_fixtures(self):
-        super(TestResampleSessionBars, self).init_instance_fixtures()
+        super().init_instance_fixtures()
         self.session_bar_reader = MinuteResampleSessionBarReader(
             self.trading_calendar,
             self.bcolz_future_minute_bar_reader
@@ -615,7 +614,7 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
                 assert_almost_equal(
                     EXPECTED_SESSIONS[sid][[field]],
                     result[i],
-                    err_msg="sid={0} field={1}".format(sid, field))
+                    err_msg=f"sid={sid} field={field}")
 
     def test_sessions(self):
         sessions = self.session_bar_reader.sessions
@@ -755,7 +754,7 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
     # 29 30
 
     def init_instance_fixtures(self):
-        super(TestReindexSessionBars, self).init_instance_fixtures()
+        super().init_instance_fixtures()
 
         self.reader = ReindexSessionBarReader(
             self.trading_calendar,

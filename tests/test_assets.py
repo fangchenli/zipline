@@ -448,7 +448,7 @@ class TestFuture(WithAssetFinder, ZiplineTestCase):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(TestFuture, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.future = cls.asset_finder.lookup_future_symbol('OMH15')
         cls.future2 = cls.asset_finder.lookup_future_symbol('CLG06')
 
@@ -517,7 +517,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         self._asset_writer.write(**kwargs)
 
     def init_instance_fixtures(self):
-        super(AssetFinderTestCase, self).init_instance_fixtures()
+        super().init_instance_fixtures()
 
         conn = self.enter_instance_context(empty_assets_db())
         self._asset_writer = AssetDBWriter(conn)
@@ -1541,14 +1541,14 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         except error_type as e:
             self.assertEqual(
                 str(e),
-                "No {singular} found for sid: 1.".format(singular=singular)
+                f"No {singular} found for sid: 1."
             )
         try:
             raise error_type(sids=[1, 2])
         except error_type as e:
             self.assertEqual(
                 str(e),
-                "No {plural} found for sids: [1, 2].".format(plural=plural)
+                f"No {plural} found for sids: [1, 2]."
             )
 
 
@@ -1557,7 +1557,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
         self._asset_writer.write(**kwargs)
 
     def init_instance_fixtures(self):
-        super(AssetFinderMultipleCountries, self).init_instance_fixtures()
+        super().init_instance_fixtures()
 
         conn = self.enter_instance_context(empty_assets_db())
         self._asset_writer = AssetDBWriter(conn)
@@ -2067,7 +2067,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
 class TestAssetDBVersioning(ZiplineTestCase):
 
     def init_instance_fixtures(self):
-        super(TestAssetDBVersioning, self).init_instance_fixtures()
+        super().init_instance_fixtures()
         self.engine = eng = self.enter_instance_context(empty_assets_db())
         self.metadata = sa.MetaData(eng, reflect=True)
 
@@ -2315,7 +2315,7 @@ class TestAssetFinderPreprocessors(WithTmpDir, ZiplineTestCase):
 
         with self.assertRaises(ValueError) as e:
             AssetFinder(nonexistent_path)
-        expected = "SQLite file {!r} doesn't exist.".format(nonexistent_path)
+        expected = f"SQLite file {nonexistent_path!r} doesn't exist."
         self.assertEqual(str(e.exception), expected)
 
         # sqlite3.connect will create an empty file if you connect somewhere
@@ -2400,7 +2400,7 @@ class TestExchangeInfo(ZiplineTestCase):
 
 class TestWrite(WithInstanceTmpDir, ZiplineTestCase):
     def init_instance_fixtures(self):
-        super(TestWrite, self).init_instance_fixtures()
+        super().init_instance_fixtures()
         self.assets_db_path = path = os.path.join(
             self.instance_tmpdir.path,
             'assets.db',

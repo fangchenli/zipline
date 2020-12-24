@@ -31,7 +31,7 @@ from zipline.gens.sim_engine import (
 log = Logger('Trade Simulation')
 
 
-class AlgorithmSimulator(object):
+class AlgorithmSimulator:
 
     EMISSION_TO_PERF_KEY_MAP = {
         'minute': 'minute_perf',
@@ -104,8 +104,7 @@ class AlgorithmSimulator(object):
 
         def every_bar(dt_to_use, current_data=self.current_data,
                       handle_data=algo.event_manager.handle_data):
-            for capital_change in calculate_minute_capital_changes(dt_to_use):
-                yield capital_change
+            yield from calculate_minute_capital_changes(dt_to_use)
 
             self.simulation_dt = dt_to_use
             # called every tick (minute or day).
@@ -145,10 +144,9 @@ class AlgorithmSimulator(object):
         def once_a_day(midnight_dt, current_data=self.current_data,
                        data_portal=self.data_portal):
             # process any capital changes that came overnight
-            for capital_change in algo.calculate_capital_changes(
+            yield from algo.calculate_capital_changes(
                     midnight_dt, emission_rate=emission_rate,
-                    is_interday=True):
-                yield capital_change
+                    is_interday=True)
 
             # set all the timestamps
             self.simulation_dt = midnight_dt
@@ -202,11 +200,9 @@ class AlgorithmSimulator(object):
 
             for dt, action in self.clock:
                 if action == BAR:
-                    for capital_change_packet in every_bar(dt):
-                        yield capital_change_packet
+                    yield from every_bar(dt)
                 elif action == SESSION_START:
-                    for capital_change_packet in once_a_day(dt):
-                        yield capital_change_packet
+                    yield from once_a_day(dt)
                 elif action == SESSION_END:
                     # End of the session.
                     positions = metrics_tracker.positions

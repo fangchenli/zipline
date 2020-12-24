@@ -1,4 +1,3 @@
-
 from abc import ABCMeta
 from itertools import chain
 
@@ -35,7 +34,7 @@ class FinancialModelMeta(ABCMeta):
             if allowed_asset_types:
                 dict_['allowed_asset_types'] = allowed_asset_types
 
-        return super(FinancialModelMeta, mcls).__new__(
+        return super().__new__(
             mcls, name, bases, dict_,
         )
 
