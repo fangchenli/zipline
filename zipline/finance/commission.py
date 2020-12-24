@@ -15,7 +15,6 @@
 from abc import abstractmethod
 from collections import defaultdict
 
-from six import with_metaclass
 from toolz import merge
 
 from zipline.assets import Equity, Future
@@ -86,16 +85,14 @@ class NoCommission(CommissionModel):
         return 0.0
 
 
-class EquityCommissionModel(
-                                           CommissionModel, metaclass=AllowedAssetMarker):
+class EquityCommissionModel(CommissionModel, metaclass=AllowedAssetMarker):
     """
     Base class for commission models which only support equities.
     """
     allowed_asset_types = (Equity,)
 
 
-class FutureCommissionModel(
-                                           CommissionModel, metaclass=AllowedAssetMarker):
+class FutureCommissionModel(CommissionModel, metaclass=AllowedAssetMarker):
     """
     Base class for commission models which only support futures.
     """

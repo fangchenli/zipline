@@ -21,7 +21,6 @@ from unittest.mock import patch
 from nose.tools import nottest
 from numpy.testing import assert_allclose, assert_array_equal
 import pandas as pd
-from six import with_metaclass
 from sqlalchemy import create_engine
 from testfixtures import TempDirectory
 from toolz import concat, curry
@@ -115,8 +114,7 @@ def check_algo_results(test,
     if expected_order_count is not None:
         # de-dup orders on id, because orders are put back into perf packets
         # whenever they a txn is filled
-        orders = {order['id'] for order in
-                      flatten_list(results["orders"])}
+        orders = {order['id'] for order in flatten_list(results["orders"])}
 
         test.assertEqual(expected_order_count, len(orders))
 
@@ -703,21 +701,13 @@ class FakeDataPortal(DataPortal):
         if trading_calendar is None:
             trading_calendar = get_calendar("NYSE")
 
-        super().__init__(asset_finder,
-                                             trading_calendar,
-                                             first_trading_day)
+        super().__init__(asset_finder, trading_calendar, first_trading_day)
 
     def get_spot_value(self, asset, field, dt, data_frequency):
-        if field == "volume":
-            return 100
-        else:
-            return 1.0
+        return 100 if field == "volume" else 1.0
 
     def get_scalar_asset_spot_value(self, asset, field, dt, data_frequency):
-        if field == "volume":
-            return 100
-        else:
-            return 1.0
+        return 100 if field == "volume" else 1.0
 
     def get_history_window(self, assets, end_dt, bar_count, frequency, field,
                            data_frequency, ffill=True):
@@ -750,8 +740,7 @@ class FetcherDataPortal(DataPortal):
     spot value.
     """
     def __init__(self, asset_finder, trading_calendar, first_trading_day=None):
-        super().__init__(asset_finder, trading_calendar,
-                                                first_trading_day)
+        super().__init__(asset_finder, trading_calendar, first_trading_day)
 
     def get_spot_value(self, asset, field, dt, data_frequency):
         # if this is a fetcher field, exercise the regular code path

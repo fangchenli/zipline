@@ -17,7 +17,6 @@ import math
 
 import numpy as np
 from pandas import isnull
-from six import with_metaclass
 from toolz import merge
 
 from zipline.assets import Equity, Future

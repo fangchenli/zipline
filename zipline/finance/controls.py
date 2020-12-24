@@ -171,10 +171,11 @@ class MaxOrderSize(TradingControl):
 
     def __init__(self, on_error, asset=None, max_shares=None,
                  max_notional=None):
-        super().__init__(on_error,
-                                           asset=asset,
-                                           max_shares=max_shares,
-                                           max_notional=max_notional)
+        super().__init__(
+            on_error, asset=asset,
+            max_shares=max_shares,
+            max_notional=max_notional
+            )
         self.asset = asset
         self.max_shares = max_shares
         self.max_notional = max_notional
@@ -229,10 +230,12 @@ class MaxPositionSize(TradingControl):
 
     def __init__(self, on_error, asset=None, max_shares=None,
                  max_notional=None):
-        super().__init__(on_error,
-                                              asset=asset,
-                                              max_shares=max_shares,
-                                              max_notional=max_notional)
+        super().__init__(
+            on_error,
+            asset=asset,
+            max_shares=max_shares,
+            max_notional=max_notional
+            )
         self.asset = asset
         self.max_shares = max_shares
         self.max_notional = max_notional
@@ -453,8 +456,7 @@ class MinLeverage(AccountControl):
     )
     @expect_bounded(__funcname='MinLeverage', min_leverage=(0, None))
     def __init__(self, min_leverage, deadline):
-        super().__init__(min_leverage=min_leverage,
-                                          deadline=deadline)
+        super().__init__(min_leverage=min_leverage, deadline=deadline)
         self.min_leverage = min_leverage
         self.deadline = deadline
 
