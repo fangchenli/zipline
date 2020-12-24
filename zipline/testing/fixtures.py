@@ -90,7 +90,7 @@ class DebugMROMeta(FinalMeta):
     """
     def __new__(mcls, name, bases, clsdict):
         try:
-            return super(DebugMROMeta, mcls).__new__(
+            return super().__new__(
                 mcls, name, bases, clsdict
             )
         except TypeError as e:
@@ -101,7 +101,7 @@ class DebugMROMeta(FinalMeta):
                 raise
 
 
-class ZiplineTestCase(with_metaclass(DebugMROMeta, TestCase)):
+class ZiplineTestCase(TestCase, metaclass=DebugMROMeta):
     """
     Shared extensions to core unittest.TestCase.
 
@@ -288,7 +288,7 @@ def alias(attr_name):
     return classproperty(flip(getattr, attr_name))
 
 
-class WithDefaultDateBounds(with_metaclass(DebugMROMeta, object)):
+class WithDefaultDateBounds(metaclass=DebugMROMeta):
     """
     ZiplineTestCase mixin which makes it possible to synchronize date bounds
     across fixtures.
@@ -307,7 +307,7 @@ class WithDefaultDateBounds(with_metaclass(DebugMROMeta, object)):
     END_DATE = pd.Timestamp('2006-12-29', tz='utc')
 
 
-class WithLogger(object):
+class WithLogger:
     """
     ZiplineTestCase mixin providing cls.log_handler as an instance-level
     fixture.
@@ -325,7 +325,7 @@ class WithLogger(object):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithLogger, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.log = Logger()
         cls.log_handler = cls.enter_class_context(
             cls.make_log_handler().applicationbound(),
@@ -463,7 +463,7 @@ class WithAssetFinder(WithDefaultDateBounds):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithAssetFinder, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.asset_finder = cls.make_asset_finder()
 
     @classlazyval
@@ -493,7 +493,7 @@ class WithAssetFinder(WithDefaultDateBounds):
 
 
 # TODO_SS: The API here doesn't make sense in a multi-country test scenario.
-class WithTradingCalendars(object):
+class WithTradingCalendars:
     """
     ZiplineTestCase mixin providing cls.trading_calendar,
     cls.all_trading_calendars, cls.trading_calendar_for_asset_type as a
@@ -524,7 +524,7 @@ class WithTradingCalendars(object):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithTradingCalendars, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         cls.trading_calendars = {}
         # Silence `pandas.errors.PerformanceWarning: Non-vectorized DateOffset
@@ -539,7 +539,7 @@ class WithTradingCalendars(object):
                 # Set name to allow aliasing.
                 calendar = get_calendar(cal_str)
                 setattr(cls,
-                        '{0}_calendar'.format(cal_str.lower()), calendar)
+                        f'{cal_str.lower()}_calendar', calendar)
                 cls.trading_calendars[cal_str] = calendar
 
             type_to_cal = cls.TRADING_CALENDAR_FOR_ASSET_TYPE.items()
@@ -656,7 +656,7 @@ class WithSimParams(WithDefaultDateBounds):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithSimParams, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.sim_params = cls.make_simparams()
 
 
@@ -694,7 +694,7 @@ class WithTradingSessions(WithDefaultDateBounds, WithTradingCalendars):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithTradingSessions, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         cls.trading_sessions = {}
 
@@ -704,11 +704,11 @@ class WithTradingSessions(WithDefaultDateBounds, WithTradingCalendars):
                 cls.DATA_MIN_DAY, cls.DATA_MAX_DAY)
             # Set name for aliasing.
             setattr(cls,
-                    '{0}_sessions'.format(cal_str.lower()), sessions)
+                    f'{cal_str.lower()}_sessions', sessions)
             cls.trading_sessions[cal_str] = sessions
 
 
-class WithTmpDir(object):
+class WithTmpDir:
     """
     ZiplineTestCase mixing providing cls.tmpdir as a class-level fixture.
 
@@ -725,13 +725,13 @@ class WithTmpDir(object):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithTmpDir, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.tmpdir = cls.enter_class_context(
             tmp_dir(path=cls.TMP_DIR_PATH),
         )
 
 
-class WithInstanceTmpDir(object):
+class WithInstanceTmpDir:
     """
     ZiplineTestCase mixing providing self.tmpdir as an instance-level fixture.
 
@@ -748,7 +748,7 @@ class WithInstanceTmpDir(object):
     INSTANCE_TMP_DIR_PATH = None
 
     def init_instance_fixtures(self):
-        super(WithInstanceTmpDir, self).init_instance_fixtures()
+        super().init_instance_fixtures()
         self.instance_tmpdir = self.enter_instance_context(
             tmp_dir(path=self.INSTANCE_TMP_DIR_PATH),
         )
@@ -863,7 +863,7 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithEquityDailyBarData, cls).init_class_fixtures()
+        super().init_class_fixtures()
         trading_calendar = cls.trading_calendars[Equity]
 
         if trading_calendar.is_session(cls.EQUITY_DAILY_BAR_START_DATE):
@@ -957,7 +957,7 @@ class WithFutureDailyBarData(WithAssetFinder, WithTradingCalendars):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithFutureDailyBarData, cls).init_class_fixtures()
+        super().init_class_fixtures()
         trading_calendar = cls.trading_calendars[Future]
         if cls.FUTURE_DAILY_BAR_USE_FULL_CALENDAR:
             days = trading_calendar.all_sessions
@@ -1053,7 +1053,7 @@ class WithBcolzEquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithBcolzEquityDailyBarReader, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         cls.bcolz_daily_bar_path = p = cls.make_bcolz_daily_bar_rootdir_path()
 
@@ -1146,7 +1146,7 @@ class WithBcolzFutureDailyBarReader(WithFutureDailyBarData, WithTmpDir):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithBcolzFutureDailyBarReader, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         p = cls.make_bcolz_future_daily_bar_rootdir_path()
         cls.future_bcolz_daily_bar_path = p
@@ -1291,10 +1291,7 @@ class WithHDF5EquityMultiCountryDailyBarReader(WithWriteHDF5DailyBars):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(
-            WithHDF5EquityMultiCountryDailyBarReader,
-            cls,
-        ).init_class_fixtures()
+        super().init_class_fixtures()
 
         cls.hdf5_daily_bar_path = path = cls.make_hdf5_daily_bar_path()
 
@@ -1359,7 +1356,7 @@ class WithEquityMinuteBarData(WithAssetFinder, WithTradingCalendars):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithEquityMinuteBarData, cls).init_class_fixtures()
+        super().init_class_fixtures()
         trading_calendar = cls.trading_calendars[Equity]
         cls.equity_minute_bar_days = _trading_days_for_minute_bars(
             trading_calendar,
@@ -1419,7 +1416,7 @@ class WithFutureMinuteBarData(WithAssetFinder, WithTradingCalendars):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithFutureMinuteBarData, cls).init_class_fixtures()
+        super().init_class_fixtures()
         trading_calendar = get_calendar('us_futures')
         cls.future_minute_bar_days = _trading_days_for_minute_bars(
             trading_calendar,
@@ -1470,7 +1467,7 @@ class WithBcolzEquityMinuteBarReader(WithEquityMinuteBarData, WithTmpDir):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithBcolzEquityMinuteBarReader, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.bcolz_equity_minute_bar_path = p = \
             cls.make_bcolz_equity_minute_bar_rootdir_path()
         days = cls.equity_minute_bar_days
@@ -1530,7 +1527,7 @@ class WithBcolzFutureMinuteBarReader(WithFutureMinuteBarData, WithTmpDir):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithBcolzFutureMinuteBarReader, cls).init_class_fixtures()
+        super().init_class_fixtures()
         trading_calendar = get_calendar('us_futures')
         cls.bcolz_future_minute_bar_path = p = \
             cls.make_bcolz_future_minute_bar_rootdir_path()
@@ -1687,7 +1684,7 @@ class WithAdjustmentReader(WithBcolzEquityDailyBarReader):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithAdjustmentReader, cls).init_class_fixtures()
+        super().init_class_fixtures()
         conn = sqlite3.connect(cls.make_adjustment_db_conn_str())
         # Silence numpy DeprecationWarnings which cause nosetest to fail
         with warnings.catch_warnings():
@@ -1717,7 +1714,7 @@ class WithUSEquityPricingPipelineEngine(WithAdjustmentReader,
     def init_class_fixtures(cls):
         cls.data_root_dir = cls.enter_class_context(tmp_dir())
         cls.findata_dir = cls.data_root_dir.makedir('findata')
-        super(WithUSEquityPricingPipelineEngine, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         loader = USEquityPricingLoader.without_fx(
             cls.bcolz_equity_daily_bar_reader,
@@ -1779,7 +1776,7 @@ class WithSeededRandomPipelineEngine(WithTradingSessions, WithAssetFinder):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithSeededRandomPipelineEngine, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls._sids = cls.asset_finder.sids
         cls.seeded_random_loader = loader = make_seeded_random_loader(
             cls.SEEDED_RANDOM_PIPELINE_SEED,
@@ -1942,11 +1939,11 @@ class WithDataPortal(WithAdjustmentReader,
         )
 
     def init_instance_fixtures(self):
-        super(WithDataPortal, self).init_instance_fixtures()
+        super().init_instance_fixtures()
         self.data_portal = self.make_data_portal()
 
 
-class WithResponses(object):
+class WithResponses:
     """
     ZiplineTestCase mixin that provides self.responses as an instance
     fixture.
@@ -1956,7 +1953,7 @@ class WithResponses(object):
     with the `self.responses.add` method.
     """
     def init_instance_fixtures(self):
-        super(WithResponses, self).init_instance_fixtures()
+        super().init_instance_fixtures()
         self.responses = self.enter_instance_context(
             responses.RequestsMock(),
         )
@@ -2060,27 +2057,27 @@ class WithMakeAlgo(WithBenchmarkReturns,
         return self.make_algo(**overrides).run()
 
 
-class WithWerror(object):
+class WithWerror:
     @classmethod
     def init_class_fixtures(cls):
         cls.enter_class_context(warnings.catch_warnings())
         warnings.simplefilter('error')
 
-        super(WithWerror, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
 
 register_calendar_alias("TEST", "NYSE")
 
 
-class WithSeededRandomState(object):
+class WithSeededRandomState:
     RANDOM_SEED = np.array(list('lmao'), dtype='S1').view('i4').item()
 
     def init_instance_fixtures(self):
-        super(WithSeededRandomState, self).init_instance_fixtures()
+        super().init_instance_fixtures()
         self.rand = np.random.RandomState(self.RANDOM_SEED)
 
 
-class WithFXRates(object):
+class WithFXRates:
     """Fixture providing a factory for in-memory exchange rate data.
     """
     # Start date for exchange rates data.
@@ -2109,7 +2106,7 @@ class WithFXRates(object):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithFXRates, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         cal = get_calendar(cls.FX_RATES_CALENDAR)
         cls.fx_rates_sessions = cal.sessions_in_range(
