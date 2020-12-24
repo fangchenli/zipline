@@ -25,7 +25,7 @@ from zipline.utils.exploding_object import NamedExplodingObject
 from zipline.finance._finance_ext import minute_annual_volatility
 
 
-class SimpleLedgerField(object):
+class SimpleLedgerField:
     """Emit the current value of a ledger field every bar or every session.
 
     Parameters
@@ -64,7 +64,7 @@ class SimpleLedgerField(object):
         )
 
 
-class DailyLedgerField(object):
+class DailyLedgerField:
     """Like :class:`~zipline.finance.metrics.metric.SimpleLedgerField` but
     also puts the current value in the ``cumulative_perf`` section.
 
@@ -106,7 +106,7 @@ class DailyLedgerField(object):
         )
 
 
-class StartOfPeriodLedgerField(object):
+class StartOfPeriodLedgerField:
     """Keep track of the value of a ledger field at the start of the period.
 
     Parameters
@@ -157,7 +157,7 @@ class StartOfPeriodLedgerField(object):
         self._end_of_period('daily_perf', packet, ledger)
 
 
-class Returns(object):
+class Returns:
     """Tracks the daily and cumulative returns of the algorithm.
     """
     def _end_of_period(field,
@@ -176,7 +176,7 @@ class Returns(object):
     end_of_session = partial(_end_of_period, 'daily_perf')
 
 
-class BenchmarkReturnsAndVolatility(object):
+class BenchmarkReturnsAndVolatility:
     """Tracks daily and cumulative returns for the benchmark as well as the
     volatility of the benchmark returns.
     """
@@ -256,7 +256,7 @@ class BenchmarkReturnsAndVolatility(object):
         packet['cumulative_risk_metrics']['benchmark_volatility'] = v
 
 
-class PNL(object):
+class PNL:
     """Tracks daily and cumulative PNL.
     """
     def start_of_simulation(self,
@@ -292,7 +292,7 @@ class PNL(object):
         self._end_of_period('daily_perf', packet, ledger)
 
 
-class CashFlow(object):
+class CashFlow:
     """Tracks daily and cumulative cash flow.
 
     Notes
@@ -333,7 +333,7 @@ class CashFlow(object):
         self._previous_cash_flow = cash_flow
 
 
-class Orders(object):
+class Orders:
     """Tracks daily orders.
     """
     def end_of_bar(self,
@@ -353,7 +353,7 @@ class Orders(object):
         packet['daily_perf']['orders'] = ledger.orders()
 
 
-class Transactions(object):
+class Transactions:
     """Tracks daily transactions.
     """
     def end_of_bar(self,
@@ -373,7 +373,7 @@ class Transactions(object):
         packet['daily_perf']['transactions'] = ledger.transactions()
 
 
-class Positions(object):
+class Positions:
     """Tracks daily positions.
     """
     def end_of_bar(self,
@@ -393,7 +393,7 @@ class Positions(object):
         packet['daily_perf']['positions'] = ledger.positions()
 
 
-class ReturnsStatistic(object):
+class ReturnsStatistic:
     """A metric that reports an end of simulation scalar or time series
     computed from the algorithm returns.
 
@@ -426,7 +426,7 @@ class ReturnsStatistic(object):
     end_of_session = end_of_bar
 
 
-class AlphaBeta(object):
+class AlphaBeta:
     """End of simulation alpha and beta to the benchmark.
     """
     def start_of_simulation(self,
@@ -463,7 +463,7 @@ class AlphaBeta(object):
     end_of_session = end_of_bar
 
 
-class MaxLeverage(object):
+class MaxLeverage:
     """Tracks the maximum account leverage.
     """
     def start_of_simulation(self, *args):
@@ -481,7 +481,7 @@ class MaxLeverage(object):
     end_of_session = end_of_bar
 
 
-class NumTradingDays(object):
+class NumTradingDays:
     """Report the number of trading days.
     """
     def start_of_simulation(self, *args):
@@ -503,7 +503,7 @@ class NumTradingDays(object):
     end_of_session = end_of_bar
 
 
-class _ConstantCumulativeRiskMetric(object):
+class _ConstantCumulativeRiskMetric:
     """A metric which does not change, ever.
 
     Notes
@@ -522,7 +522,7 @@ class _ConstantCumulativeRiskMetric(object):
         packet['cumulative_risk_metrics'][self._field] = self._value
 
 
-class PeriodLabel(object):
+class PeriodLabel:
     """Backwards compat, please kill me.
     """
     def start_of_session(self, ledger, session, data_portal):
@@ -534,7 +534,7 @@ class PeriodLabel(object):
     end_of_session = end_of_bar
 
 
-class _ClassicRiskMetrics(object):
+class _ClassicRiskMetrics:
     """Produces original risk packet.
     """
 

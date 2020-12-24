@@ -112,7 +112,7 @@ class EyeLoader(PrecomputedLoader):
     """
     def __init__(self, columns, dates, sids):
         shape = (len(dates), len(sids))
-        super(EyeLoader, self).__init__(
+        super().__init__(
             {column: eye(shape, dtype=column.dtype) for column in columns},
             dates,
             sids,
@@ -137,7 +137,7 @@ class SeededRandomLoader(PrecomputedLoader):
 
     def __init__(self, seed, columns, dates, sids):
         self._seed = seed
-        super(SeededRandomLoader, self).__init__(
+        super().__init__(
             {c: self.values(c.dtype, dates, sids) for c in columns},
             dates,
             sids,
@@ -264,7 +264,7 @@ def make_bar_data(asset_info, calendar, holes=None):
         PSEUDO_EPOCH.value <
         calendar.normalize().min().value <=
         asset_info['start_date'].min().value
-    ), "calendar.min(): %s\nasset_info['start_date'].min(): %s" % (
+    ), "calendar.min(): {}\nasset_info['start_date'].min(): {}".format(
         calendar.min(),
         asset_info['start_date'].min(),
     )
@@ -414,4 +414,4 @@ class NullAdjustmentReader(SQLiteAdjustmentReader):
             'pay_date': array([], dtype='datetime64[ns]'),
         })
         writer.write(splits=empty, mergers=empty, dividends=empty_dividends)
-        super(NullAdjustmentReader, self).__init__(conn)
+        super().__init__(conn)

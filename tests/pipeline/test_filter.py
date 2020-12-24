@@ -120,7 +120,7 @@ class Mask(Filter):
 class FilterTestCase(BaseUSEquityPipelineTestCase):
 
     def init_instance_fixtures(self):
-        super(FilterTestCase, self).init_instance_fixtures()
+        super().init_instance_fixtures()
         self.f = SomeFactor()
         self.g = SomeOtherFactor()
         self.c = SomeClassifier()
@@ -1129,7 +1129,7 @@ class IfElseTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(IfElseTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.assets = cls.asset_finder.retrieve_all(
             cls.asset_finder.equities_sids,
         )

@@ -9,16 +9,16 @@ from zipline.testing.predicates import (
 from zipline.utils.metautils import compose_types, with_metaclasses
 
 
-class C(object):
+class C:
     @staticmethod
     def f():
         return 'C.f'
 
     def delegate(self):
-        return 'C.delegate', super(C, self).delegate()
+        return 'C.delegate', super().delegate()
 
 
-class D(object):
+class D:
     @staticmethod
     def f():
         return 'D.f'
@@ -58,13 +58,13 @@ class ComposeTypesTestCase(ZiplineTestCase):
 class M(type):
     def __new__(mcls, name, bases, dict_):
         dict_['M'] = True
-        return super(M, mcls).__new__(mcls, name, bases, dict_)
+        return super().__new__(mcls, name, bases, dict_)
 
 
 class N(type):
     def __new__(mcls, name, bases, dict_):
         dict_['N'] = True
-        return super(N, mcls).__new__(mcls, name, bases, dict_)
+        return super().__new__(mcls, name, bases, dict_)
 
 
 class WithMetaclassesTestCase(ZiplineTestCase):

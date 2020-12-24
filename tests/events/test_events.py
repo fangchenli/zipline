@@ -214,7 +214,7 @@ def minutes_for_days(cal, ordered_days=False):
             for cnt in range(500)]
 
 
-class RuleTestCase(object):
+class RuleTestCase:
     CALENDAR_STRING = "foo"
 
     @classmethod
@@ -265,7 +265,7 @@ class RuleTestCase(object):
 class StatelessRulesTests(RuleTestCase):
     @classmethod
     def setUpClass(cls):
-        super(StatelessRulesTests, cls).setUpClass()
+        super().setUpClass()
 
         cls.class_ = StatelessRule
         cls.cal = get_calendar(cls.CALENDAR_STRING)
@@ -474,7 +474,7 @@ class StatefulRulesTests(RuleTestCase):
 
     @classmethod
     def setUpClass(cls):
-        super(StatefulRulesTests, cls).setUpClass()
+        super().setUpClass()
 
         cls.class_ = StatefulRule
         cls.cal = get_calendar(cls.CALENDAR_STRING)

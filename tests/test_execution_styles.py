@@ -148,7 +148,7 @@ class ExecutionStyleTestCase(WithConstantFutureMinuteBarData,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(ExecutionStyleTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
     @parameterized.expand(INVALID_PRICES)
     def test_invalid_prices(self, price):

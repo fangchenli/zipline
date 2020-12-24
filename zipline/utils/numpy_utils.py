@@ -406,7 +406,7 @@ def busday_count_mask_NaT(begindates, enddates, out=None):
     return out
 
 
-class WarningContext(object):
+class WarningContext:
     """
     Re-usable contextmanager for contextually managing warnings.
     """

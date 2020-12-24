@@ -86,7 +86,7 @@ class _UnionRestrictions(Restrictions):
         elif len(sub_restrictions) == 1:
             return sub_restrictions[0]
 
-        new_instance = super(_UnionRestrictions, cls).__new__(cls)
+        new_instance = super().__new__(cls)
         new_instance.sub_restrictions = sub_restrictions
         return new_instance
 

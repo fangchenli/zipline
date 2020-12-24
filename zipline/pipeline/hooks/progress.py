@@ -111,7 +111,7 @@ class ProgressHooks(implements(PipelineHooks)):
             self._publish()
 
 
-class ProgressModel(object):
+class ProgressModel:
     """
     Model object for tracking progress of a Pipeline execution.
 
@@ -287,7 +287,7 @@ except ImportError:
 
 # XXX: This class is currently untested, because we don't require ipywidgets as
 #      a test dependency. Be careful if you make changes to this.
-class IPythonWidgetProgressPublisher(object):
+class IPythonWidgetProgressPublisher:
     """A progress publisher that publishes to an IPython/Jupyter widget.
     """
 
@@ -320,7 +320,7 @@ class IPythonWidgetProgressPublisher(object):
             max=100.0,
             bar_style='info',
             # Leave enough space for the percent indicator.
-            layout={'width': 'calc(100% - {})'.format(indicator_width)},
+            layout={'width': f'calc(100% - {indicator_width})'},
         )
         bar_and_percent = ipywidgets.HBox([self._percent_indicator, self._bar])
 
@@ -390,7 +390,7 @@ class IPythonWidgetProgressPublisher(object):
             self._stop_displaying()
         else:
             self._layout.close()
-            raise ValueError('Unknown display state: {!r}'.format(model.state))
+            raise ValueError(f'Unknown display state: {model.state!r}')
 
     def _ensure_displayed(self):
         if not self._displayed:
@@ -406,12 +406,12 @@ class IPythonWidgetProgressPublisher(object):
              '<li><pre>{}</pre></li>'.format(repr_htmlsafe(t))
              for t in terms
         ])
-        return '<ul>{}</ul>'.format(list_elements)
+        return f'<ul>{list_elements}</ul>'
 
     def _set_progress(self, percent_complete):
         self._bar.value = percent_complete
         self._percent_indicator.value = (
-            "<b>{:.2f}% Complete</b>".format(percent_complete)
+            f"<b>{percent_complete:.2f}% Complete</b>"
         )
 
     @staticmethod
@@ -451,10 +451,10 @@ class IPythonWidgetProgressPublisher(object):
                 seconds=seconds,
             )
         else:
-            return "{seconds:.2f} Seconds".format(seconds=seconds)
+            return f"{seconds:.2f} Seconds"
 
 
-class TestingProgressPublisher(object):
+class TestingProgressPublisher:
     """A progress publisher that records a trace of model states for testing.
     """
     TraceState = namedtuple('TraceState', [

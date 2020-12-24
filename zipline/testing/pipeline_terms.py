@@ -7,7 +7,7 @@ from zipline.utils.idbox import IDBox
 from .predicates import assert_equal
 
 
-class CheckWindowsMixin(object):
+class CheckWindowsMixin:
     params = ('expected_windows',)
 
     def compute(self, today, assets, out, input_, expected_windows):
@@ -57,7 +57,7 @@ class CheckWindowsClassifier(CheckWindowsMixin, CustomClassifier):
         else:
             dtype = input_.dtype
 
-        return super(CheckWindowsClassifier, cls).__new__(
+        return super().__new__(
             cls,
             inputs=[input_],
             dtype=dtype,
@@ -87,7 +87,7 @@ class CheckWindowsFactor(CheckWindowsMixin, CustomFactor):
     not in ``expected_windows`` are not checked.
     """
     def __new__(cls, input_, window_length, expected_windows):
-        return super(CheckWindowsFactor, cls).__new__(
+        return super().__new__(
             cls,
             inputs=[input_],
             dtype=input_.dtype,

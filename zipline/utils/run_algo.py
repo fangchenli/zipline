@@ -51,7 +51,7 @@ class _RunAlgoError(click.ClickException, ValueError):
         if cmdline_msg is None:
             cmdline_msg = pyfunc_msg
 
-        super(_RunAlgoError, self).__init__(cmdline_msg)
+        super().__init__(cmdline_msg)
         self.pyfunc_msg = pyfunc_msg
 
     def __str__(self):
@@ -96,7 +96,7 @@ def _run(handle_data,
     # date parameter validation
     if trading_calendar.session_distance(start, end) < 1:
         raise _RunAlgoError(
-            'There are no trading days between %s and %s' % (
+            'There are no trading days between {} and {}'.format(
                 start.date(),
                 end.date(),
             ),
@@ -129,7 +129,7 @@ def _run(handle_data,
                 namespace[name] = eval(value, namespace)
             except Exception as e:
                 raise ValueError(
-                    'failed to execute definition for name %r: %s' % (name, e),
+                    f'failed to execute definition for name {name!r}: {e}',
                 )
     elif defines:
         raise _RunAlgoError(
@@ -285,7 +285,7 @@ def load_extensions(default, extensions, strict, environ, reload=False):
                 raise
             # without `strict` we should just log the failure
             warnings.warn(
-                'Failed to load extension: %r\n%s' % (ext, e),
+                f'Failed to load extension: {ext!r}\n{e}',
                 stacklevel=2
             )
         else:
@@ -409,7 +409,7 @@ def run_algorithm(start,
     )
 
 
-class BenchmarkSpec(object):
+class BenchmarkSpec:
     """
     Helper for different ways we can get benchmark data for the Zipline CLI and
     zipline.utils.run_algo.run_algorithm.

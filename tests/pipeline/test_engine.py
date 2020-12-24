@@ -137,7 +137,7 @@ class ColumnArgs(tuple):
     since we want to assert that they are ordered by DataSet.
     """
     def __new__(cls, *cols):
-        return super(ColumnArgs, cls).__new__(cls, cols)
+        return super().__new__(cls, cols)
 
     @classmethod
     def sorted_by_ds(cls, *cols):
@@ -155,14 +155,14 @@ class ColumnArgs(tuple):
 
 class RecordingPrecomputedLoader(PrecomputedLoader):
     def __init__(self, *args, **kwargs):
-        super(RecordingPrecomputedLoader, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.load_calls = []
 
     def load_adjusted_array(self, domain, columns, dates, sids, mask):
         self.load_calls.append(ColumnArgs(*columns))
 
-        return super(RecordingPrecomputedLoader, self).load_adjusted_array(
+        return super().load_adjusted_array(
             domain, columns, dates, sids, mask,
         )
 
@@ -181,7 +181,7 @@ class WithConstantInputs(zf.WithAssetFinder):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithConstantInputs, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.domain = create_simple_domain(
             start=cls.START_DATE,
             end=cls.END_DATE,
@@ -807,7 +807,7 @@ class FrameInputTestCase(zf.WithAssetFinder,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(FrameInputTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.dates = date_range(
             cls.start,
             cls.end,
@@ -940,7 +940,7 @@ class SyntheticBcolzTestCase(zf.WithAdjustmentReader,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(SyntheticBcolzTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.all_asset_ids = cls.asset_finder.sids
         cls.last_asset_end = cls.equity_info['end_date'].max()
         cls.pipeline_loader = EquityPricingLoader.without_fx(
@@ -1074,7 +1074,7 @@ class ParameterizedFactorTestCase(zf.WithAssetFinder,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(ParameterizedFactorTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
         day = cls.trading_calendar.day
 
         cls.dates = dates = date_range(

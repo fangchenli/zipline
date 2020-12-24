@@ -1,4 +1,3 @@
-
 from zipline.utils.sentinel import sentinel
 
 

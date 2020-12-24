@@ -52,7 +52,7 @@ class BundleCoreTestCase(WithInstanceTmpDir,
     END_DATE = pd.Timestamp('2014-01-10', tz='utc')
 
     def init_instance_fixtures(self):
-        super(BundleCoreTestCase, self).init_instance_fixtures()
+        super().init_instance_fixtures()
         (self.bundles,
          self.register,
          self.unregister,

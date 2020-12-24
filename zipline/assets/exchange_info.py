@@ -1,7 +1,7 @@
 from zipline.utils.calendars import get_calendar
 
 
-class ExchangeInfo(object):
+class ExchangeInfo:
     """An exchange where assets are traded.
 
     Parameters
@@ -38,7 +38,7 @@ class ExchangeInfo(object):
         self.country_code = country_code.upper()
 
     def __repr__(self):
-        return '%s(%r, %r, %r)' % (
+        return '{}({!r}, {!r}, {!r})'.format(
             type(self).__name__,
             self.name,
             self.canonical_name,

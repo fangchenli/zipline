@@ -3,7 +3,7 @@ Tests for zipline.pipeline.Pipeline
 """
 from unittest import TestCase
 
-from mock import patch
+from unittest.mock import patch
 
 from zipline.pipeline import Factor, Filter, Pipeline
 from zipline.pipeline.data import Column, DataSet, USEquityPricing

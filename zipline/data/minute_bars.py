@@ -109,7 +109,7 @@ def _sid_subdir_path(sid):
         padded_sid[0:2],
         # subdir 2 XX/00
         padded_sid[2:4],
-        "{0}.bcolz".format(str(padded_sid))
+        "{}.bcolz".format(str(padded_sid))
     )
 
 
@@ -180,7 +180,7 @@ def convert_cols(cols, scale_factor, sid, invalid_data_behavior):
     return opens, highs, lows, closes, volumes
 
 
-class BcolzMinuteBarMetadata(object):
+class BcolzMinuteBarMetadata:
     """
     Parameters
     ----------
@@ -349,7 +349,7 @@ class BcolzMinuteBarMetadata(object):
             json.dump(metadata, fp)
 
 
-class BcolzMinuteBarWriter(object):
+class BcolzMinuteBarWriter:
     """
     Class capable of writing minute OHLCV data to disk into bcolz format.
 
@@ -543,7 +543,7 @@ class BcolzMinuteBarWriter(object):
             The midnight of the last date written in to the output for the
             given sid.
         """
-        sizes_path = "{0}/close/meta/sizes".format(self.sidpath(sid))
+        sizes_path = "{}/close/meta/sizes".format(self.sidpath(sid))
         if not os.path.exists(sizes_path):
             return pd.NaT
         with open(sizes_path, mode='r') as f:
@@ -655,7 +655,7 @@ class BcolzMinuteBarWriter(object):
         self._zerofill(table, len(days_to_zerofill))
 
         new_last_date = self.last_date_in_output_for_sid(sid)
-        assert new_last_date == date, "new_last_date={0} != date={1}".format(
+        assert new_last_date == date, "new_last_date={} != date={}".format(
             new_last_date, date)
 
     def set_sid_attrs(self, sid, **kwargs):
@@ -753,9 +753,9 @@ class BcolzMinuteBarWriter(object):
         """
         if not all(len(dts) == len(cols[name]) for name in self.COL_NAMES):
             raise BcolzMinuteWriterColumnMismatch(
-                "Length of dts={0} should match cols: {1}".format(
+                "Length of dts={} should match cols: {}".format(
                     len(dts),
-                    " ".join("{0}={1}".format(name, len(cols[name]))
+                    " ".join("{}={}".format(name, len(cols[name]))
                              for name in self.COL_NAMES)))
         self._write_cols(sid, dts, cols, invalid_data_behavior)
 
@@ -865,7 +865,7 @@ class BcolzMinuteBarWriter(object):
 
             try:
                 table = bcolz.open(rootdir=sid_path)
-            except IOError:
+            except OSError:
                 continue
             if table.len <= truncate_slice_end:
                 logger.info("{0} not past truncate date={1}.", file_name, date)
@@ -1077,8 +1077,8 @@ class BcolzMinuteBarReader(MinuteBarReader):
                     rootdir=self._get_carray_path(sid, field),
                     mode='r',
                 )
-            except IOError:
-                raise NoDataForSid('No minute data for sid {}.'.format(sid))
+            except OSError:
+                raise NoDataForSid(f'No minute data for sid {sid}.')
 
         return carray
 
@@ -1316,7 +1316,7 @@ class MinuteBarUpdateReader(ABC):
         raise NotImplementedError()
 
 
-class H5MinuteBarUpdateWriter(object):
+class H5MinuteBarUpdateWriter:
     """
     Writer for files containing minute bar updates for consumption by a writer
     for a ``MinuteBarReader`` format.

@@ -117,7 +117,7 @@ class BadBinaryOperator(TypeError):
         The right hand side of the operation.
     """
     def __init__(self, op, left, right):
-        super(BadBinaryOperator, self).__init__(
+        super().__init__(
             "Can't compute {left} {op} {right}".format(
                 op=op,
                 left=type(left).__name__,
@@ -193,7 +193,7 @@ class NumericalExpression(ComputableTerm):
             (dtype == bool_dtype) or all(t.window_safe for t in binds)
         )
 
-        return super(NumericalExpression, cls).__new__(
+        return super().__new__(
             cls,
             inputs=binds,
             expr=expr,
@@ -203,12 +203,12 @@ class NumericalExpression(ComputableTerm):
 
     def _init(self, expr, *args, **kwargs):
         self._expr = expr
-        return super(NumericalExpression, self)._init(*args, **kwargs)
+        return super()._init(*args, **kwargs)
 
     @classmethod
     def _static_identity(cls, expr, *args, **kwargs):
         return (
-            super(NumericalExpression, cls)._static_identity(*args, **kwargs),
+            super()._static_identity(*args, **kwargs),
             expr,
         )
 
@@ -231,11 +231,11 @@ class NumericalExpression(ComputableTerm):
         expected_indices = list(range(len(self.inputs)))
         if expr_indices != expected_indices:
             raise ValueError(
-                "Expected %s for variable indices, but got %s" % (
+                "Expected {} for variable indices, but got {}".format(
                     expected_indices, expr_indices,
                 )
             )
-        super(NumericalExpression, self)._validate()
+        super()._validate()
 
     def _compute(self, arrays, dates, assets, mask):
         """

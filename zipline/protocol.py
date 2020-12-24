@@ -21,7 +21,7 @@ from .assets import Asset
 from ._protocol import BarData, InnerPosition  # noqa
 
 
-class MutableView(object):
+class MutableView:
     """A mutable view over an "immutable" object.
 
     Parameters
@@ -43,7 +43,7 @@ class MutableView(object):
         vars(self._mutable_view_ob)[attr] = value
 
     def __repr__(self):
-        return '%s(%r)' % (type(self).__name__, self._mutable_view_ob)
+        return '{}({!r})'.format(type(self).__name__, self._mutable_view_ob)
 
 
 # Datasource type should completely determine the other fields of a
@@ -84,7 +84,7 @@ DIVIDEND_PAYMENT_FIELDS = [
 ]
 
 
-class Event(object):
+class Event:
 
     def __init__(self, initial_values=None):
         if initial_values:
@@ -100,7 +100,7 @@ class Event(object):
         return name in self.__dict__
 
     def __repr__(self):
-        return "Event({0})".format(self.__dict__)
+        return f"Event({self.__dict__})"
 
     def to_series(self, index=None):
         return pd.Series(self.__dict__, index=index)
@@ -160,7 +160,7 @@ class Order(Event):
     )
 
 
-class Portfolio(object):
+class Portfolio:
     """Object providing read-only access to current portfolio state.
 
     Parameters
@@ -205,7 +205,7 @@ class Portfolio(object):
         raise AttributeError('cannot mutate Portfolio objects')
 
     def __repr__(self):
-        return "Portfolio({0})".format(self.__dict__)
+        return f"Portfolio({self.__dict__})"
 
     # If you are adding new attributes, don't update this set. This method
     # is deprecated to normal attribute access so we don't want to encourage
@@ -245,7 +245,7 @@ class Portfolio(object):
         return position_values / self.portfolio_value
 
 
-class Account(object):
+class Account:
     """
     The account object tracks information about the trading account. The
     values are updated as the algorithm runs and its keys remain unchanged.
@@ -277,7 +277,7 @@ class Account(object):
         raise AttributeError('cannot mutate Account objects')
 
     def __repr__(self):
-        return "Account({0})".format(self.__dict__)
+        return f"Account({self.__dict__})"
 
     # If you are adding new attributes, don't update this set. This method
     # is deprecated to normal attribute access so we don't want to encourage
@@ -305,7 +305,7 @@ class Account(object):
     )
 
 
-class Position(object):
+class Position:
     """
     A position held by an algorithm.
 
@@ -368,7 +368,7 @@ class Position(object):
 # Copied from Position and renamed.  This is used to handle cases where a user
 # does something like `context.portfolio.positions[100]` instead of
 # `context.portfolio.positions[sid(100)]`.
-class _DeprecatedSidLookupPosition(object):
+class _DeprecatedSidLookupPosition:
     def __init__(self, sid):
         self.sid = sid
         self.amount = 0
@@ -377,7 +377,7 @@ class _DeprecatedSidLookupPosition(object):
         self.last_sale_date = None
 
     def __repr__(self):
-        return "_DeprecatedSidLookupPosition({0})".format(self.__dict__)
+        return f"_DeprecatedSidLookupPosition({self.__dict__})"
 
     # If you are adding new attributes, don't update this set. This method
     # is deprecated to normal attribute access so we don't want to encourage
@@ -404,7 +404,7 @@ class Positions(dict):
             warn("Referencing positions by integer is deprecated."
                  " Use an asset instead.")
         else:
-            warn("Position lookup expected a value of type Asset but got {0}"
+            warn("Position lookup expected a value of type Asset but got {}"
                  " instead.".format(type(key).__name__))
 
         return _DeprecatedSidLookupPosition(key)

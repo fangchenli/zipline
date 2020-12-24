@@ -40,7 +40,7 @@ import zipline.protocol as zp
 log = logbook.Logger('Performance')
 
 
-class Position(object):
+class Position:
     __slots__ = 'inner_position', 'protocol_position'
 
     def __init__(self,

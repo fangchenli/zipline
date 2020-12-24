@@ -37,7 +37,7 @@ class LatestTestCase(WithSeededRandomPipelineEngine,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(LatestTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.engine = cls.seeded_random_engine
         cls.sids = cls.ASSET_FINDER_EQUITY_SIDS
         cls.assets = cls.engine._finder.retrieve_all(

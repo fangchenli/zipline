@@ -11,7 +11,7 @@ from .filters import Filter
 from .term import AssetExists, ComputableTerm, Term
 
 
-class Pipeline(object):
+class Pipeline:
     """
     A Pipeline object represents a collection of named expressions to be
     compiled and executed by a PipelineEngine.
@@ -118,7 +118,7 @@ class Pipeline(object):
             if overwrite:
                 self.remove(name)
             else:
-                raise KeyError("Column '{}' already exists.".format(name))
+                raise KeyError(f"Column '{name}' already exists.")
 
         if not isinstance(term, ComputableTerm):
             raise TypeError(

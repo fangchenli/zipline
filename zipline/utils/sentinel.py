@@ -7,7 +7,7 @@ import sys
 from textwrap import dedent
 
 
-class _Sentinel(object):
+class _Sentinel:
     """Base class for Sentinel objects.
     """
     __slots__ = ('__weakref__',)
@@ -47,7 +47,7 @@ def sentinel(name, doc=None):
     if frame is None:
         created_at = '<unknown>'
     else:
-        created_at = '%s:%s' % (frame.f_code.co_filename, frame.f_lineno)
+        created_at = f'{frame.f_code.co_filename}:{frame.f_lineno}'
 
     @object.__new__   # bind a single instance to the name 'Sentinel'
     class Sentinel(_Sentinel):

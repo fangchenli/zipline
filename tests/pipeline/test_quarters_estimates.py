@@ -170,7 +170,7 @@ class WithEstimates(WithTradingSessions, WithAdjustmentReader):
         ]
         # We need to instantiate certain constants needed by supers of
         # `WithEstimates` before we call their `init_class_fixtures`.
-        super(WithEstimates, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.columns = cls.make_columns()
         # Some tests require `WithAdjustmentReader` to be set up by the time we
         # make the loader.
@@ -229,7 +229,7 @@ class WithOneDayPipeline(WithEstimates):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithOneDayPipeline, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.sid0 = cls.asset_finder.retrieve_asset(0)
         cls.expected_out = cls.make_expected_out()
 
@@ -703,7 +703,7 @@ class WithEstimateMultipleQuarters(WithEstimates):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithEstimateMultipleQuarters, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.expected_out = cls.make_expected_out()
 
     @classmethod
@@ -1063,7 +1063,7 @@ class WithEstimateWindows(WithEstimates):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithEstimateWindows, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.create_expected_df_for_factor_compute = partial(
             create_expected_df_for_factor_compute,
             cls.window_test_start_date,
@@ -1943,9 +1943,7 @@ class WithSplitAdjustedMultipleEstimateColumns(WithEstimates):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(
-            WithSplitAdjustedMultipleEstimateColumns, cls
-        ).init_class_fixtures()
+        super().init_class_fixtures()
         cls.timelines_1q_out = cls.make_expected_timelines_1q_out()
         cls.timelines_2q_out = cls.make_expected_timelines_2q_out()
 
@@ -2177,7 +2175,7 @@ class WithAdjustmentBoundaries(WithEstimates):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithAdjustmentBoundaries, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.s0 = cls.asset_finder.retrieve_asset(0)
         cls.s1 = cls.asset_finder.retrieve_asset(1)
         cls.s2 = cls.asset_finder.retrieve_asset(2)

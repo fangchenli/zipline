@@ -58,7 +58,7 @@ class MissingValueMismatch(ValueError):
     mismatched missing_values.
     """
     def __init__(self, left, right):
-        super(MissingValueMismatch, self).__init__(
+        super().__init__(
             "LabelArray missing_values don't match:"
             " left={}, right={}".format(left, right)
         )
@@ -72,7 +72,7 @@ class CategoryMismatch(ValueError):
     def __init__(self, left, right):
         (mismatches,) = np.where(left != right)
         assert len(mismatches), "Not actually a mismatch!"
-        super(CategoryMismatch, self).__init__(
+        super().__init__(
             "LabelArray categories don't match:\n"
             "Mismatched Indices: {mismatches}\n"
             "Left: {left}\n"
@@ -378,7 +378,7 @@ class LabelArray(ndarray):
         elif isinstance(value, LabelArray):
             value_categories = value.categories
             if compare_arrays(self_categories, value_categories):
-                return super(LabelArray, self).__setitem__(indexer, value)
+                return super().__setitem__(indexer, value)
             elif (self.missing_value == value.missing_value and
                   set(value.categories) <= set(self.categories)):
                 rhs = LabelArray.from_codes_and_metadata(
@@ -390,7 +390,7 @@ class LabelArray(ndarray):
                     ),
                     missing_value=self.missing_value
                 ).reshape(value.shape)
-                super(LabelArray, self).__setitem__(indexer, rhs)
+                super().__setitem__(indexer, rhs)
             else:
                 raise CategoryMismatch(self_categories, value_categories)
         else:
@@ -435,7 +435,7 @@ class LabelArray(ndarray):
         self.__setitem__(slice(i, j), sequence)
 
     def __getitem__(self, indexer):
-        result = super(LabelArray, self).__getitem__(indexer)
+        result = super().__getitem__(indexer)
         if result.ndim:
             # Result is still a LabelArray, so we can just return it.
             return result
@@ -516,7 +516,7 @@ class LabelArray(ndarray):
             kwargs['dtype'] = dtype
         if type is not _NotPassed:
             kwargs['type'] = type
-        return super(LabelArray, self).view(**kwargs)
+        return super().view(**kwargs)
 
     def astype(self,
                dtype,
@@ -814,7 +814,7 @@ class LabelArray(ndarray):
 
 @instance  # This makes _sortable_sentinel a singleton instance.
 @total_ordering
-class _sortable_sentinel(object):
+class _sortable_sentinel:
     """Dummy object that sorts before any other python object.
     """
     def __eq__(self, other):

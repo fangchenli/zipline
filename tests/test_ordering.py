@@ -60,7 +60,7 @@ class TestOrderMethods(zf.WithConstantEquityMinuteBarData,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(TestOrderMethods, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.EQUITY = cls.asset_finder.retrieve_asset(1)
         cls.FUTURE = cls.asset_finder.retrieve_asset(2)
 

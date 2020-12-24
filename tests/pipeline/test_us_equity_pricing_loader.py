@@ -296,7 +296,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(USEquityPricingLoaderTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.sids = TEST_QUERY_SIDS
         cls.asset_info = EQUITY_INFO
 

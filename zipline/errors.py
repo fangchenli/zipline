@@ -703,7 +703,7 @@ class UnsupportedDataType(ZiplineError):
         if hint:
             hint = ' ' + hint
         kwargs['hint'] = hint
-        super(UnsupportedDataType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     msg = "{typename} instances with dtype {dtype} are not supported.{hint}"
 

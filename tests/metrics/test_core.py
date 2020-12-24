@@ -11,7 +11,7 @@ from zipline.testing.predicates import (
 
 class MetricsSetCoreTestCase(ZiplineTestCase):
     def init_instance_fixtures(self):
-        super(MetricsSetCoreTestCase, self).init_instance_fixtures()
+        super().init_instance_fixtures()
 
         self.metrics_sets, self.register, self.unregister, self.load = (
             _make_metrics_set_core()

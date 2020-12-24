@@ -36,7 +36,7 @@ class RestrictionsTestCase(WithDataPortal, ZiplineTestCase):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(RestrictionsTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.ASSET1 = cls.asset_finder.retrieve_asset(1)
         cls.ASSET2 = cls.asset_finder.retrieve_asset(2)
         cls.ASSET3 = cls.asset_finder.retrieve_asset(3)
@@ -224,7 +224,7 @@ class RestrictionsTestCase(WithDataPortal, ZiplineTestCase):
         """
 
         # A mock SecurityList object filled with fake data
-        class SecurityList(object):
+        class SecurityList:
             def __init__(self, assets_by_dt):
                 self.assets_by_dt = assets_by_dt
 

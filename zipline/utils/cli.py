@@ -52,7 +52,7 @@ class _DatetimeParam(click.ParamType):
             return self.parser(value)
         except ValueError:
             self.fail(
-                '%s is not a valid %s' % (value, self.name.lower()),
+                f'{value} is not a valid {self.name.lower()}',
                 param,
                 ctx,
             )
@@ -82,11 +82,11 @@ class Date(_DatetimeParam):
         midnight.
     """
     def __init__(self, tz=None, as_timestamp=False):
-        super(Date, self).__init__(tz=tz)
+        super().__init__(tz=tz)
         self.as_timestamp = as_timestamp
 
     def parser(self, value):
-        ts = super(Date, self).parser(value)
+        ts = super().parser(value)
         return ts.normalize() if self.as_timestamp else ts.date()
 
 
@@ -100,7 +100,7 @@ class Time(_DatetimeParam):
         By default the timezone will be infered from the string or naiive.
     """
     def parser(self, value):
-        return super(Time, self).parser(value).time()
+        return super().parser(value).time()
 
 
 class Timedelta(_DatetimeParam):

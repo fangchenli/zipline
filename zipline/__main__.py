@@ -448,7 +448,7 @@ def bundles():
         # because there were no entries, print a single message indicating that
         # no ingestions have yet been made.
         for timestamp in ingestions or ["<no ingestions>"]:
-            click.echo("%s %s" % (bundle, timestamp))
+            click.echo(f"{bundle} {timestamp}")
 
 
 if __name__ == '__main__':

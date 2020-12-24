@@ -17,7 +17,7 @@ from traceback import format_exception
 from functools import wraps
 
 from logbook import TestHandler
-from mock import patch
+from unittest.mock import patch
 from nose.tools import nottest
 from numpy.testing import assert_allclose, assert_array_equal
 import pandas as pd
@@ -115,8 +115,8 @@ def check_algo_results(test,
     if expected_order_count is not None:
         # de-dup orders on id, because orders are put back into perf packets
         # whenever they a txn is filled
-        orders = set([order['id'] for order in
-                      flatten_list(results["orders"])])
+        orders = {order['id'] for order in
+                      flatten_list(results["orders"])}
 
         test.assertEqual(expected_order_count, len(orders))
 
@@ -355,7 +355,7 @@ def check_allclose(actual,
     np.assert_allclose
     """
     if type(actual) != type(desired):
-        raise AssertionError("%s != %s" % (type(actual), type(desired)))
+        raise AssertionError("{} != {}".format(type(actual), type(desired)))
     return assert_allclose(
         actual,
         desired,
@@ -376,7 +376,7 @@ def check_arrays(x, y, err_msg='', verbose=True, check_dtypes=True):
     np.assert_array_equal
     """
     assert type(x) == type(y), "{x} != {y}".format(x=type(x), y=type(y))
-    assert x.dtype == y.dtype, "{x.dtype} != {y.dtype}".format(x=x, y=y)
+    assert x.dtype == y.dtype, f"{x.dtype} != {y.dtype}"
 
     if isinstance(x, LabelArray):
         # Check that both arrays have missing values in the same locations...
@@ -409,7 +409,7 @@ class UnexpectedAttributeAccess(Exception):
     pass
 
 
-class ExplodingObject(object):
+class ExplodingObject:
     """
     Object that will raise an exception on any attribute access.
 
@@ -703,7 +703,7 @@ class FakeDataPortal(DataPortal):
         if trading_calendar is None:
             trading_calendar = get_calendar("NYSE")
 
-        super(FakeDataPortal, self).__init__(asset_finder,
+        super().__init__(asset_finder,
                                              trading_calendar,
                                              first_trading_day)
 
@@ -750,13 +750,13 @@ class FetcherDataPortal(DataPortal):
     spot value.
     """
     def __init__(self, asset_finder, trading_calendar, first_trading_day=None):
-        super(FetcherDataPortal, self).__init__(asset_finder, trading_calendar,
+        super().__init__(asset_finder, trading_calendar,
                                                 first_trading_day)
 
     def get_spot_value(self, asset, field, dt, data_frequency):
         # if this is a fetcher field, exercise the regular code path
         if self._is_extra_source(asset, field, self._augmented_sources_map):
-            return super(FetcherDataPortal, self).get_spot_value(
+            return super().get_spot_value(
                 asset, field, dt, data_frequency)
 
         # otherwise just return a fixed value
@@ -773,7 +773,7 @@ class FetcherDataPortal(DataPortal):
         return np.arange(minutes_for_window, dtype=np.float64)
 
 
-class tmp_assets_db(object):
+class tmp_assets_db:
     """Create a temporary assets sqlite database.
     This is meant to be used as a context manager.
 
@@ -855,11 +855,11 @@ class tmp_asset_finder(tmp_assets_db):
                  **frames):
         self._finder_cls = finder_cls
         self._future_chain_predicates = future_chain_predicates
-        super(tmp_asset_finder, self).__init__(url=url, **frames)
+        super().__init__(url=url, **frames)
 
     def __enter__(self):
         return self._finder_cls(
-            super(tmp_asset_finder, self).__enter__(),
+            super().__enter__(),
             future_chain_predicates=self._future_chain_predicates,
         )
 
@@ -976,7 +976,7 @@ def subtest(iterator, *_names):
     return dec
 
 
-class MockDailyBarReader(object):
+class MockDailyBarReader:
     def __init__(self, dates):
         self.sessions = pd.DatetimeIndex(dates)
 
@@ -1272,7 +1272,7 @@ def make_alternating_boolean_array(shape, first_value=True):
     """
     if len(shape) != 2:
         raise ValueError(
-            'Shape must be 2-dimensional. Given shape was {}'.format(shape)
+            f'Shape must be 2-dimensional. Given shape was {shape}'
         )
     alternating = np.empty(shape, dtype=np.bool)
     for row in alternating:
@@ -1305,7 +1305,7 @@ def make_cascading_boolean_array(shape, first_value=True):
     """
     if len(shape) != 2:
         raise ValueError(
-            'Shape must be 2-dimensional. Given shape was {}'.format(shape)
+            f'Shape must be 2-dimensional. Given shape was {shape}'
         )
     cascading = np.full(shape, not(first_value), dtype=np.bool)
     ending_col = shape[1] - 1
@@ -1411,13 +1411,13 @@ def patch_os_environment(remove=None, **values):
                 os.environ[old_key] = old_value
 
 
-class tmp_dir(TempDirectory, object):
+class tmp_dir(TempDirectory):
     """New style class that wrapper for TempDirectory in python 2.
     """
     pass
 
 
-class _TmpBarReader(with_metaclass(ABCMeta, tmp_dir)):
+class _TmpBarReader(tmp_dir, metaclass=ABCMeta):
     """A helper for tmp_bcolz_equity_minute_bar_reader and
     tmp_bcolz_equity_daily_bar_reader.
 
@@ -1441,13 +1441,13 @@ class _TmpBarReader(with_metaclass(ABCMeta, tmp_dir)):
         raise NotImplementedError('_write')
 
     def __init__(self, cal, days, data, path=None):
-        super(_TmpBarReader, self).__init__(path=path)
+        super().__init__(path=path)
         self._cal = cal
         self._days = days
         self._data = data
 
     def __enter__(self):
-        tmpdir = super(_TmpBarReader, self).__enter__()
+        tmpdir = super().__enter__()
         try:
             self._write(
                 self._cal,
@@ -1572,12 +1572,12 @@ class RecordBatchBlotter(SimulationBlotter):
     """Blotter that tracks how its batch_order method was called.
     """
     def __init__(self):
-        super(RecordBatchBlotter, self).__init__()
+        super().__init__()
         self.order_batch_called = []
 
     def batch_order(self, *args, **kwargs):
         self.order_batch_called.append((args, kwargs))
-        return super(RecordBatchBlotter, self).batch_order(*args, **kwargs)
+        return super().batch_order(*args, **kwargs)
 
 
 class AssetID(CustomFactor):

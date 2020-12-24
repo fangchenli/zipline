@@ -42,7 +42,7 @@ PERIODS = [
 class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
 
     def init_instance_fixtures(self):
-        super(TestRisk, self).init_instance_fixtures()
+        super().init_instance_fixtures()
         self.start_session = pd.Timestamp("2006-01-01", tz='UTC')
         self.end_session = self.trading_calendar.minute_to_session_label(
             pd.Timestamp("2006-12-31", tz='UTC'),

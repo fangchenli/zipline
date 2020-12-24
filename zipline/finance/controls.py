@@ -109,7 +109,7 @@ class MaxOrderCount(TradingControl):
 
     def __init__(self, on_error, max_count):
 
-        super(MaxOrderCount, self).__init__(on_error, max_count=max_count)
+        super().__init__(on_error, max_count=max_count)
         self.orders_placed = 0
         self.max_count = max_count
         self.current_date = None
@@ -146,7 +146,7 @@ class RestrictedListOrder(TradingControl):
     """
 
     def __init__(self, on_error, restrictions):
-        super(RestrictedListOrder, self).__init__(on_error)
+        super().__init__(on_error)
         self.restrictions = restrictions
 
     def validate(self,
@@ -171,7 +171,7 @@ class MaxOrderSize(TradingControl):
 
     def __init__(self, on_error, asset=None, max_shares=None,
                  max_notional=None):
-        super(MaxOrderSize, self).__init__(on_error,
+        super().__init__(on_error,
                                            asset=asset,
                                            max_shares=max_shares,
                                            max_notional=max_notional)
@@ -229,7 +229,7 @@ class MaxPositionSize(TradingControl):
 
     def __init__(self, on_error, asset=None, max_shares=None,
                  max_notional=None):
-        super(MaxPositionSize, self).__init__(on_error,
+        super().__init__(on_error,
                                               asset=asset,
                                               max_shares=max_shares,
                                               max_notional=max_notional)
@@ -291,7 +291,7 @@ class LongOnly(TradingControl):
     """
 
     def __init__(self, on_error):
-        super(LongOnly, self).__init__(on_error)
+        super().__init__(on_error)
 
     def validate(self,
                  asset,
@@ -314,7 +314,7 @@ class AssetDateBounds(TradingControl):
     """
 
     def __init__(self, on_error):
-        super(AssetDateBounds, self).__init__(on_error)
+        super().__init__(on_error)
 
     def validate(self,
                  asset,
@@ -406,7 +406,7 @@ class MaxLeverage(AccountControl):
         max_leverage is the gross leverage in decimal form. For example,
         2, limits an algorithm to trading at most double the account value.
         """
-        super(MaxLeverage, self).__init__(max_leverage=max_leverage)
+        super().__init__(max_leverage=max_leverage)
         self.max_leverage = max_leverage
 
         if max_leverage is None:
@@ -453,7 +453,7 @@ class MinLeverage(AccountControl):
     )
     @expect_bounded(__funcname='MinLeverage', min_leverage=(0, None))
     def __init__(self, min_leverage, deadline):
-        super(MinLeverage, self).__init__(min_leverage=min_leverage,
+        super().__init__(min_leverage=min_leverage,
                                           deadline=deadline)
         self.min_leverage = min_leverage
         self.deadline = deadline

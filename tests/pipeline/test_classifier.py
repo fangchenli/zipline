@@ -266,8 +266,8 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
 
     @parameter_space(
         __fail_fast=True,
-        compval=[u'a', u'b', u'ab', u'not in the array'],
-        missing=[u'a', u'ab', u'', u'not in the array'],
+        compval=['a', 'b', 'ab', 'not in the array'],
+        missing=['a', 'ab', '', 'not in the array'],
         labelarray_dtype=(categorical_dtype, bytes_dtype, unicode_dtype),
     )
     def test_string_elementwise_predicates(self,
@@ -602,7 +602,7 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
 
         self.assertEqual(
             str(e.exception),
-            'cannot compare classifiers with %s' % (
+            'cannot compare classifiers with {}'.format(
                 methods_to_ops['__%s__' % compare_op.__name__],
             ),
         )

@@ -69,7 +69,7 @@ class StatisticalBuiltInsTestCase(zf.WithAssetFinder,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(StatisticalBuiltInsTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         day = cls.trading_calendar.day
         cls.dates = dates = date_range(
@@ -514,7 +514,7 @@ class StatisticalMethodsTestCase(zf.WithSeededRandomPipelineEngine,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(StatisticalMethodsTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         # Using these start and end dates because they are a contigous span of
         # 5 days (Monday - Friday) and they allow for plenty of days to look

@@ -30,7 +30,7 @@ DEFAULT_MINIMUM_COST_PER_EQUITY_TRADE = 0.0  # $0 per trade
 DEFAULT_MINIMUM_COST_PER_FUTURE_TRADE = 0.0  # $0 per trade
 
 
-class CommissionModel(with_metaclass(FinancialModelMeta)):
+class CommissionModel(metaclass=FinancialModelMeta):
     """Abstract base class for commission models.
 
     Commission models are responsible for accepting order/transaction pairs and
@@ -86,16 +86,16 @@ class NoCommission(CommissionModel):
         return 0.0
 
 
-class EquityCommissionModel(with_metaclass(AllowedAssetMarker,
-                                           CommissionModel)):
+class EquityCommissionModel(
+                                           CommissionModel, metaclass=AllowedAssetMarker):
     """
     Base class for commission models which only support equities.
     """
     allowed_asset_types = (Equity,)
 
 
-class FutureCommissionModel(with_metaclass(AllowedAssetMarker,
-                                           CommissionModel)):
+class FutureCommissionModel(
+                                           CommissionModel, metaclass=AllowedAssetMarker):
     """
     Base class for commission models which only support futures.
     """
@@ -336,7 +336,7 @@ class PerFutureTrade(PerContract):
         # The per-trade cost can be represented as the exchange fee in a
         # per-contract model because the exchange fee is just a one time cost
         # incurred on the first fill.
-        super(PerFutureTrade, self).__init__(
+        super().__init__(
             cost=0, exchange_fee=cost, min_trade_cost=0,
         )
         self._cost_per_trade = self._exchange_fee

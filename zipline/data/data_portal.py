@@ -84,7 +84,7 @@ OHLCVP_FIELDS = frozenset([
     "open", "high", "low", "close", "volume", "price"
 ])
 
-HISTORY_FREQUENCIES = set(["1m", "1d"])
+HISTORY_FREQUENCIES = {"1m", "1d"}
 
 DEFAULT_MINUTE_HISTORY_PREFETCH = 1560
 DEFAULT_DAILY_HISTORY_PREFETCH = 40
@@ -93,7 +93,7 @@ _DEF_M_HIST_PREFETCH = DEFAULT_MINUTE_HISTORY_PREFETCH
 _DEF_D_HIST_PREFETCH = DEFAULT_DAILY_HISTORY_PREFETCH
 
 
-class DataPortal(object):
+class DataPortal:
     """Interface to all of the data that a zipline simulation needs.
 
     This is used by the simulation runner to answer questions about the data,
@@ -947,11 +947,11 @@ class DataPortal(object):
         A dataframe containing the requested data.
         """
         if field not in OHLCVP_FIELDS and field != 'sid':
-            raise ValueError("Invalid field: {0}".format(field))
+            raise ValueError(f"Invalid field: {field}")
 
         if bar_count < 1:
             raise ValueError(
-                "bar_count must be >= 1, but got {}".format(bar_count)
+                f"bar_count must be >= 1, but got {bar_count}"
             )
 
         if frequency == "1d":
@@ -969,7 +969,7 @@ class DataPortal(object):
                 df = self._get_history_minute_window(assets, end_dt, bar_count,
                                                      field)
         else:
-            raise ValueError("Invalid frequency: {0}".format(frequency))
+            raise ValueError(f"Invalid frequency: {frequency}")
 
         # forward-fill price
         if field == "price":

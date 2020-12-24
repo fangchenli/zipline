@@ -334,7 +334,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         This is the inverse of :func:`~zipline.pipeline.term.Term.postprocess`.
         """
         if self.dtype == int64_dtype:
-            return super(Classifier, self).to_workspace_value(result, assets)
+            return super().to_workspace_value(result, assets)
 
         assert isinstance(result.values, pd.Categorical), (
             'Expected a Categorical, got %r.' % type(result.values)
@@ -347,7 +347,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             index=result.index,
         )
         return LabelArray(
-            super(Classifier, self).to_workspace_value(
+            super().to_workspace_value(
                 with_missing,
                 assets,
             ),
@@ -482,7 +482,7 @@ class Relabel(SingleInputMixin, Classifier):
     @expect_dtypes(term=categorical_dtype)
     @expect_types(term=Classifier)
     def __new__(cls, term, relabeler):
-        return super(Relabel, cls).__new__(
+        return super().__new__(
             cls,
             inputs=(term,),
             dtype=term.dtype,
@@ -521,7 +521,7 @@ class CustomClassifier(PositiveWindowLengthMixin,
     """
     def _validate(self):
         try:
-            super(CustomClassifier, self)._validate()
+            super()._validate()
         except UnsupportedDataType:
             if self.dtype in FACTOR_DTYPES:
                 raise UnsupportedDataType(
@@ -543,7 +543,7 @@ class CustomClassifier(PositiveWindowLengthMixin,
         have a string-like dtype.
         """
         if self.dtype == int64_dtype:
-            return super(CustomClassifier, self)._allocate_output(
+            return super()._allocate_output(
                 windows,
                 shape,
             )
@@ -567,7 +567,7 @@ class Latest(LatestMixin, CustomClassifier):
 
 class InvalidClassifierComparison(TypeError):
     def __init__(self, classifier, compval):
-        super(InvalidClassifierComparison, self).__init__(
+        super().__init__(
             "Can't compare classifier of dtype"
             " {dtype} to value {value} of type {type}.".format(
                 dtype=classifier.dtype,

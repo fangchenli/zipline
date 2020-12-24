@@ -27,7 +27,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
     make_log_handler = logbook.TestHandler
 
     def init_instance_fixtures(self):
-        super(TestSQLiteAdjustmentsWriter, self).init_instance_fixtures()
+        super().init_instance_fixtures()
         self.db_path = self.instance_tmpdir.getpath('adjustments.db')
 
     def writer(self, session_bar_reader):

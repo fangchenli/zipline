@@ -26,7 +26,7 @@ def _ensure_index(x):
     return x
 
 
-class RollingPanel(object):
+class RollingPanel:
     """
     Preallocation strategies for rolling window over expanding data set
 
@@ -242,7 +242,7 @@ class RollingPanel(object):
         return self._window
 
 
-class MutableIndexRollingPanel(object):
+class MutableIndexRollingPanel:
     """
     A version of RollingPanel that exists for backwards compatibility with
     batch_transform. This is a copy to allow behavior of RollingPanel to drift

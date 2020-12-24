@@ -130,14 +130,14 @@ class TestTestingSlippage(WithConstantEquityMinuteBarData,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(TestTestingSlippage, cls).init_class_fixtures()
+        super().init_class_fixtures()
         cls.asset = cls.asset_finder.retrieve_asset(1)
         cls.minute, _ = (
             cls.trading_calendar.open_and_close_for_session(cls.START_DATE)
         )
 
     def init_instance_fixtures(self):
-        super(TestTestingSlippage, self).init_instance_fixtures()
+        super().init_instance_fixtures()
         self.bar_data = BarData(
             self.data_portal,
             lambda: self.minute,
@@ -192,7 +192,7 @@ class TestPredicates(ZiplineTestCase):
 
     def test_instance_of_exact(self):
 
-        class Foo(object):
+        class Foo:
             pass
 
         class Bar(Foo):

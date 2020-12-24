@@ -167,7 +167,7 @@ class HDF5FXRateReader(implements(FXRateReader)):
         """
         raw_dts = self._group[INDEX][DTS][:].astype('M8[ns]')
         if not is_sorted_ascending(raw_dts):
-            raise ValueError("dts are not sorted for {}!".format(self._group))
+            raise ValueError(f"dts are not sorted for {self._group}!")
 
         return pd.DatetimeIndex(raw_dts, tz='UTC')
 
@@ -240,7 +240,7 @@ class HDF5FXRateReader(implements(FXRateReader)):
         return out.transpose()
 
 
-class HDF5FXRateWriter(object):
+class HDF5FXRateWriter:
     """Writer class for HDF5 files consumed by HDF5FXRateReader.
     """
     def __init__(self, group, date_chunk_size=HDF5_FX_DEFAULT_CHUNK_SIZE):
@@ -285,7 +285,7 @@ class HDF5FXRateWriter(object):
 
         for c in currencies:
             if not isinstance(c, str) or len(c) != 3:
-                raise ValueError("Invalid currency: {!r}".format(c))
+                raise ValueError(f"Invalid currency: {c!r}")
 
         index_group = self._group.create_group(INDEX)
 

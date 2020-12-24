@@ -40,8 +40,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Zipline'
-copyright = u'2020, Quantopian Inc.'
+project = 'Zipline'
+copyright = '2020, Quantopian Inc.'
 
 # The full version, including alpha/beta/rc tags, but excluding the commit hash
 version = release = version.split('+', 1)[0]

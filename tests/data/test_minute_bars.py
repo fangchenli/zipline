@@ -70,7 +70,7 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(BcolzMinuteBarTestCase, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         cal = cls.trading_calendar.schedule.loc[
             TEST_CALENDAR_START:TEST_CALENDAR_STOP
@@ -83,7 +83,7 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         cls.test_calendar_stop = cls.market_opens.index[-1]
 
     def init_instance_fixtures(self):
-        super(BcolzMinuteBarTestCase, self).init_instance_fixtures()
+        super().init_instance_fixtures()
 
         self.dest = self.instance_tmpdir.getpath('minute_bars')
         os.makedirs(self.dest)

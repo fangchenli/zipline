@@ -123,7 +123,7 @@ def find_in_sorted_index(dts, dt):
     """
     ix = dts.searchsorted(dt)
     if ix == len(dts) or dts[ix] != dt:
-        raise LookupError("{dt} is not in {dts}".format(dt=dt, dts=dts))
+        raise LookupError(f"{dt} is not in {dts}")
     return ix
 
 

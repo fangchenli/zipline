@@ -43,7 +43,7 @@ class _RollingCorrelation(CustomFactor):
         if target.ndim == 2 and base_factor.mask is not target.mask:
             raise IncompatibleTerms(term_1=base_factor, term_2=target)
 
-        return super(_RollingCorrelation, cls).__new__(
+        return super().__new__(
             cls,
             inputs=[base_factor, target],
             window_length=correlation_length,
@@ -186,7 +186,7 @@ class RollingLinearRegression(CustomFactor):
         if independent.ndim == 2 and dependent.mask is not independent.mask:
             raise IncompatibleTerms(term_1=dependent, term_2=independent)
 
-        return super(RollingLinearRegression, cls).__new__(
+        return super().__new__(
             cls,
             inputs=[dependent, independent],
             window_length=regression_length,
@@ -303,7 +303,7 @@ class RollingPearsonOfReturns(RollingPearson):
             window_length=returns_length,
             mask=(AssetExists() | SingleAsset(asset=target)),
         )
-        return super(RollingPearsonOfReturns, cls).__new__(
+        return super().__new__(
             cls,
             base_factor=returns,
             target=returns[target],
@@ -353,7 +353,7 @@ class RollingSpearmanOfReturns(RollingSpearman):
             window_length=returns_length,
             mask=(AssetExists() | SingleAsset(asset=target)),
         )
-        return super(RollingSpearmanOfReturns, cls).__new__(
+        return super().__new__(
             cls,
             base_factor=returns,
             target=returns[target],
@@ -472,7 +472,7 @@ class RollingLinearRegressionOfReturns(RollingLinearRegression):
             window_length=returns_length,
             mask=(AssetExists() | SingleAsset(asset=target)),
         )
-        return super(RollingLinearRegressionOfReturns, cls).__new__(
+        return super().__new__(
             cls,
             dependent=returns,
             independent=returns[target],
@@ -524,7 +524,7 @@ class SimpleBeta(CustomFactor, StandardOutputs):
         allowed_missing_count = int(
             allowed_missing_percentage * regression_length
         )
-        return super(SimpleBeta, cls).__new__(
+        return super().__new__(
             cls,
             inputs=[daily_returns, daily_returns[target]],
             window_length=regression_length,

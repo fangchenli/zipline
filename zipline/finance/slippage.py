@@ -228,14 +228,14 @@ class NoSlippage(SlippageModel):
         )
 
 
-class EquitySlippageModel(with_metaclass(AllowedAssetMarker, SlippageModel)):
+class EquitySlippageModel(SlippageModel, metaclass=AllowedAssetMarker):
     """
     Base class for slippage models which only support equities.
     """
     allowed_asset_types = (Equity,)
 
 
-class FutureSlippageModel(with_metaclass(AllowedAssetMarker, SlippageModel)):
+class FutureSlippageModel(SlippageModel, metaclass=AllowedAssetMarker):
     """
     Base class for slippage models which only support futures.
     """
@@ -272,7 +272,7 @@ class VolumeShareSlippage(SlippageModel):
                  volume_limit=DEFAULT_EQUITY_VOLUME_SLIPPAGE_BAR_LIMIT,
                  price_impact=0.1):
 
-        super(VolumeShareSlippage, self).__init__()
+        super().__init__()
 
         self.volume_limit = volume_limit
         self.price_impact = price_impact
@@ -355,7 +355,7 @@ class FixedSlippage(SlippageModel):
     volume.
     """
     def __init__(self, spread=0.0):
-        super(FixedSlippage, self).__init__()
+        super().__init__()
         self.spread = spread
 
     def __repr__(self):
@@ -381,7 +381,7 @@ class MarketImpactBase(SlippageModel):
     NO_DATA_VOLATILITY_SLIPPAGE_IMPACT = 10.0 / 10000
 
     def __init__(self):
-        super(MarketImpactBase, self).__init__()
+        super().__init__()
         self._window_data_cache = ExpiringCache()
 
     @abstractmethod
@@ -548,7 +548,7 @@ class VolatilityVolumeShare(MarketImpactBase):
     allowed_asset_types = (Future,)
 
     def __init__(self, volume_limit, eta=ROOT_SYMBOL_TO_ETA):
-        super(VolatilityVolumeShare, self).__init__()
+        super().__init__()
         self.volume_limit = volume_limit
 
         # If 'eta' is a constant, use a dummy mapping to treat it as a
@@ -639,7 +639,7 @@ class FixedBasisPointsSlippage(SlippageModel):
         __funcname='FixedBasisPointsSlippage',
     )
     def __init__(self, basis_points=5.0, volume_limit=0.1):
-        super(FixedBasisPointsSlippage, self).__init__()
+        super().__init__()
         self.basis_points = basis_points
         self.percentage = self.basis_points / 10000.0
         self.volume_limit = volume_limit

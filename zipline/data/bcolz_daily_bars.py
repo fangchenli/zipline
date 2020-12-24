@@ -60,7 +60,7 @@ UINT32_MAX = iinfo(np.uint32).max
 def check_uint32_safe(value, colname):
     if value >= UINT32_MAX:
         raise ValueError(
-            "Value %s from column '%s' is too large" % (value, colname)
+            f"Value {value} from column '{colname}' is too large"
         )
 
 
@@ -113,7 +113,7 @@ def winsorise_uint32(df, invalid_data_behavior, column, *columns):
     return df
 
 
-class BcolzDailyBarWriter(object):
+class BcolzDailyBarWriter:
     """
     Class capable of writing daily OHLCV data to disk in a format that can
     be read efficiently by BcolzDailyOHLCVReader.
@@ -654,17 +654,17 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
         try:
             day_loc = self.sessions.get_loc(day)
         except Exception:
-            raise NoDataOnDate("day={0} is outside of calendar={1}".format(
+            raise NoDataOnDate("day={} is outside of calendar={}".format(
                 day, self.sessions))
         offset = day_loc - self._calendar_offsets[sid]
         if offset < 0:
             raise NoDataBeforeDate(
-                "No data on or before day={0} for sid={1}".format(
+                "No data on or before day={} for sid={}".format(
                     day, sid))
         ix = self._first_rows[sid] + offset
         if ix > self._last_rows[sid]:
             raise NoDataAfterDate(
-                "No data on or after day={0} for sid={1}".format(
+                "No data on or after day={} for sid={}".format(
                     day, sid))
         return ix
 

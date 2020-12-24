@@ -26,7 +26,7 @@ ExpiredCachedObject = sentinel('ExpiredCachedObject')
 AlwaysExpired = sentinel('AlwaysExpired')
 
 
-class CachedObject(object):
+class CachedObject:
     """
     A simple struct for maintaining a cached object with an expiration date.
 
@@ -87,7 +87,7 @@ class CachedObject(object):
         return self._value
 
 
-class ExpiringCache(object):
+class ExpiringCache:
     """
     A cache of multiple CachedObjects, which returns the wrapped the value
     or raises and deletes the CachedObject if the value has expired.
@@ -254,7 +254,7 @@ class dataframe_cache(MutableMapping):
             try:
                 with open(self._keypath(key), 'rb') as f:
                     return self.deserialize(f)
-            except IOError as e:
+            except OSError as e:
                 if e.errno != errno.ENOENT:
                     raise
                 raise KeyError(key)
@@ -281,13 +281,13 @@ class dataframe_cache(MutableMapping):
         return len(os.listdir(self.path))
 
     def __repr__(self):
-        return '<%s: keys={%s}>' % (
+        return '<{}: keys={{{}}}>'.format(
             type(self).__name__,
             ', '.join(map(repr, sorted(self))),
         )
 
 
-class working_file(object):
+class working_file:
     """A context manager for managing a temporary file that will be moved
     to a non-temporary location if no exceptions are raised in the context.
 
@@ -330,7 +330,7 @@ class working_file(object):
             self._commit()
 
 
-class working_dir(object):
+class working_dir:
     """A context manager for managing a temporary directory that will be moved
     to a non-temporary location if no exceptions are raised in the context.
 

@@ -1,6 +1,6 @@
 import warnings
 
-from mock import patch
+from unittest.mock import patch
 import numpy as np
 import pandas as pd
 from pandas.errors import PerformanceWarning
@@ -177,7 +177,7 @@ class TestAPIShim(WithCreateBarData,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(TestAPIShim, cls).init_class_fixtures()
+        super().init_class_fixtures()
 
         cls.asset1 = cls.asset_finder.retrieve_asset(1)
         cls.asset2 = cls.asset_finder.retrieve_asset(2)
@@ -471,7 +471,7 @@ class TestAPIShim(WithCreateBarData,
                 self.assertEqual("`data[sid(N)]` is deprecated. Use "
                                  "`data.current`.",
                                  str(warning1.message))
-                self.assertEqual("The `{0}` method is "
+                self.assertEqual("The `{}` method is "
                                  "deprecated.".format(transforms[idx]),
                                  str(warning2.message))
 

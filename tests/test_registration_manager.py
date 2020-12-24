@@ -3,7 +3,7 @@ from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import assert_raises_str, assert_true
 
 
-class FakeInterface(object):
+class FakeInterface:
     pass
 
 
@@ -53,7 +53,7 @@ class RegistrationManagerTestCase(ZiplineTestCase):
         m = "FakeInterface factory with name 'ayy-lmao' is already registered"
         with assert_raises_str(ValueError, m):
             @rm.register('ayy-lmao')
-            class Fake(object):
+            class Fake:
                 pass
 
         # check that the failed registration didn't break the previous
@@ -93,7 +93,7 @@ class RegistrationManagerTestCase(ZiplineTestCase):
         # Check that we successfully registered.
         check_registered()
 
-        class Fake(object):
+        class Fake:
             pass
 
         # Try and fail to register with the same key again.

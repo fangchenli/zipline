@@ -93,7 +93,7 @@ def date_gen(start,
         cur = advance_current(cur)
 
 
-class SpecificEquityTrades(object):
+class SpecificEquityTrades:
     """
     Yields all events in event_list that match the given sid_filter.
     If no event_list is specified, generates an internal stream of events

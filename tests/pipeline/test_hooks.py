@@ -53,7 +53,7 @@ class HooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         return [cls.global_testing_hook]
 
     def init_instance_fixtures(self):
-        super(HooksTestCase, self).init_instance_fixtures()
+        super().init_instance_fixtures()
         # Clear out the global testing hook after each test run.
         self.add_instance_callback(self.global_testing_hook.clear)
 
@@ -164,7 +164,7 @@ class HooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
                     computes.add(computed_term)
                 else:
                     raise ValueError(
-                        "Unexpected method: {}".format(enter.method_name)
+                        f"Unexpected method: {enter.method_name}"
                     )
 
             self.assertEqual(loads, expected_loads)
@@ -394,7 +394,7 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
                     self.assertIsInstance(term, ComputableTerm)
             else:
                 raise AssertionError(
-                    "Unexpected state: {}".format(update.state),
+                    f"Unexpected state: {update.state}",
                 )
 
         # Break up the remaining updates by chunk.
@@ -516,7 +516,7 @@ class TermReprTestCase(ZiplineTestCase):
 
         self.assertEqual(
             repr_htmlsafe(MyFactor()),
-            '(Error Displaying {})'.format(converted),
+            f'(Error Displaying {converted})',
         )
 
 

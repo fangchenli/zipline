@@ -884,7 +884,7 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
         self._split_adjusted_column_names = split_adjusted_column_names
         self._split_adjusted_asof = split_adjusted_asof
         self._split_adjustment_dict = {}
-        super(SplitAdjustedEstimatesLoader, self).__init__(
+        super().__init__(
             estimates,
             name_map
         )
@@ -983,7 +983,7 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
         split_adjusted_asof_idx = self.get_split_adjusted_asof_idx(
             dates
         )
-        return super(SplitAdjustedEstimatesLoader, self).get_adjustments(
+        return super().get_adjustments(
             zero_qtr_data,
             requested_qtr_data,
             last_per_qtr,

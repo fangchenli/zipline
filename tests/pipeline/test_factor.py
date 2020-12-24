@@ -142,7 +142,7 @@ def scipy_winsorize_with_nan_handling(array, limits):
 class FactorTestCase(BaseUSEquityPipelineTestCase):
 
     def init_instance_fixtures(self):
-        super(FactorTestCase, self).init_instance_fixtures()
+        super().init_instance_fixtures()
         self.f = F()
 
     def test_bad_input(self):
@@ -1761,9 +1761,9 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             summarized = getattr(f, method)()
             self.assertEqual(
                 repr(summarized),
-                "MyFactor().{}()".format(method),
+                f"MyFactor().{method}()",
             )
             self.assertEqual(
                 summarized.recursive_repr(),
-                "MyFactor().{}()".format(method),
+                f"MyFactor().{method}()",
             )
