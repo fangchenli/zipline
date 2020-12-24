@@ -7,7 +7,7 @@ numpy
 scipy
 statsmodels
 numexpr
-networkx<2.0
+networkx
 pandas==0.22
 pandas-datareader
 lru-dict
