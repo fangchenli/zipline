@@ -5,7 +5,6 @@ from datetime import time
 from itertools import product
 from unittest import skipIf
 
-import blaze as bz
 import numpy as np
 import pandas as pd
 import pytz
@@ -19,7 +18,6 @@ from zipline.pipeline.common import (
 from zipline.pipeline.data import DataSet, Column
 from zipline.pipeline.domain import US_EQUITIES, EquitySessionDomain
 from zipline.pipeline.loaders.events import EventsLoader
-from zipline.pipeline.loaders.blaze.events import BlazeEventsLoader
 from zipline.pipeline.loaders.utils import (
     next_event_indexer,
     previous_event_indexer,
@@ -588,17 +586,3 @@ class EventsLoaderTestCase(WithAssetFinder,
             "Expected Columns: ['d', 'event_date', 'sid', 'timestamp']"
         )
         self.assertEqual(msg, expected)
-
-
-class BlazeEventsLoaderTestCase(EventsLoaderTestCase):
-    """
-    Run the same tests as EventsLoaderTestCase, but using a BlazeEventsLoader.
-    """
-
-    @classmethod
-    def make_loader(cls, events, next_value_columns, previous_value_columns):
-        return BlazeEventsLoader(
-            bz.data(events),
-            next_value_columns,
-            previous_value_columns,
-        )
