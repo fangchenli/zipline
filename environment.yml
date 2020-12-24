@@ -53,10 +53,7 @@ dependencies:
   - responses
 
   - flake8
-
   - matplotlib
-
-  - blaze
   - pyyaml
 
   - pip

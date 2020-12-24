@@ -40,7 +40,6 @@ testfixtures
 responses
 flake8
 matplotlib
-blaze
 pyyaml
 pip
 patsy
