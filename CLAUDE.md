@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-This is a revival of Quantopian's abandoned Zipline (event-driven backtesting library). Work stalled in Dec 2020 on Python 3.6 / pandas 0.22 and resumed in 2026 on the `modernize` branch. Targets are Python 3.12+, pandas 3+, numpy 2+, Cython 3, SQLAlchemy 2, uv, ruff and ty. Dead dependencies have been replaced: `trading_calendars` → `exchange_calendars`, `empyrical` → `empyrical-reloaded`, `bcolz` → `bcolz-zipline` (both keep their import names), `nose` → `pytest`, `pytz` → `zoneinfo`. `six`, `python-interface` (now `abc.ABC`), `distutils` and `pd.Panel` are gone. Commits use pandas-style prefixes (`CLN:`, `DEPS:`, `BLD:`, `CI:`, `DOC:`, `TST:`, `MAINT:`).
+This is a revival of Quantopian's abandoned Zipline (event-driven backtesting library). Work stalled in Dec 2020 on Python 3.6 / pandas 0.22 and resumed in 2026. Targets are Python 3.12+, pandas 3+, numpy 2+, Cython 3, SQLAlchemy 2, uv, ruff and ty. Dead dependencies have been replaced: `trading_calendars` → `exchange_calendars`, `empyrical` → `empyrical-reloaded`, `bcolz` → `bcolz-zipline` (both keep their import names), `nose` → `pytest`, `pytz` → `zoneinfo`. `six`, `python-interface` (now `abc.ABC`), `distutils` and `pd.Panel` are gone. Commits use pandas-style prefixes (`CLN:`, `DEPS:`, `BLD:`, `CI:`, `DOC:`, `TST:`, `MAINT:`).
 
 ## Setup and commands
 
@@ -20,8 +20,8 @@ The project is installed in editable mode, but the Cython extensions are compile
 Lint, types and tests:
 
 ```bash
-uv run ruff check zipline tests
-uv run ruff format zipline tests
+uv run ruff check zipline tests scripts benchmarks
+uv run ruff format zipline tests scripts benchmarks
 uv run ty check zipline
 uv run pytest                                   # full suite
 uv run pytest tests/test_algorithm.py
@@ -29,9 +29,13 @@ uv run pytest "tests/test_algorithm.py::TestMiscellaneousAPI::test_zipline_api_r
 uv run pytest -n auto                            # parallel (pytest-xdist, one worker per test class)
 uv run pytest --doctest-modules zipline          # doctests, run separately from the suite
 uv run --group docs sphinx-build -b html docs/source /tmp/zipline-docs   # docs
+uv run --group bench asv run --python=same --quick      # smoke-run the benchmarks
+uv run --group bench asv continuous master HEAD        # compare performance vs master
 ```
 
 Test cases are still `unittest`-style classes, some parameterized with `parameterized`. pytest collects them directly.
+
+Benchmarks live in `benchmarks/` (asv). They run against a synthetic bundle built by `benchmarks/data.py`, which is also where a new storage backend gets added to `BACKENDS`. Quick runs take one sample and are only a smoke test; use `asv continuous` for real comparisons.
 
 CI runs `uv run pytest -n auto` with pytest's default warning handling, and some tests count warnings, so don't rely on `-p no:warnings` locally. Import sorting depends on files other than the one being checked, so ruff's cache can go stale: when in doubt, use `ruff check --no-cache` (CI has no cache). Zone names go through `zipline.utils.input_validation.get_timezone`, which ignores case like pytz did (zoneinfo keys are case-sensitive on Linux).
 

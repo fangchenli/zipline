@@ -76,6 +76,28 @@ Type checkers can't see inside the compiled Cython extensions, so each one has a
    $ uv run ruff check --fix zipline/api.pyi && uv run ruff format zipline/api.pyi
 
 
+Benchmarks
+----------
+
+Performance is measured with `airspeed velocity`__ (asv). The benchmarks in ``benchmarks/`` cover the bar readers, ``DataPortal`` history and current-price lookups, a Pipeline run, end-to-end daily and minute backtests, and writing bars, measuring both time and peak memory. They run against a synthetic bundle that ``benchmarks/data.py`` generates. Benchmarks that touch storage are parameterized by backend, so a new storage format is compared with the existing ones by adding it to ``BACKENDS`` in that module.
+
+__ https://asv.readthedocs.io
+
+.. code-block:: bash
+
+   # Check that every benchmark runs (one sample each), using the current environment:
+   $ uv run --group bench asv run --python=same --quick
+
+   # Compare your branch with master. asv builds each commit in its own uv
+   # environment, runs the suite and reports significant changes:
+   $ uv run --group bench asv continuous master HEAD
+
+   # Restrict to some benchmarks with a regular expression:
+   $ uv run --group bench asv continuous master HEAD --bench DailyBarReader
+
+The first time, ``asv machine`` asks a few questions about the machine (``asv machine --yes`` accepts the defaults). CI only checks that the benchmarks run, since shared runners are too noisy for timings, so do performance comparisons locally, on a quiet machine.
+
+
 Updating dependencies
 ---------------------
 

@@ -1,0 +1,26 @@
+{
+    "version": 1,
+    "project": "zipline",
+    "project_url": "https://github.com/fangchenli/zipline",
+    "repo": ".",
+    "branches": [
+        "master"
+    ],
+    "dvcs": "git",
+    "environment_type": "uv",
+    "pythons": [
+        "3.12"
+    ],
+    "install_timeout": 1800,
+    "benchmark_dir": "benchmarks",
+    "env_dir": ".asv/env",
+    "results_dir": ".asv/results",
+    "html_dir": ".asv/html",
+    "build_cache_size": 2,
+    "build_command": [
+        "python -m pip wheel --no-deps -w {build_cache_dir} {build_dir}"
+    ],
+    "install_command": [
+        "in-dir={env_dir} python -m pip install {wheel_file}"
+    ]
+}
