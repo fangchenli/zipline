@@ -581,7 +581,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
             # Adding an unnecessary fuzzy shouldn't matter.
             for fuzzy_char in ["-", "/", "_", "."]:
                 self.assertEqual(
-                    asset_1, finder.lookup_symbol("TEST%s1" % fuzzy_char, as_of)
+                    asset_1, finder.lookup_symbol(f"TEST{fuzzy_char}1", as_of)
                 )
 
     def test_lookup_symbol_fuzzy(self):
@@ -1619,7 +1619,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
 
             # Adding an unnecessary delimiter shouldn't matter.
             for delimiter in "-", "/", "_", ".":
-                ticker = "TEST%sA" % delimiter
+                ticker = f"TEST{delimiter}A"
                 with self.assertRaises(SameSymbolUsedAcrossCountries):
                     finder.lookup_symbol(ticker, as_of)
 
@@ -1977,7 +1977,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
         expected_error_msg = (
             "Ambiguous ownership for 3 symbols, multiple assets held the"
             " following symbols:\n"
-            "MULTIPLE (%s):\n"
+            f"MULTIPLE ({self.country_code(0)}):\n"
             "  intersections: (('2010-01-01 00:00:00', '2012-01-01 00:00:00'),"
             " ('2011-01-01 00:00:00', '2012-01-01 00:00:00'))\n"
             "      start_date   end_date\n"
@@ -1985,7 +1985,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
             "  0   2010-01-01 2012-01-01\n"
             "  1   2010-01-01 2013-01-01\n"
             "  2   2011-01-01 2012-01-01\n"
-            "MULTIPLE (%s):\n"
+            f"MULTIPLE ({self.country_code(1)}):\n"
             "  intersections: (('2010-01-01 00:00:00', '2012-01-01 00:00:00'),"
             " ('2011-01-01 00:00:00', '2012-01-01 00:00:00'))\n"
             "      start_date   end_date\n"
@@ -1993,7 +1993,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
             "  3   2010-01-01 2012-01-01\n"
             "  4   2010-01-01 2013-01-01\n"
             "  5   2011-01-01 2012-01-01\n"
-            "MULTIPLE (%s):\n"
+            f"MULTIPLE ({self.country_code(2)}):\n"
             "  intersections: (('2010-01-01 00:00:00', '2012-01-01 00:00:00'),"
             " ('2011-01-01 00:00:00', '2012-01-01 00:00:00'))\n"
             "      start_date   end_date\n"
@@ -2001,11 +2001,6 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
             "  6   2010-01-01 2012-01-01\n"
             "  7   2010-01-01 2013-01-01\n"
             "  8   2011-01-01 2012-01-01"
-            % (
-                self.country_code(0),
-                self.country_code(1),
-                self.country_code(2),
-            )
         )
         self.assertEqual(str(e.exception), expected_error_msg)
 

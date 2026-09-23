@@ -45,7 +45,7 @@ def parse_extension_arg(arg, arg_dict):
     match = re.match(r"^(([^\d\W]\w*)(\.[^\d\W]\w*)*)=(.*)$", arg)
     if match is None:
         raise ValueError(
-            "invalid extension argument '%s', must be in key=value form" % arg
+            f"invalid extension argument '{arg}', must be in key=value form"
         )
 
     name = match.group(1)
@@ -75,7 +75,7 @@ def update_namespace(namespace, path, name):
         if hasattr(namespace, path[0]):
             if isinstance(getattr(namespace, path[0]), str):
                 raise ValueError(
-                    "Conflicting assignments at namespace level '%s'" % path[0]
+                    f"Conflicting assignments at namespace level '{path[0]}'"
                 )
         else:
             a = Namespace()
@@ -121,8 +121,7 @@ class Registry:
             return self._factories[name]()
         except KeyError:
             raise ValueError(
-                "no %s factory registered under name %r, options are: %r"
-                % (self.interface.__name__, name, sorted(self._factories)),
+                f"no {self.interface.__name__} factory registered under name {name!r}, options are: {sorted(self._factories)!r}",
             )
 
     def is_registered(self, name):
@@ -133,8 +132,7 @@ class Registry:
     def register(self, name, factory):
         if self.is_registered(name):
             raise ValueError(
-                "%s factory with name %r is already registered"
-                % (self.interface.__name__, name)
+                f"{self.interface.__name__} factory with name {name!r} is already registered"
             )
 
         self._factories[name] = factory
@@ -146,8 +144,7 @@ class Registry:
             del self._factories[name]
         except KeyError:
             raise ValueError(
-                "%s factory %r was not already registered"
-                % (self.interface.__name__, name)
+                f"{self.interface.__name__} factory {name!r} was not already registered"
             )
 
     def clear(self):

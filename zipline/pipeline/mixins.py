@@ -88,7 +88,7 @@ class RestrictedDTypeMixin(Term):
         super()._validate()
         assert self.ALLOWED_DTYPES is not NotSpecified, (
             "ALLOWED_DTYPES not supplied on subclass "
-            "of RestrictedDTypeMixin: %s." % type(self).__name__
+            f"of RestrictedDTypeMixin: {type(self).__name__}."
         )
 
         if self.dtype not in self.ALLOWED_DTYPES:
@@ -475,7 +475,7 @@ class DownsampledMixin(StandardOutputs, UniversalMixin):
         """
         to_sample = dates[select_sampling_indices(dates, self._frequency)]
         assert to_sample[0] == dates[0], (
-            "Misaligned sampling dates in %s." % type(self).__name__
+            f"Misaligned sampling dates in {type(self).__name__}."
         )
 
         real_compute = self._wrapped_term._compute
@@ -542,7 +542,7 @@ class DownsampledMixin(StandardOutputs, UniversalMixin):
         except StopIteration:
             pass
         else:
-            raise AssertionError("Unconsumed sample date: %s" % next_sample)
+            raise AssertionError(f"Unconsumed sample date: {next_sample}")
 
         # Concatenate stored results.
         return vstack(results)

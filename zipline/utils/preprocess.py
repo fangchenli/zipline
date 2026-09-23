@@ -74,13 +74,13 @@ def preprocess(*_unused, **processors):
         # Arguments can be declared as tuples in Python 2.
         if not all(isinstance(arg, str) for arg in args):
             raise TypeError(
-                "Can't validate functions using tuple unpacking: %s" % (argspec,)
+                f"Can't validate functions using tuple unpacking: {argspec}"
             )
 
         # Ensure that all processors map to valid names.
         bad_names = processors.keys() - argset
         if bad_names:
-            raise TypeError("Got processors for unknown arguments: %s." % bad_names)
+            raise TypeError(f"Got processors for unknown arguments: {bad_names}.")
 
         return _build_preprocessed_function(
             f,

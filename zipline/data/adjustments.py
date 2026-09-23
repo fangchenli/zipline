@@ -218,7 +218,7 @@ class SQLiteAdjustmentReader:
         t = (sid,)
         c = self.conn.cursor()
         adjustments_for_sid = c.execute(
-            "SELECT effective_date, ratio FROM %s WHERE sid = ?" % table_name, t
+            f"SELECT effective_date, ratio FROM {table_name} WHERE sid = ?", t
         ).fetchall()
         c.close()
 
@@ -305,12 +305,8 @@ class SQLiteAdjustmentReader:
             date_cols = self._datetime_int_cols[table_name]
         except KeyError:
             raise ValueError(
-                "Requested table %s not found.\n"
-                "Available tables: %s\n"
-                % (
-                    table_name,
-                    self._datetime_int_cols.keys(),
-                )
+                f"Requested table {table_name} not found.\n"
+                f"Available tables: {self._datetime_int_cols.keys()}\n"
             )
 
         # Dates are stored in second resolution as ints in adj.db tables.
@@ -379,7 +375,7 @@ class SQLiteAdjustmentWriter:
             self.conn = sqlite3.connect(conn_or_path)
             self.uri = conn_or_path
         else:
-            raise TypeError("Unknown connection type %s" % type(conn_or_path))
+            raise TypeError(f"Unknown connection type {type(conn_or_path)}")
 
         self._equity_daily_bar_reader = equity_daily_bar_reader
 
@@ -405,12 +401,8 @@ class SQLiteAdjustmentWriter:
             if frozenset(frame.columns) != frozenset(expected_dtypes):
                 raise ValueError(
                     "Unexpected frame columns:\n"
-                    "Expected Columns: %s\n"
-                    "Received Columns: %s"
-                    % (
-                        set(expected_dtypes),
-                        frame.columns.tolist(),
-                    )
+                    f"Expected Columns: {set(expected_dtypes)}\n"
+                    f"Received Columns: {frame.columns.tolist()}"
                 )
 
             actual_dtypes = frame.dtypes

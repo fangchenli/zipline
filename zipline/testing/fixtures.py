@@ -1758,7 +1758,7 @@ class WithUSEquityPricingPipelineEngine(WithAdjustmentReader, WithTradingSession
             if column in USEquityPricing.columns:
                 return loader
             else:
-                raise AssertionError("No loader registered for %s" % column)
+                raise AssertionError(f"No loader registered for {column}")
 
         cls.pipeline_engine = SimplePipelineEngine(
             get_loader=get_loader,

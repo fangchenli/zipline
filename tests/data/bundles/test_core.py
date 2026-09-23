@@ -377,7 +377,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             self.load("bundle", timestamp=ts, environ=self.environ)
 
         assert_in(
-            "no data for bundle 'bundle' on or before %s" % ts,
+            f"no data for bundle 'bundle' on or before {ts}",
             str(e.exception),
         )
 

@@ -397,7 +397,7 @@ class SimplePipelineEngine(PipelineEngine):
         if end_date < start_date:
             raise ValueError(
                 "start_date must be before or equal to end_date \n"
-                "start_date=%s, end_date=%s" % (start_date, end_date)
+                f"start_date={start_date}, end_date={end_date}"
             )
 
         domain = self.resolve_domain(pipeline)
@@ -691,12 +691,8 @@ class SimplePipelineEngine(PipelineEngine):
                     )
                 assert set(loaded) == set(to_load), (
                     "loader did not return an AdjustedArray for each column\n"
-                    "expected: %r\n"
-                    "got:      %r"
-                    % (
-                        sorted(to_load, key=repr),
-                        sorted(loaded, key=repr),
-                    )
+                    f"expected: {sorted(to_load, key=repr)!r}\n"
+                    f"got:      {sorted(loaded, key=repr)!r}"
                 )
                 workspace.update(loaded)
             else:

@@ -81,9 +81,7 @@ class TermGraph:
         so far. It is only used to detect dependency cycles.
         """
         if self._frozen:
-            raise ValueError(
-                "Can't mutate %s after construction." % type(self).__name__
-            )
+            raise ValueError(f"Can't mutate {type(self).__name__} after construction.")
 
         # If we've seen this node already as a parent of the current traversal,
         # it means we have an unsatisifiable dependency.  This should only be

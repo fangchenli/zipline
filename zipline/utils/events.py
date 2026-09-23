@@ -790,7 +790,7 @@ def _check_if_not_called(v):
 
     msg = f"invalid rule: {v!r}"
     if name is not None:
-        msg += " (hint: did you mean %s())" % name
+        msg += f" (hint: did you mean {name}())"
 
     raise TypeError(msg)
 

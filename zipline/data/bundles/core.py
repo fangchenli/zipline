@@ -186,7 +186,7 @@ class UnknownBundle(click.ClickException, LookupError):
 
     def __init__(self, name):
         super().__init__(
-            "No bundle registered with the name %r" % name,
+            f"No bundle registered with the name {name!r}",
         )
         self.name = name
 
@@ -212,12 +212,7 @@ class BadClean(click.ClickException, ValueError):
         super().__init__(
             "Cannot pass a combination of `before` and `after` with "
             "`keep_last`. Must pass one. "
-            "Got: before=%r, after=%r, keep_last=%r\n"
-            % (
-                before,
-                after,
-                keep_last,
-            ),
+            f"Got: before={before!r}, after={after!r}, keep_last={keep_last!r}\n",
         )
 
     def __str__(self):
@@ -325,7 +320,7 @@ def _make_bundle_core():
         """
         if name in bundles:
             warnings.warn(
-                "Overwriting bundle with name %r" % name,
+                f"Overwriting bundle with name {name!r}",
                 stacklevel=3,
             )
 

@@ -278,9 +278,9 @@ def unary_operator(op):
     # Only negate is currently supported.
     valid_ops = {"-"}
     if op not in valid_ops:
-        raise ValueError("Invalid unary operator %s." % op)
+        raise ValueError(f"Invalid unary operator {op}.")
 
-    @with_doc("Unary Operator: '%s'" % op)
+    @with_doc(f"Unary Operator: '{op}'")
     @with_name(unary_op_name(op))
     def unary_operator(self):
         if self.dtype != float64_dtype:
@@ -316,7 +316,7 @@ def function_application(func):
     subclasses.
     """
     if func not in NUMEXPR_MATH_FUNCS:
-        raise ValueError("Unsupported mathematical function '%s'" % func)
+        raise ValueError(f"Unsupported mathematical function '{func}'")
 
     docstring = dedent(
         f"""\
@@ -1454,7 +1454,7 @@ class GroupedRowTransform(Factor):
 
     def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
-        return type(self).__name__ + "(%r)" % self.transform_name
+        return type(self).__name__ + f"({self.transform_name!r})"
 
 
 class Rank(SingleInputMixin, Factor):

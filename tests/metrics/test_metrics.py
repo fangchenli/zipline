@@ -184,7 +184,7 @@ class TestConstantPrice(
     def test_equity_slippage(self, direction, check_portfolio_during_simulation):
         if direction not in ("long", "short"):
             raise ValueError(
-                "direction must be either long or short, got: %r" % direction,
+                f"direction must be either long or short, got: {direction!r}",
             )
 
         # the number of shares to order, this will be filled one share at a
@@ -359,7 +359,7 @@ class TestConstantPrice(
     def test_equity_commissions(self, direction, check_portfolio_during_simulation):
         if direction not in ("long", "short"):
             raise ValueError(
-                "direction must be either long or short, got: %r" % direction,
+                f"direction must be either long or short, got: {direction!r}",
             )
 
         shares = 100
@@ -542,7 +542,7 @@ class TestConstantPrice(
     def test_equity_single_position(self, direction, check_portfolio_during_simulation):
         if direction not in ("long", "short"):
             raise ValueError(
-                "direction must be either long or short, got: %r" % direction,
+                f"direction must be either long or short, got: {direction!r}",
             )
 
         shares = 1 if direction == "long" else -1
@@ -951,7 +951,7 @@ class TestConstantPrice(
     def test_future_single_position(self, direction, check_portfolio_during_simulation):
         if direction not in ("long", "short"):
             raise ValueError(
-                "direction must be either long or short, got: %r" % direction,
+                f"direction must be either long or short, got: {direction!r}",
             )
 
         if direction == "long":
@@ -1505,7 +1505,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
     def test_equity_single_position(self, direction, check_portfolio_during_simulation):
         if direction not in ("long", "short"):
             raise ValueError(
-                "direction must be either long or short, got: %r" % direction,
+                f"direction must be either long or short, got: {direction!r}",
             )
 
         shares = 1 if direction == "long" else -1
@@ -1894,7 +1894,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
     def test_future_single_position(self, direction, check_portfolio_during_simulation):
         if direction not in ("long", "short"):
             raise ValueError(
-                "direction must be either long or short, got: %r" % direction,
+                f"direction must be either long or short, got: {direction!r}",
             )
 
         contracts = 1 if direction == "long" else -1

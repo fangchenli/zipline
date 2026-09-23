@@ -125,7 +125,7 @@ class OpenCloseSumAndDiff(CustomFactor):
 
 def assert_multi_index_is_product(testcase, index, *levels):
     """Assert that a MultiIndex contains the product of `*levels`."""
-    testcase.assertIsInstance(index, MultiIndex, "%s is not a MultiIndex" % index)
+    testcase.assertIsInstance(index, MultiIndex, f"{index} is not a MultiIndex")
     testcase.assertEqual(set(index), set(product(*levels)))
 
 
@@ -1169,10 +1169,10 @@ class ParameterizedFactorTestCase(
     def test_ewm_stats(self, window_length):
 
         def ewma_name(decay_rate):
-            return "ewma_%s" % decay_rate
+            return f"ewma_{decay_rate}"
 
         def ewmstd_name(decay_rate):
-            return "ewmstd_%s" % decay_rate
+            return f"ewmstd_{decay_rate}"
 
         decay_rates = [0.25, 0.5, 0.75]
         ewmas = {

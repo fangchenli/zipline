@@ -199,11 +199,7 @@ class EquityCalendarDomain(Domain):
             missing_days = sessions[missing_mask]
             raise ValueError(
                 "cannot resolve data query time for sessions that are not on"
-                " the %s calendar:\n%s"
-                % (
-                    self.calendar.name,
-                    missing_days,
-                ),
+                f" the {self.calendar.name} calendar:\n{missing_days}",
             )
 
         return pd.DatetimeIndex(opens + self._data_query_offset)

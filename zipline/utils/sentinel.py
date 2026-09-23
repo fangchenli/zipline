@@ -63,10 +63,10 @@ def sentinel(name, doc=None):
         _created_at = created_at
 
         def __new__(cls):
-            raise TypeError("cannot create %r instances" % name)
+            raise TypeError(f"cannot create {name!r} instances")
 
         def __repr__(self):
-            return "sentinel(%r)" % name
+            return f"sentinel({name!r})"
 
         def __reduce__(self):
             return sentinel, (name, doc)

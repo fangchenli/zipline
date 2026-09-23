@@ -39,7 +39,7 @@ def deprecated(msg=None, stacklevel=2):
         @wraps(fn)
         def wrapper(*args, **kwargs):
             warnings.warn(
-                msg or "Function %s is deprecated." % fn.__name__,
+                msg or f"Function {fn.__name__} is deprecated.",
                 category=DeprecationWarning,
                 stacklevel=stacklevel,
             )

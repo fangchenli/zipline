@@ -278,22 +278,22 @@ class BadCallable(TypeError, AssertionError, ZiplineError):
 
 class NoStarargs(BadCallable):
     def __str__(self):
-        return "%s does not allow for *args" % self.format_callable()
+        return f"{self.format_callable()} does not allow for *args"
 
 
 class UnexpectedStarargs(BadCallable):
     def __str__(self):
-        return "%s should not allow for *args" % self.format_callable()
+        return f"{self.format_callable()} should not allow for *args"
 
 
 class NoKwargs(BadCallable):
     def __str__(self):
-        return "%s does not allow for **kwargs" % self.format_callable()
+        return f"{self.format_callable()} does not allow for **kwargs"
 
 
 class UnexpectedKwargs(BadCallable):
     def __str__(self):
-        return "%s should not allow for **kwargs" % self.format_callable()
+        return f"{self.format_callable()} should not allow for **kwargs"
 
 
 class NotCallable(BadCallable):
@@ -305,7 +305,7 @@ class NotCallable(BadCallable):
         self.callable_ = callable_
 
     def __str__(self):
-        return "%s is not callable" % self.format_callable()
+        return f"{self.format_callable()} is not callable"
 
     def format_callable(self):
         try:
@@ -338,7 +338,7 @@ class TooManyArguments(BadCallable):
     """
 
     def __str__(self):
-        return "%s accepts too many arguments" % self.format_callable()
+        return f"{self.format_callable()} accepts too many arguments"
 
 
 class MismatchedArguments(BadCallable):
@@ -347,4 +347,4 @@ class MismatchedArguments(BadCallable):
     """
 
     def __str__(self):
-        return "%s accepts mismatched parameters" % self.format_callable()
+        return f"{self.format_callable()} accepts mismatched parameters"

@@ -16,7 +16,7 @@ class CheckWindowsMixin:
 
             col_ix = np.searchsorted(assets, asset)
             if assets[col_ix] != asset:
-                raise AssertionError("asset %s is not in the window" % asset)
+                raise AssertionError(f"asset {asset} is not in the window")
 
             try:
                 expected = expected_by_day[today]

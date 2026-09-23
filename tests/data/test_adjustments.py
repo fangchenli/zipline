@@ -78,7 +78,7 @@ class TestSQLiteAdjustmentsWriter(
 
     def assert_all_empty(self, dfs):
         for k, v in dfs.items():
-            assert_equal(len(v), 0, msg="%s dataframe should be empty" % k)
+            assert_equal(len(v), 0, msg=f"{k} dataframe should be empty")
 
     def test_calculate_dividend_ratio(self):
         first_date_ix = 200

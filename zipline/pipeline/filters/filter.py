@@ -107,7 +107,7 @@ def binary_operator(op):
             )
         raise BadBinaryOperator(op, self, other)
 
-    binary_operator.__doc__ = "Binary Operator: '%s'" % op
+    binary_operator.__doc__ = f"Binary Operator: '{op}'"
     return binary_operator
 
 
@@ -117,7 +117,7 @@ def unary_operator(op):
     """
     valid_ops = {"~"}
     if op not in valid_ops:
-        raise ValueError("Invalid unary operator %s." % op)
+        raise ValueError(f"Invalid unary operator {op}.")
 
     def unary_operator(self):
         # This can't be hoisted up a scope because the types returned by
@@ -131,7 +131,7 @@ def unary_operator(op):
         else:
             return NumExprFilter.create(f"{op}x_0", (self,))
 
-    unary_operator.__doc__ = "Unary Operator: '%s'" % op
+    unary_operator.__doc__ = f"Unary Operator: '{op}'"
     return unary_operator
 
 

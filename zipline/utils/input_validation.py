@@ -562,7 +562,7 @@ def expect_bounded(__funcname=_qualified_name, **named):
             def should_fail(value):
                 return not (lower <= value <= upper)
 
-            predicate_descr = "inclusively between %s and %s" % bounds
+            predicate_descr = "inclusively between {} and {}".format(*bounds)
 
         template = (
             f"%(funcname)s() expected a value {predicate_descr}"
@@ -648,7 +648,7 @@ def expect_strictly_bounded(__funcname=_qualified_name, **named):
             def should_fail(value):
                 return not (lower < value < upper)
 
-            predicate_descr = "exclusively between %s and %s" % bounds
+            predicate_descr = "exclusively between {} and {}".format(*bounds)
 
         template = (
             f"%(funcname)s() expected a value {predicate_descr}"

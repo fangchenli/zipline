@@ -264,7 +264,7 @@ class Order:
         """
         String representation for this object.
         """
-        return "Order(%s)" % self.to_dict().__repr__()
+        return f"Order({self.to_dict().__repr__()})"
 
     def __unicode__(self):
         """

@@ -166,7 +166,7 @@ class PandasCSV(ABC):
         invalid_kwargs = set(kwargs) - ALLOWED_READ_CSV_KWARGS
         if invalid_kwargs:
             raise TypeError(
-                "Unexpected keyword arguments: %s" % invalid_kwargs,
+                f"Unexpected keyword arguments: {invalid_kwargs}",
             )
 
         self.pandas_kwargs = self.mask_pandas_args(kwargs)
@@ -538,10 +538,10 @@ class PandasRequestsCSV(PandasCSV):
         try:
             response = requests.get(url, **self.requests_kwargs)
         except requests.exceptions.ConnectionError:
-            raise Exception("Could not connect to %s" % url)
+            raise Exception(f"Could not connect to {url}")
 
         if not response.ok:
-            raise Exception("Problem reaching %s" % url)
+            raise Exception(f"Problem reaching {url}")
         elif response.is_redirect:
             # On the offchance we don't catch a redirect URL
             # in validation, this will catch it.

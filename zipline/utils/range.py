@@ -83,9 +83,9 @@ def _check_steps(a, b):
         Raised when either step is not 1.
     """
     if a.step != 1:
-        raise ValueError("a.step must be equal to 1, got: %s" % a.step)
+        raise ValueError(f"a.step must be equal to 1, got: {a.step}")
     if b.step != 1:
-        raise ValueError("b.step must be equal to 1, got: %s" % b.step)
+        raise ValueError(f"b.step must be equal to 1, got: {b.step}")
 
 
 def overlap(a, b):

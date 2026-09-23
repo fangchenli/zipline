@@ -29,7 +29,7 @@ def delimit(delimiters, content):
     '"foo"'
     """
     if len(delimiters) != 2:
-        raise ValueError("`delimiters` must be of length 2. Got %r" % delimiters)
+        raise ValueError(f"`delimiters` must be of length 2. Got {delimiters!r}")
     return "".join([delimiters[0], content, delimiters[1]])
 
 
@@ -38,13 +38,13 @@ bracket = partial(delimit, "[]")
 
 
 def begin_graph(f, name, **attrs):
-    writeln(f, "strict digraph %s {" % name)
+    writeln(f, f"strict digraph {name} {{")
     writeln(f, f"graph {format_attrs(attrs)}")
 
 
 def begin_cluster(f, name, **attrs):
     attrs.setdefault("label", quote(name))
-    writeln(f, "subgraph cluster_%s {" % name)
+    writeln(f, f"subgraph cluster_{name} {{")
     writeln(f, f"graph {format_attrs(attrs)}")
 
 
@@ -137,7 +137,7 @@ def _render(g, out, format_, include_asset_exists=False):
     proc_stdout, proc_stderr = proc.communicate(f.read())
     if proc_stderr:
         raise RuntimeError(
-            "Error(s) while rendering graph: %s" % proc_stderr.decode("utf-8")
+            "Error(s) while rendering graph: {}".format(proc_stderr.decode("utf-8"))
         )
 
     out.write(proc_stdout)
@@ -171,7 +171,7 @@ def fmt(obj):
         r = obj.graph_repr()
     else:
         r = obj
-    return '"%s"' % r
+    return f'"{r}"'
 
 
 def add_term_node(f, term):

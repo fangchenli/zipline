@@ -463,8 +463,8 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
 
         expected_msg = (
             "cannot resolve data query time for sessions that are not on the"
-            " %s calendar:\n%s"
-        ) % (domain.calendar.name, invalid_sessions)
+            f" {domain.calendar.name} calendar:\n{invalid_sessions}"
+        )
         assert_messages_equal(str(e.exception), expected_msg)
 
     Case = namedtuple("Case", "time date_offset expected_timedelta")

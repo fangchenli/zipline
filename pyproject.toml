@@ -127,6 +127,11 @@ extend-exclude = ["docs"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B"]
+ignore = [
+    # zip(strict=True) would raise where the code relies on zip truncating;
+    # adding strict=False everywhere is noise.
+    "B905",
+]
 
 [tool.ty.environment]
 python-version = "3.12"

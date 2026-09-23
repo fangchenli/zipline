@@ -557,7 +557,7 @@ class AssetFinder:
 
         # We shouldn't know about any other asset types.
         if type_to_assets:
-            raise AssertionError("Found asset types: %s" % list(type_to_assets.keys()))
+            raise AssertionError(f"Found asset types: {list(type_to_assets.keys())}")
 
         return [hits[sid] for sid in sids]
 
@@ -827,7 +827,7 @@ class AssetFinder:
         company_symbol, share_class_symbol = split_delimited_symbol(symbol)
         try:
             owners = ownership_map[company_symbol, share_class_symbol]
-            assert owners, "empty owners list for %r" % symbol
+            assert owners, f"empty owners list for {symbol!r}"
         except KeyError:
             # no equity has ever held this symbol
             raise SymbolNotFound(symbol=symbol)
@@ -887,7 +887,7 @@ class AssetFinder:
         company_symbol, share_class_symbol = split_delimited_symbol(symbol)
         try:
             owners = ownership_map[company_symbol + share_class_symbol]
-            assert owners, "empty owners list for %r" % symbol
+            assert owners, f"empty owners list for {symbol!r}"
         except KeyError:
             # no equity has ever held a symbol matching the fuzzy symbol
             raise SymbolNotFound(symbol=symbol)
@@ -1007,7 +1007,7 @@ class AssetFinder:
         """
         if symbol is None:
             raise TypeError(
-                "Cannot lookup asset for symbol of None for as of date %s." % as_of_date
+                f"Cannot lookup asset for symbol of None for as of date {as_of_date}."
             )
 
         if fuzzy:
@@ -1349,7 +1349,7 @@ class AssetFinder:
                 except SymbolNotFound:
                     return None
 
-        raise NotAssetConvertible("Input was %s, not AssetConvertible." % obj)
+        raise NotAssetConvertible(f"Input was {obj}, not AssetConvertible.")
 
     def lookup_generic(self, obj, as_of_date, country_code):
         """

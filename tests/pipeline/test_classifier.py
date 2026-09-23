@@ -470,7 +470,7 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             "Expected `choices` to be an iterable of hashable values,"
             " but got [{'a': 1}] instead.\n"
             "This caused the following error: "
-            "%r." % (hash_error,)
+            f"{hash_error!r}."
         )
         self.assertEqual(errmsg, expected)
 
@@ -613,7 +613,7 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
         self.assertEqual(
             str(e.exception),
             "cannot compare classifiers with {}".format(
-                methods_to_ops["__%s__" % compare_op.__name__],
+                methods_to_ops[f"__{compare_op.__name__}__"],
             ),
         )
 

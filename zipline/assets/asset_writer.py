@@ -111,7 +111,7 @@ def _default_none(df, column):
 
 def _no_default(df, column):
     if not df.empty:
-        raise ValueError("no default value for column %r" % column)
+        raise ValueError(f"no default value for column {column!r}")
 
 
 # Default values for the equities DataFrame
@@ -856,7 +856,7 @@ class AssetDBWriter:
 
         else:
             raise ValueError(
-                "asset_type must be in {'future', 'equity'}, got: %s" % asset_type,
+                f"asset_type must be in {{'future', 'equity'}}, got: {asset_type}",
             )
 
         self._write_df_to_table(tbl, assets, txn, chunk_size)

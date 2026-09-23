@@ -1513,7 +1513,7 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
                 err_msg=f"field={field} minute={minute}",
             )
 
-    @parameterized.expand([(("bar_count%s" % x), x) for x in [1, 2, 3]])
+    @parameterized.expand([((f"bar_count{x}"), x) for x in [1, 2, 3]])
     def test_daily_history_minute_gaps_price_ffill(self, test_name, bar_count):
         # Make sure we use the previous day's value when there's been no volume
         # yet today.

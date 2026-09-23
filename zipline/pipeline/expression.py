@@ -222,7 +222,7 @@ class NumericalExpression(ComputableTerm):
                 continue
             match = _VARIABLE_NAME_RE.match(name)
             if not match:
-                raise ValueError("%r is not a valid variable name" % name)
+                raise ValueError(f"{name!r} is not a valid variable name")
             expr_indices.append(int(match.group(2)))
 
         expr_indices.sort()

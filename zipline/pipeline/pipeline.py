@@ -249,7 +249,7 @@ class Pipeline:
         else:
             # We should never get here because of the expect_element decorator
             # above.
-            raise AssertionError("Unknown graph format %r." % format)
+            raise AssertionError(f"Unknown graph format {format!r}.")
 
     @staticmethod
     @expect_types(term=Term, column_name=str)

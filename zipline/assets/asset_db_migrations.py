@@ -32,7 +32,7 @@ def alter_columns(op, name, *columns, **kwargs):
     selection_string = kwargs.pop("selection_string", None)
     if kwargs:
         raise TypeError(
-            "alter_columns received extra arguments: %r" % sorted(kwargs),
+            f"alter_columns received extra arguments: {sorted(kwargs)!r}",
         )
     if selection_string is None:
         selection_string = ", ".join(column.name for column in columns)

@@ -856,14 +856,16 @@ class SubTestFailures(AssertionError):
         return "\n    ".join("".join(format_exception(*exc_info)).splitlines())
 
     def __str__(self):
-        return "failures:\n  %s" % "\n  ".join(
-            "\n    ".join(
-                (
-                    ", ".join("%s=%r" % item for item in scope.items()),
-                    self._format_exc(exc_info),
+        return "failures:\n  {}".format(
+            "\n  ".join(
+                "\n    ".join(
+                    (
+                        ", ".join("{}={!r}".format(*item) for item in scope.items()),
+                        self._format_exc(exc_info),
+                    )
                 )
+                for scope, exc_info in self.failures
             )
-            for scope, exc_info in self.failures
         )
 
 
@@ -1155,15 +1157,15 @@ def parameter_space(__fail_fast=_FAIL_FAST_DEFAULT, **params):
         extra = set(params) - set(argnames)
         if extra:
             raise AssertionError(
-                "Keywords %s supplied to parameter_space() are "
-                "not in function signature." % extra
+                f"Keywords {extra} supplied to parameter_space() are "
+                "not in function signature."
             )
 
         unspecified = set(argnames) - set(params)
         if unspecified:
             raise AssertionError(
-                "Function arguments %s were not "
-                "supplied to parameter_space()." % unspecified
+                f"Function arguments {unspecified} were not "
+                "supplied to parameter_space()."
             )
 
         def make_param_sets():
@@ -1511,8 +1513,7 @@ def patch_read_csv(url_map, module=pd, strict=False):
             return read_csv(filepath_or_buffer, *args, **kwargs)
         else:
             raise AssertionError(
-                "attempted to call read_csv on  %r which not in the url map"
-                % filepath_or_buffer,
+                f"attempted to call read_csv on  {filepath_or_buffer!r} which not in the url map",
             )
 
     with patch.object(module, "read_csv", patched_read_csv):

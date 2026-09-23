@@ -41,10 +41,10 @@ def compare_arrays(left, right):
 
 def _make_unsupported_method(name):
     def method(*args, **kwargs):
-        raise NotImplementedError("Method %s is not supported on LabelArrays." % name)
+        raise NotImplementedError(f"Method {name} is not supported on LabelArrays.")
 
     method.__name__ = name
-    method.__doc__ = "Unsupported LabelArray Method: %s" % name
+    method.__doc__ = f"Unsupported LabelArray Method: {name}"
     return method
 
 
@@ -362,7 +362,7 @@ class LabelArray(ndarray):
         if isinstance(value, self.SUPPORTED_SCALAR_TYPES):
             value_code = self.reverse_categories.get(value, None)
             if value_code is None:
-                raise ValueError("%r is not in LabelArray categories." % value)
+                raise ValueError(f"{value!r} is not in LabelArray categories.")
             self.as_int_array()[indexer] = value_code
         elif isinstance(value, LabelArray):
             value_categories = value.categories
@@ -409,7 +409,7 @@ class LabelArray(ndarray):
         try:
             value_code = self.reverse_categories[value]
         except KeyError:
-            raise ValueError("%r is not in LabelArray categories." % value)
+            raise ValueError(f"{value!r} is not in LabelArray categories.")
 
         self.as_int_array()[indexer] = value_code
 
@@ -528,12 +528,8 @@ class LabelArray(ndarray):
             )
 
         raise TypeError(
-            "%s can only be converted into object, string, or void,"
-            " got: %r"
-            % (
-                type(self).__name__,
-                dtype,
-            ),
+            f"{type(self).__name__} can only be converted into object, string, or void,"
+            f" got: {dtype!r}",
         )
 
     # In general, we support resizing, slicing, and reshaping methods, but not

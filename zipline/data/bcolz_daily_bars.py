@@ -155,9 +155,9 @@ class BcolzDailyBarWriter:
 
         if start_session != end_session:
             if not calendar.is_session(start_session):
-                raise ValueError("Start session %s is invalid!" % start_session)
+                raise ValueError(f"Start session {start_session} is invalid!")
             if not calendar.is_session(end_session):
-                raise ValueError("End session %s is invalid!" % end_session)
+                raise ValueError(f"End session {end_session} is invalid!")
 
         self._start_session = start_session
         self._end_session = end_session
@@ -260,7 +260,7 @@ class BcolzDailyBarWriter:
             def iterator(iterator=iterator, assets=set(assets)):
                 for asset_id, table in iterator:
                     if asset_id not in assets:
-                        raise ValueError("unknown asset id %r" % asset_id)
+                        raise ValueError(f"unknown asset id {asset_id!r}")
                     yield asset_id, table
 
         for asset_id, table in iterator:

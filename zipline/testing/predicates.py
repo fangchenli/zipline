@@ -63,7 +63,7 @@ class wildcard:
         return False
 
     def __repr__(self):
-        return "<%s>" % type(self).__name__
+        return f"<{type(self).__name__}>"
 
 
 class instance_of:
@@ -101,7 +101,11 @@ class instance_of:
         typenames = tuple(t.__name__ for t in self.types)
         return "{}({}{})".format(
             type(self).__name__,
-            (typenames[0] if len(typenames) == 1 else "(%s)" % ", ".join(typenames)),
+            (
+                typenames[0]
+                if len(typenames) == 1
+                else "({})".format(", ".join(typenames))
+            ),
             ", exact=True" if self.exact else "",
         )
 
@@ -464,7 +468,7 @@ def assert_dict_equal(result, expected, path=(), msg="", **kwargs):
         result.keys(),
         expected.keys(),
         msg,
-        path + (".%s()" % "keys",),
+        path + (".{}()".format("keys"),),
         "key",
     )
 
@@ -558,8 +562,8 @@ def assert_array_equal(
     if result_dtype.kind in "mM" and expected_dtype.kind in "mM":
         assert result_dtype == expected_dtype, (
             "\nType mismatch:\n\n"
-            "result dtype: %s\n"
-            "expected dtype: %s\n%s" % (result_dtype, expected_dtype, _fmt_path(path))
+            f"result dtype: {result_dtype}\n"
+            f"expected dtype: {expected_dtype}\n{_fmt_path(path)}"
         )
 
         f = partial(
@@ -689,14 +693,8 @@ def assert_timestamp_and_datetime_equal(
     Returns raises unless ``allow_datetime_coercions`` is passed as True.
     """
     assert allow_datetime_coercions or type(result) == type(expected), (
-        "%sdatetime types (%s, %s) don't match and "
-        "allow_datetime_coercions was not set.\n%s"
-        % (
-            _fmt_msg(msg),
-            type(result),
-            type(expected),
-            _fmt_path(path),
-        )
+        f"{_fmt_msg(msg)}datetime types ({type(result)}, {type(expected)}) don't match and "
+        f"allow_datetime_coercions was not set.\n{_fmt_path(path)}"
     )
 
     if isinstance(result, pd.Timestamp) and isinstance(expected, pd.Timestamp):

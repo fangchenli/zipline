@@ -91,7 +91,7 @@ class PrecomputedLoader(PipelineLoader):
                 if loader is None:
                     loader = self._loaders[col.unspecialize()]
             except KeyError:
-                raise ValueError("Couldn't find loader for %s" % col)
+                raise ValueError(f"Couldn't find loader for {col}")
             out.update(loader.load_adjusted_array(domain, [col], dates, sids, mask))
         return out
 

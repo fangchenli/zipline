@@ -434,7 +434,7 @@ class EventsLoaderTestCase(WithAssetFinder, WithTradingSessions, ZiplineTestCase
                     self.trading_days,
                 )
             else:
-                raise AssertionError("Unexpected column %s." % c)
+                raise AssertionError(f"Unexpected column {c}.")
 
     def test_load_properly_forward_fills(self):
 
@@ -463,7 +463,7 @@ class EventsLoaderTestCase(WithAssetFinder, WithTradingSessions, ZiplineTestCase
                     dates,
                 )
             else:
-                raise AssertionError("Unexpected column %s." % c)
+                raise AssertionError(f"Unexpected column {c}.")
 
     def assert_result_contains_all_sids(self, results):
         assert_equal(

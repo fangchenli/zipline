@@ -53,7 +53,7 @@ make_datetime64D = flip(datetime64, "D")
 assert_array_compare = np.testing.assert_array_compare
 
 NaTmap = {
-    dtype("datetime64[%s]" % unit): datetime64("NaT", unit)
+    dtype(f"datetime64[{unit}]"): datetime64("NaT", unit)
     for unit in ("ns", "us", "ms", "s", "m", "D")
 }
 
@@ -156,7 +156,7 @@ def coerce_to_dtype(dtype, value):
         elif name == "datetime64[ns]":
             return make_datetime64ns(value)
         else:
-            raise TypeError("Don't know how to coerce values of dtype %s" % dtype)
+            raise TypeError(f"Don't know how to coerce values of dtype {dtype}")
     return dtype.type(value)
 
 
@@ -167,7 +167,7 @@ def default_missing_value_for_dtype(dtype):
     try:
         return _FILLVALUE_DEFAULTS[dtype]
     except KeyError:
-        raise NoDefaultMissingValue("No default value registered for dtype %s." % dtype)
+        raise NoDefaultMissingValue(f"No default value registered for dtype {dtype}.")
 
 
 def repeat_first_axis(array, count):
@@ -479,7 +479,7 @@ def as_column(a):
     if a.ndim != 1:
         raise ValueError(
             "as_column expected an 1-dimensional array, "
-            "but got an array of shape %s" % (a.shape,)
+            f"but got an array of shape {a.shape}"
         )
     return a[:, None]
 

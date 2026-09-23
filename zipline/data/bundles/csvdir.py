@@ -125,14 +125,14 @@ def csvdir_bundle(
             raise ValueError("CSVDIR environment variable is not set")
 
     if not os.path.isdir(csvdir):
-        raise ValueError("%s is not a directory" % csvdir)
+        raise ValueError(f"{csvdir} is not a directory")
 
     if not tframes:
         tframes = {"daily", "minute"}.intersection(os.listdir(csvdir))
 
         if not tframes:
             raise ValueError(
-                "'daily' and 'minute' directories not found in '%s'" % csvdir
+                f"'daily' and 'minute' directories not found in '{csvdir}'"
             )
 
     divs_splits = {
@@ -155,7 +155,7 @@ def csvdir_bundle(
             item.split(".csv")[0] for item in os.listdir(ddir) if ".csv" in item
         )
         if not symbols:
-            raise ValueError("no <symbol>.csv* files found in %s" % ddir)
+            raise ValueError(f"no <symbol>.csv* files found in {ddir}")
 
         dtype = [
             ("start_date", "datetime64[ns]"),
@@ -198,7 +198,7 @@ def _pricing_iter(csvdir, symbols, metadata, divs_splits, show_progress):
             logger.debug(f"{symbol}: sid {sid}")
 
             try:
-                fname = [fname for fname in files if "%s.csv" % symbol in fname][0]
+                fname = [fname for fname in files if f"{symbol}.csv" in fname][0]
             except IndexError:
                 raise ValueError(f"{symbol}.csv file is not in {csvdir}")
 

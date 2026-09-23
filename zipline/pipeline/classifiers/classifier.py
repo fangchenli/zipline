@@ -303,13 +303,13 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
                     f"Found non-string in choices for {type(self).__name__}.element_of.\n"
                     f"Supplied choices were {choices}."
                 )
-        assert False, "Unknown dtype in Classifier.element_of %s." % self.dtype
+        assert False, f"Unknown dtype in Classifier.element_of {self.dtype}."
 
     def postprocess(self, data):
         if self.dtype == int64_dtype:
             return data
         if not isinstance(data, LabelArray):
-            raise AssertionError("Expected a LabelArray, got %s." % type(data))
+            raise AssertionError(f"Expected a LabelArray, got {type(data)}.")
         return data.as_categorical()
 
     def to_workspace_value(self, result, assets):
@@ -323,7 +323,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             return super().to_workspace_value(result, assets)
 
         assert isinstance(result.values, pd.Categorical), (
-            "Expected a Categorical, got %r." % type(result.values)
+            f"Expected a Categorical, got {type(result.values)!r}."
         )
         with_missing = pd.Series(
             data=pd.Categorical(
@@ -359,7 +359,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             group_labels = output_array.as_int_array()
             null_label = output_array.missing_value_code
         else:
-            raise AssertionError("Unexpected Classifier dtype: %s." % self.dtype)
+            raise AssertionError(f"Unexpected Classifier dtype: {self.dtype}.")
         return group_labels, null_label
 
     def peer_count(self, mask=NotSpecified):

@@ -115,6 +115,6 @@ class AdjustmentTestCase(TestCase):
         exc = e.exception
         expected_msg = (
             "Don't know how to make overwrite adjustments for values of type "
-            "%r." % SomeClass
+            f"{SomeClass!r}."
         )
         self.assertEqual(str(exc), expected_msg)

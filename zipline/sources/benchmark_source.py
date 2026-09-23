@@ -308,5 +308,5 @@ class BenchmarkSource:
         else:
             raise ValueError(
                 "cannot set benchmark to asset that does not exist during"
-                " the simulation period (asset start date=%r)" % start_date
+                f" the simulation period (asset start date={start_date!r})"
             )

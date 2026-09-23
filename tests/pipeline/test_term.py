@@ -721,13 +721,13 @@ class SubDataSetTestCase(TestCase):
             self.assertIsNot(
                 some_dataset_column,
                 sub_dataset_column,
-                "subclass column %r should not have the same identity as"
-                " the parent" % k,
+                f"subclass column {k!r} should not have the same identity as"
+                " the parent",
             )
             self.assertEqual(
                 some_dataset_column.dtype,
                 sub_dataset_column.dtype,
-                "subclass column %r should have the same dtype as the parent" % k,
+                f"subclass column {k!r} should have the same dtype as the parent",
             )
 
     def test_add_column(self):
@@ -753,13 +753,13 @@ class SubDataSetTestCase(TestCase):
             self.assertIsNot(
                 some_dataset_column,
                 sub_dataset_column,
-                "subclass column %r should not have the same identity as"
-                " the parent" % k,
+                f"subclass column {k!r} should not have the same identity as"
+                " the parent",
             )
             self.assertEqual(
                 some_dataset_column.dtype,
                 sub_dataset_column.dtype,
-                "subclass column %r should have the same dtype as the parent" % k,
+                f"subclass column {k!r} should have the same dtype as the parent",
             )
 
     @parameter_space(

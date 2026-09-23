@@ -575,7 +575,7 @@ def log_nyse_close(context, data):
         self.assertEqual(
             len(function_stack),
             3900,
-            "Incorrect number of functions called: %s != 3900" % len(function_stack),
+            f"Incorrect number of functions called: {len(function_stack)} != 3900",
         )
         expected_functions = [pre, handle_data, f, g, post] * 97530
         for n, (f, g) in enumerate(zip(function_stack, expected_functions)):
@@ -1876,7 +1876,7 @@ def handle_data(context, data):
             algo.run()
 
         self.assertEqual(
-            "%s() got an unexpected keyword argument 'blahblah'" % name,
+            f"{name}() got an unexpected keyword argument 'blahblah'",
             cm.exception.args[0],
         )
 

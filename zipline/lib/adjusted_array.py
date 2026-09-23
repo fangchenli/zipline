@@ -116,7 +116,7 @@ def _normalize_array(data, missing_value):
         if not isinstance(missing_value, LabelArray.SUPPORTED_SCALAR_TYPES):
             raise TypeError(
                 "Invalid missing_value for categorical array.\n"
-                "Expected None, bytes or unicode. Got %r." % missing_value,
+                f"Expected None, bytes or unicode. Got {missing_value!r}.",
             )
         return LabelArray(data, missing_value), {}
     elif data_dtype.kind == "M":
@@ -127,12 +127,12 @@ def _normalize_array(data, missing_value):
             raise ValueError(
                 "AdjustedArray received a datetime array "
                 "not representable as datetime64[ns].\n"
-                "Min Date: %s\n"
-                "Max Date: %s\n" % (data.min(), data.max())
+                f"Min Date: {data.min()}\n"
+                f"Max Date: {data.max()}\n"
             )
     else:
         raise TypeError(
-            "Don't know how to construct AdjustedArray on data of type %s." % data_dtype
+            f"Don't know how to construct AdjustedArray on data of type {data_dtype}."
         )
 
 
@@ -240,8 +240,9 @@ class AdjustedArray:
             merge_func = _merge_methods[method]
         except KeyError:
             raise ValueError(
-                "Invalid merge method %s\n"
-                "Valid methods are: %s" % (method, ", ".join(_merge_methods))
+                "Invalid merge method {}\nValid methods are: {}".format(
+                    method, ", ".join(_merge_methods)
+                )
             )
 
         self.adjustments = merge_with(
@@ -362,8 +363,7 @@ def ensure_adjusted_array(ndarray_or_adjusted_array, missing_value):
         )
     else:
         raise TypeError(
-            "Can't convert %s to AdjustedArray"
-            % type(ndarray_or_adjusted_array).__name__
+            f"Can't convert {type(ndarray_or_adjusted_array).__name__} to AdjustedArray"
         )
 
 
@@ -388,7 +388,7 @@ def ensure_ndarray(ndarray_or_adjusted_array):
         return ndarray_or_adjusted_array.data
     else:
         raise TypeError(
-            "Can't convert %s to ndarray" % type(ndarray_or_adjusted_array).__name__
+            f"Can't convert {type(ndarray_or_adjusted_array).__name__} to ndarray"
         )
 
 

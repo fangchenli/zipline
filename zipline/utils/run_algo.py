@@ -125,7 +125,7 @@ def _run(
                 name, value = assign.split("=", 2)
             except ValueError:
                 raise ValueError(
-                    "invalid define %r, should be of the form name=value" % assign,
+                    f"invalid define {assign!r}, should be of the form name=value",
                 )
             try:
                 # evaluate in the same namespace so names may refer to
@@ -175,7 +175,7 @@ def _run(
     def choose_loader(column):
         if column in USEquityPricing.columns:
             return pipeline_loader
-        raise ValueError("No PipelineLoader registered for column %s." % column)
+        raise ValueError(f"No PipelineLoader registered for column {column}.")
 
     if isinstance(metrics_set, str):
         try:
@@ -516,8 +516,7 @@ class BenchmarkSpec:
                 benchmark_returns = None
             except SymbolNotFound:
                 raise _RunAlgoError(
-                    "Symbol %r as a benchmark not found in this bundle."
-                    % self.benchmark_symbol
+                    f"Symbol {self.benchmark_symbol!r} as a benchmark not found in this bundle."
                 )
         elif self.no_benchmark:
             benchmark_sid = None

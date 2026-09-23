@@ -268,7 +268,7 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
         :class:`ExponentialWeightedMovingStdDev`.
         """
         if span <= 1:
-            raise ValueError("`span` must be a positive number. %s was passed." % span)
+            raise ValueError(f"`span` must be a positive number. {span} was passed.")
 
         decay_rate = 1.0 - (2.0 / (1.0 + span))
         assert 0.0 < decay_rate <= 1.0
@@ -311,7 +311,7 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
         """
         if halflife <= 0:
             raise ValueError(
-                "`span` must be a positive number. %s was passed." % halflife
+                f"`span` must be a positive number. {halflife} was passed."
             )
         decay_rate = exp(log(0.5) / halflife)
         assert 0.0 < decay_rate <= 1.0

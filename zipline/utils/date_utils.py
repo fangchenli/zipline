@@ -54,17 +54,21 @@ def compute_date_range_chunks(sessions, start_date, end_date, chunksize):
     """
     if start_date not in sessions:
         raise KeyError(
-            "Start date %s is not found in calendar."
-            % (start_date.strftime("%Y-%m-%d"),)
+            "Start date {} is not found in calendar.".format(
+                start_date.strftime("%Y-%m-%d")
+            )
         )
     if end_date not in sessions:
         raise KeyError(
-            "End date %s is not found in calendar." % (end_date.strftime("%Y-%m-%d"),)
+            "End date {} is not found in calendar.".format(
+                end_date.strftime("%Y-%m-%d")
+            )
         )
     if end_date < start_date:
         raise ValueError(
-            "End date %s cannot precede start date %s."
-            % (end_date.strftime("%Y-%m-%d"), start_date.strftime("%Y-%m-%d"))
+            "End date {} cannot precede start date {}.".format(
+                end_date.strftime("%Y-%m-%d"), start_date.strftime("%Y-%m-%d")
+            )
         )
 
     if chunksize is None:

@@ -354,7 +354,7 @@ class BoundColumn(LoadableTerm):
         elif dtype in Classifier.ALLOWED_DTYPES:
             Latest = LatestClassifier
         else:
-            assert dtype in Factor.ALLOWED_DTYPES, "Unknown dtype %s." % dtype
+            assert dtype in Factor.ALLOWED_DTYPES, f"Unknown dtype {dtype}."
             Latest = LatestFactor
 
         return Latest(
@@ -528,7 +528,7 @@ class DataSetMeta(type):
         return id(self) < id(other)
 
     def __repr__(self):
-        return "<DataSet: %r, domain=%s>" % (self.__name__, self.domain)
+        return f"<DataSet: {self.__name__!r}, domain={self.domain}>"
 
 
 class DataSet(metaclass=DataSetMeta):
@@ -750,7 +750,7 @@ class DataSetFamilyMeta(abc.ABCMeta):
 
                 locals().update(columns)
 
-            BaseSlice.__name__ = "%sBaseSlice" % self.__name__
+            BaseSlice.__name__ = f"{self.__name__}BaseSlice"
             self._SliceType = BaseSlice
 
         # each type gets a unique cache
@@ -758,9 +758,8 @@ class DataSetFamilyMeta(abc.ABCMeta):
         return self
 
     def __repr__(self):
-        return "<DataSetFamily: %r, extra_dims=%r>" % (
-            self.__name__,
-            list(self.extra_dims),
+        return (
+            f"<DataSetFamily: {self.__name__!r}, extra_dims={list(self.extra_dims)!r}>"
         )
 
 
@@ -863,9 +862,8 @@ class DataSetFamily(metaclass=DataSetFamilyMeta):
         if not set(kwargs) <= dimensions_set:
             extra = sorted(set(kwargs) - dimensions_set)
             raise TypeError(
-                "%s does not have the following %s: %s\n"
-                "Valid dimensions are: %s"
-                % (
+                "{} does not have the following {}: {}\n"
+                "Valid dimensions are: {}".format(
                     cls.__name__,
                     s("dimension", extra),
                     ", ".join(extra),
@@ -894,11 +892,7 @@ class DataSetFamily(metaclass=DataSetFamilyMeta):
         for key, value in kwargs.items():
             if key in added:
                 raise TypeError(
-                    "%s got multiple values for dimension %r"
-                    % (
-                        cls.__name__,
-                        coords,
-                    ),
+                    f"{cls.__name__} got multiple values for dimension {coords!r}",
                 )
             coords[key] = value
             added.add(key)
@@ -907,8 +901,7 @@ class DataSetFamily(metaclass=DataSetFamilyMeta):
         if missing:
             missing = sorted(missing)
             raise TypeError(
-                "no coordinate provided to %s for the following %s: %s"
-                % (
+                "no coordinate provided to {} for the following {}: {}".format(
                     cls.__name__,
                     s("dimension", missing),
                     ", ".join(missing),
@@ -920,12 +913,7 @@ class DataSetFamily(metaclass=DataSetFamilyMeta):
         for key, value in coords.items():
             if value not in cls.extra_dims[key]:
                 raise ValueError(
-                    "%r is not a value along the %s dimension of %s"
-                    % (
-                        value,
-                        key,
-                        cls.__name__,
-                    ),
+                    f"{value!r} is not a value along the {key} dimension of {cls.__name__}",
                 )
 
         return coords, tuple(coords.items())
@@ -937,9 +925,9 @@ class DataSetFamily(metaclass=DataSetFamilyMeta):
         class Slice(cls._SliceType):
             extra_coords = coords
 
-        Slice.__name__ = "%s.slice(%s)" % (
+        Slice.__name__ = "{}.slice({})".format(
             cls.__name__,
-            ", ".join("%s=%r" % item for item in coords.items()),
+            ", ".join("{}={!r}".format(*item) for item in coords.items()),
         )
         return Slice
 

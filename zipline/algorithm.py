@@ -699,20 +699,19 @@ class TradingAlgorithm:
             )
 
             log.info(
-                "Processing capital change to target %s at %s. Capital "
-                "change delta is %s" % (target, key, capital_change_amount)
+                f"Processing capital change to target {target} at {key}. Capital "
+                f"change delta is {capital_change_amount}"
             )
         elif capital_change["type"] == "delta":
             target = None
             capital_change_amount = capital_change["value"]
             log.info(
-                "Processing capital change of delta %s at %s"
-                % (capital_change_amount, key)
+                f"Processing capital change of delta {capital_change_amount} at {key}"
             )
         else:
             log.error(
-                "Capital change %s does not indicate a valid type "
-                "('target' or 'delta')" % capital_change
+                f"Capital change {capital_change} does not indicate a valid type "
+                "('target' or 'delta')"
             )
             return
 
@@ -782,7 +781,7 @@ class TradingAlgorithm:
                 return env[field]
             except KeyError:
                 raise ValueError(
-                    "%r is not a valid field for get_environment" % field,
+                    f"{field!r} is not a valid field for get_environment",
                 )
 
     @api_method

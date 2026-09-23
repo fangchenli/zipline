@@ -51,7 +51,7 @@ def api_method(f):
         algo_instance = get_algo_instance()
         if algo_instance is None:
             raise RuntimeError(
-                "zipline api method %s must be called during a simulation." % f.__name__
+                f"zipline api method {f.__name__} must be called during a simulation."
             )
         return getattr(algo_instance, f.__name__)(*args, **kwargs)
 

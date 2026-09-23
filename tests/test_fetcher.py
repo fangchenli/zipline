@@ -457,7 +457,7 @@ def handle_data(context, data):
             """
             replacement = ""
             if column_name:
-                replacement = ",symbol_column='%s'\n" % column_name
+                replacement = f",symbol_column='{column_name}'\n"
             real_algocode = algocode.format(token=replacement)
 
             results = self.run_algo(real_algocode, sim_params=sim_params)
