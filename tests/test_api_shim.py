@@ -135,6 +135,9 @@ class TestAPIShim(WithCreateBarData,
     START_DATE = pd.Timestamp("2016-01-05")
     END_DATE = pd.Timestamp("2016-01-28")
     SIM_PARAMS_DATA_FREQUENCY = 'minute'
+    # Use static benchmark returns: some tests patch
+    # DataPortal.get_history_window, which a benchmark asset would also use.
+    BENCHMARK_SID = None
 
     sids = ASSET_FINDER_EQUITY_SIDS = 1, 2, 3
 

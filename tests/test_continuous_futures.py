@@ -851,16 +851,16 @@ def record_current_contract(algo, data):
             Timestamp('2016-01-26 18:01', tz='US/Eastern').tz_convert('UTC'),
             30, '1m', 'sid', 'minute')
 
-        self.assertEqual(window.loc['2016-01-26 22:32', cf],
+        self.assertEqual(window.loc['2016-01-26 22:32', cf.sid],
                          0,
                          "Should be FOF16 at beginning of window. A minute "
                          "which is in the 01-26 session, before the roll.")
 
-        self.assertEqual(window.loc['2016-01-26 23:00', cf],
+        self.assertEqual(window.loc['2016-01-26 23:00', cf.sid],
                          0,
                          "Should be FOF16 on on minute before roll minute.")
 
-        self.assertEqual(window.loc['2016-01-26 23:01', cf],
+        self.assertEqual(window.loc['2016-01-26 23:01', cf.sid],
                          1,
                          "Should be FOG16 on minute after roll.")
 
@@ -870,11 +870,11 @@ def record_current_contract(algo, data):
             Timestamp('2016-01-27 18:01', tz='US/Eastern').tz_convert('UTC'),
             30, '1m', 'sid', 'minute')
 
-        self.assertEqual(window.loc['2016-01-27 22:32', cf],
+        self.assertEqual(window.loc['2016-01-27 22:32', cf.sid],
                          1,
                          "Should be FOG16 at beginning of window.")
 
-        self.assertEqual(window.loc['2016-01-27 23:01', cf],
+        self.assertEqual(window.loc['2016-01-27 23:01', cf.sid],
                          1,
                          "Should remain FOG16 on next session.")
 
@@ -887,17 +887,17 @@ def record_current_contract(algo, data):
             30, '1d', 'close', 'daily')
 
         assert_almost_equal(
-            window.loc['2016-01-26', cf],
+            window.loc['2016-01-26', cf.sid],
             105011.440,
             err_msg="At beginning of window, should be FOG16's first value.")
 
         assert_almost_equal(
-            window.loc['2016-02-26', cf],
+            window.loc['2016-02-26', cf.sid],
             125241.440,
             err_msg="On session with roll, should be FOH16's 24th value.")
 
         assert_almost_equal(
-            window.loc['2016-02-29', cf],
+            window.loc['2016-02-29', cf.sid],
             125251.440,
             err_msg="After roll, Should be FOH16's 25th value.")
 
@@ -908,27 +908,27 @@ def record_current_contract(algo, data):
             30, '1d', 'close', 'daily')
 
         assert_almost_equal(
-            window.loc['2016-02-24', cf],
+            window.loc['2016-02-24', cf.sid],
             115221.440,
             err_msg="At beginning of window, should be FOG16's 22nd value.")
 
         assert_almost_equal(
-            window.loc['2016-02-26', cf],
+            window.loc['2016-02-26', cf.sid],
             125241.440,
             err_msg="On session with roll, should be FOH16's 24th value.")
 
         assert_almost_equal(
-            window.loc['2016-02-29', cf],
+            window.loc['2016-02-29', cf.sid],
             125251.440,
             err_msg="On session after roll, should be FOH16's 25th value.")
 
         assert_almost_equal(
-            window.loc['2016-03-24', cf],
+            window.loc['2016-03-24', cf.sid],
             135431.440,
             err_msg="On session with roll, should be FOJ16's 43rd value.")
 
         assert_almost_equal(
-            window.loc['2016-03-28', cf],
+            window.loc['2016-03-28', cf.sid],
             135441.440,
             err_msg="On session after roll, Should be FOJ16's 44th value.")
 
@@ -941,17 +941,17 @@ def record_current_contract(algo, data):
             30, '1d', 'close', 'daily')
 
         assert_almost_equal(
-            window.loc['2016-01-26', cf],
+            window.loc['2016-01-26', cf.sid],
             245011.440,
             err_msg="At beginning of window, should be MAG16's first value.")
 
         assert_almost_equal(
-            window.loc['2016-02-26', cf],
+            window.loc['2016-02-26', cf.sid],
             265241.440,
             err_msg="Should have skipped MAH16 to MAJ16.")
 
         assert_almost_equal(
-            window.loc['2016-02-29', cf],
+            window.loc['2016-02-29', cf.sid],
             265251.440,
             err_msg="Should have remained MAJ16.")
 
@@ -962,17 +962,17 @@ def record_current_contract(algo, data):
             30, '1d', 'close', 'daily')
 
         assert_almost_equal(
-            window.loc['2016-02-24', cf],
+            window.loc['2016-02-24', cf.sid],
             265221.440,
             err_msg="Should be MAJ16, having skipped MAH16.")
 
         assert_almost_equal(
-            window.loc['2016-02-29', cf],
+            window.loc['2016-02-29', cf.sid],
             265251.440,
             err_msg="Should be MAJ1 for rest of window.")
 
         assert_almost_equal(
-            window.loc['2016-03-24', cf],
+            window.loc['2016-03-24', cf.sid],
             265431.440,
             err_msg="Should be MAJ16 for rest of window.")
 
@@ -1114,16 +1114,16 @@ def record_current_contract(algo, data):
             Timestamp('2016-02-25 18:01', tz='US/Eastern').tz_convert('UTC'),
             30, '1m', 'close', 'minute')
 
-        self.assertEqual(window.loc['2016-02-25 22:32', cf],
+        self.assertEqual(window.loc['2016-02-25 22:32', cf.sid],
                          115231.412,
                          "Should be FOG16 at beginning of window. A minute "
                          "which is in the 02-25 session, before the roll.")
 
-        self.assertEqual(window.loc['2016-02-25 23:00', cf],
+        self.assertEqual(window.loc['2016-02-25 23:00', cf.sid],
                          115231.440,
                          "Should be FOG16 on on minute before roll minute.")
 
-        self.assertEqual(window.loc['2016-02-25 23:01', cf],
+        self.assertEqual(window.loc['2016-02-25 23:01', cf.sid],
                          125240.001,
                          "Should be FOH16 on minute after roll.")
 
@@ -1133,11 +1133,11 @@ def record_current_contract(algo, data):
             Timestamp('2016-02-28 18:01', tz='US/Eastern').tz_convert('UTC'),
             30, '1m', 'close', 'minute')
 
-        self.assertEqual(window.loc['2016-02-26 22:32', cf],
+        self.assertEqual(window.loc['2016-02-26 22:32', cf.sid],
                          125241.412,
                          "Should be FOH16 at beginning of window.")
 
-        self.assertEqual(window.loc['2016-02-28 23:01', cf],
+        self.assertEqual(window.loc['2016-02-28 23:01', cf.sid],
                          125250.001,
                          "Should remain FOH16 on next session.")
 

@@ -346,7 +346,12 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
                                      domain,
                                      expected_cutoff_time,
                                      expected_cutoff_date_offset=0):
-        sessions = pd.DatetimeIndex(domain.calendar.sessions[:50])
+        # Use recent sessions without special (late) opens or US DST changes:
+        # exchange_calendars models historical changes to opening times,
+        # which the expected default cutoff times don't account for.
+        calendar = domain.calendar
+        sessions = calendar.sessions_in_range('2024-06-01', '2024-12-31')
+        sessions = sessions[~sessions.isin(calendar.late_opens)][:50]
 
         expected = days_at_time(
             sessions,
@@ -379,7 +384,8 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
             FR_EQUITIES: datetime.time(8, 15),
             GB_EQUITIES: datetime.time(7, 15),
             GR_EQUITIES: datetime.time(9, 15),
-            HK_EQUITIES: datetime.time(9, 15),
+            # XHKG has opened at 9:30 since 2011.
+            HK_EQUITIES: datetime.time(8, 45),
             HU_EQUITIES: datetime.time(8, 15),
             ID_EQUITIES: datetime.time(8, 15),
             IE_EQUITIES: datetime.time(7, 15),
@@ -509,21 +515,18 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
     ))
     def test_equity_session_domain(self, parameters):
         time, date_offset, expected_timedelta = parameters
-        naive_sessions = pd.date_range('2000-01-01', '2000-06-01')
-        utc_sessions = naive_sessions.tz_localize('UTC')
+        sessions = pd.date_range('2000-01-01', '2000-06-01')
 
         domain = EquitySessionDomain(
-            utc_sessions,
+            sessions,
             CountryCode.UNITED_STATES,
             data_query_time=time,
             data_query_date_offset=date_offset,
         )
 
-        # Adding and localizing the naive_sessions here because pandas 18
-        # crashes when adding a tz-aware DatetimeIndex and a
-        # TimedeltaIndex. :sadpanda:.
-        expected = (naive_sessions + expected_timedelta).tz_localize('utc')
-        actual = domain.data_query_cutoff_for_sessions(utc_sessions)
+        # Sessions are naive; data query cutoffs are UTC points in time.
+        expected = (sessions + expected_timedelta).tz_localize('utc')
+        actual = domain.data_query_cutoff_for_sessions(sessions)
 
         assert_equal(expected, actual)
 
@@ -588,7 +591,6 @@ class RollForwardTestCase(zf.ZiplineTestCase):
              '2000-02-01',
              '2000-04-01',
              '2000-06-01'],
-            tz='UTC'
         )
 
         session_domain = EquitySessionDomain(

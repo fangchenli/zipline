@@ -2224,6 +2224,11 @@ class WithFXRates(object):
             rate = cls.FX_RATES_DEFAULT_RATE
 
         col = cls.fx_rates[rate][quote][base]
+        # Rates are indexed by UTC instants; naive session dates mean
+        # midnight UTC, as the FX readers interpret them.
+        dt = pd.Timestamp(dt)
+        if dt.tzinfo is None:
+            dt = dt.tz_localize('UTC')
         if dt < col.index[0]:
             return np.nan
 

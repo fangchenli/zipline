@@ -197,6 +197,10 @@ class DataPortal:
                 self._last_available_session = None
 
         if last_available_minute:
+            last_available_minute = pd.Timestamp(last_available_minute)
+            if last_available_minute.tzinfo is None:
+                # Minutes are UTC; a naive date means midnight UTC.
+                last_available_minute = last_available_minute.tz_localize('UTC')
             self._last_available_minute = last_available_minute
         else:
             # Infer the last minute from the provided readers.
@@ -1126,7 +1130,11 @@ class DataPortal:
         else:
             return_array = np.zeros((bar_count, len(assets)), dtype=dtype)
 
-        if field != "volume":
+        if field == 'sid':
+            # Missing sids are INT64_MIN, which is what older numpy produced
+            # when (unsafely) casting the NaN fill below to int64.
+            return_array[:] = np.iinfo(int64).min
+        elif field != "volume":
             # volumes default to 0, so we don't need to put NaNs in the array
             return_array[:] = nan
 
@@ -1238,20 +1246,22 @@ class DataPortal:
         end_dt = trading_days[-1].value / 1e9
 
         dividends = self._adjustment_reader.conn.execute(
-            "SELECT * FROM stock_dividend_payouts WHERE sid = ? AND "
+            "SELECT declared_date, ex_date, pay_date, payment_sid, ratio, "
+            "record_date, sid FROM stock_dividend_payouts WHERE sid = ? AND "
             "ex_date > ? AND pay_date < ?", (int(sid), start_dt, end_dt,)).\
             fetchall()
 
         dividend_info = []
-        for dividend_tuple in dividends:
+        for (declared_date, ex_date, pay_date, payment_sid, ratio,
+             record_date, dividend_sid) in dividends:
             dividend_info.append({
-                "declared_date": dividend_tuple[1],
-                "ex_date": pd.Timestamp(dividend_tuple[2], unit="s"),
-                "pay_date": pd.Timestamp(dividend_tuple[3], unit="s"),
-                "payment_sid": dividend_tuple[4],
-                "ratio": dividend_tuple[5],
-                "record_date": pd.Timestamp(dividend_tuple[6], unit="s"),
-                "sid": dividend_tuple[7]
+                "declared_date": declared_date,
+                "ex_date": pd.Timestamp(ex_date, unit="s"),
+                "pay_date": pd.Timestamp(pay_date, unit="s"),
+                "payment_sid": payment_sid,
+                "ratio": ratio,
+                "record_date": pd.Timestamp(record_date, unit="s"),
+                "sid": dividend_sid,
             })
 
         return dividend_info

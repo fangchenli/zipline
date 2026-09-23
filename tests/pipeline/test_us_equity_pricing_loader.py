@@ -32,7 +32,7 @@ from pandas import (
     Index,
     Timestamp,
 )
-from pandas.testing import assert_frame_equal
+from zipline.testing.predicates import assert_frame_equal
 from toolz.curried.operator import getitem
 
 from zipline.lib.adjustment import Float64Multiply
@@ -49,7 +49,6 @@ from zipline.pipeline.loaders.equity_pricing_loader import (
 from zipline.errors import WindowLengthTooLong
 from zipline.pipeline.data import USEquityPricing
 from zipline.testing import (
-    seconds_to_timestamp,
     str_to_seconds,
     MockDailyBarReader,
 )
@@ -341,7 +340,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
 
         for table in tables:
             for eff_date_secs, ratio, sid in table.itertuples(index=False):
-                eff_date = Timestamp(eff_date_secs, unit='s', tz='UTC')
+                eff_date = Timestamp(eff_date_secs, unit='s')
 
                 # Ignore adjustments outside the query bounds.
                 if not (start_date <= eff_date <= end_date):
@@ -563,7 +562,8 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
         orig_dtype = baseline_values.dtype
         values = baseline_values.astype(float64).copy()
         for eff_date_secs, ratio, sid in adjustments.itertuples(index=False):
-            eff_date = seconds_to_timestamp(eff_date_secs)
+            # Adjustment dates are session labels (tz-naive).
+            eff_date = Timestamp(eff_date_secs, unit='s')
             # Don't apply adjustments that aren't in the current date range.
             if eff_date not in dates:
                 continue

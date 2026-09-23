@@ -25,7 +25,6 @@ from zipline.utils.numpy_utils import (
     is_object,
     object_dtype,
 )
-from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning
 
 from ._factorize import (
     factorize_strings,
@@ -332,14 +331,24 @@ class LabelArray(ndarray):
         if len(self.shape) > 1:
             raise ValueError("Can't convert a 2D array to a categorical.")
 
-        with ignore_pandas_nan_categorical_warning():
-            return pd.Categorical.from_codes(
-                self.as_int_array(),
-                # We need to make a copy because pandas >= 0.17 fails if this
-                # buffer isn't writeable.
-                self.categories.copy(),
-                ordered=False,
-            )
+        codes = self.as_int_array().astype(np.int64)
+        categories = self.categories
+        null = pd.isnull(categories)
+        if null.any():
+            # pandas no longer allows null categories, so represent missing
+            # values (e.g. a ``None`` missing_value) with the -1 (NaN) code.
+            keep = ~null
+            remap = np.full(len(categories), -1, dtype=np.int64)
+            remap[keep] = np.arange(keep.sum())
+            codes = remap[codes]
+            categories = categories[keep]
+
+        return pd.Categorical.from_codes(
+            codes,
+            # Copy because pandas fails if this buffer isn't writeable.
+            categories.copy(),
+            ordered=False,
+        )
 
     def as_categorical_frame(self, index, columns, name=None):
         """

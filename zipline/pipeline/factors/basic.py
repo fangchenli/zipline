@@ -9,6 +9,7 @@ from numpy import (
     exp,
     fmax,
     full,
+    inf,
     isnan,
     log,
     sqrt,
@@ -147,7 +148,7 @@ class MaxDrawdown(SingleInputMixin, CustomFactor):
 
     def compute(self, today, assets, out, data):
         drawdowns = fmax.accumulate(data, axis=0) - data
-        drawdowns[isnan(drawdowns)] = -np.inf
+        drawdowns[isnan(drawdowns)] = -inf
         drawdown_ends = nanargmax(drawdowns, axis=0)
 
         # TODO: Accelerate this loop in Cython or Numba.

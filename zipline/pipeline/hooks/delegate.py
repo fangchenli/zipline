@@ -18,6 +18,8 @@ def delegating_hooks_method(method_name):
                     sub_ctx = getattr(hook, method_name)(*args, **kwargs)
                     stack.enter_context(sub_ctx)
                 yield stack
+        # ``wraps`` copied ``__isabstractmethod__`` from the interface.
+        ctx.__isabstractmethod__ = False
         return ctx
     else:
         # Generate a method that calls methods of all child hooks.
@@ -27,6 +29,8 @@ def delegating_hooks_method(method_name):
                 sub_method = getattr(hook, method_name)
                 sub_method(*args, **kwargs)
 
+        # ``wraps`` copied ``__isabstractmethod__`` from the interface.
+        method.__isabstractmethod__ = False
         return method
 
 

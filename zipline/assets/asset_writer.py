@@ -429,7 +429,7 @@ def write_version_info(conn, version_table, version_value):
 
     Parameters
     ----------
-    conn : sa.Connection
+    conn : sa.Connection or sa.Engine
         The connection to use to execute the insert.
     version_table : sa.Table
         The version table of the asset database
@@ -437,7 +437,12 @@ def write_version_info(conn, version_table, version_value):
         The version to write in to the database
 
     """
-    conn.execute(sa.insert(version_table).values(version=version_value))
+    stmt = sa.insert(version_table).values(version=version_value)
+    if isinstance(conn, sa.engine.Engine):
+        with conn.begin() as c:
+            c.execute(stmt)
+    else:
+        conn.execute(stmt)
 
 
 class _empty:
@@ -623,7 +628,7 @@ class AssetDBWriter:
             )
             _check_symbol_mappings(
                 equity_symbol_mappings,
-                exchanges,
+                exchanges.set_index('exchange'),
                 equities['exchange'],
             )
 
@@ -804,7 +809,7 @@ class AssetDBWriter:
 
         df.to_sql(
             tbl.name,
-            txn.connection,
+            txn,
             index=True,
             index_label=first(tbl.primary_key.columns).name,
             if_exists='append',
@@ -847,7 +852,7 @@ class AssetDBWriter:
             asset_router.c.asset_type.name: asset_type,
         }).to_sql(
             asset_router.name,
-            txn.connection,
+            txn,
             if_exists='append',
             index=False,
             chunksize=chunk_size

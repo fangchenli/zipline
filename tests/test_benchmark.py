@@ -131,7 +131,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
         for idx, day in enumerate(days_to_use[1:]):
             self.assertEqual(
                 source.get_value(day),
-                manually_calculated[idx + 1]
+                manually_calculated.iloc[idx + 1]
             )
 
         # compare a slice of the data
@@ -218,7 +218,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
             for idx, day in enumerate(days_to_use[1:]):
                 self.assertEqual(
                     source.get_value(day),
-                    manually_calculated[idx + 1]
+                    manually_calculated.iloc[idx + 1]
                 )
 
     def test_no_stock_dividends_allowed(self):
@@ -252,7 +252,7 @@ class BenchmarkSpecTestCase(WithTmpDir,
             cls.START_DATE,
             cls.END_DATE,
             freq='D',
-            tz='utc',
+            unit='ns',
         )
         cls.zero_returns = pd.Series(index=zero_returns_index, data=0.0)
 
@@ -400,7 +400,6 @@ class BenchmarkSpecTestCase(WithTmpDir,
         expected_dates = pd.to_datetime(
             ['2020-01-03', '2020-01-06', '2020-01-07',
              '2020-01-08', '2020-01-09'],
-            utc=True,
         )
         expected_values = [-0.1, 0.333, 0.167, 0.143, 6.375]
         expected_returns = pd.Series(index=expected_dates,

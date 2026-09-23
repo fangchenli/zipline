@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-This is a revival of Quantopian's abandoned Zipline (event-driven backtesting library). Work stalled in Dec 2020 on Python 3.6 / pandas 0.22 and resumed in 2026 on the `modernize` branch. Targets are Python 3.12+, pandas 3+, numpy 2+, Cython 3, uv, ruff and ty. Dead dependencies are being replaced: `trading_calendars` becomes `exchange_calendars`, `empyrical` becomes `empyrical-reloaded` (same import name), `bcolz` becomes `bcolz-zipline` (same import name) and `nose` becomes `pytest`. `six`, `python-interface` and `distutils` are being removed. Much of the code still reflects the old stack, so expect breakage. Commits use pandas-style prefixes (`CLN:`, `DEPS:`, `BLD:`, `CI:`, `DOC:`, `TST:`).
+This is a revival of Quantopian's abandoned Zipline (event-driven backtesting library). Work stalled in Dec 2020 on Python 3.6 / pandas 0.22 and resumed in 2026 on the `modernize` branch. Targets are Python 3.12+, pandas 3+, numpy 2+, Cython 3, SQLAlchemy 2, uv, ruff and ty. Dead dependencies have been replaced: `trading_calendars` → `exchange_calendars`, `empyrical` → `empyrical-reloaded`, `bcolz` → `bcolz-zipline` (both keep their import names), `nose` → `pytest`, `pytz` → `zoneinfo`. `six`, `python-interface` (now `abc.ABC`), `distutils` and `pd.Panel` are gone. Commits use pandas-style prefixes (`CLN:`, `DEPS:`, `BLD:`, `CI:`, `DOC:`, `TST:`, `MAINT:`).
 
 ## Setup and commands
 
@@ -26,7 +26,8 @@ uv run ty check zipline
 uv run pytest                                   # full suite
 uv run pytest tests/test_algorithm.py
 uv run pytest "tests/test_algorithm.py::TestMiscellaneousAPI::test_zipline_api_resolves_dynamically"
-uv run pytest -n auto                            # parallel (pytest-xdist)
+uv run pytest -n auto                            # parallel (pytest-xdist, one worker per test class)
+uv run pytest --doctest-modules zipline          # doctests, run separately from the suite
 ```
 
 Test cases are still `unittest`-style classes, some parameterized with `parameterized`. pytest collects them directly.
@@ -37,11 +38,15 @@ Test cases are still `unittest`-style classes, some parameterized with `paramete
 
 **User-facing API.** `zipline.api` only statically contains a few imports; functions like `order`, `symbol`, `record`, `schedule_function` are methods on `TradingAlgorithm` decorated with `@api_method` (`zipline/utils/api_support.py`), which injects them into the `zipline.api` module and dispatches to the currently running algorithm via a context-local stack. `zipline/api.pyi` is a type stub for this dynamic namespace; update it when adding or changing API methods.
 
-**Data layer.** `DataPortal` (`zipline/data/data_portal.py`) is the single facade the algorithm uses for current prices and `history()`. It composes bar readers (bcolz daily/minute, HDF5 daily, in-memory), `SQLiteAdjustmentReader` for splits/dividends/mergers, history loaders with adjustment caching, continuous-future readers, and an `AssetFinder` (`zipline/assets/`, SQLite-backed via SQLAlchemy with alembic-style migrations in `asset_db_migrations.py`). Hot paths (asset objects, adjusted window iteration, minute-bar indexing, resampling) are in Cython.
+**Data layer.** `DataPortal` (`zipline/data/data_portal.py`) is the single facade the algorithm uses for current prices and `history()`. It composes bar readers (bcolz daily/minute, HDF5 daily, in-memory), `SQLiteAdjustmentReader` for splits/dividends/mergers, history loaders with adjustment caching, continuous-future readers, and an `AssetFinder` (`zipline/assets/`, SQLite-backed via SQLAlchemy 2 with explicit connections, plus alembic-style migrations in `asset_db_migrations.py`). `BarData.history()` with several assets *and* several fields returns a DataFrame with `(field, asset)` MultiIndex columns, the replacement for the old `pd.Panel`. Hot paths (asset objects, adjusted window iteration, minute-bar indexing, resampling) are in Cython.
 
 **Bundles.** `zipline ingest` writes data into `$ZIPLINE_ROOT` (default `~/.zipline`) via bundles registered with `zipline.data.bundles.register` (`quandl`, `csvdir`, etc.). A bundle's ingest function receives asset/daily/minute/adjustment writers; `load()` returns the matching readers. The CLI (`zipline/__main__.py`, click) wires `run`/`ingest`/`clean`/`bundles` to `zipline/utils/run_algo.py`, which also backs the programmatic `run_algorithm()`.
 
 **Pipeline.** `zipline/pipeline/` is a lazy, vectorized cross-sectional computation framework. `Term`s (`Factor`, `Filter`, `Classifier`, `BoundColumn` of a `DataSet`) form a dependency graph (`graph.py`, networkx) that `SimplePipelineEngine` (`engine.py`) topologically executes over a date range, using per-dataset `PipelineLoader`s (`loaders/`) that return `AdjustedArray`s (`zipline/lib/adjusted_array.py` + Cython window specializations). `Domain`s (`domain.py`) tie datasets to a calendar/country. The algorithm runs pipelines in chunks ahead of time and serves results via `pipeline_output()`.
+
+**Calendars and time conventions.** All calendar access goes through `zipline/utils/calendar_utils.py`, never `exchange_calendars` directly. Its `get_calendar` builds calendars with `side="right"` (a session's minutes run from one minute after the open through the close, e.g. 9:31–16:00 for XNYS) and history back to 1990. **Session labels are tz-naive midnight timestamps; minutes and other points in time are tz-aware UTC.** Mixing the two raises in pandas, so convert explicitly at boundaries: `dt.normalize().tz_localize(None)` for the UTC date of a minute, or `calendar.minute_to_session(dt)`. Two differences from trading_calendars matter when reading old code: the old `opens`/`session_open` were the first trading minute (now `first_minutes`/`session_first_minute`; exchange_calendars' `opens` is the 9:30 bell), and the old `sessions_window(s, n)` returned `n + 1` sessions (use `session_offset` or adjust the count). `execution_time_from_open/close` exist only on the `us_futures` calendar; use the helpers in `calendar_utils`.
+
+**pandas 3 pitfalls seen in this codebase.** Copy-on-write makes `.values` of pandas objects read-only, which breaks writes through `df[col].values[...]` and Cython functions with writable memoryview arguments (copy, or use `np.require(..., requirements='W')`). `series[int]` is always a label lookup (use `.iloc`). `stack()` no longer drops all-NaN rows. `.loc` with missing list keys raises (use `.reindex` to get the old NaN behaviour). String-parsed datetimes default to microsecond resolution, while zipline's Cython code and on-disk formats use nanosecond int64s, so use `.as_unit('ns')` before `.asi8`.
 
 **Extension points.** `zipline/extensions.py` provides the `Registry`/`register` mechanism used for pluggable blotters, metrics sets, calendars, etc., and loads user extension files (`-x`/`extension.py` in `$ZIPLINE_ROOT`).
 
@@ -49,4 +54,5 @@ Test cases are still `unittest`-style classes, some parameterized with `paramete
 
 - Test classes subclass `ZiplineTestCase` plus fixture mixins from `zipline/testing/fixtures.py` (e.g. `WithDataPortal`, `WithMakeAlgo`, `WithAssetFinder`, `WithSeededRandomPipelineEngine`). Mixins are configured with class attributes (`START_DATE`, `ASSET_FINDER_EQUITY_SIDS`, `make_equity_info`, ...) that you override.
 - **Do not override `setUp`/`setUpClass`/`tearDown`** (they are `@final`). Implement `init_class_fixtures` / `init_instance_fixtures`, always call `super()`, and register cleanup via `enter_class_context`/`enter_instance_context` or `add_*_callback`.
+- As under nose, test classes whose names start with `_` are abstract bases and are not collected (`tests/conftest.py`). pandas' `assert_frame_equal` is wrapped by `zipline.testing.predicates.assert_equal`, which disables the `freq` check that newer pandas added.
 - `tests/test_examples.py` compares `zipline/examples/*` output against expected results stored in `tests/resources/example_data.tar.gz`; regenerate with `tests/resources/rebuild_example_data` when example behavior intentionally changes.

@@ -21,10 +21,15 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
 )
 from zipline.testing.predicates import assert_equal, wildcard
+from zipline.utils.calendar_utils import (
+    execution_time_from_close,
+    execution_time_from_open,
+)
 
 
 def T(cs):
-    return pd.Timestamp(cs, tz='utc')
+    """A session label for a date, or a UTC timestamp for a date and time."""
+    return pd.Timestamp(cs, tz='utc') if ':' in cs else pd.Timestamp(cs)
 
 
 def portfolio_snapshot(p):
@@ -108,10 +113,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             ),
         )
         cls.closes = pd.Index(
-            cls.trading_calendar.session_closes_in_range(
-                cls.START_DATE,
-                cls.END_DATE,
-            ),
+            cls.trading_calendar.last_minutes.loc[cls.START_DATE:cls.END_DATE],
         )
         cls.closes.name = None
 
@@ -145,7 +147,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             )
 
         nan_then_zero = pd.Series(0.0, index=self.closes)
-        nan_then_zero[0] = float('nan')
+        nan_then_zero.iloc[0] = float('nan')
         nan_then_zero_fields = (
             'algo_volatility',
             'benchmark_volatility',
@@ -669,7 +671,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
                 )
 
         nan_then_zero = pd.Series(0.0, index=self.closes)
-        nan_then_zero[0] = float('nan')
+        nan_then_zero.iloc[0] = float('nan')
         nan_then_zero_fields = (
             'algo_volatility',
             'benchmark_volatility',
@@ -720,7 +722,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             # we sold one share on the first day
             cash_modifier = +self.EQUITY_MINUTE_CONSTANT_CLOSE
 
-        expected_cash[1:] += cash_modifier
+        expected_cash.iloc[1:] += cash_modifier
 
         assert_equal(
             perf['starting_cash'],
@@ -728,7 +730,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             check_names=False,
         )
 
-        expected_cash[0] += cash_modifier
+        expected_cash.iloc[0] += cash_modifier
         assert_equal(
             perf['ending_cash'],
             expected_cash,
@@ -737,7 +739,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
 
         # we purchased one share on the first day
         expected_capital_used = pd.Series(0.0, index=self.closes)
-        expected_capital_used[0] += cash_modifier
+        expected_capital_used.iloc[0] += cash_modifier
 
         assert_equal(
             perf['capital_used'],
@@ -761,7 +763,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
 
         # we don't start with any positions; the first day has no starting
         # exposure
-        expected_position_exposure[0] = 0
+        expected_position_exposure.iloc[0] = 0
         for field in 'starting_value', 'starting_exposure':
             # for equities, position value and position exposure are the same
             assert_equal(
@@ -887,8 +889,8 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             cash_modifier,
             index=self.trading_minutes,
         )
-        expected_portfolio_capital_used[0] = 0.0
-        expected_capital_used[0] = 0
+        expected_portfolio_capital_used.iloc[0] = 0.0
+        expected_capital_used.iloc[0] = 0
         assert_equal(
             portfolio_snapshots['cash_flow'],
             expected_portfolio_capital_used,
@@ -1076,7 +1078,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         )
 
         nan_then_zero = pd.Series(0.0, index=self.closes)
-        nan_then_zero[0] = float('nan')
+        nan_then_zero.iloc[0] = float('nan')
         nan_then_zero_fields = (
             'algo_volatility',
             'benchmark_volatility',
@@ -1145,7 +1147,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
 
         # we don't start with any positions; the first day has no starting
         # exposure
-        expected_position_exposure[0] = 0
+        expected_position_exposure.iloc[0] = 0
         assert_equal(
             perf['starting_exposure'],
             expected_position_exposure,
@@ -1348,38 +1350,34 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             ),
         )
         cls.equity_closes = pd.Index(
-            cls.trading_calendars[Equity].session_closes_in_range(
-                cls.START_DATE,
-                cls.END_DATE,
-            ),
+            cls.trading_calendars[Equity].last_minutes.loc[
+                cls.START_DATE:cls.END_DATE
+            ],
         )
         cls.equity_closes.name = None
 
         futures_cal = cls.trading_calendars[Future]
-        cls.future_minutes = pd.Index(
-            futures_cal.execution_minutes_for_sessions_in_range(
-                cls.START_DATE,
-                cls.END_DATE,
-            ),
-
-        )
+        sessions = slice(cls.START_DATE, cls.END_DATE)
         cls.future_closes = pd.Index(
-            futures_cal.execution_time_from_close(
-                futures_cal.session_closes_in_range(
-                    cls.START_DATE,
-                    cls.END_DATE,
-                ),
+            execution_time_from_close(
+                futures_cal,
+                futures_cal.last_minutes.loc[sessions],
             ),
         )
         cls.future_closes.name = None
 
         cls.future_opens = pd.Index(
-            futures_cal.execution_time_from_open(
-                futures_cal.session_opens_in_range(
-                    cls.START_DATE,
-                    cls.END_DATE,
-                ),
+            execution_time_from_open(
+                futures_cal,
+                futures_cal.first_minutes.loc[sessions],
             ),
+        )
+        # The minutes between each session's execution open and close.
+        cls.future_minutes = pd.Index(
+            pd.DatetimeIndex(np.concatenate([
+                futures_cal.minutes_in_range(open_, close).asi8
+                for open_, close in zip(cls.future_opens, cls.future_closes)
+            ])).tz_localize('UTC'),
         )
         cls.future_opens.name = None
 
@@ -1675,7 +1673,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             # we sold one share on the first day
             cash_modifier = +expected_fill_price
 
-        expected_cash[1:] += cash_modifier
+        expected_cash.iloc[1:] += cash_modifier
 
         assert_equal(
             perf['starting_cash'],
@@ -1683,7 +1681,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             check_names=False,
         )
 
-        expected_cash[0] += cash_modifier
+        expected_cash.iloc[0] += cash_modifier
         assert_equal(
             perf['ending_cash'],
             expected_cash,
@@ -1692,7 +1690,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
 
         # we purchased one share on the first day
         expected_capital_used = pd.Series(0.0, index=self.equity_closes)
-        expected_capital_used[0] += cash_modifier
+        expected_capital_used.iloc[0] += cash_modifier
 
         assert_equal(
             perf['capital_used'],
@@ -1712,7 +1710,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         # we don't start with any positions; the first day has no starting
         # exposure
         expected_starting_exposure = expected_exposure.shift(1)
-        expected_starting_exposure[0] = 0.0
+        expected_starting_exposure.iloc[0] = 0.0
         for field in 'starting_value', 'starting_exposure':
             # for equities, position value and position exposure are the same
             assert_equal(
@@ -1822,8 +1820,8 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             cash_modifier,
             index=self.equity_minutes,
         )
-        expected_portfolio_capital_used[0] = 0.0
-        expected_capital_used[0] = 0
+        expected_portfolio_capital_used.iloc[0] = 0.0
+        expected_capital_used.iloc[0] = 0
         assert_equal(
             portfolio_snapshots['cash_flow'],
             expected_portfolio_capital_used,
@@ -2133,7 +2131,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         # we don't start with any positions; the first day has no starting
         # exposure
         expected_starting_exposure = expected_exposure.shift(1)
-        expected_starting_exposure[0] = 0.0
+        expected_starting_exposure.iloc[0] = 0.0
         assert_equal(
             perf['starting_exposure'],
             expected_starting_exposure,

@@ -3,7 +3,7 @@ Tests for slicing pipeline terms.
 """
 from numpy import where
 from pandas import Index, Timestamp
-from pandas.testing import assert_frame_equal
+from zipline.testing.predicates import assert_frame_equal
 
 from zipline.assets import Asset, ExchangeInfo
 from zipline.errors import (

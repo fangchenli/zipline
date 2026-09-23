@@ -80,7 +80,7 @@ class IterateRLAlgo(TradingAlgorithm):
 class SecurityListTestCase(WithMakeAlgo, ZiplineTestCase):
     # XXX: This suite uses way more than it probably needs.
     START_DATE = pd.Timestamp('2002-01-03')
-    assert START_DATE == sorted(list(LEVERAGED_ETFS.keys()))[0], \
+    assert START_DATE.tz_localize("UTC") == sorted(LEVERAGED_ETFS)[0], \
         "START_DATE should match start of LEVERAGED_ETF data."
     END_DATE = pd.Timestamp('2015-02-17')
 
@@ -107,7 +107,7 @@ class SecurityListTestCase(WithMakeAlgo, ZiplineTestCase):
         # set the knowledge date to the first day of the
         # leveraged etf knowledge date.
         def get_datetime():
-            return self.START_DATE
+            return self.START_DATE.tz_localize("UTC")
 
         rl = SecurityListSet(get_datetime, self.asset_finder)
         # assert that a sample from the leveraged list are in restricted
@@ -136,7 +136,7 @@ class SecurityListTestCase(WithMakeAlgo, ZiplineTestCase):
 
     def test_security_add(self):
         def get_datetime():
-            return pd.Timestamp("2015-01-27")
+            return pd.Timestamp("2015-01-27", tz="UTC")
 
         with security_list_copy():
             add_security_data(['AAPL', 'GOOG'], [])
@@ -157,7 +157,7 @@ class SecurityListTestCase(WithMakeAlgo, ZiplineTestCase):
     def test_security_add_delete(self):
         with security_list_copy():
             def get_datetime():
-                return pd.Timestamp("2015-01-27")
+                return pd.Timestamp("2015-01-27", tz="UTC")
             rl = SecurityListSet(get_datetime, self.asset_finder)
             self.assertNotIn(
                 "BZQ",

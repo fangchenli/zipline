@@ -253,9 +253,13 @@ class PandasCSV(ABC):
                 with_date.append(self.date_column)
                 pandas_kwargs['usecols'] = with_date
 
-        # No strings in the 'symbol' column should be interpreted as NaNs
-        pandas_kwargs.setdefault('keep_default_na', False)
-        pandas_kwargs.setdefault('na_values', {'symbol': []})
+        # No strings in the symbol column should be interpreted as NaNs (e.g.
+        # the ticker "NA"). A converter keeps that column's raw strings while
+        # every other column gets pandas' default NaN handling. (Passing
+        # ``keep_default_na=False`` would disable it for all columns.)
+        converters = dict(pandas_kwargs.get('converters') or {})
+        converters.setdefault(self.symbol_column, str)
+        pandas_kwargs['converters'] = converters
 
         return pandas_kwargs
 

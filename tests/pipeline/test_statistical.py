@@ -15,7 +15,7 @@ from pandas import (
     Index,
     Timestamp,
 )
-from pandas.testing import assert_frame_equal
+from zipline.testing.predicates import assert_frame_equal
 from scipy.stats import linregress, pearsonr, spearmanr
 
 from empyrical.stats import beta_aligned as empyrical_beta
@@ -73,7 +73,7 @@ class StatisticalBuiltInsTestCase(zf.WithAssetFinder,
 
         day = cls.trading_calendar.day
         cls.dates = dates = date_range(
-            '2015-02-01', '2015-02-28', freq=day, tz='UTC',
+            '2015-02-01', '2015-02-28', freq=day, unit='ns',
         )
 
         # Using these start and end dates because they are a contigous span of

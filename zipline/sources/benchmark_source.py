@@ -67,7 +67,10 @@ class BenchmarkSource:
                 # Each minute takes the return of the session it belongs to.
                 minute_series = pd.Series(
                     daily_series.reindex(
-                        trading_calendar.minutes_to_sessions(minutes),
+                        # exchange_calendars compares raw ns values.
+                        trading_calendar.minutes_to_sessions(
+                            minutes.as_unit('ns'),
+                        ),
                     ).to_numpy(),
                     index=minutes,
                 )
@@ -184,14 +187,15 @@ class BenchmarkSource:
 
     @staticmethod
     def _compute_daily_returns(g):
-        return (g[-1] - g[0]) / g[0]
+        return (g.iloc[-1] - g.iloc[0]) / g.iloc[0]
 
     @classmethod
     def downsample_minute_return_series(cls,
                                         trading_calendar,
                                         minutely_returns):
+        # exchange_calendars compares raw ns values.
         sessions = trading_calendar.minutes_to_sessions(
-            minutely_returns.index,
+            pd.DatetimeIndex(minutely_returns.index).as_unit('ns'),
         )
         closes = trading_calendar.last_minutes.loc[sessions[0]:sessions[-1]]
         daily_returns = minutely_returns[closes].pct_change()
@@ -253,7 +257,7 @@ class BenchmarkSource:
             )[asset]
 
             return (
-                benchmark_series.pct_change()[1:],
+                benchmark_series.pct_change().iloc[1:],
                 self.downsample_minute_return_series(
                     trading_calendar,
                     benchmark_series,
@@ -276,7 +280,7 @@ class BenchmarkSource:
                 ffill=True
             )[asset]
 
-            returns = benchmark_series.pct_change()[1:]
+            returns = benchmark_series.pct_change().iloc[1:]
             return returns, returns
         elif start_date == trading_days[0]:
             # Attempt to handle case where stock data starts on first
@@ -307,8 +311,8 @@ class BenchmarkSource:
 
             first_day_return = (first_close - first_open) / first_open
 
-            returns = benchmark_series.pct_change()[:]
-            returns[0] = first_day_return
+            returns = benchmark_series.pct_change()
+            returns.iloc[0] = first_day_return
             return returns, returns
         else:
             raise ValueError(

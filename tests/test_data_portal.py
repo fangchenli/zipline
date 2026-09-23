@@ -533,7 +533,7 @@ class DataPortalTestBase(WithDataPortal,
             expected_future_volume = 100
             data_frequency = 'minute'
         else:
-            minute = minutes[0].normalize()
+            minute = minutes[0].normalize().tz_localize(None)
             expected_equity_volume = 100 * US_EQUITIES_MINUTES_PER_DAY
             expected_future_volume = 100 * FUTURES_MINUTES_PER_DAY
             data_frequency = 'daily'

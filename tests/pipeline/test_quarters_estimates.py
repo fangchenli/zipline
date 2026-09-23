@@ -54,6 +54,17 @@ class MultipleColumnsEstimates(DataSet):
     estimate2 = Column(dtype=float64_dtype)
 
 
+
+def datetimes_as_ns(df):
+    """Convert datetime columns to nanoseconds, the resolution of pipeline
+    outputs (pandas >= 3 infers coarser units from literals).
+    """
+    df = df.copy()
+    for name, dtype in df.dtypes.items():
+        if dtype.kind == 'M':
+            df[name] = df[name].dt.as_unit('ns')
+    return df
+
 def QuartersEstimates(announcements_out):
     class QtrEstimates(Estimates):
         num_announcements = announcements_out
@@ -95,8 +106,8 @@ def create_expected_df_for_factor_compute(start_date,
     )
     # Index name is lost during reindex.
     df.index = df.index.rename('knowledge_date')
-    df['at_date'] = end_date.tz_localize('utc')
-    df = df.set_index(['at_date', df.index.tz_localize('utc')]).ffill()
+    df['at_date'] = end_date
+    df = df.set_index(['at_date', df.index]).ffill()
     new_sids = set(sids) - set(df.columns)
     df = df.reindex(columns=df.columns.union(new_sids))
     return df
@@ -162,7 +173,7 @@ class WithEstimates(WithTradingSessions, WithAdjustmentReader):
 
     @classmethod
     def init_class_fixtures(cls):
-        cls.events = cls.make_events()
+        cls.events = datetimes_as_ns(cls.make_events())
         cls.ASSET_FINDER_EQUITY_SIDS = cls.get_sids()
         cls.ASSET_FINDER_EQUITY_SYMBOLS = [
             's' + str(n) for n in cls.ASSET_FINDER_EQUITY_SIDS
@@ -257,16 +268,16 @@ class PreviousWithOneDayPipeline(WithOneDayPipeline, ZiplineTestCase):
     def make_expected_out(cls):
         return pd.DataFrame(
             {
-                EVENT_DATE_FIELD_NAME: pd.Timestamp('2015-01-10'),
+                EVENT_DATE_FIELD_NAME: pd.Timestamp('2015-01-10').as_unit('ns'),
                 'estimate1': 1.,
                 'estimate2': 3.,
                 FISCAL_QUARTER_FIELD_NAME: 1.,
                 FISCAL_YEAR_FIELD_NAME: 2015.,
             },
             index=pd.MultiIndex.from_tuples(
-                ((pd.Timestamp('2015-01-15'), cls.sid0),)
+                ((pd.Timestamp('2015-01-15').as_unit('ns'), cls.sid0),)
             )
-        )
+        ).sort_index(axis=1)  # pandas < 0.23 sorted dict keys
 
 
 class NextWithOneDayPipeline(WithOneDayPipeline, ZiplineTestCase):
@@ -282,16 +293,16 @@ class NextWithOneDayPipeline(WithOneDayPipeline, ZiplineTestCase):
     def make_expected_out(cls):
         return pd.DataFrame(
             {
-                EVENT_DATE_FIELD_NAME: pd.Timestamp('2015-01-20'),
+                EVENT_DATE_FIELD_NAME: pd.Timestamp('2015-01-20').as_unit('ns'),
                 'estimate1': 2.,
                 'estimate2': 4.,
                 FISCAL_QUARTER_FIELD_NAME: 2.,
                 FISCAL_YEAR_FIELD_NAME: 2015.,
             },
             index=pd.MultiIndex.from_tuples(
-                ((pd.Timestamp('2015-01-15'), cls.sid0),)
+                ((pd.Timestamp('2015-01-15').as_unit('ns'), cls.sid0),)
             )
-        )
+        ).sort_index(axis=1)  # pandas < 0.23 sorted dict keys
 
 
 dummy_df = pd.DataFrame({SID_FIELD_NAME: 0},
@@ -631,8 +642,8 @@ class NextEstimate(WithEstimatesTimeZero, ZiplineTestCase):
               q2_knowledge[EVENT_DATE_FIELD_NAME].iloc[-1] >=
                 comparable_date):
             return q2_knowledge.iloc[-1:]
-        return pd.DataFrame(columns=q1_knowledge.columns,
-                            index=[comparable_date])
+        # An all-missing row with the same column dtypes as the knowledge.
+        return q1_knowledge.iloc[:0].reindex([comparable_date])
 
 
 class PreviousEstimate(WithEstimatesTimeZero, ZiplineTestCase):
@@ -657,8 +668,8 @@ class PreviousEstimate(WithEstimatesTimeZero, ZiplineTestCase):
               q1_knowledge[EVENT_DATE_FIELD_NAME].iloc[-1] <=
                 comparable_date):
             return q1_knowledge.iloc[-1:]
-        return pd.DataFrame(columns=q1_knowledge.columns,
-                            index=[comparable_date])
+        # An all-missing row with the same column dtypes as the knowledge.
+        return q1_knowledge.iloc[:0].reindex([comparable_date])
 
 
 class WithEstimateMultipleQuarters(WithEstimates):
@@ -720,7 +731,7 @@ class WithEstimateMultipleQuarters(WithEstimates):
             if col.dtype == datetime64ns_dtype:
                 expected[expected_name] = pd.to_datetime(
                     expected[expected_name]
-                )
+                ).astype(datetime64ns_dtype)
             else:
                 expected[expected_name] = expected[
                     expected_name
@@ -812,30 +823,37 @@ class PreviousEstimateMultipleQuarters(
     def fill_expected_out(cls, expected):
         # Fill columns for 1 Q out
         for raw_name in cls.columns.values():
-            expected[raw_name + '1'].loc[
-                pd.Timestamp('2015-01-12'):pd.Timestamp('2015-01-19')
+            expected.loc[
+                pd.Timestamp('2015-01-12'):pd.Timestamp('2015-01-19'),
+                raw_name + '1',
             ] = cls.events[raw_name].iloc[0]
-            expected[raw_name + '1'].loc[
-                pd.Timestamp('2015-01-20'):
+            expected.loc[
+                pd.Timestamp('2015-01-20'):,
+                raw_name + '1',
             ] = cls.events[raw_name].iloc[1]
 
         # Fill columns for 2 Q out
         for col_name in ['estimate', 'event_date']:
-            expected[col_name + '2'].loc[
-                pd.Timestamp('2015-01-20'):
+            expected.loc[
+                pd.Timestamp('2015-01-20'):,
+                col_name + '2',
             ] = cls.events[col_name].iloc[0]
-        expected[
-            FISCAL_QUARTER_FIELD_NAME + '2'
-        ].loc[pd.Timestamp('2015-01-12'):pd.Timestamp('2015-01-20')] = 4
-        expected[
-            FISCAL_YEAR_FIELD_NAME + '2'
-        ].loc[pd.Timestamp('2015-01-12'):pd.Timestamp('2015-01-20')] = 2014
-        expected[
-            FISCAL_QUARTER_FIELD_NAME + '2'
-        ].loc[pd.Timestamp('2015-01-20'):] = 1
-        expected[
-            FISCAL_YEAR_FIELD_NAME + '2'
-        ].loc[pd.Timestamp('2015-01-20'):] = 2015
+        expected.loc[
+            pd.Timestamp('2015-01-12'):pd.Timestamp('2015-01-20'),
+            FISCAL_QUARTER_FIELD_NAME + '2',
+        ] = 4
+        expected.loc[
+            pd.Timestamp('2015-01-12'):pd.Timestamp('2015-01-20'),
+            FISCAL_YEAR_FIELD_NAME + '2',
+        ] = 2014
+        expected.loc[
+            pd.Timestamp('2015-01-20'):,
+            FISCAL_QUARTER_FIELD_NAME + '2',
+        ] = 1
+        expected.loc[
+            pd.Timestamp('2015-01-20'):,
+            FISCAL_YEAR_FIELD_NAME + '2',
+        ] = 2015
         return expected
 
 
@@ -2321,104 +2339,98 @@ class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries,
                 'estimate': np.nan,
             }, index=pd.date_range(
                 cls.test_start_date,
-                pd.Timestamp('2015-01-08'),
-                tz='utc'
+                pd.Timestamp('2015-01-08')
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s0,
                 'estimate': 10.,
             }, index=pd.date_range(
-                pd.Timestamp('2015-01-09'), cls.test_end_date, tz='utc'
+                pd.Timestamp('2015-01-09'), cls.test_end_date
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s1,
                 'estimate': 11.,
-            }, index=pd.date_range(cls.test_start_date, cls.test_end_date,
-                                   tz='utc')),
+            }, index=pd.date_range(cls.test_start_date, cls.test_end_date)),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s2,
                 'estimate': np.nan
             }, index=pd.date_range(cls.test_start_date,
-                                   cls.test_end_date,
-                                   tz='utc')),
+                                   cls.test_end_date)),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s3,
                 'estimate': np.nan
             }, index=pd.date_range(
-                cls.test_start_date, cls.test_end_date - timedelta(1), tz='utc'
+                cls.test_start_date, cls.test_end_date - timedelta(1)
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s3,
                 'estimate': 13. * .13
             }, index=pd.date_range(cls.test_end_date,
-                                   cls.test_end_date,
-                                   tz='utc')),
+                                   cls.test_end_date)),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s4,
                 'estimate': np.nan
             }, index=pd.date_range(
-                cls.test_start_date, cls.test_end_date - timedelta(2), tz='utc'
+                cls.test_start_date, cls.test_end_date - timedelta(2)
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s4,
                 'estimate': 14. * .15
             }, index=pd.date_range(
-                cls.test_end_date - timedelta(1), cls.test_end_date, tz='utc'
+                cls.test_end_date - timedelta(1), cls.test_end_date
             )),
         ]).set_index(SID_FIELD_NAME, append=True).unstack(
-            SID_FIELD_NAME).reindex(cls.trading_days).stack(SID_FIELD_NAME)
+            SID_FIELD_NAME).reindex(cls.trading_days).stack(SID_FIELD_NAME)\
+            .rename_axis([None, None])
 
         split_adjusted_at_end_boundary = pd.concat([
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s0,
                 'estimate': np.nan,
             }, index=pd.date_range(
-                cls.test_start_date, pd.Timestamp('2015-01-08'), tz='utc'
+                cls.test_start_date, pd.Timestamp('2015-01-08')
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s0,
                 'estimate': 10.,
             }, index=pd.date_range(
-                pd.Timestamp('2015-01-09'), cls.test_end_date, tz='utc'
+                pd.Timestamp('2015-01-09'), cls.test_end_date
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s1,
                 'estimate': 11.,
             }, index=pd.date_range(cls.test_start_date,
-                                   cls.test_end_date,
-                                   tz='utc')),
+                                   cls.test_end_date)),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s2,
                 'estimate': np.nan
             }, index=pd.date_range(cls.test_start_date,
-                                   cls.test_end_date,
-                                   tz='utc')),
+                                   cls.test_end_date)),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s3,
                 'estimate': np.nan
             }, index=pd.date_range(
-                cls.test_start_date, cls.test_end_date - timedelta(1), tz='utc'
+                cls.test_start_date, cls.test_end_date - timedelta(1)
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s3,
                 'estimate': 13.
             }, index=pd.date_range(cls.test_end_date,
-                                   cls.test_end_date,
-                                   tz='utc')),
+                                   cls.test_end_date)),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s4,
                 'estimate': np.nan
             }, index=pd.date_range(
-                cls.test_start_date, cls.test_end_date - timedelta(2), tz='utc'
+                cls.test_start_date, cls.test_end_date - timedelta(2)
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s4,
                 'estimate': 14.
             }, index=pd.date_range(cls.test_end_date - timedelta(1),
-                                   cls.test_end_date,
-                                   tz='utc')),
+                                   cls.test_end_date)),
         ]).set_index(SID_FIELD_NAME, append=True).unstack(
-            SID_FIELD_NAME).reindex(cls.trading_days).stack(SID_FIELD_NAME)
+            SID_FIELD_NAME).reindex(cls.trading_days).stack(SID_FIELD_NAME)\
+            .rename_axis([None, None])
 
         split_adjusted_before_start_boundary = split_adjusted_at_start_boundary
         split_adjusted_after_end_boundary = split_adjusted_at_end_boundary
@@ -2450,72 +2462,68 @@ class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries,
                 SID_FIELD_NAME: cls.s0,
                 'estimate': 10,
             }, index=pd.date_range(
-                cls.test_start_date, pd.Timestamp('2015-01-09'), tz='utc'
+                cls.test_start_date, pd.Timestamp('2015-01-09')
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s1,
                 'estimate': 11.,
             }, index=pd.date_range(cls.test_start_date,
-                                   cls.test_start_date,
-                                   tz='utc')),
+                                   cls.test_start_date)),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s2,
                 'estimate': 12.,
             }, index=pd.date_range(cls.test_end_date,
-                                   cls.test_end_date,
-                                   tz='utc')),
+                                   cls.test_end_date)),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s3,
                 'estimate': 13. * .13,
             }, index=pd.date_range(
-                cls.test_end_date - timedelta(1), cls.test_end_date, tz='utc'
+                cls.test_end_date - timedelta(1), cls.test_end_date
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s4,
                 'estimate': 14.,
             }, index=pd.date_range(
                 cls.test_end_date - timedelta(1),
-                cls.test_end_date - timedelta(1),
-                tz='utc'
+                cls.test_end_date - timedelta(1)
             )),
         ]).set_index(SID_FIELD_NAME, append=True).unstack(
-            SID_FIELD_NAME).reindex(cls.trading_days).stack(SID_FIELD_NAME)
+            SID_FIELD_NAME).reindex(cls.trading_days).stack(SID_FIELD_NAME)\
+            .rename_axis([None, None])
 
         split_adjusted_at_end_boundary = pd.concat([
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s0,
                 'estimate': 10,
             }, index=pd.date_range(
-                cls.test_start_date, pd.Timestamp('2015-01-09'), tz='utc'
+                cls.test_start_date, pd.Timestamp('2015-01-09')
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s1,
                 'estimate': 11.,
             }, index=pd.date_range(cls.test_start_date,
-                                   cls.test_start_date,
-                                   tz='utc')),
+                                   cls.test_start_date)),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s2,
                 'estimate': 12.,
             }, index=pd.date_range(cls.test_end_date,
-                                   cls.test_end_date,
-                                   tz='utc')),
+                                   cls.test_end_date)),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s3,
                 'estimate': 13.,
             }, index=pd.date_range(
-                cls.test_end_date - timedelta(1), cls.test_end_date, tz='utc'
+                cls.test_end_date - timedelta(1), cls.test_end_date
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s4,
                 'estimate': 14.,
             }, index=pd.date_range(
                 cls.test_end_date - timedelta(1),
-                cls.test_end_date - timedelta(1),
-                tz='utc'
+                cls.test_end_date - timedelta(1)
             )),
         ]).set_index(SID_FIELD_NAME, append=True).unstack(
-            SID_FIELD_NAME).reindex(cls.trading_days).stack(SID_FIELD_NAME)
+            SID_FIELD_NAME).reindex(cls.trading_days).stack(SID_FIELD_NAME)\
+            .rename_axis([None, None])
 
         split_adjusted_before_start_boundary = split_adjusted_at_start_boundary
         split_adjusted_after_end_boundary = split_adjusted_at_end_boundary

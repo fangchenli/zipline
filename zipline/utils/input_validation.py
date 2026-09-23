@@ -159,8 +159,8 @@ def ensure_timezone(func, argname, arg):
     >>> @preprocess(tz=ensure_timezone)
     ... def foo(tz):
     ...     return tz
-    >>> foo('utc')
-    <UTC>
+    >>> foo('UTC')
+    zoneinfo.ZoneInfo(key='UTC')
     """
     if isinstance(arg, tzinfo):
         return arg

@@ -8,6 +8,7 @@ from numpy import (
     zeros,
 )
 from pandas import (
+    isnull,
     DataFrame,
     DatetimeIndex,
     Index,
@@ -61,6 +62,10 @@ class DataFrameLoader(PipelineLoader):
     def __init__(self, column, baseline, adjustments=None):
         self.column = column
         self.baseline = baseline.values.astype(self.column.dtype)
+        if self.column.dtype == object:
+            # pandas' string dtype stores missing values as NaN; restore the
+            # column's own missing value.
+            self.baseline[isnull(self.baseline)] = self.column.missing_value
         # Row labels are sessions, which are tz-naive.
         self.dates = to_session_labels(baseline.index)
         self.assets = baseline.columns

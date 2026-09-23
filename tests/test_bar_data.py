@@ -582,7 +582,7 @@ class TestMinuteBarData(WithCreateBarData,
         )
         bts_after_asset1_end = session_after_asset1_end.replace(
             hour=8, minute=45
-        ).tz_convert(None).tz_localize("US/Eastern")
+        ).tz_localize("US/Eastern")
 
         minutes_to_check = chain(
             self.trading_calendar.session_minutes(
@@ -1219,9 +1219,9 @@ class TestDailyBarData(WithCreateBarData,
         """
 
         minutes_to_check = [
-            (pd.Timestamp("2016-01-05"), False),
-            (pd.Timestamp("2016-01-06"), False),
-            (pd.Timestamp("2016-01-07"), True),
+            (pd.Timestamp("2016-01-05", tz="UTC"), False),
+            (pd.Timestamp("2016-01-06", tz="UTC"), False),
+            (pd.Timestamp("2016-01-07", tz="UTC"), True),
         ]
 
         rlm = HistoricalRestrictions([

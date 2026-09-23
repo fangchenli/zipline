@@ -750,6 +750,11 @@ class BcolzMinuteBarWriter:
                     len(dts),
                     " ".join("{}={}".format(name, len(cols[name]))
                              for name in self.COL_NAMES)))
+        # Accept tz-aware minutes (or arrays of them) as UTC datetime64s.
+        dts = pd.DatetimeIndex(dts)
+        if dts.tz is not None:
+            dts = dts.tz_convert('UTC').tz_localize(None)
+        dts = dts.values.astype('datetime64[ns]')
         self._write_cols(sid, dts, cols, invalid_data_behavior)
 
     def _write_cols(self, sid, dts, cols, invalid_data_behavior):
@@ -773,8 +778,11 @@ class BcolzMinuteBarWriter:
         """
         table = self._ensure_ctable(sid)
 
+        first_minute = pd.Timestamp(dts[0])
+        if first_minute.tzinfo is None:
+            first_minute = first_minute.tz_localize('UTC')
         input_first_day = self._calendar.minute_to_session(
-            pd.Timestamp(dts[0], tz='UTC'), direction='previous')
+            first_minute, direction='previous')
 
         last_date = self.last_date_in_output_for_sid(sid)
 
@@ -1344,6 +1352,13 @@ class H5MinuteBarUpdateWriter:
             pricing data.
         """
         updates = pd.concat(dict(frames), names=['sid', 'dt'])
+        # HDF5 can't store tz-aware levels; minutes are stored as naive UTC.
+        dts = updates.index.levels[1]
+        if dts.tz is not None:
+            updates.index = updates.index.set_levels(
+                dts.tz_convert('UTC').tz_localize(None),
+                level='dt',
+            )
         with HDFStore(self._path, 'w',
                       complevel=self._complevel, complib=self._complib) \
                 as store:
@@ -1362,7 +1377,12 @@ class H5MinuteBarUpdateReader(MinuteBarUpdateReader):
         The path of the HDF5 file from which to source data.
     """
     def __init__(self, path):
-        self._updates = pd.read_hdf(path, 'updates')
+        updates = pd.read_hdf(path, 'updates')
+        updates.index = updates.index.set_levels(
+            updates.index.levels[1].tz_localize('UTC'),
+            level='dt',
+        )
+        self._updates = updates
 
     def read(self, dts, sids):
         updates = self._updates

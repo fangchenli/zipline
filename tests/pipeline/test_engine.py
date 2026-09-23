@@ -32,7 +32,7 @@ from pandas import (
     Timestamp,
 )
 from collections import ChainMap
-from pandas.testing import assert_frame_equal
+from zipline.testing.predicates import assert_frame_equal
 from toolz import merge
 
 from zipline.assets.synthetic import make_rotating_equity_info
@@ -198,7 +198,7 @@ class WithConstantInputs(zf.WithAssetFinder):
             cls.START_DATE,
             cls.END_DATE,
             freq='D',
-            tz='UTC',
+            unit='ns',
         )
         cls.loader = PrecomputedLoader(
             constants=cls.constants,
@@ -272,7 +272,7 @@ class ConstantInputTestCase(WithConstantInputs,
         #  (i.e. start and end dates are the same) we should accurately get
         # data for the day prior.
         result = self.engine.run_pipeline(p, self.dates[1], self.dates[1])
-        self.assertEqual(result['f'][0], 1.0)
+        self.assertEqual(result['f'].iloc[0], 1.0)
 
     def test_screen(self):
         asset_ids = array(self.asset_ids)
@@ -576,7 +576,11 @@ class ConstantInputTestCase(WithConstantInputs,
                 ('open_attribute', open_attribute_expected)):
             column_results = results[colname].unstack()
             expected_results = DataFrame(
-                expected_values, index=dates, columns=assets, dtype=float64,
+                expected_values,
+                index=dates,
+                columns=assets,
+                # The instance's values are tuples.
+                dtype=object if colname == 'open_instance' else float64,
             )
             assert_frame_equal(column_results, expected_results)
 
@@ -650,7 +654,7 @@ class ConstantInputTestCase(WithConstantInputs,
         close_values = [constants[EquityPricing.close]] * num_assets
         expected_values = [list(zip(open_values, close_values))] * num_dates
         expected_results = DataFrame(
-            expected_values, index=dates, columns=assets, dtype=float64,
+            expected_values, index=dates, columns=assets, dtype=object,
         )
 
         multiple_outputs = MultipleOutputs()
@@ -810,7 +814,7 @@ class FrameInputTestCase(zf.WithAssetFinder,
             cls.start,
             cls.end,
             freq=cls.trading_calendar.day,
-            tz='UTC',
+            unit='ns',
         )
         cls.assets = cls.asset_finder.retrieve_all(cls.asset_ids)
         cls.domain = US_EQUITIES
@@ -987,6 +991,7 @@ class SyntheticBcolzTestCase(zf.WithAdjustmentReader,
             self.first_asset_start + self.trading_calendar.day,
             self.last_asset_end,
             freq=self.trading_calendar.day,
+            unit='ns',
         )
         dates_to_test = dates[window_length:]
 
@@ -1035,6 +1040,7 @@ class SyntheticBcolzTestCase(zf.WithAdjustmentReader,
             self.first_asset_start + self.trading_calendar.day,
             self.last_asset_end,
             freq=self.trading_calendar.day,
+            unit='ns',
         )
         dates_to_test = dates[window_length:]
 
@@ -1079,7 +1085,7 @@ class ParameterizedFactorTestCase(zf.WithAssetFinder,
             '2015-02-01',
             '2015-02-28',
             freq=day,
-            tz='UTC',
+            unit='ns',
         )
         sids = cls.sids
 
@@ -1129,7 +1135,7 @@ class ParameterizedFactorTestCase(zf.WithAssetFinder,
             lambda subarray: (DataFrame(subarray)
                               .ewm(span=span)
                               .mean()
-                              .values[-1])
+                              .iloc[-1, 0])
         )[window_length:]
 
     def expected_ewmstd(self, window_length, decay_rate):
@@ -1144,7 +1150,7 @@ class ParameterizedFactorTestCase(zf.WithAssetFinder,
             lambda subarray: (DataFrame(subarray)
                               .ewm(span=span)
                               .std()
-                              .values[-1])
+                              .iloc[-1, 0])
         )[window_length:]
 
     @parameterized.expand([

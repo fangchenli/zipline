@@ -57,7 +57,7 @@ from zipline.pipeline.loaders.synthetic import (
     expected_bar_values_2d,
     make_bar_data,
 )
-from zipline.testing import seconds_to_timestamp, powerset
+from zipline.testing import powerset
 from zipline.testing.fixtures import (
     WithAssetFinder,
     WithBcolzEquityDailyBarReader,
@@ -525,7 +525,7 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
         all_results = self.daily_bar_reader.currency_codes(all_assets)
         all_expected = self.make_equity_daily_bar_currency_codes(
             self.DAILY_BARS_TEST_QUERY_COUNTRY_CODE, all_assets,
-        ).values
+        ).to_numpy(dtype=object)
         assert_equal(all_results, all_expected)
 
         self.assertEqual(all_results.dtype, np.dtype(object))
@@ -600,7 +600,7 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
         for asset_id in self.assets:
             for date in self.dates_for_asset(asset_id):
                 self.assertEqual(ids[idx], asset_id)
-                self.assertEqual(date, seconds_to_timestamp(days[idx]))
+                self.assertEqual(date, Timestamp(days[idx], unit='s'))
                 idx += 1
 
     def test_write_attrs(self):
@@ -636,8 +636,8 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
             expected_calendar_offset,
         )
         cal = get_calendar(result.attrs['calendar_name'])
-        first_session = Timestamp(result.attrs['start_session_ns'], tz='UTC')
-        end_session = Timestamp(result.attrs['end_session_ns'], tz='UTC')
+        first_session = Timestamp(result.attrs['start_session_ns'])
+        end_session = Timestamp(result.attrs['end_session_ns'])
         sessions = cal.sessions_in_range(first_session, end_session)
 
         assert_equal(
@@ -701,7 +701,7 @@ class BcolzDailyBarWriterMissingDataTestCase(WithAssetFinder,
             "Got 20 rows for daily bars table with first day=2015-06-02, last "
             "day=2015-06-30, expected 21 rows.\n"
             "Missing sessions: "
-            "[Timestamp('2015-06-15 00:00:00+0000', tz='UTC')]\n"
+            "[Timestamp('2015-06-15 00:00:00')]\n"
             "Extra sessions: []"
         )
         with self.assertRaisesRegex(AssertionError, expected_msg):

@@ -40,8 +40,9 @@ class FinalMeta(type):
         if setattr_ is None:
             # No `__setattr__` was explicitly defined, look up the super
             # class's. `bases[0]` will have a `__setattr__` because
-            # `object` does so we don't need to worry about the mro.
-            setattr_ = bases[0].__setattr__
+            # `object` does so we don't need to worry about the mro. With no
+            # explicit bases the class derives directly from `object`.
+            setattr_ = (bases[0] if bases else object).__setattr__
 
         if not is_final('__setattr__', bases) \
            and not isinstance(setattr_, final):

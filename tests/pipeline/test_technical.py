@@ -204,8 +204,8 @@ class TestFastStochasticOscillator(ZiplineTestCase):
         expected_out_k = np.array(expected_out_k)
 
         today = pd.Timestamp('2015')
-        out = np.empty(shape=(nassets,), dtype=np.float)
-        assets = np.arange(nassets, dtype=np.float)
+        out = np.empty(shape=(nassets,), dtype=float)
+        assets = np.arange(nassets, dtype=float)
 
         fso = FastStochasticOscillator()
         fso.compute(
@@ -416,7 +416,7 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
             lambda sub: pd.DataFrame(sub)
             .ewm(span=window)
             .mean()
-            .values[-1])
+            .iloc[-1, 0])
 
     @parameter_space(seed=range(5))
     def test_MACD_window_length_generation(self, seed):

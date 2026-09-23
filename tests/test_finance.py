@@ -21,7 +21,6 @@ import os
 
 import numpy as np
 import pandas as pd
-from zoneinfo import ZoneInfo
 from testfixtures import TempDirectory
 
 from zipline.finance.blotter.simulation_blotter import SimulationBlotter
@@ -285,7 +284,8 @@ class FinanceTestCase(zf.WithAssetFinder,
             if sim_params.data_frequency == "minute":
                 ticks = minutes
             else:
-                ticks = days
+                # Daily ticks are the sessions' midnight UTC instants.
+                ticks = days.tz_localize('UTC')
 
             transactions = []
 
@@ -427,15 +427,15 @@ class SimParamsTestCase(zf.WithTradingCalendars, zf.ZiplineTestCase):
         )
 
         expected_trading_days = (
-            datetime(2007, 12, 31, tzinfo=ZoneInfo("UTC")),
+            datetime(2007, 12, 31),
             # Skip new years
             # holidays taken from: http://www.nyse.com/press/1191407641943.html
-            datetime(2008, 1, 2, tzinfo=ZoneInfo("UTC")),
-            datetime(2008, 1, 3, tzinfo=ZoneInfo("UTC")),
-            datetime(2008, 1, 4, tzinfo=ZoneInfo("UTC")),
+            datetime(2008, 1, 2),
+            datetime(2008, 1, 3),
+            datetime(2008, 1, 4),
             # Skip Saturday
             # Skip Sunday
-            datetime(2008, 1, 7, tzinfo=ZoneInfo("UTC"))
+            datetime(2008, 1, 7)
         )
 
         num_expected_trading_days = 5

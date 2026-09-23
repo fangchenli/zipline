@@ -58,8 +58,10 @@ implements the following algorithm for executing pipelines:
 from abc import ABC, abstractmethod
 from functools import partial
 
+import numpy as np
 from numpy import array, arange
-from pandas import DataFrame, MultiIndex, concat
+from pandas import CategoricalDtype, DataFrame, Index, MultiIndex, concat
+from pandas.api.types import union_categoricals
 from toolz import groupby
 
 from zipline.lib.adjusted_array import ensure_adjusted_array, ensure_ndarray
@@ -354,7 +356,7 @@ class SimplePipelineEngine(PipelineEngine):
         nonempty_chunks = [c for c in chunks if len(c)]
 
         # pandas would fill missing columns with NaT
-        return concat(nonempty_chunks)
+        return concat(_unify_categoricals(nonempty_chunks))
 
     def run_pipeline(self, pipeline, start_date, end_date, hooks=None):
         """
@@ -421,7 +423,9 @@ class SimplePipelineEngine(PipelineEngine):
         workspace = self._populate_initial_workspace(
             {
                 self._root_mask_term: root_mask_values,
-                self._root_mask_dates_term: as_column(dates.values)
+                # Copy: pandas' ``.values`` may be read-only, and window
+                # buffers must be writable.
+                self._root_mask_dates_term: as_column(dates.to_numpy(copy=True))
             },
             self._root_mask_term,
             plan,
@@ -779,9 +783,10 @@ class SimplePipelineEngine(PipelineEngine):
             return DataFrame(
                 data={
                     name: array([], dtype=arr.dtype)
-                    for name, arr in data.items()
+                    for name, arr in sorted(data.items())
                 },
                 index=MultiIndex.from_arrays([empty_dates, empty_assets]),
+                columns=_column_index(data),
             )
 
         final_columns = {}
@@ -791,12 +796,19 @@ class SimplePipelineEngine(PipelineEngine):
             #
             # As of Mon May 2 15:38:47 2016, we only use this to convert
             # LabelArrays into categoricals.
-            final_columns[name] = terms[name].postprocess(data[name][mask])
+            final_columns[name] = _records_to_tuples(
+                terms[name].postprocess(data[name][mask]),
+            )
 
         resolved_assets = array(self._finder.retrieve_all(assets))
         index = _pipeline_output_index(dates, resolved_assets, mask)
 
-        return DataFrame(data=final_columns, index=index)
+        # Columns are sorted by name, as pandas did for dicts before 0.23.
+        return DataFrame(
+            data={name: final_columns[name] for name in sorted(final_columns)},
+            index=index,
+            columns=_column_index(final_columns),
+        )
 
     def _validate_compute_chunk_params(self,
                                        graph,
@@ -911,6 +923,52 @@ class SimplePipelineEngine(PipelineEngine):
                     "Requested currency conversion is not supported for the "
                     "following terms:\n{}".format(bulleted_list(bad))
                 )
+
+
+def _column_index(names):
+    """Sorted string column labels for a pipeline output frame.
+
+    Built explicitly so that a pipeline with no columns still has a string
+    (not integer) column index.
+    """
+    return Index(sorted(names), dtype=str)
+
+
+def _records_to_tuples(values):
+    """Convert a structured array (from a multiple-output factor) to an object
+    array of tuples; pandas can't reshape structured arrays.
+    """
+    if not (isinstance(values, np.ndarray) and values.dtype.names):
+        return values
+    out = np.empty(len(values), dtype=object)
+    out[:] = [tuple(record) for record in values]
+    return out
+
+
+def _unify_categoricals(frames):
+    """Give categorical columns the same categories across ``frames``.
+
+    Concatenating categoricals with different categories produces an object
+    column, so chunked pipeline results need a common set of categories.
+    """
+    if not frames:
+        return frames
+    categorical_columns = [
+        name for name, dtype in frames[0].dtypes.items()
+        if isinstance(dtype, CategoricalDtype)
+    ]
+    if not categorical_columns:
+        return frames
+
+    out = [frame.copy() for frame in frames]
+    for name in categorical_columns:
+        categories = union_categoricals(
+            [frame[name].values for frame in frames],
+            sort_categories=True,
+        ).categories
+        for frame in out:
+            frame[name] = frame[name].cat.set_categories(categories)
+    return out
 
 
 def _pipeline_output_index(dates, assets, mask):

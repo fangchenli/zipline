@@ -253,12 +253,12 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
             dt and window size.
             """
             if mode == 'daily':
-                dts = cal.sessions_window(dt, -9)
+                dts = cal.sessions_window(dt, -10)
 
                 # `dt` may not be a session on the equity calendar, so
                 # find the next valid session.
-                equity_sess = equity_cal.minute_to_session(dt)
-                equity_dts = equity_cal.sessions_window(equity_sess, -9)
+                equity_sess = equity_cal.date_to_session(dt, direction='next')
+                equity_dts = equity_cal.sessions_window(equity_sess, -10)
             elif mode == 'minute':
                 dts = cal.minutes_window(dt, -10)
                 equity_dts = equity_cal.minutes_window(dt, -10)
@@ -273,7 +273,7 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
             if field == 'volume':
                 return output.fillna(0)
             elif field == 'price':
-                return output.fillna(method='ffill')
+                return output.ffill()
             else:
                 return output
 
@@ -831,7 +831,7 @@ class MinuteEquityHistoryTestCase(WithHistory,
 
     def test_minute_sunday_midnight(self):
         # Most trading calendars aren't open at midnight on Sunday.
-        sunday_midnight = pd.Timestamp('2015-01-09')
+        sunday_midnight = pd.Timestamp('2015-01-09', tz='UTC')
 
         # Find the closest prior minute when the trading calendar was
         # open (note that if the calendar is open at `sunday_midnight`,
@@ -1426,20 +1426,20 @@ class MinuteEquityHistoryTestCase(WithHistory,
                 self.assertEqual(len(window), 3)
 
                 if field == 'open':
-                    self.assertEqual(window[0], 3)
-                    self.assertEqual(window[1], 393)
+                    self.assertEqual(window.iloc[0], 3)
+                    self.assertEqual(window.iloc[1], 393)
                 elif field == 'high':
-                    self.assertEqual(window[0], 393)
-                    self.assertEqual(window[1], 783)
+                    self.assertEqual(window.iloc[0], 393)
+                    self.assertEqual(window.iloc[1], 783)
                 elif field == 'low':
-                    self.assertEqual(window[0], 1)
-                    self.assertEqual(window[1], 391)
+                    self.assertEqual(window.iloc[0], 1)
+                    self.assertEqual(window.iloc[1], 391)
                 elif field == 'close':
-                    self.assertEqual(window[0], 391)
-                    self.assertEqual(window[1], 781)
+                    self.assertEqual(window.iloc[0], 391)
+                    self.assertEqual(window.iloc[1], 781)
                 elif field == 'volume':
-                    self.assertEqual(window[0], 7663500)
-                    self.assertEqual(window[1], 22873500)
+                    self.assertEqual(window.iloc[0], 7663500)
+                    self.assertEqual(window.iloc[1], 22873500)
 
                 last_val = -1
 
@@ -1449,7 +1449,7 @@ class MinuteEquityHistoryTestCase(WithHistory,
                     if field == 'volume':
                         last_val = 0
                     elif field == 'price':
-                        last_val = window[1]
+                        last_val = window.iloc[1]
                     else:
                         last_val = nan
                 elif field == 'open':
@@ -1470,7 +1470,7 @@ class MinuteEquityHistoryTestCase(WithHistory,
 
                     last_val = sum(np.array(range(782, 782 + idx + 1)) * 100)
 
-                np.testing.assert_equal(window[-1], last_val)
+                np.testing.assert_equal(window.iloc[-1], last_val)
 
     @parameterized.expand(ALL_FIELDS)
     def test_daily_history_blended_gaps(self, field):
@@ -1504,23 +1504,23 @@ class MinuteEquityHistoryTestCase(WithHistory,
             self.assertEqual(len(window), 3)
 
             if field == 'open':
-                self.assertEqual(window[0], 393)
-                self.assertEqual(window[1], 783)
+                self.assertEqual(window.iloc[0], 393)
+                self.assertEqual(window.iloc[1], 783)
             elif field == 'high':
-                self.assertEqual(window[0], 783)
-                self.assertEqual(window[1], 1173)
+                self.assertEqual(window.iloc[0], 783)
+                self.assertEqual(window.iloc[1], 1173)
             elif field == 'low':
-                self.assertEqual(window[0], 391)
-                self.assertEqual(window[1], 781)
+                self.assertEqual(window.iloc[0], 391)
+                self.assertEqual(window.iloc[1], 781)
             elif field == 'close':
-                self.assertEqual(window[0], 781)
-                self.assertEqual(window[1], 1171)
+                self.assertEqual(window.iloc[0], 781)
+                self.assertEqual(window.iloc[1], 1171)
             elif field == 'price':
-                self.assertEqual(window[0], 781)
-                self.assertEqual(window[1], 1171)
+                self.assertEqual(window.iloc[0], 781)
+                self.assertEqual(window.iloc[1], 1171)
             elif field == 'volume':
-                self.assertEqual(window[0], 22873500)
-                self.assertEqual(window[1], 38083500)
+                self.assertEqual(window.iloc[0], 22873500)
+                self.assertEqual(window.iloc[1], 38083500)
 
             last_val = -1
 
@@ -1530,7 +1530,7 @@ class MinuteEquityHistoryTestCase(WithHistory,
                 if field == 'volume':
                     last_val = 0
                 elif field == 'price':
-                    last_val = window[1]
+                    last_val = window.iloc[1]
                 else:
                     last_val = nan
             elif field == 'open':
@@ -1580,7 +1580,7 @@ class MinuteEquityHistoryTestCase(WithHistory,
                     last_val = sum(
                         np.array(range(1173, 1172 + idx + 1)) * 100)
 
-            np.testing.assert_almost_equal(window[-1], last_val,
+            np.testing.assert_almost_equal(window.iloc[-1], last_val,
                                            err_msg='field={0} minute={1}'.
                                            format(field, minute))
 
@@ -1655,7 +1655,7 @@ class MinuteEquityHistoryTestCase(WithHistory,
                     .format(minute, bar_count, len(window))
                 )
                 np.testing.assert_allclose(
-                    window[-1],
+                    window.iloc[-1],
                     expected,
                     err_msg=f"at minute {minute}",
                 )
@@ -1796,7 +1796,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
             )
 
             # third from last value should not be NaN
-            self.assertFalse(np.isnan(window[self.ASSET2][-3]))
+            self.assertFalse(np.isnan(window[self.ASSET2].iloc[-3]))
 
         volume_window = bar_data.history(
             [self.ASSET1, self.ASSET2], 'volume', 15, '1d'
@@ -1807,7 +1807,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
             volume_window[self.ASSET2][-2:]
         )
 
-        self.assertNotEqual(0, volume_window[self.ASSET2][-3])
+        self.assertNotEqual(0, volume_window[self.ASSET2].iloc[-3])
 
     def test_daily_after_asset_stopped(self):
         # SHORT_ASSET trades on 1/5, 1/6, that's it.
@@ -1999,7 +1999,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
             )
 
             # third from last value should not be NaN
-            self.assertFalse(np.isnan(window[self.ASSET2][-3]))
+            self.assertFalse(np.isnan(window[self.ASSET2].iloc[-3]))
 
         volume_window = bar_data.history(
             [self.ASSET1, self.ASSET2], 'volume', 15, '1d'
@@ -2010,7 +2010,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
             volume_window[self.ASSET2][-2:]
         )
 
-        self.assertNotEqual(0, volume_window[self.ASSET2][-3])
+        self.assertNotEqual(0, volume_window[self.ASSET2].iloc[-3])
 
     def test_history_window_before_first_trading_day(self):
         # trading_start is 2/3/2014

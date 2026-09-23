@@ -211,7 +211,11 @@ class EventsLoader(PipelineLoader):
                      sids,
                      mask):
         def to_frame(array):
-            return pd.DataFrame(array, index=dates, columns=sids)
+            # Pass the dtype so pandas doesn't infer a string dtype (which
+            # would turn ``None`` missing values into NaN).
+            return pd.DataFrame(
+                array, index=dates, columns=sids, dtype=array.dtype,
+            )
 
         assert indexer.shape == (len(dates), len(sids))
 

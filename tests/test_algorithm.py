@@ -1170,7 +1170,7 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
             np.full(19, np.nan), algo.history_values[0]["high"][2][0:19]
         )
 
-        self.assertEqual(352, algo.history_values[0]["high"][2][19])
+        self.assertEqual(352, algo.history_values[0]["high"][2].iloc[19])
 
         np.testing.assert_array_equal(
             np.full(40, np.nan), algo.history_values[0]["high"][2][20:]
@@ -1202,19 +1202,19 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
         algo = self.make_algo(script=algo_code)
         results = algo.run()
 
-        self.assertEqual(392, results.the_high1[0])
-        self.assertEqual(390, results.the_price1[0])
+        self.assertEqual(392, results.the_high1.iloc[0])
+        self.assertEqual(390, results.the_price1.iloc[0])
 
         # nan because asset2 only trades every 50 minutes
-        self.assertTrue(np.isnan(results.the_high2[0]))
+        self.assertTrue(np.isnan(results.the_high2.iloc[0]))
 
-        self.assertTrue(350, results.the_price2[0])
+        self.assertTrue(350, results.the_price2.iloc[0])
 
-        self.assertEqual(392, algo.history_values[0]["high"][1][0])
-        self.assertEqual(390, algo.history_values[0]["price"][1][0])
+        self.assertEqual(392, algo.history_values[0]["high"][1].iloc[0])
+        self.assertEqual(390, algo.history_values[0]["price"][1].iloc[0])
 
-        self.assertEqual(352, algo.history_values[0]["high"][2][0])
-        self.assertEqual(350, algo.history_values[0]["price"][2][0])
+        self.assertEqual(352, algo.history_values[0]["high"][2].iloc[0])
+        self.assertEqual(350, algo.history_values[0]["price"][2].iloc[0])
 
     def test_portfolio_bts(self):
         algo_code = dedent("""
@@ -1523,7 +1523,7 @@ def handle_data(context, data):
         # the txn was for -1000 shares at 9.95, means -9.95k.  our capital_used
         # for that day was therefore 9.95k, but after the $100 commission,
         # it should be 9.85k.
-        self.assertEqual(9850, results.capital_used[1])
+        self.assertEqual(9850, results.capital_used.iloc[1])
         self.assertEqual(100, results["orders"].iloc[1][0]["commission"])
 
     @parameterized.expand(
@@ -1965,6 +1965,14 @@ def handle_data(context, data):
         )
 
 
+
+def _capital_change_key(datestr, change_loc):
+    """Interday capital changes are keyed by session label, intraday ones by
+    UTC minute."""
+    ts = pd.Timestamp(datestr)
+    return ts if change_loc == 'interday' else ts.tz_localize('UTC')
+
+
 class TestCapitalChanges(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
     START_DATE = pd.Timestamp('2006-01-03')
@@ -2201,7 +2209,7 @@ def order_stuff(context, data):
         )
 
         capital_changes = {
-            pd.Timestamp(datestr, tz='UTC'): {
+            _capital_change_key(datestr, change_loc): {
                 'type': change_type,
                 'value': value
             }
@@ -2238,7 +2246,7 @@ def order_stuff(context, data):
 
         self.assertEqual(len(capital_change_packets), len(capital_changes))
         expected = [
-            {'date': pd.Timestamp(val[0], tz='UTC'),
+            {'date': _capital_change_key(val[0], change_loc),
              'type': 'cash',
              'target': val[1] if change_type == 'target' else None,
              'delta': 1000.0 if len(values) == 1 else 500.0}
@@ -2371,7 +2379,7 @@ def order_stuff(context, data):
             trading_calendar=self.nyse_calendar,
         )
 
-        capital_changes = {pd.Timestamp(val[0], tz='UTC'): {
+        capital_changes = {_capital_change_key(val[0], change_loc): {
             'type': change_type, 'value': val[1]} for val in values}
 
         algocode = """
@@ -2405,7 +2413,7 @@ def order_stuff(context, data):
 
         self.assertEqual(len(capital_change_packets), len(capital_changes))
         expected = [
-            {'date': pd.Timestamp(val[0], tz='UTC'),
+            {'date': _capital_change_key(val[0], change_loc),
              'type': 'cash',
              'target': val[1] if change_type == 'target' else None,
              'delta': 1000.0 if len(values) == 1 else 500.0}
@@ -3427,7 +3435,7 @@ class TestFuturesAlgo(zf.WithMakeAlgo, zf.ZiplineTestCase):
         expected_price = (algo.order_price + 1) + expected_spread
 
         self.assertEqual(txn['price'], expected_price)
-        self.assertEqual(results['orders'][0][0]['commission'], 0.0)
+        self.assertEqual(results['orders'].iloc[0][0]['commission'], 0.0)
 
     def test_volume_contract_slippage(self):
         algo_code = self.algo_with_slippage(
@@ -3440,7 +3448,7 @@ class TestFuturesAlgo(zf.WithMakeAlgo, zf.ZiplineTestCase):
         results = algo.run()
 
         # There should be no commissions.
-        self.assertEqual(results['orders'][0][0]['commission'], 0.0)
+        self.assertEqual(results['orders'].iloc[0][0]['commission'], 0.0)
 
         # Flatten the list of transactions.
         all_txns = [
@@ -3599,7 +3607,7 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
                     np.copysign(389, direction),
                     daily_positions[0]["amount"],
                 )
-                self.assertEqual(1, results.positions[0][0]["sid"])
+                self.assertEqual(1, results.positions.iloc[0][0]["sid"])
 
             # should be an order on day1, but no more orders afterwards
             np.testing.assert_array_equal([1, 0, 0],
@@ -3609,7 +3617,7 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
             np.testing.assert_array_equal([389, 0, 0],
                                           list(map(len, results.transactions)))
 
-            the_order = results.orders[0][0]
+            the_order = results.orders.iloc[0][0]
 
             self.assertEqual(ORDER_STATUS.CANCELLED, the_order["status"])
             self.assertEqual(np.copysign(389, direction), the_order["filled"])

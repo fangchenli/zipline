@@ -881,7 +881,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
                     'sid': 1,
                     'symbol': 'FOOB',
                     'start_date': date.value,
-                    'end_date': date.max.value,
+                    'end_date': pd.Timestamp.max.value,
                     'exchange': 'NYSE',
                 },
                 {
@@ -895,7 +895,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
                     'sid': 2,
                     'symbol': 'FOO_B',
                     'start_date': (date + timedelta(days=61)).value,
-                    'end_date': date.max.value,
+                    'end_date': pd.Timestamp.max.value,
                     'exchange': 'NYSE',
                 },
 
@@ -2014,7 +2014,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
                     'sid': n * 2,
                     'symbol': 'FOOB',
                     'start_date': date.value,
-                    'end_date': date.max.value,
+                    'end_date': pd.Timestamp.max.value,
                     'exchange': 'EXCHANGE %d' % n,
                 },
                 {
@@ -2028,7 +2028,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
                     'sid': n * 2 + 1,
                     'symbol': 'FOO_B',
                     'start_date': (date + timedelta(days=61)).value,
-                    'end_date': date.max.value,
+                    'end_date': pd.Timestamp.max.value,
                     'exchange': 'EXCHANGE %d' % n,
                 },
             ]
@@ -2068,6 +2068,18 @@ class TestAssetDBVersioning(ZiplineTestCase):
         self.metadata = sa.MetaData()
         self.metadata.reflect(bind=eng)
 
+    def _execute(self, stmt):
+        with self.engine.begin() as conn:
+            conn.execute(stmt)
+
+    def _scalar(self, stmt):
+        with self.engine.connect() as conn:
+            return conn.execute(stmt).scalar()
+
+    def _fetchall(self, stmt):
+        with self.engine.connect() as conn:
+            return conn.execute(stmt).fetchall()
+
     def test_check_version(self):
         version_table = self.metadata.tables['version_info']
 
@@ -2092,10 +2104,10 @@ class TestAssetDBVersioning(ZiplineTestCase):
 
     def test_write_version(self):
         version_table = self.metadata.tables['version_info']
-        version_table.delete().execute()
+        self._execute(version_table.delete())
 
         # Assert that the version is not present in the table
-        self.assertIsNone(sa.select((version_table.c.version,)).scalar())
+        self.assertIsNone(self._scalar(sa.select(version_table.c.version)))
 
         # This should fail because the table has no version info and is,
         # therefore, consdered v0
@@ -2107,7 +2119,7 @@ class TestAssetDBVersioning(ZiplineTestCase):
         check_version_info(self.engine, version_table, -2)
 
         # Assert that the version is in the table and correct
-        self.assertEqual(sa.select((version_table.c.version,)).scalar(), -2)
+        self.assertEqual(self._scalar(sa.select(version_table.c.version)), -2)
 
         # Assert that trying to overwrite the version fails
         with self.assertRaises(sa.exc.IntegrityError):
@@ -2115,7 +2127,7 @@ class TestAssetDBVersioning(ZiplineTestCase):
 
     def test_finder_checks_version(self):
         version_table = self.metadata.tables['version_info']
-        version_table.delete().execute()
+        self._execute(version_table.delete())
         write_version_info(self.engine, version_table, -2)
         check_version_info(self.engine, version_table, -2)
 
@@ -2124,7 +2136,7 @@ class TestAssetDBVersioning(ZiplineTestCase):
             AssetFinder(engine=self.engine)
 
         # Change the version number of the db to the correct version
-        version_table.delete().execute()
+        self._execute(version_table.delete())
         write_version_info(self.engine, version_table, ASSET_DB_VERSION)
         check_version_info(self.engine, version_table, ASSET_DB_VERSION)
 
@@ -2133,23 +2145,22 @@ class TestAssetDBVersioning(ZiplineTestCase):
 
     def test_downgrade(self):
         # Attempt to downgrade a current assets db all the way down to v0
-        conn = self.engine.connect()
 
         # first downgrade to v3
         downgrade(self.engine, 3)
-        metadata = sa.MetaData(conn)
-        metadata.reflect()
-        check_version_info(conn, metadata.tables['version_info'], 3)
+        metadata = sa.MetaData()
+        metadata.reflect(bind=self.engine)
+        check_version_info(self.engine, metadata.tables['version_info'], 3)
         self.assertFalse('exchange_full' in metadata.tables)
 
         # now go all the way to v0
         downgrade(self.engine, 0)
 
         # Verify that the db version is now 0
-        metadata = sa.MetaData(conn)
-        metadata.reflect()
+        metadata = sa.MetaData()
+        metadata.reflect(bind=self.engine)
         version_table = metadata.tables['version_info']
-        check_version_info(conn, version_table, 0)
+        check_version_info(self.engine, version_table, 0)
 
         # Check some of the v1-to-v0 downgrades
         self.assertTrue('futures_contracts' in metadata.tables)
@@ -2181,8 +2192,8 @@ class TestAssetDBVersioning(ZiplineTestCase):
         AssetDBWriter(self.engine).write(equities=equities)
 
         downgrade(self.engine, 4)
-        metadata = sa.MetaData(self.engine)
-        metadata.reflect()
+        metadata = sa.MetaData()
+        metadata.reflect(bind=self.engine)
 
         def select_fields(r):
             return r.sid, r.symbol, r.asset_name, r.start_date, r.end_date
@@ -2194,7 +2205,7 @@ class TestAssetDBVersioning(ZiplineTestCase):
         }
         actual_data = set(map(
             select_fields,
-            sa.select(metadata.tables['equities'].c).execute(),
+            self._fetchall(sa.select(metadata.tables['equities'])),
         ))
 
         assert_equal(expected_data, actual_data)
@@ -2219,13 +2230,13 @@ class TestAssetDBVersioning(ZiplineTestCase):
         )
 
         downgrade(self.engine, 6)
-        metadata = sa.MetaData(self.engine)
-        metadata.reflect()
+        metadata = sa.MetaData()
+        metadata.reflect(bind=self.engine)
 
         expected_sids = {0, 2}
         actual_sids = set(map(
             lambda r: r.sid,
-            sa.select(metadata.tables['equities'].c).execute(),
+            self._fetchall(sa.select(metadata.tables['equities'])),
         ))
 
         assert_equal(expected_sids, actual_sids)
@@ -2479,8 +2490,8 @@ class TestWrite(WithInstanceTmpDir, ZiplineTestCase):
                 ExchangeInfo('NYSE', 'NYSE', 'US'),
                 symbol='AYY',
                 asset_name='Ayy Inc.',
-                start_date=pd.Timestamp(0, tz='UTC'),
-                end_date=pd.Timestamp.max.tz_localize('UTC'),
+                start_date=pd.Timestamp(0),
+                end_date=pd.Timestamp.max,
                 first_traded=None,
                 auto_close_date=None,
                 tick_size=0.01,
@@ -2491,8 +2502,8 @@ class TestWrite(WithInstanceTmpDir, ZiplineTestCase):
                 ExchangeInfo('TSE', 'TSE', 'JP'),
                 symbol='LMAO',
                 asset_name='Lmao LP',
-                start_date=pd.Timestamp(0, tz='UTC'),
-                end_date=pd.Timestamp.max.tz_localize('UTC'),
+                start_date=pd.Timestamp(0),
+                end_date=pd.Timestamp.max,
                 first_traded=None,
                 auto_close_date=None,
                 tick_size=0.01,
@@ -2512,16 +2523,16 @@ class TestWrite(WithInstanceTmpDir, ZiplineTestCase):
         expected_supplementary_map = {
             ('QSIP', str(hash('AYY'))): (
                 OwnershipPeriod(
-                    start=pd.Timestamp(0, tz='UTC'),
-                    end=pd.Timestamp.max.tz_localize('UTC'),
+                    start=pd.Timestamp(0),
+                    end=pd.Timestamp.max,
                     sid=0,
                     value=str(hash('AYY')),
                 ),
             ),
             ('QSIP', str(hash('LMAO'))): (
                 OwnershipPeriod(
-                    start=pd.Timestamp(0, tz='UTC'),
-                    end=pd.Timestamp.max.tz_localize('UTC'),
+                    start=pd.Timestamp(0),
+                    end=pd.Timestamp.max,
                     sid=1,
                     value=str(hash('LMAO')),
                 ),

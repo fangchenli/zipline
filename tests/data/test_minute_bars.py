@@ -268,7 +268,7 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         self.assertEqual(51.0, volume_price)
 
     def test_write_on_second_day(self):
-        second_day = self.test_calendar_start + 1
+        second_day = self.test_calendar_start + self.trading_calendar.day
         minute = self.market_opens[second_day]
         sid = 1
         data = DataFrame(
@@ -340,8 +340,8 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
 
         tds = self.market_opens.index
         days = tds[tds.slice_indexer(
-            start=self.test_calendar_start + 1,
-            end=self.test_calendar_start + 3
+            start=self.test_calendar_start + self.trading_calendar.day,
+            end=self.test_calendar_start + 3 * self.trading_calendar.day
         )]
         minutes = DatetimeIndex([
             self.market_opens[days[0]] + timedelta(minutes=60),
@@ -1036,8 +1036,8 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
 
         tds = self.market_opens.index
         days = tds[tds.slice_indexer(
-            start=self.test_calendar_start + 1,
-            end=self.test_calendar_start + 3
+            start=self.test_calendar_start + self.trading_calendar.day,
+            end=self.test_calendar_start + 3 * self.trading_calendar.day
         )]
         minutes = DatetimeIndex([
             self.market_opens[days[0]] + timedelta(minutes=60),
@@ -1097,8 +1097,8 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
 
         tds = self.market_opens.index
         days = tds[tds.slice_indexer(
-            start=self.test_calendar_start + 1,
-            end=self.test_calendar_start + 3
+            start=self.test_calendar_start + self.trading_calendar.day,
+            end=self.test_calendar_start + 3 * self.trading_calendar.day
         )]
         minutes = DatetimeIndex([
             self.market_opens[days[0]] + timedelta(minutes=60),

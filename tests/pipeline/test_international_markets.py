@@ -27,7 +27,7 @@ import zipline.testing.fixtures as zf
 
 
 def T(s):
-    return pd.Timestamp(s, tz='UTC')
+    return pd.Timestamp(s)
 
 
 class WithInternationalDailyBarData(zf.WithAssetFinder):

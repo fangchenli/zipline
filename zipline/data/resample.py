@@ -61,7 +61,9 @@ def minute_frame_to_session_frame(minute_frame, calendar):
     """
     how = OrderedDict((c, _MINUTE_TO_SESSION_OHCLV_HOW[c])
                       for c in minute_frame.columns)
-    labels = calendar.minutes_to_sessions(minute_frame.index)
+    # exchange_calendars compares raw int64 nanoseconds, so the index must be
+    # in ns (pandas 3 parses strings to microseconds by default).
+    labels = calendar.minutes_to_sessions(minute_frame.index.as_unit('ns'))
     return minute_frame.groupby(labels).agg(how)
 
 

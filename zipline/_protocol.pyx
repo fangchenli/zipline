@@ -58,7 +58,8 @@ cdef class check_parameters(object):
     def __call__(self, func):
         @wraps(func)
         def assert_keywords_and_call(*args, **kwargs):
-            cdef short i
+            # NOTE: don't type the loop index below; a typed ``cdef`` loop
+            # variable in this closure crashes under Cython 3.
 
             # verify all the keyword arguments
             for field in kwargs:

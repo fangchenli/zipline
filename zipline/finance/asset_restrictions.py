@@ -152,6 +152,15 @@ class StaticRestrictions(Restrictions):
         )
 
 
+def _effective_dt(effective_date):
+    """Restrictions take effect at a point in time (UTC). A tz-naive date is
+    a session label, which takes effect at midnight UTC."""
+    effective_date = pd.Timestamp(effective_date)
+    if effective_date.tz is None:
+        return effective_date.tz_localize('UTC')
+    return effective_date
+
+
 class HistoricalRestrictions(Restrictions):
     """
     Historical restrictions stored in memory with effective dates for each
@@ -168,7 +177,11 @@ class HistoricalRestrictions(Restrictions):
         # ascending order of effective_date
         self._restrictions_by_asset = {
             asset: sorted(
-                restrictions_for_asset, key=lambda x: x.effective_date
+                (
+                    (_effective_dt(r.effective_date), r)
+                    for r in restrictions_for_asset
+                ),
+                key=lambda x: x[0],
             )
             for asset, restrictions_for_asset
             in groupby(lambda x: x.asset, restrictions).items()
@@ -190,8 +203,8 @@ class HistoricalRestrictions(Restrictions):
 
     def _is_restricted_for_asset(self, asset, dt):
         state = RESTRICTION_STATES.ALLOWED
-        for r in self._restrictions_by_asset.get(asset, ()):
-            if r.effective_date > dt:
+        for effective_dt, r in self._restrictions_by_asset.get(asset, ()):
+            if effective_dt > dt:
                 break
             state = r.state
         return state == RESTRICTION_STATES.FROZEN

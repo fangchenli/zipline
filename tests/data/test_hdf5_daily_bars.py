@@ -71,5 +71,5 @@ class H5WriterTestCase(zp_fixtures.WithTmpDir,
                 '2014-01-04',
                 '2014-01-06',
                 '2014-01-07',
-            ], utc=True)
+            ]).as_unit('ns'),
         )

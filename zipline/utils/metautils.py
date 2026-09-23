@@ -55,10 +55,10 @@ def compose_types(a, *cs):
 
        >>> D.ayy
        'lmao'
-       >>> D()
+       >>> D()  # doctest: +ELLIPSIS
        Traceback (most recent call last):
           ...
-       TypeError: Can't instantiate abstract class D with abstract methods f
+       TypeError: Can't instantiate abstract class D ...
 
 
     An important note here is that ``M`` did not use ``type.__new__`` and

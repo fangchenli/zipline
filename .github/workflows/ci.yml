@@ -35,3 +35,4 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: uv sync --locked
       - run: uv run pytest -n auto
+      - run: uv run pytest --doctest-modules zipline

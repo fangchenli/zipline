@@ -9,7 +9,6 @@ from numpy.testing import assert_array_equal
 from pandas import (
     date_range,
     DataFrame,
-    DatetimeIndex,
     Index,
 )
 from zipline.utils.calendar_utils import get_calendar

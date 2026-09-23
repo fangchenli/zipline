@@ -207,8 +207,8 @@ class QuandlBundleTestCase(WithResponses,
         sessions = self.calendar.sessions
         actual = bundle.equity_daily_bar_reader.load_raw_arrays(
             self.columns,
-            sessions[sessions.get_loc(self.start_date, 'bfill')],
-            sessions[sessions.get_loc(self.end_date, 'ffill')],
+            sessions[sessions.get_indexer([self.start_date], method='bfill')[0]],
+            sessions[sessions.get_indexer([self.end_date], method='ffill')[0]],
             sids,
         )
         expected_pricing, expected_adjustments = self._expected_data(

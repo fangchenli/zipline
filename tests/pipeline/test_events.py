@@ -226,7 +226,7 @@ class EventIndexerTestCase(ZiplineTestCase):
         event_dates = events['event_date'].values
         event_timestamps = events['timestamp'].values
 
-        all_dates = pd.date_range('2014', '2014-01-31', tz='UTC')
+        all_dates = pd.date_range('2014', '2014-01-31')
         all_sids = np.unique(event_sids)
 
         domain = EquitySessionDomain(
@@ -262,8 +262,8 @@ class EventIndexerTestCase(ZiplineTestCase):
         self.assertEqual(len(relevant_events), 2)
 
         ix1, ix2 = relevant_events.index
-        e1, e2 = relevant_events['event_date'].dt.tz_localize('UTC')
-        t1, t2 = relevant_events['timestamp'].dt.tz_localize('UTC')
+        e1, e2 = relevant_events['event_date']
+        t1, t2 = relevant_events['timestamp']
 
         for date, computed_index in zip(all_dates, indexer):
             # An event is eligible to be the next event if it's between the
@@ -296,7 +296,10 @@ class EventsLoaderEmptyTestCase(WithAssetFinder,
     def frame_containing_all_missing_values(self, index, columns):
         frame = pd.DataFrame(
             index=index,
-            data={c.name: c.missing_value for c in EventDataSet.columns},
+            data={
+                c.name: c.missing_value
+                for c in sorted(EventDataSet.columns, key=lambda c: c.name)
+            },
         )
         for c in columns:
             # The construction above produces columns of dtype `object` when
@@ -515,12 +518,20 @@ class EventsLoaderTestCase(WithAssetFinder,
                 else:
                     # If we haven't seen either event, then we should have
                     # column.missing_value.
-                    assert_equal(
-                        computed_value,
-                        column.missing_value,
-                        # Coerce from Timestamp to datetime64.
-                        allow_datetime_coercions=True,
-                    )
+                    self.assert_missing(computed_value, column)
+
+    def assert_missing(self, computed_value, column):
+        if column.missing_value is None:
+            # Categorical outputs represent a ``None`` missing value as NaN,
+            # since pandas doesn't allow null categories.
+            self.assertTrue(pd.isnull(computed_value))
+        else:
+            assert_equal(
+                computed_value,
+                column.missing_value,
+                # Coerce from Timestamp to datetime64.
+                allow_datetime_coercions=True,
+            )
 
     def check_next_value_results(self, column, results, dates):
         """
@@ -552,12 +563,7 @@ class EventsLoaderTestCase(WithAssetFinder,
                 else:
                     # If we haven't seen either event, then we should have
                     # column.missing_value.
-                    assert_equal(
-                        computed_value,
-                        column.missing_value,
-                        # Coerce from Timestamp to datetime64.
-                        allow_datetime_coercions=True,
-                    )
+                    self.assert_missing(computed_value, column)
 
     def test_wrong_cols(self):
         # Test wrong cols (cols != expected)

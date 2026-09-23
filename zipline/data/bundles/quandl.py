@@ -13,7 +13,6 @@ import requests
 from zipline.utils.calendar_utils import register_calendar_alias
 
 from . import core as bundles
-import numpy as np
 
 log = Logger(__name__)
 
@@ -118,11 +117,11 @@ def gen_asset_metadata(data, show_progress):
     data = data.groupby(
         by='symbol'
     ).agg(
-        {'date': [np.min, np.max]}
+        {'date': ['min', 'max']}
     )
     data.reset_index(inplace=True)
-    data['start_date'] = data.date.amin
-    data['end_date'] = data.date.amax
+    data['start_date'] = data.date['min']
+    data['end_date'] = data.date['max']
     del data['date']
     data.columns = data.columns.get_level_values(0)
 

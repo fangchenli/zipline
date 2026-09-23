@@ -456,6 +456,8 @@ class IPythonWidgetProgressPublisher:
 class TestingProgressPublisher:
     """A progress publisher that records a trace of model states for testing.
     """
+
+    __test__ = False  # Not a test case, despite the name.
     TraceState = namedtuple('TraceState', [
         'state',
         'percent_complete',

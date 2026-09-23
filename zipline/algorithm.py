@@ -675,7 +675,9 @@ class TradingAlgorithm:
             [p['period_close'] for p in daily_perfs], tz='UTC'
         )
         daily_stats = pd.DataFrame(daily_perfs, index=daily_dts)
-        return daily_stats
+        # Metrics come from a set, so packet keys have no stable order. Sort
+        # the columns, as pandas < 0.25 did when building from dicts.
+        return daily_stats.sort_index(axis=1)
 
     def calculate_capital_changes(self, dt, emission_rate, is_interday,
                                   portfolio_value_adjustment=0.0):
@@ -689,9 +691,14 @@ class TradingAlgorithm:
         portfolio_value of the cumulative performance when calculating deltas
         from target capital changes.
         """
-        try:
-            capital_change = self.capital_changes[dt]
-        except KeyError:
+        key = dt
+        capital_change = self.capital_changes.get(key)
+        if capital_change is None and is_interday and dt.tz is None:
+            # Session labels used to be UTC midnight; keep accepting capital
+            # changes keyed that way.
+            key = dt.tz_localize('UTC')
+            capital_change = self.capital_changes.get(key)
+        if capital_change is None:
             return
 
         self._sync_last_sale_prices()
@@ -706,24 +713,24 @@ class TradingAlgorithm:
             )
 
             log.info('Processing capital change to target %s at %s. Capital '
-                     'change delta is %s' % (target, dt,
+                     'change delta is %s' % (target, key,
                                              capital_change_amount))
         elif capital_change['type'] == 'delta':
             target = None
             capital_change_amount = capital_change['value']
             log.info('Processing capital change of delta %s at %s'
-                     % (capital_change_amount, dt))
+                     % (capital_change_amount, key))
         else:
             log.error("Capital change %s does not indicate a valid type "
                       "('target' or 'delta')" % capital_change)
             return
 
-        self.capital_change_deltas.update({dt: capital_change_amount})
+        self.capital_change_deltas.update({key: capital_change_amount})
         self.metrics_tracker.capital_change(capital_change_amount)
 
         yield {
             'capital_change':
-                {'date': dt,
+                {'date': key,
                  'type': 'cash',
                  'target': target,
                  'delta': capital_change_amount}

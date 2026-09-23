@@ -805,11 +805,11 @@ class AdjustedArrayTestCase(TestCase):
             Adjusted Array (float64):
 
             Data:
-            array([[  0.,   1.,   2.],
-                   [  3.,   4.,   5.],
-                   [  6.,   7.,   8.],
-                   [  9.,  10.,  11.],
-                   [ 12.,  13.,  14.]])
+            array([[ 0.,  1.,  2.],
+                   [ 3.,  4.,  5.],
+                   [ 6.,  7.,  8.],
+                   [ 9., 10., 11.],
+                   [12., 13., 14.]])
 
             Adjustments:
             {4: [Float64Multiply(first_row=2, last_row=3, first_col=0, \

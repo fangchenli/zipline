@@ -268,8 +268,10 @@ class VolumeRollFinder(RollFinder):
         # contracts from being considered active once they have rolled, so
         # incorporating that logic here prevents flip-flopping.
         day = self.trading_calendar.day
+        # ``dt`` may be a UTC minute; sessions are naive (UTC midnight).
+        naive_dt = dt.tz_convert(None) if dt.tzinfo is not None else dt
         end_date = min(
-            dt + (ROLL_DAYS_FOR_CURRENT_CONTRACT * day),
+            naive_dt + (ROLL_DAYS_FOR_CURRENT_CONTRACT * day),
             self.session_reader.last_available_dt,
         )
         rolls = self.get_rolls(

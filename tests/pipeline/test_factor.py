@@ -1540,6 +1540,16 @@ class TestSpecialCases(WithUSEquityPricingPipelineEngine,
         })
 
 
+
+def check_arrays_close(result, expected):
+    """Compare summary results with numpy's nan-functions.
+
+    zipline computes these with bottleneck, which can differ from numpy in the
+    last bit (numpy uses pairwise summation).
+    """
+    assert_equal(result.dtype, expected.dtype)
+    np.testing.assert_allclose(result, expected, rtol=1e-12)
+
 class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
 
     @parameter_space(
@@ -1589,6 +1599,7 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             expected=expected,
             initial_workspace=workspace,
             mask=self.build_mask(ones(shape)),
+            check=check_arrays_close,
         )
 
     @parameter_space(
@@ -1742,6 +1753,7 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             expected=expected,
             initial_workspace=workspace,
             mask=root_mask,
+            check=check_arrays_close,
         )
 
     def test_repr(self):

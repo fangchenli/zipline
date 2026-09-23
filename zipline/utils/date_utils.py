@@ -16,12 +16,13 @@ def to_session_label(dt):
     ``pd.Timestamp``.
 
     tz-aware values are converted to UTC before the timezone is dropped, so
-    a UTC minute maps to its UTC calendar date.
+    a UTC minute maps to its UTC calendar date. The result has nanosecond
+    resolution, like calendar sessions.
     """
     dt = pd.Timestamp(dt)
     if dt.tz is not None:
         dt = dt.tz_convert('UTC').tz_localize(None)
-    return dt.normalize()
+    return dt.normalize().as_unit('ns')
 
 
 def to_session_labels(dts):
@@ -29,7 +30,7 @@ def to_session_labels(dts):
     dts = pd.DatetimeIndex(dts)
     if dts.tz is not None:
         dts = dts.tz_convert('UTC').tz_localize(None)
-    return dts.normalize()
+    return dts.normalize().as_unit('ns')
 
 
 def compute_date_range_chunks(sessions, start_date, end_date, chunksize):

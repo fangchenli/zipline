@@ -279,8 +279,11 @@ class FastGetLocTestCase(zp_fixtures.ZiplineTestCase):
             expected = dts.get_indexer([dt], method='ffill')[0]
             assert_equal(result, expected)
 
-        with self.assertRaises(KeyError):
-            dts.get_loc(pd.Timestamp('2014-01-01'), method='ffill')
+        # Nothing to forward-fill from before the first date.
+        assert_equal(
+            dts.get_indexer([pd.Timestamp('2014-01-01')], method='ffill')[0],
+            -1,
+        )
 
         with self.assertRaises(KeyError):
             zp_fixtures.fast_get_loc_ffilled(dts, pd.Timestamp('2014-01-01'))

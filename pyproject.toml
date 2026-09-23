@@ -110,7 +110,9 @@ fallback_version = "2.0.0.dev0"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = ["-ra", "--strict-markers"]
+# loadscope keeps each test class on one xdist worker, so class-level
+# fixtures are built once and class-scoped assertions see every test.
+addopts = ["-ra", "--strict-markers", "--dist=loadscope"]
 
 [tool.coverage.run]
 source = ["zipline"]

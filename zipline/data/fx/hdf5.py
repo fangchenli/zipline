@@ -290,7 +290,9 @@ class HDF5FXRateWriter:
         index_group = self._group.create_group(INDEX)
 
         self._log_writing(INDEX, DTS)
-        index_group.create_dataset(DTS, data=dts.astype('int64'))
+        # Stored as nanoseconds since the epoch, whatever the index's unit.
+        dts_ns = pd.DatetimeIndex(dts).as_unit('ns').asi8
+        index_group.create_dataset(DTS, data=dts_ns)
 
         self._log_writing(INDEX, CURRENCIES)
         index_group.create_dataset(CURRENCIES, data=currencies.astype('S3'))

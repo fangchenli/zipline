@@ -183,7 +183,7 @@ class SeededRandomLoader(PrecomputedLoader):
         """
         Return uniformly-distributed dates in 2014.
         """
-        start = Timestamp('2014', tz='UTC').asm8
+        start = Timestamp('2014').as_unit('ns').asm8
         offsets = self.state.randint(
             low=0,
             high=364,
@@ -271,10 +271,14 @@ def make_bar_data(asset_info, calendar, holes=None):
         """
         # Get the dates for which this asset existed according to our asset
         # info.
-        datetimes = calendar[calendar.slice_indexer(
-            asset_start(asset_info, asset_id),
-            asset_end(asset_info, asset_id),
-        )]
+        start = asset_start(asset_info, asset_id)
+        end = asset_end(asset_info, asset_id)
+        if calendar.tz is not None:
+            # Minute calendars are UTC; asset dates are naive session labels,
+            # which denote midnight UTC.
+            start = start.tz_localize('UTC')
+            end = end.tz_localize('UTC')
+        datetimes = calendar[calendar.slice_indexer(start, end)]
 
         data = full(
             (len(datetimes), len(US_EQUITY_PRICING_BCOLZ_COLUMNS)),
@@ -286,7 +290,13 @@ def make_bar_data(asset_info, calendar, holes=None):
         data[:, :5] += arange(5, dtype=uint32) * 1000
 
         # Add days since Jan 1 2001 for OHLCV columns.
-        data[:, :5] += (datetimes - PSEUDO_EPOCH).days.to_numpy()[:, None].astype(uint32)
+        naive_datetimes = (
+            datetimes.tz_convert(None) if datetimes.tz is not None else datetimes
+        )
+        data[:, :5] += (
+            (naive_datetimes - PSEUDO_EPOCH).days.to_numpy()[:, None]
+            .astype(uint32)
+        )
 
         frame = DataFrame(
             data,
@@ -299,7 +309,7 @@ def make_bar_data(asset_info, calendar, holes=None):
                 frame.loc[dt, OHLC] = nan
                 frame.loc[dt, ['volume']] = 0
 
-        frame['day'] = nanos_to_seconds(datetimes.asi8)
+        frame['day'] = nanos_to_seconds(datetimes.as_unit('ns').asi8)
         frame['id'] = asset_id
         return frame
 
@@ -362,6 +372,10 @@ def expected_bar_values_2d(dates,
 
         start = asset_start(asset_info, asset)
         end = asset_end(asset_info, asset)
+        if getattr(dates, 'tz', None) is not None:
+            # Minutes are UTC; asset dates denote midnight UTC.
+            start = start.tz_localize('UTC')
+            end = end.tz_localize('UTC')
         for i, date in enumerate(dates):
             # No value expected for dates outside the asset's start/end
             # date.

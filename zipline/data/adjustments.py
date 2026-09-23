@@ -320,6 +320,11 @@ class SQLiteAdjustmentReader:
             dtypes = self._df_dtypes(table_name, convert_dates)
             return empty_dataframe(*keysorted(dtypes))
 
+        if convert_dates:
+            # pandas keeps the parsed unit (seconds); we expose nanoseconds.
+            for col in date_cols:
+                result[col] = result[col].astype(datetime64ns_dtype)
+
         return result
 
     def _df_dtypes(self, table_name, convert_dates):
@@ -526,9 +531,9 @@ class SQLiteAdjustmentWriter:
 
         valid_ratio_mask = non_nan_ratio_mask & positive_ratio_mask
         return pd.DataFrame({
-            'sid': input_sids[valid_ratio_mask],
             'effective_date': input_dates[valid_ratio_mask],
             'ratio': ratio[valid_ratio_mask],
+            'sid': input_sids[valid_ratio_mask],
         })
 
     def _write_dividends(self, dividends):

@@ -84,8 +84,7 @@ def rolling_vwap(df, length):
 class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
     START_DATE = pd.Timestamp('2014-01-01')
     END_DATE = pd.Timestamp('2014-02-01')
-    dates = date_range(START_DATE, END_DATE, freq=get_calendar("NYSE").day,
-                       tz='utc')
+    dates = date_range(START_DATE, END_DATE, freq=get_calendar("NYSE").day)
 
     SIM_PARAMS_DATA_FREQUENCY = 'daily'
     DATA_PORTAL_USE_MINUTE_DATA = False
@@ -192,9 +191,9 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
 
         # View of the data on/after the split.
         self.adj_closes = adj_closes = self.closes.copy()
-        adj_closes.loc[:self.split_date, self.split_asset] *= self.split_ratio
+        adj_closes.loc[:self.split_date, self.split_asset.sid] *= self.split_ratio
         self.adj_volumes = adj_volumes = self.volumes.copy()
-        adj_volumes.loc[:self.split_date, self.split_asset] *= self.split_ratio
+        adj_volumes.loc[:self.split_date, self.split_asset.sid] *= self.split_ratio
 
         self.pipeline_close_loader = DataFrameLoader(
             column=USEquityPricing.close,
@@ -213,14 +212,14 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
             lookup = self.closes
         else:
             lookup = self.adj_closes
-        return lookup.loc[date, asset]
+        return lookup.loc[date, asset.sid]
 
     def expected_volume(self, date, asset):
         if date < self.split_date:
             lookup = self.volumes
         else:
             lookup = self.adj_volumes
-        return lookup.loc[date, asset]
+        return lookup.loc[date, asset.sid]
 
     def exists(self, date, asset):
         return asset.start_date <= date <= asset.end_date
@@ -338,7 +337,7 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
 
         def handle_data(context, data):
             results = pipeline_output('test')
-            date = get_datetime().normalize()
+            date = get_datetime().normalize().tz_localize(None)
             for asset in self.assets:
                 # Assets should appear iff they exist today and yesterday.
                 exists_today = self.exists(date, asset)
@@ -375,7 +374,7 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
         def handle_data(context, data):
             closes = pipeline_output('test_close')
             volumes = pipeline_output('test_volume')
-            date = get_datetime().normalize()
+            date = get_datetime().normalize().tz_localize(None)
             for asset in self.assets:
                 # Assets should appear iff they exist today and yesterday.
                 exists_today = self.exists(date, asset)
@@ -499,7 +498,7 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
             cls.bcolz_equity_daily_bar_reader,
             cls.adjustment_reader,
         )
-        cls.dates = cls.raw_data[cls.AAPL].index.tz_localize('UTC')
+        cls.dates = cls.raw_data[cls.AAPL].index
         cls.AAPL_split_date = Timestamp("2014-06-09")
         cls.assets = cls.asset_finder.retrieve_all(
             cls.ASSET_FINDER_EQUITY_SIDS
@@ -623,7 +622,7 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
             attach_pipeline(pipeline, 'test')
 
         def handle_data(context, data):
-            today = get_datetime().normalize()
+            today = get_datetime().normalize().tz_localize(None)
             results = pipeline_output('test')
             expect_over_300 = {
                 AAPL: today < self.AAPL_split_date,

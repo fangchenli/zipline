@@ -3,7 +3,7 @@ Tests for Downsampled Filters/Factors/Classifiers
 """
 
 import pandas as pd
-from pandas.testing import assert_frame_equal
+from zipline.testing.predicates import assert_frame_equal
 
 from zipline.errors import NoFurtherDataError
 from zipline.pipeline import (

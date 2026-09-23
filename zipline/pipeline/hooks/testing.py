@@ -36,6 +36,8 @@ def testing_hooks_method(method_name):
             self.trace.append(ContextCall('enter', call))
             yield
             self.trace.append(ContextCall('exit', call))
+        # ``wraps`` copied ``__isabstractmethod__`` from the interface.
+        ctx.__isabstractmethod__ = False
         return ctx
 
     else:
@@ -43,12 +45,16 @@ def testing_hooks_method(method_name):
         @wraps(getattr(PipelineHooks, method_name))
         def method(self, *args, **kwargs):
             self.trace.append(Call(method_name, args, kwargs))
+        # ``wraps`` copied ``__isabstractmethod__`` from the interface.
+        method.__isabstractmethod__ = False
         return method
 
 
 class TestingHooks(PipelineHooks):
     """A hooks implementation that keeps a trace of hook method calls.
     """
+    __test__ = False  # Not a test case, despite the name.
+
     def __init__(self):
         self.trace = []
 

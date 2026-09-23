@@ -92,14 +92,14 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
         ]
 
         before_pricing_data = \
-            (dates[0] - self.trading_calendar.day).tz_convert(None)
+            (dates[0] - self.trading_calendar.day)
         one_day_past_pricing_data = \
-            (dates[-1] + self.trading_calendar.day).tz_convert(None)
+            (dates[-1] + self.trading_calendar.day)
         ten_days_past_pricing_data = \
-            (dates[-1] + self.trading_calendar.day * 10).tz_convert(None)
+            (dates[-1] + self.trading_calendar.day * 10)
 
         def T(n):
-            return dates[n].tz_convert(None)
+            return dates[n]
 
         close = pd.DataFrame(
             [[10.0, 0.5,   30.0],   # noqa
@@ -208,7 +208,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
 
     def _test_identity(self, name):
         sids = np.arange(5)
-        dates = self.trading_calendar.sessions.tz_convert(None)
+        dates = self.trading_calendar.sessions
 
         def T(n):
             return dates[n]
@@ -239,7 +239,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
 
     def test_stock_dividends(self):
         sids = np.arange(5)
-        dates = self.trading_calendar.sessions.tz_convert(None)
+        dates = self.trading_calendar.sessions
 
         def T(n):
             return dates[n]
@@ -277,7 +277,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
         """Test that dataframe dtypes are preserved for empty tables.
         """
         sids = np.arange(5)
-        dates = self.trading_calendar.sessions.tz_convert(None)
+        dates = self.trading_calendar.sessions
 
         if convert_dates:
             date_dtype = np.dtype('M8[ns]')

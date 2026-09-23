@@ -771,7 +771,7 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
         )
         # Make the first month's worth of data NaN to simulate cases where a
         # futures contract does not exist yet.
-        data[0][1].loc[:cls.ASSET_START_DATE] = np.nan
+        data[0][1].loc[:cls.ASSET_START_DATE.tz_localize('UTC')] = np.nan
         return data
 
     def test_calculate_impact_buy(self):
@@ -1104,8 +1104,8 @@ class OrdersStopTestCase(WithSimParams,
             )),
         )
         days = pd.date_range(
-            start=self.minutes[0].normalize(),
-            end=self.minutes[-1].normalize()
+            start=self.minutes[0].normalize().tz_localize(None),
+            end=self.minutes[-1].normalize().tz_localize(None),
         )
         with tmp_bcolz_equity_minute_bar_reader(
                 self.trading_calendar, days, assets) as reader:

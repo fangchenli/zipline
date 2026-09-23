@@ -206,7 +206,9 @@ def days_and_sids_for_frames(frames):
         message='Frames have mismatched sids.',
     )
 
-    return frames[0].index.values, frames[0].columns.values
+    # The on-disk format stores nanoseconds; pandas may use another unit.
+    days = frames[0].index.values.astype('datetime64[ns]')
+    return days, frames[0].columns.values
 
 
 class HDF5DailyBarWriter:
@@ -896,15 +898,10 @@ class MultiCountryDailyBarReader(CurrencyAwareSessionBarReader):
         return self._readers.keys()
 
     def _country_code_for_assets(self, assets):
-        country_codes = self._country_map.get(assets)
-
-        # In some versions of pandas (observed in 0.22), Series.get()
-        # returns None if none of the labels are in the index.
-        if country_codes is not None:
-            unique_country_codes = country_codes.dropna().unique()
-            num_countries = len(unique_country_codes)
-        else:
-            num_countries = 0
+        # Unknown assets map to NaN.
+        country_codes = self._country_map.reindex(assets)
+        unique_country_codes = country_codes.dropna().unique()
+        num_countries = len(unique_country_codes)
 
         if num_countries == 0:
             raise ValueError('At least one valid asset id is required.')

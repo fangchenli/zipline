@@ -2,6 +2,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 import datetime
 from functools import partial
+import inspect
 from itertools import zip_longest
 import re
 from types import MappingProxyType
@@ -14,7 +15,7 @@ from pandas.testing import (
     assert_series_equal,
     assert_index_equal,
 )
-from toolz import dissoc, keyfilter
+from toolz import keyfilter
 import toolz.curried.operator as op
 
 from zipline.assets import Asset
@@ -22,7 +23,6 @@ from zipline.dispatch import dispatch
 from zipline.lib.adjustment import Adjustment
 from zipline.lib.labelarray import LabelArray
 from zipline.testing.core import ensure_doctest
-from zipline.utils.compat import getargspec
 from zipline.utils.formatting import s
 from zipline.utils.functional import instance
 from zipline.utils.math_utils import tolerant_equals
@@ -139,8 +139,8 @@ assert_not_equal = assert_not_equals = _asserter.assertNotEqual
 assert_not_in = _asserter.assertNotIn
 assert_not_is_instance = _asserter.assertNotIsInstance
 assert_raises = _asserter.assertRaises
-assert_raises_regex = assert_raises_regexp = _asserter.assertRaisesRegex
-assert_regex = assert_regexp_matches = _asserter.assertRegex
+assert_raises_regexp = _asserter.assertRaisesRegex
+assert_regexp_matches = _asserter.assertRegex
 assert_true = _asserter.assertTrue
 assert_tuple_equal = _asserter.assertTupleEqual
 
@@ -167,7 +167,13 @@ def keywords(func):
         return keywords(func.__init__)
     elif isinstance(func, partial):
         return keywords(func.func)
-    return getargspec(func).args
+    # ``signature`` follows ``__wrapped__``, so decorated functions (e.g.
+    # pandas' ``assert_frame_equal``) report their real parameters.
+    return [
+        name
+        for name, param in inspect.signature(func).parameters.items()
+        if param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
+    ]
 
 
 def filter_kwargs(f, kwargs):
@@ -654,6 +660,9 @@ def _register_assert_equal_wrapper(type_, assert_eq):
     """
     @assert_equal.register(type_, type_)
     def assert_ndframe_equal(result, expected, path=(), msg='', **kwargs):
+        # pandas >= 1.1 compares index ``freq`` by default; zipline's tests
+        # predate that and don't expect it.
+        kwargs.setdefault('check_freq', False)
         try:
             assert_eq(
                 result,

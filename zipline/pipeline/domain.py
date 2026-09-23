@@ -406,7 +406,9 @@ class EquitySessionDomain(Domain):
                  data_query_time=None,
                  data_query_date_offset=0):
         self._country_code = country_code
-        self._sessions = to_session_labels(sessions)
+        # Sessions are nanosecond resolution throughout zipline (as calendars
+        # are); pandas >= 3 defaults to microseconds for parsed dates.
+        self._sessions = to_session_labels(sessions).as_unit('ns')
 
         if data_query_time is None:
             data_query_time = datetime.time(0, 0, tzinfo=ZoneInfo('UTC'))
