@@ -403,12 +403,15 @@ class Positions(dict):
             return Position(InnerPosition(key))
         elif isinstance(key, int):
             warn(
-                "Referencing positions by integer is deprecated. Use an asset instead."
+                "Referencing positions by integer is deprecated. Use an asset instead.",
+                stacklevel=2,
             )
         else:
             warn(
-                f"Position lookup expected a value of type Asset but got {type(key).__name__}"
-                " instead."
+                "Position lookup expected a value of type Asset but got "
+                f"{type(key).__name__}"
+                " instead.",
+                stacklevel=2,
             )
 
         return _DeprecatedSidLookupPosition(key)

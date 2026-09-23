@@ -379,7 +379,7 @@ class ContinuousFuturesTestCase(
             "2016-02-17",
         )
         for session in sessions:
-            bar_data = self.create_bardata(lambda: session)
+            bar_data = self.create_bardata(lambda session=session: session)
             contract = bar_data.current(cf, "contract")
 
             # The 'G' contract surpasses the 'F' contract in volume on
@@ -401,7 +401,7 @@ class ContinuousFuturesTestCase(
             "2016-03-21",
         )
         for session in sessions:
-            bar_data = self.create_bardata(lambda: session)
+            bar_data = self.create_bardata(lambda session=session: session)
             contract = bar_data.current(cf, "contract")
 
             if session < pd.Timestamp("2016-03-17"):

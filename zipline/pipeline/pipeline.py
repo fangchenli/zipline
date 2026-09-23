@@ -193,7 +193,8 @@ class Pipeline:
         """
         if self._domain is not GENERIC and self._domain is not domain:
             raise AssertionError(
-                f"Attempted to compile Pipeline with domain {self._domain} to execution "
+                f"Attempted to compile Pipeline with domain {self._domain} to "
+                "execution "
                 f"plan with different domain {domain}."
             )
 
@@ -314,7 +315,8 @@ class Pipeline:
             # Both non-generic. They have to match.
             if inferred is not self._domain:
                 raise ValueError(
-                    f"Conflicting domains in Pipeline. Inferred {inferred}, but {self._domain} was "
+                    f"Conflicting domains in Pipeline. Inferred {inferred}, but "
+                    f"{self._domain} was "
                     "passed at construction."
                 )
             return inferred

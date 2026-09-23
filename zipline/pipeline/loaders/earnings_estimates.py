@@ -576,7 +576,7 @@ class EarningsEstimatesLoader(PipelineLoader):
                 "`num_announcements` attribute that defines "
                 "how many quarters out the loader should load"
                 " the data relative to `dates`."
-            )
+            ) from None
         if any(num_qtr < 0 for num_qtr in groups):
             raise ValueError(
                 INVALID_NUM_QTRS_MESSAGE

@@ -307,7 +307,7 @@ class SQLiteAdjustmentReader:
             raise ValueError(
                 f"Requested table {table_name} not found.\n"
                 f"Available tables: {self._datetime_int_cols.keys()}\n"
-            )
+            ) from None
 
         # Dates are stored in second resolution as ints in adj.db tables.
         # They are session labels, so convert them to tz-naive dates.

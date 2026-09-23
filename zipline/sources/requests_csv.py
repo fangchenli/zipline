@@ -537,8 +537,8 @@ class PandasRequestsCSV(PandasCSV):
         # pandas logic for decoding content
         try:
             response = requests.get(url, **self.requests_kwargs)
-        except requests.exceptions.ConnectionError:
-            raise Exception(f"Could not connect to {url}")
+        except requests.exceptions.ConnectionError as err:
+            raise Exception(f"Could not connect to {url}") from err
 
         if not response.ok:
             raise Exception(f"Problem reaching {url}")
@@ -552,7 +552,8 @@ class PandasRequestsCSV(PandasCSV):
 
         content_length = 0
         logger.info(
-            f"{url} connection established in {response.elapsed.total_seconds():.1f} seconds"
+            f"{url} connection established in {response.elapsed.total_seconds():.1f} "
+            "seconds"
         )
 
         # use the decode_unicode flag to ensure that the output of this is
@@ -590,9 +591,9 @@ class PandasRequestsCSV(PandasCSV):
 
             frames_hash = hashlib.md5(str(fd.getvalue()).encode("utf-8"))
             self.fetch_hash = frames_hash.hexdigest()
-        except pd.parser.CParserError:
+        except pd.errors.ParserError as err:
             # could not parse the data, raise exception
-            raise Exception("Error parsing remote CSV data.")
+            raise Exception("Error parsing remote CSV data.") from err
         finally:
             fd.close()
 

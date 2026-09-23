@@ -158,7 +158,8 @@ class CmdLineTestCase(WithTmpDir, ZiplineTestCase):
 
             if result.exit_code != 0:
                 raise AssertionError(
-                    f"Cli run failed with {result.exception}\n\nOutput was:\n\n{result.output}",
+                    f"Cli run failed with {result.exception}\n\n"
+                    f"Output was:\n\n{result.output}",
                 )
 
             mock_run.assert_called_once()

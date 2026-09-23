@@ -200,7 +200,7 @@ def _pricing_iter(csvdir, symbols, metadata, divs_splits, show_progress):
             try:
                 fname = [fname for fname in files if f"{symbol}.csv" in fname][0]
             except IndexError:
-                raise ValueError(f"{symbol}.csv file is not in {csvdir}")
+                raise ValueError(f"{symbol}.csv file is not in {csvdir}") from None
 
             dfr = read_csv(
                 os.path.join(csvdir, fname), parse_dates=[0], index_col=0

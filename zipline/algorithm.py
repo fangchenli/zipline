@@ -782,7 +782,7 @@ class TradingAlgorithm:
             except KeyError:
                 raise ValueError(
                     f"{field!r} is not a valid field for get_environment",
-                )
+                ) from None
 
     @api_method
     def fetch_csv(
@@ -1166,19 +1166,27 @@ class TradingAlgorithm:
 
         if normalized_date < asset.start_date:
             raise CannotOrderDelistedAsset(
-                msg=f"Cannot order {asset.symbol}, as it started trading on {asset.start_date}."
+                msg=(
+                    f"Cannot order {asset.symbol}, as it started trading on "
+                    f"{asset.start_date}."
+                )
             )
         elif normalized_date > asset.end_date:
             raise CannotOrderDelistedAsset(
-                msg=f"Cannot order {asset.symbol}, as it stopped trading on {asset.end_date}."
+                msg=(
+                    f"Cannot order {asset.symbol}, as it stopped trading on "
+                    f"{asset.end_date}."
+                )
             )
         else:
             last_price = self.trading_client.current_data.current(asset, "price")
 
             if np.isnan(last_price):
                 raise CannotOrderDelistedAsset(
-                    msg=f"Cannot order {asset.symbol} on {self.datetime} as there is no last "
-                    "price for the security."
+                    msg=(
+                        f"Cannot order {asset.symbol} on {self.datetime} as there is "
+                        "no last price for the security."
+                    )
                 )
 
         if tolerant_equals(last_price, 0):
@@ -1590,8 +1598,10 @@ class TradingAlgorithm:
         """
         try:
             dt = pd.Timestamp(dt)
-        except ValueError:
-            raise UnsupportedDatetimeFormat(input=dt, method="set_symbol_lookup_date")
+        except ValueError as err:
+            raise UnsupportedDatetimeFormat(
+                input=dt, method="set_symbol_lookup_date"
+            ) from err
         # Symbol lookup dates are dates, stored tz-naive like session labels.
         if dt.tz is not None:
             dt = dt.tz_convert("UTC").tz_localize(None)
@@ -2277,7 +2287,7 @@ class TradingAlgorithm:
             raise NoSuchPipeline(
                 name=name,
                 valid=list(self._pipelines.keys()),
-            )
+            ) from None
         return self._pipeline_output(pipe, chunks, name)
 
     def _pipeline_output(self, pipeline, chunks, name):

@@ -354,11 +354,11 @@ class MovingAverageConvergenceDivergenceSignal(CustomFactor):
 
         return super().__new__(
             cls,
+            *args,
             fast_period=fast_period,
             slow_period=slow_period,
             signal_period=signal_period,
             window_length=slow_period + signal_period - 1,
-            *args,
             **kwargs,
         )
 

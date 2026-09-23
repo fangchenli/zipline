@@ -229,7 +229,8 @@ class NumericalExpression(ComputableTerm):
         expected_indices = list(range(len(self.inputs)))
         if expr_indices != expected_indices:
             raise ValueError(
-                f"Expected {expected_indices} for variable indices, but got {expr_indices}"
+                f"Expected {expected_indices} for variable indices, but got "
+                f"{expr_indices}"
             )
         super()._validate()
 
@@ -241,7 +242,7 @@ class NumericalExpression(ComputableTerm):
         # This writes directly into our output buffer.
         numexpr.evaluate(
             self._expr,
-            local_dict={"x_%d" % idx: array for idx, array in enumerate(arrays)},
+            local_dict={f"x_{idx}": array for idx, array in enumerate(arrays)},
             global_dict={"inf": inf},
             out=out,
         )
@@ -265,10 +266,10 @@ class NumericalExpression(ComputableTerm):
         # before x_1x, which will be before x_1, so the substitution of x_1
         # will not affect x_1x, which will not affect x_1xx.
         for idx, input_ in reversed(list(enumerate(self.inputs))):
-            old_varname = "x_%d" % idx
+            old_varname = f"x_{idx}"
             # Temporarily rebind to x_temp_N so that we don't overwrite the
             # same value multiple times.
-            temp_new_varname = "x_temp_%d" % new_inputs.index(input_)
+            temp_new_varname = f"x_temp_{new_inputs.index(input_)}"
             expr = expr.replace(old_varname, temp_new_varname)
         # Clear out the temp variables now that we've finished iteration.
         return expr.replace("_temp_", "_")
@@ -296,7 +297,7 @@ class NumericalExpression(ComputableTerm):
         elif isinstance(other, Term):
             self_expr = self._expr
             new_inputs, other_idx = _ensure_element(self.inputs, other)
-            other_expr = "x_%d" % other_idx
+            other_expr = f"x_{other_idx}"
         elif isinstance(other, Number):
             self_expr = self._expr
             other_expr = str(other)
@@ -315,7 +316,7 @@ class NumericalExpression(ComputableTerm):
 
     @property
     def bindings(self):
-        return {"x_%d" % i: input_ for i, input_ in enumerate(self.inputs)}
+        return {f"x_{i}": input_ for i, input_ in enumerate(self.inputs)}
 
     def __repr__(self):
         return f"{type(self).__name__}(expr='{self._expr}', bindings={self.bindings})"

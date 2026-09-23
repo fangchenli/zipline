@@ -218,10 +218,10 @@ def check_stoplimit_prices(price, label):
                 msg=f"Attempted to place an order with a {label} price of {price}."
             )
     # This catches arbitrary objects
-    except TypeError:
+    except TypeError as err:
         raise BadOrderParameters(
             msg=f"Attempted to place an order with a {label} price of {type(price)}."
-        )
+        ) from err
 
     if price < 0:
         raise BadOrderParameters(

@@ -98,7 +98,7 @@ class IDomain(ABC):
             raise ValueError(
                 f"Date {dt.date()} was past the last session for domain {self}. "
                 f"The last session for this domain is {trading_days[-1].date()}."
-            )
+            ) from None
 
 
 Domain = IDomain
@@ -143,6 +143,10 @@ class GenericDomain(Domain):
 GENERIC = GenericDomain()
 
 
+# Data is available 45 minutes before the open by default.
+DEFAULT_DATA_QUERY_OFFSET = -np.timedelta64(45, "m")
+
+
 class EquityCalendarDomain(Domain):
     """
     An equity domain whose sessions are defined by a named ExchangeCalendar.
@@ -167,7 +171,10 @@ class EquityCalendarDomain(Domain):
         __funcname="EquityCountryDomain",
     )
     def __init__(
-        self, country_code, calendar_name, data_query_offset=-np.timedelta64(45, "m")
+        self,
+        country_code,
+        calendar_name,
+        data_query_offset=DEFAULT_DATA_QUERY_OFFSET,
     ):
         self._country_code = country_code
         self.calendar_name = calendar_name

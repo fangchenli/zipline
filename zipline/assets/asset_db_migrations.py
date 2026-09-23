@@ -336,7 +336,7 @@ def _downgrade_v5(op):
             -- Select the last held symbol for each equity sid from the
             -- symbol_mappings table. Selecting max(end_date) causes
             -- SQLite to take the other values from the same row that contained
-            -- the max end_date. See https://www.sqlite.org/lang_select.html#resultset.  # noqa
+            -- the max end_date. See https://www.sqlite.org/lang_select.html#resultset.
             (select
                  sid, symbol, company_symbol, share_class_symbol, max(end_date)
              from

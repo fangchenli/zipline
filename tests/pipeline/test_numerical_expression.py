@@ -9,6 +9,7 @@ from operator import (
     methodcaller,
     mul,
     ne,
+    neg,
     sub,
 )
 from string import ascii_uppercase
@@ -142,13 +143,13 @@ class NumericalExpressionTestCase(TestCase):
         with self.assertRaises(TypeError):
             f + "2"
         with self.assertRaises(TypeError):
-            f > "2"
+            _ = f > "2"
 
         # Boolean binary operators must be between filters.
         with self.assertRaises(TypeError):
             f + (f > 2)
         with self.assertRaises(TypeError):
-            (f > f) > f
+            _ = (f > f) > f
 
     @parameter_space(num_new_inputs=[1, 4])
     def test_many_inputs(self, num_new_inputs):
@@ -230,7 +231,7 @@ class NumericalExpressionTestCase(TestCase):
         for float_value in (self.f, float64(1.0), 1.0):
             for op, sym in ((add, "+"), (mul, "*")):
                 with self.assertRaises(TypeError) as e:
-                    op(self.f, self.d)
+                    op(float_value, self.d)
                 message = e.exception.args[0]
                 expected = (
                     f"Don't know how to compute float64 {sym} datetime64[ns].\n"
@@ -240,7 +241,7 @@ class NumericalExpressionTestCase(TestCase):
                 self.assertEqual(message, expected)
 
                 with self.assertRaises(TypeError) as e:
-                    op(self.d, self.f)
+                    op(self.d, float_value)
                 message = e.exception.args[0]
                 expected = (
                     f"Don't know how to compute datetime64[ns] {sym} float64.\n"
@@ -251,7 +252,7 @@ class NumericalExpressionTestCase(TestCase):
 
     def test_negate_datetime(self):
         with self.assertRaises(TypeError) as e:
-            -self.d
+            _ = -self.d
 
         message = e.exception.args[0]
         expected = (
@@ -265,8 +266,8 @@ class NumericalExpressionTestCase(TestCase):
         f, g = self.f, self.g
 
         self.check_constant_output(-f, -3.0)
-        self.check_constant_output(--f, 3.0)
-        self.check_constant_output(---f, -3.0)
+        self.check_constant_output(neg(neg(f)), 3.0)
+        self.check_constant_output(neg(neg(neg(f))), -3.0)
 
         self.check_constant_output(-(f + f), -6.0)
         self.check_constant_output(-f + -f, -6.0)

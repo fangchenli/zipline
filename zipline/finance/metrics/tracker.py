@@ -25,6 +25,16 @@ from ..ledger import Ledger
 log = logbook.Logger(__name__)
 
 
+def _call_all(callbacks):
+    """Make a function that calls each of ``callbacks`` with its arguments."""
+
+    def call_all(*args, **kwargs):
+        for callback in callbacks:
+            callback(*args, **kwargs)
+
+    return call_all
+
+
 class MetricsTracker:
     """The algorithm's interface to the registered risk and performance
     metrics.
@@ -126,15 +136,7 @@ class MetricsTracker:
                 except AttributeError:
                     pass
 
-            def closing_over_loop_variables_is_hard(registered=registered):
-                def hook_implementation(*args, **kwargs):
-                    for impl in registered:
-                        impl(*args, **kwargs)
-
-                return hook_implementation
-
-            hook_implementation = closing_over_loop_variables_is_hard()
-
+            hook_implementation = _call_all(registered)
             hook_implementation.__name__ = hook
             setattr(self, hook, hook_implementation)
 

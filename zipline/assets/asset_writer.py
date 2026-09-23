@@ -321,20 +321,19 @@ def _check_symbol_mappings(df, exchanges, asset_exchange):
     mappings.groupby(["symbol", "country_code"]).apply(check_intersections)
 
     if ambigious:
-        raise ValueError(
-            "Ambiguous ownership for %d symbol%s, multiple assets held the"
-            " following symbols:\n%s"
-            % (
-                len(ambigious),
-                "" if len(ambigious) == 1 else "s",
-                "\n".join(
-                    f"{symbol} ({country_code}):\n  intersections: {tuple(map(_format_range, intersections))}\n  {cs}"
-                    for (symbol, country_code), (intersections, cs) in sorted(
-                        ambigious.items(),
-                        key=first,
-                    )
-                ),
+        details = "\n".join(
+            f"{symbol} ({country_code}):\n"
+            f"  intersections: {tuple(map(_format_range, intersections))}\n"
+            f"  {cs}"
+            for (symbol, country_code), (intersections, cs) in sorted(
+                ambigious.items(),
+                key=first,
             )
+        )
+        plural_s = "" if len(ambigious) == 1 else "s"
+        raise ValueError(
+            f"Ambiguous ownership for {len(ambigious)} symbol{plural_s}, multiple"
+            f" assets held the following symbols:\n{details}"
         )
 
 

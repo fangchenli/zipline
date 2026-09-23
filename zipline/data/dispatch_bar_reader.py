@@ -49,7 +49,8 @@ class AssetDispatchBarReader(ABC):
         for t, r in self._readers.items():
             assert trading_calendar == r.trading_calendar, (
                 "All readers must share target trading_calendar. "
-                f"Reader={r} for type={t} uses calendar={r.trading_calendar} which does not "
+                f"Reader={r} for type={t} uses calendar={r.trading_calendar} which "
+                "does not "
                 f"match the desired shared calendar={trading_calendar} "
             )
 

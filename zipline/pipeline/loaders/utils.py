@@ -27,12 +27,8 @@ def is_sorted_ascending(a):
 def validate_event_metadata(event_dates, event_timestamps, event_sids):
     assert is_sorted_ascending(event_dates), "event dates must be sorted"
     assert len(event_sids) == len(event_dates) == len(event_timestamps), (
-        "mismatched arrays: %d != %d != %d"
-        % (
-            len(event_sids),
-            len(event_dates),
-            len(event_timestamps),
-        )
+        f"mismatched arrays: {len(event_sids)} != {len(event_dates)}"
+        f" != {len(event_timestamps)}"
     )
 
 
@@ -329,9 +325,9 @@ def shift_dates(dates, start_date, end_date, shift):
                     f"Pipeline Query requested data starting on {str(start_date)}, "
                     f"but first known date is {str(dates[0])}"
                 )
-            )
+            ) from None
         else:
-            raise ValueError(f"Query start {start_date} not in calendar")
+            raise ValueError(f"Query start {start_date} not in calendar") from None
 
     # Make sure that shifting doesn't push us out of the calendar.
     if start < shift:
@@ -352,8 +348,8 @@ def shift_dates(dates, start_date, end_date, shift):
                     f"Pipeline Query requesting data up to {end_date}, "
                     f"but last known date is {dates[-1]}"
                 )
-            )
+            ) from None
         else:
-            raise ValueError(f"Query end {end_date} not in calendar")
+            raise ValueError(f"Query end {end_date} not in calendar") from None
 
     return dates[start - shift : end - shift + 1]  # +1 to be inclusive

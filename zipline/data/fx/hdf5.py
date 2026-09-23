@@ -133,7 +133,8 @@ class HDF5FXRateReader(FXRateReader):
 
         if self.version != HDF5_FX_VERSION:
             raise ValueError(
-                f"FX Reader version ({HDF5_FX_VERSION}) != File Version ({self.version})"
+                f"FX Reader version ({HDF5_FX_VERSION}) != File Version "
+                f"({self.version})"
             )
 
     @classmethod
@@ -196,7 +197,7 @@ class HDF5FXRateReader(FXRateReader):
         except KeyError:
             raise ValueError(
                 f"FX rates not available for rate={rate}, quote_currency={quote}."
-            )
+            ) from None
 
         # OPTIMIZATION: Column indices correspond to dates, which must be in
         # sorted order. Rather than reading the entire dataset from h5, we can

@@ -40,7 +40,6 @@ from zipline.data.bar_reader import (
 from zipline.data.session_bars import CurrencyAwareSessionBarReader
 from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.cli import maybe_show_progress
-from zipline.utils.functional import apply
 from zipline.utils.input_validation import expect_element
 from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import float64_dtype, iNaT, uint32_dtype
@@ -100,25 +99,25 @@ def winsorise_uint32(df, invalid_data_behavior, column, *columns):
     if mv.any():
         if invalid_data_behavior == "raise":
             raise ValueError(
-                "%d values out of bounds for uint32: %r"
-                % (
-                    mv.sum(),
-                    df[mask.any(axis=1)],
-                ),
+                f"{mv.sum()} values out of bounds for uint32: {df[mask.any(axis=1)]!r}"
             )
         if invalid_data_behavior == "warn":
             warnings.warn(
-                "Ignoring %d values because they are out of bounds for"
-                " uint32: %r"
-                % (
-                    mv.sum(),
-                    df[mask.any(axis=1)],
-                ),
+                f"Ignoring {mv.sum()} values because they are out of bounds for"
+                f" uint32: {df[mask.any(axis=1)]!r}",
                 stacklevel=3,  # one extra frame for `expect_element`
             )
 
     df[mask] = 0
     return df
+
+
+def _check_asset_ids(iterator, assets):
+    """Yield from ``iterator``, raising for asset ids not in ``assets``."""
+    for asset_id, table in iterator:
+        if asset_id not in assets:
+            raise ValueError(f"unknown asset id {asset_id!r}")
+        yield asset_id, table
 
 
 class BcolzDailyBarWriter:
@@ -255,13 +254,7 @@ class BcolzDailyBarWriter:
         )
 
         if assets is not None:
-
-            @apply
-            def iterator(iterator=iterator, assets=set(assets)):
-                for asset_id, table in iterator:
-                    if asset_id not in assets:
-                        raise ValueError(f"unknown asset id {asset_id!r}")
-                    yield asset_id, table
+            iterator = _check_asset_ids(iterator, set(assets))
 
         for asset_id, table in iterator:
             nrows = len(table)
@@ -578,7 +571,7 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
         try:
             return self.sessions.get_loc(date)
         except KeyError:
-            raise NoDataOnDate(date)
+            raise NoDataOnDate(date) from None
 
     def _spot_col(self, colname):
         """
@@ -645,8 +638,10 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
         """
         try:
             day_loc = self.sessions.get_loc(day)
-        except Exception:
-            raise NoDataOnDate(f"day={day} is outside of calendar={self.sessions}")
+        except Exception as err:
+            raise NoDataOnDate(
+                f"day={day} is outside of calendar={self.sessions}"
+            ) from err
         offset = day_loc - self._calendar_offsets[sid]
         if offset < 0:
             raise NoDataBeforeDate(f"No data on or before day={day} for sid={sid}")

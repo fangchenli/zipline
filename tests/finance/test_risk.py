@@ -70,7 +70,7 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
             self.assertTrue(all(x["max_drawdown"] == 0 for x in self.metrics[period]))
 
     def test_benchmark_returns_06(self):
-        for period, period_len in zip(PERIODS, [1, 3, 6, 12]):
+        for period in PERIODS:
             np.testing.assert_almost_equal(
                 [x["benchmark_period_return"] for x in self.metrics[period]],
                 [

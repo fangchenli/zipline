@@ -144,13 +144,13 @@ class Term(ABC):
         params = cls._pop_params(kwargs)
 
         identity = cls._static_identity(
+            *args,
             domain=domain,
             dtype=dtype,
             missing_value=missing_value,
             window_safe=window_safe,
             ndim=ndim,
             params=params,
-            *args,
             **kwargs,
         )
 
@@ -161,13 +161,13 @@ class Term(ABC):
                 super()
                 .__new__(cls)
                 ._init(
+                    *args,
                     domain=domain,
                     dtype=dtype,
                     missing_value=missing_value,
                     window_safe=window_safe,
                     ndim=ndim,
                     params=params,
-                    *args,
                     **kwargs,
                 )
             )
@@ -208,18 +208,21 @@ class Term(ABC):
                 # instead of trying to hash the param values tuple later.
                 hash(value)
             except KeyError:
-                raise TypeError(f"{cls.__name__} expected a keyword parameter {key!r}.")
-            except TypeError:
+                raise TypeError(
+                    f"{cls.__name__} expected a keyword parameter {key!r}."
+                ) from None
+            except TypeError as err:
                 # Value wasn't hashable.
                 raise TypeError(
                     f"{cls.__name__} expected a hashable value for parameter "
                     f"{key!r}, but got {value!r} instead."
-                )
+                ) from err
 
             param_values.append((key, value))
         return tuple(param_values)
 
-    def __init__(self, *args, **kwargs):
+    # Deliberately a no-op, not abstract: subclasses implement _init.
+    def __init__(self, *args, **kwargs):  # noqa: B027
         """
         Noop constructor to play nicely with our caching __new__.  Subclasses
         should implement _init instead of this method.
@@ -281,7 +284,7 @@ class Term(ABC):
         self.window_safe = window_safe
         self.ndim = ndim
 
-        for name, value in params:
+        for name, _ in params:
             if hasattr(self, name):
                 raise TypeError(
                     f"Parameter {name!r} conflicts with already-present"
@@ -526,12 +529,12 @@ class ComputableTerm(Term):
 
         return super().__new__(
             cls,
+            *args,
             inputs=inputs,
             outputs=outputs,
             mask=mask,
             window_length=window_length,
             domain=domain,
-            *args,
             **kwargs,
         )
 
@@ -561,7 +564,8 @@ class ComputableTerm(Term):
 
         if not isinstance(self.domain, Domain):
             raise TypeError(
-                f"Expected {type(self).__name__}.domain to be an instance of Domain, but got {type(self.domain)}."
+                f"Expected {type(self).__name__}.domain to be an instance of Domain, "
+                f"but got {type(self.domain)}."
             )
 
         # Check outputs.
@@ -854,7 +858,7 @@ class ComputableTerm(Term):
                     f"Fill value {fill_value!r} is not a valid choice "
                     f"for term {type(self).__name__} with dtype {self.dtype}.\n\n"
                     f"Coercion attempt failed with: {e}"
-                )
+                ) from e
 
             if_false = self._constant_type(
                 const=fill_value,
@@ -922,8 +926,8 @@ def validate_dtype(termname, dtype, missing_value):
 
     try:
         dtype = dtype_class(dtype)
-    except TypeError:
-        raise NotDType(dtype=dtype, termname=termname)
+    except TypeError as err:
+        raise NotDType(dtype=dtype, termname=termname) from err
 
     if not can_represent_dtype(dtype):
         raise UnsupportedDType(dtype=dtype, termname=termname)
@@ -938,7 +942,7 @@ def validate_dtype(termname, dtype, missing_value):
             f"Missing value {missing_value!r} is not a valid choice "
             f"for term {termname} with dtype {dtype}.\n\n"
             f"Coercion attempt failed with: {e}"
-        )
+        ) from e
 
     return dtype, missing_value
 

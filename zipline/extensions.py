@@ -121,8 +121,9 @@ class Registry:
             return self._factories[name]()
         except KeyError:
             raise ValueError(
-                f"no {self.interface.__name__} factory registered under name {name!r}, options are: {sorted(self._factories)!r}",
-            )
+                f"no {self.interface.__name__} factory registered under name "
+                f"{name!r}, options are: {sorted(self._factories)!r}",
+            ) from None
 
     def is_registered(self, name):
         """Check whether we have a factory registered under ``name``."""
@@ -132,7 +133,8 @@ class Registry:
     def register(self, name, factory):
         if self.is_registered(name):
             raise ValueError(
-                f"{self.interface.__name__} factory with name {name!r} is already registered"
+                f"{self.interface.__name__} factory with name {name!r} is already "
+                "registered"
             )
 
         self._factories[name] = factory
@@ -145,7 +147,7 @@ class Registry:
         except KeyError:
             raise ValueError(
                 f"{self.interface.__name__} factory {name!r} was not already registered"
-            )
+            ) from None
 
     def clear(self):
         self._factories.clear()
@@ -172,7 +174,7 @@ def get_registry(interface):
     try:
         return custom_types[interface]
     except KeyError:
-        raise ValueError("class specified is not an extendable type")
+        raise ValueError("class specified is not an extendable type") from None
 
 
 def load(interface, name):

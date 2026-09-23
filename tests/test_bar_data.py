@@ -226,7 +226,7 @@ class TestMinuteBarData(
 
         all_minutes = [regular_minutes, bts_minutes, three_oh_six_am_minutes]
         for minute in list(concat(all_minutes)):
-            bar_data = self.create_bardata(lambda: minute)
+            bar_data = self.create_bardata(lambda minute=minute: minute)
 
             self.assertEqual(
                 self.trading_calendar.minute_to_session(minute),
@@ -239,7 +239,7 @@ class TestMinuteBarData(
         )
 
         for minute in first_day_minutes:
-            bar_data = self.create_bardata(lambda: minute)
+            bar_data = self.create_bardata(lambda minute=minute: minute)
             np.testing.assert_array_equal(
                 first_day_minutes, bar_data.current_session_minutes
             )
@@ -251,9 +251,9 @@ class TestMinuteBarData(
         )
 
         # this entire day is before either asset has started trading
-        for idx, minute in enumerate(minutes):
+        for _idx, minute in enumerate(minutes):
             bar_data = self.create_bardata(
-                lambda: minute,
+                lambda minute=minute: minute,
             )
             self.check_internal_consistency(bar_data)
 
@@ -295,7 +295,7 @@ class TestMinuteBarData(
             # has data starting on the 10th minute.
 
             bar_data = self.create_bardata(
-                lambda: minute,
+                lambda minute=minute: minute,
             )
             self.check_internal_consistency(bar_data)
             asset2_has_data = ((idx + 1) % 10) == 0
@@ -367,9 +367,9 @@ class TestMinuteBarData(
         )
 
         # this is the last day the assets exist
-        for idx, minute in enumerate(minutes):
+        for _idx, minute in enumerate(minutes):
             bar_data = self.create_bardata(
-                lambda: minute,
+                lambda minute=minute: minute,
             )
 
             self.assertTrue(bar_data.can_trade(self.ASSET1))
@@ -385,9 +385,9 @@ class TestMinuteBarData(
         )[-1]
 
         # this entire day is after both assets have stopped trading
-        for idx, minute in enumerate(minutes):
+        for _idx, minute in enumerate(minutes):
             bar_data = self.create_bardata(
-                lambda: minute,
+                lambda minute=minute: minute,
             )
 
             self.assertFalse(bar_data.can_trade(self.ASSET1))
@@ -426,7 +426,7 @@ class TestMinuteBarData(
 
         for idx, minute in enumerate(minutes):
             bar_data = self.create_bardata(
-                lambda: minute,
+                lambda minute=minute: minute,
             )
             self.assertEqual(idx + 1, bar_data.current(self.SPLIT_ASSET, "price"))
 
@@ -440,9 +440,9 @@ class TestMinuteBarData(
             self.equity_minute_bar_days[1]
         )
 
-        for idx, minute in enumerate(day0_minutes[-10:-1]):
+        for _idx, minute in enumerate(day0_minutes[-10:-1]):
             bar_data = self.create_bardata(
-                lambda: minute,
+                lambda minute=minute: minute,
             )
             self.assertEqual(380, bar_data.current(self.ILLIQUID_SPLIT_ASSET, "price"))
 
@@ -452,9 +452,9 @@ class TestMinuteBarData(
 
         self.assertEqual(390, bar_data.current(self.ILLIQUID_SPLIT_ASSET, "price"))
 
-        for idx, minute in enumerate(day1_minutes[0:9]):
+        for _idx, minute in enumerate(day1_minutes[0:9]):
             bar_data = self.create_bardata(
-                lambda: minute,
+                lambda minute=minute: minute,
             )
 
             # should be half of 390, due to the split
@@ -530,7 +530,7 @@ class TestMinuteBarData(
 
         for minute in minutes_to_check:
             bar_data = self.create_bardata(
-                simulation_dt_func=lambda: minute,
+                simulation_dt_func=lambda minute=minute: minute,
             )
 
             self.assertFalse(bar_data.can_trade(self.ASSET1))
@@ -550,7 +550,7 @@ class TestMinuteBarData(
 
         for minute in minutes_to_check:
             bar_data = self.create_bardata(
-                simulation_dt_func=lambda: minute,
+                simulation_dt_func=lambda minute=minute: minute,
             )
 
             self.assertFalse(bar_data.can_trade(self.ASSET1))
@@ -566,7 +566,7 @@ class TestMinuteBarData(
 
         for minute in minutes:
             bar_data = self.create_bardata(
-                simulation_dt_func=lambda: minute,
+                simulation_dt_func=lambda minute=minute: minute,
             )
 
             self.assertTrue(bar_data.can_trade(self.ASSET1))
@@ -583,14 +583,14 @@ class TestMinuteBarData(
 
         for minute in minutes_in_session[0:49]:
             bar_data = self.create_bardata(
-                simulation_dt_func=lambda: minute,
+                simulation_dt_func=lambda minute=minute: minute,
             )
 
             self.assertFalse(bar_data.can_trade(self.HILARIOUSLY_ILLIQUID_ASSET))
 
         for minute in minutes_in_session[50:]:
             bar_data = self.create_bardata(
-                simulation_dt_func=lambda: minute,
+                simulation_dt_func=lambda minute=minute: minute,
             )
 
             self.assertTrue(bar_data.can_trade(self.HILARIOUSLY_ILLIQUID_ASSET))
@@ -668,7 +668,7 @@ class TestMinuteBarData(
 
         for info in minutes_to_check:
             bar_data = self.create_bardata(
-                simulation_dt_func=lambda: info[0],
+                simulation_dt_func=lambda info=info: info[0],
                 restrictions=rlm,
             )
             self.assertEqual(bar_data.can_trade(self.ASSET1), info[1])
@@ -766,7 +766,7 @@ class TestMinuteBarDataFuturesCalendar(
         for info in minutes_to_check:
             # use the CMES calendar, which covers 24 hours
             bar_data = self.create_bardata(
-                simulation_dt_func=lambda: info[0],
+                simulation_dt_func=lambda info=info: info[0],
             )
 
             series = bar_data.can_trade([nyse_asset, ice_asset])
@@ -795,7 +795,7 @@ class TestMinuteBarDataFuturesCalendar(
         ]
 
         for info in minutes_to_check:
-            bar_data = self.create_bardata(simulation_dt_func=lambda: info[0])
+            bar_data = self.create_bardata(simulation_dt_func=lambda info=info: info[0])
             self.assertEqual(bar_data.can_trade(auto_closing_asset), info[1])
 
 
@@ -944,7 +944,9 @@ class TestDailyBarData(
             self.equity_daily_bar_days[0], self.equity_daily_bar_days[-1]
         ):
             bar_data = self.create_bardata(
-                simulation_dt_func=lambda: self.get_last_minute_of_session(session)
+                simulation_dt_func=lambda session=session: (
+                    self.get_last_minute_of_session(session)
+                )
             )
 
             self.assertEqual(session, bar_data.current_session)
@@ -1161,6 +1163,6 @@ class TestDailyBarData(
 
         for info in minutes_to_check:
             bar_data = self.create_bardata(
-                simulation_dt_func=lambda: info[0], restrictions=rlm
+                simulation_dt_func=lambda info=info: info[0], restrictions=rlm
             )
             self.assertEqual(bar_data.can_trade(self.ASSET1), info[1])

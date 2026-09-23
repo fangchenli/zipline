@@ -1454,15 +1454,15 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         data = pd.concat(
             [
                 simulate_minutes_for_day(
-                    o,
-                    h,
-                    l,
-                    c,
+                    open_,
+                    high,
+                    low,
+                    close,
                     cls.asset_daily_volume,
                     trading_minutes=len(calendar.session_minutes(session)),
                     random_state=random_state,
                 )
-                for o, h, l, c, session in zip(
+                for open_, high, low, close, session in zip(
                     daily_open,
                     daily_high,
                     daily_low,

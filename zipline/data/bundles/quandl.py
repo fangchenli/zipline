@@ -94,9 +94,7 @@ def fetch_data_table(api_key, show_progress, retries):
             log.exception("Exception raised reading Quandl data. Retrying.")
 
     else:
-        raise ValueError(
-            "Failed to download Quandl data after %d attempts." % (retries)
-        )
+        raise ValueError(f"Failed to download Quandl data after {retries} attempts.")
 
 
 def gen_asset_metadata(data, show_progress):

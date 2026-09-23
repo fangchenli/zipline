@@ -319,7 +319,7 @@ class BlotterTestCase(
             filled_order = None
             blotter.current_dt = dt
             bar_data = self.create_bardata(
-                simulation_dt_func=lambda: dt,
+                simulation_dt_func=lambda dt=dt: dt,
             )
             txns, _, _ = blotter.get_transactions(bar_data)
             for txn in txns:

@@ -180,10 +180,12 @@ class _WeakArgs(Sequence):
     """
 
     def __init__(self, items, dict_remove=None):
-        def remove(k, selfref=ref(self), dict_remove=dict_remove):
-            self = selfref()
-            if self is not None and dict_remove is not None:
-                dict_remove(self)
+        selfref = ref(self)
+
+        def remove(k):
+            self_ = selfref()
+            if self_ is not None and dict_remove is not None:
+                dict_remove(self_)
 
         self._items, self._selectors = unzip(
             self._try_ref(item, remove) for item in items

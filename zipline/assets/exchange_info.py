@@ -39,7 +39,10 @@ class ExchangeInfo:
         self.country_code = country_code.upper()
 
     def __repr__(self):
-        return f"{type(self).__name__}({self.name!r}, {self.canonical_name!r}, {self.country_code!r})"
+        return (
+            f"{type(self).__name__}({self.name!r}, {self.canonical_name!r}, "
+            f"{self.country_code!r})"
+        )
 
     @property
     def calendar(self):

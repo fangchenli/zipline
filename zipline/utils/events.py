@@ -165,6 +165,7 @@ def lossless_float_to_int(funcname, func, argname, arg):
         warnings.warn(
             f"{funcname} expected an int for argument {argname!r}, but got float {arg}."
             " Coercing to int.",
+            stacklevel=4,  # past toolz.curry and the preprocess wrapper
         )
         return arg_as_int
 

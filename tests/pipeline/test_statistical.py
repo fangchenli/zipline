@@ -1020,10 +1020,9 @@ class VectorizedBetaTestCase(zf.ZiplineTestCase):
 
         for allowed_missing in range(7):
             results = vectorized_beta(dependents, independent, allowed_missing)
-            for i, expected in enumerate(true_betas):
+            for i, true_beta in enumerate(true_betas):
                 result = results[i]
                 expect_nan = num_nans[i] > allowed_missing
-                true_beta = true_betas[i]
                 if expect_nan:
                     self.assertTrue(np.isnan(result))
                 else:

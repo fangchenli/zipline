@@ -136,11 +136,7 @@ def _gen_unzip(it, elem_len):
 
     if elem_len is not None and elem_len != first_elem_len:
         raise ValueError(
-            "element at index 0 was length %d, expected %d"
-            % (
-                first_elem_len,
-                elem_len,
-            )
+            f"element at index 0 was length {first_elem_len}, expected {elem_len}"
         )
     else:
         elem_len = first_elem_len
@@ -149,12 +145,7 @@ def _gen_unzip(it, elem_len):
     for n, elem in enumerate(it, 1):
         if len(elem) != elem_len:
             raise ValueError(
-                "element at index %d was length %d, expected %d"
-                % (
-                    n,
-                    len(elem),
-                    elem_len,
-                ),
+                f"element at index {n} was length {len(elem)}, expected {elem_len}"
             )
         yield elem
 

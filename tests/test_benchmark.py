@@ -152,7 +152,8 @@ class TestBenchmark(
             )
 
         self.assertEqual(
-            f"Equity(3 [C]) does not exist on {self.sim_params.sessions[1]}. It started trading on {benchmark_start}.",
+            f"Equity(3 [C]) does not exist on {self.sim_params.sessions[1]}. "
+            f"It started trading on {benchmark_start}.",
             exc.exception.message,
         )
 
@@ -165,7 +166,8 @@ class TestBenchmark(
             )
 
         self.assertEqual(
-            f"Equity(3 [C]) does not exist on {self.sim_params.sessions[-1]}. It stopped trading on {benchmark_end}.",
+            f"Equity(3 [C]) does not exist on {self.sim_params.sessions[-1]}. "
+            f"It stopped trading on {benchmark_end}.",
             exc2.exception.message,
         )
 

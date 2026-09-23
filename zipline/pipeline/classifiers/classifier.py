@@ -264,11 +264,12 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
                 "Expected `choices` to be an iterable of hashable values,"
                 f" but got {choices} instead.\n"
                 f"This caused the following error: {e!r}."
-            )
+            ) from e
 
         if self.missing_value in choices:
             raise ValueError(
-                f"Found self.missing_value ({self.missing_value!r}) in choices supplied to"
+                f"Found self.missing_value ({self.missing_value!r}) in choices "
+                "supplied to"
                 f" {type(self).__name__}.{self.element_of.__name__}().\n"
                 "Missing values have NaN semantics, so the"
                 " requested comparison would always produce False.\n"
@@ -300,10 +301,11 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
                 )
             else:
                 raise TypeError(
-                    f"Found non-string in choices for {type(self).__name__}.element_of.\n"
+                    "Found non-string in choices for "
+                    f"{type(self).__name__}.element_of.\n"
                     f"Supplied choices were {choices}."
                 )
-        assert False, f"Unknown dtype in Classifier.element_of {self.dtype}."
+        raise AssertionError(f"Unknown dtype in Classifier.element_of {self.dtype}.")
 
     def postprocess(self, data):
         if self.dtype == int64_dtype:
@@ -447,7 +449,7 @@ class Quantiles(SingleInputMixin, Classifier):
 
     def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
-        return type(self).__name__ + "(%d)" % self.params["bins"]
+        return type(self).__name__ + f"({self.params['bins']})"
 
 
 class Relabel(SingleInputMixin, Classifier):
@@ -515,13 +517,13 @@ class CustomClassifier(
                     typename=type(self).__name__,
                     dtype=self.dtype,
                     hint="Did you mean to create a CustomFactor?",
-                )
+                ) from None
             elif self.dtype in FILTER_DTYPES:
                 raise UnsupportedDataType(
                     typename=type(self).__name__,
                     dtype=self.dtype,
                     hint="Did you mean to create a CustomFilter?",
-                )
+                ) from None
             raise
 
     def _allocate_output(self, windows, shape):

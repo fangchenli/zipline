@@ -36,6 +36,7 @@ if global_calendar_dispatcher._calendars:
     warnings.warn(
         "Found ExchangeCalendar instances after zipline import.\n"
         "Zipline startup will be much slower until this is fixed!",
+        stacklevel=2,
     )
     del warnings
 del global_calendar_dispatcher

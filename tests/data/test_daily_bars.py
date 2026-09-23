@@ -462,16 +462,16 @@ class _DailyBarsTestCase(
                     reader.get_value(asset, date, CLOSE),
                     nan,
                     msg=(
-                        f"Expected a hole for sid={asset}; date={date.date()}, but got a"
-                        " non-nan value for close."
+                        f"Expected a hole for sid={asset}; date={date.date()}, "
+                        "but got a non-nan value for close."
                     ),
                 )
                 assert_equal(
                     reader.get_value(asset, date, VOLUME),
                     0.0,
                     msg=(
-                        f"Expected a hole for sid={asset}; date={date.date()}, but got a"
-                        " non-zero value for volume."
+                        f"Expected a hole for sid={asset}; date={date.date()}, "
+                        "but got a non-zero value for volume."
                     ),
                 )
 

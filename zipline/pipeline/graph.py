@@ -311,11 +311,7 @@ class ExecutionPlan(TermGraph):
         )
         if extra_rows_for_term < min_extra_rows:
             raise ValueError(
-                "term %s requested fewer rows than the minimum of %d"
-                % (
-                    term,
-                    min_extra_rows,
-                )
+                f"term {term} requested fewer rows than the minimum of {min_extra_rows}"
             )
 
         self._ensure_extra_rows(term, extra_rows_for_term)

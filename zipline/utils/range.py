@@ -25,11 +25,7 @@ def from_tuple(tup):
     """
     if len(tup) not in (2, 3):
         raise ValueError(
-            "tuple must contain 2 or 3 elements, not: %d (%r"
-            % (
-                len(tup),
-                tup,
-            ),
+            f"tuple must contain 2 or 3 elements, not: {len(tup)} ({tup!r}"
         )
     return range(*tup)
 
@@ -63,7 +59,8 @@ def maybe_from_tuple(tup_or_range):
         return tup_or_range
 
     raise ValueError(
-        f"maybe_from_tuple expects a tuple or range, got {type(tup_or_range).__name__!r}: {tup_or_range!r}",
+        "maybe_from_tuple expects a tuple or range, got "
+        f"{type(tup_or_range).__name__!r}: {tup_or_range!r}",
     )
 
 

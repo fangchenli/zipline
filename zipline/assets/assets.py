@@ -685,13 +685,11 @@ class AssetFinder:
         if not sids:
             return
 
+        exchanges = self.exchange_info
         if querying_equities:
+            symbols = self._lookup_most_recent_symbols(sids)
 
-            def mkdict(
-                row,
-                exchanges=self.exchange_info,
-                symbols=self._lookup_most_recent_symbols(sids),
-            ):
+            def mkdict(row):
                 d = dict(row._mapping)
                 d["exchange_info"] = exchanges[d.pop("exchange")]
                 # we are not required to have a symbol for every asset, if
@@ -699,7 +697,7 @@ class AssetFinder:
                 return merge(d, symbols.get(row.sid, {}))
         else:
 
-            def mkdict(row, exchanges=self.exchange_info):
+            def mkdict(row):
                 d = dict(row._mapping)
                 d["exchange_info"] = exchanges[d.pop("exchange")]
                 return d
@@ -830,7 +828,7 @@ class AssetFinder:
             assert owners, f"empty owners list for {symbol!r}"
         except KeyError:
             # no equity has ever held this symbol
-            raise SymbolNotFound(symbol=symbol)
+            raise SymbolNotFound(symbol=symbol) from None
 
         if not as_of_date:
             # exactly one equity has ever held this symbol, we may resolve
@@ -890,7 +888,7 @@ class AssetFinder:
             assert owners, f"empty owners list for {symbol!r}"
         except KeyError:
             # no equity has ever held a symbol matching the fuzzy symbol
-            raise SymbolNotFound(symbol=symbol)
+            raise SymbolNotFound(symbol=symbol) from None
 
         if not as_of_date:
             if len(owners) == 1:
@@ -1122,7 +1120,7 @@ class AssetFinder:
             assert owners, f"empty owners list for {field_name!r}, {value!r}"
         except KeyError:
             # no equity has ever held this value
-            raise ValueNotFoundForField(field=field_name, value=value)
+            raise ValueNotFoundForField(field=field_name, value=value) from None
 
         if not as_of_date:
             if len(owners) > 1:
@@ -1182,7 +1180,7 @@ class AssetFinder:
             ]
             assert periods, f"empty periods list for {field_name!r}, {sid!r}"
         except KeyError:
-            raise NoValueForSid(field=field_name, sid=sid)
+            raise NoValueForSid(field=field_name, sid=sid) from None
 
         if not as_of_date:
             if len(periods) > 1:
@@ -1250,7 +1248,8 @@ class AssetFinder:
     def create_continuous_future(self, root_symbol, offset, roll_style, adjustment):
         if adjustment not in ADJUSTMENT_STYLES:
             raise ValueError(
-                f"Invalid adjustment style {adjustment!r}. Allowed adjustment styles are "
+                f"Invalid adjustment style {adjustment!r}. Allowed adjustment styles "
+                "are "
                 f"{list(ADJUSTMENT_STYLES)}."
             )
 
@@ -1396,17 +1395,17 @@ class AssetFinder:
                 return matches[0], missing
             except IndexError:
                 if hasattr(obj, "__int__"):
-                    raise SidsNotFound(sids=[obj])
+                    raise SidsNotFound(sids=[obj]) from None
                 else:
-                    raise SymbolNotFound(symbol=obj)
+                    raise SymbolNotFound(symbol=obj) from None
 
         # Interpret input as iterable.
         try:
             iterator = iter(obj)
-        except TypeError:
+        except TypeError as err:
             raise NotAssetConvertible(
                 "Input was not a AssetConvertible or iterable of AssetConvertible."
-            )
+            ) from err
 
         for obj in iterator:
             self._lookup_generic_scalar(
@@ -1522,7 +1521,9 @@ class AssetFinder:
         return tuple(sids.tolist())
 
 
-class AssetConvertible(ABC):
+# Virtual base class: types are added with register(), so it has no
+# abstract methods by design.
+class AssetConvertible(ABC):  # noqa: B024
     """
     ABC for types that are convertible to integer-representations of
     Assets.
@@ -1542,7 +1543,9 @@ class NotAssetConvertible(ValueError):
     pass
 
 
-class PricingDataAssociable(ABC):
+# Virtual base class: types are added with register(), so it has no
+# abstract methods by design.
+class PricingDataAssociable(ABC):  # noqa: B024
     """
     ABC for types that can be associated with pricing data.
 

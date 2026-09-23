@@ -743,9 +743,9 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
             self.trading_calendar.previous_session(pd.Timestamp("2015-01-05"))
         )[0:60]
 
-        for idx, minute in enumerate(minutes):
+        for _idx, minute in enumerate(minutes):
             bar_data = self.create_bardata(
-                lambda: minute,
+                lambda minute=minute: minute,
             )
             check_internal_consistency(
                 bar_data, [self.ASSET2, self.ASSET3], ALL_FIELDS, 10, "1m"
@@ -828,8 +828,8 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
             pd.Timestamp("2015-01-07")
         )[0:60]
 
-        for idx, minute in enumerate(minutes):
-            bar_data = self.create_bardata(lambda: minute)
+        for _idx, minute in enumerate(minutes):
+            bar_data = self.create_bardata(lambda minute=minute: minute)
             check_internal_consistency(bar_data, self.SHORT_ASSET, ALL_FIELDS, 30, "1m")
 
         # Reset data portal because it has advanced past next test date.
@@ -1588,7 +1588,8 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
                 self.assertEqual(
                     len(window),
                     bar_count,
-                    f"Unexpected window length at {minute}. Expected {bar_count}, but was {len(window)}.",
+                    f"Unexpected window length at {minute}. "
+                    f"Expected {bar_count}, but was {len(window)}.",
                 )
                 np.testing.assert_allclose(
                     window.iloc[-1],
@@ -1674,9 +1675,9 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
             pd.Timestamp("2014-12-18"),
         )
 
-        for idx, day in enumerate(days):
+        for _idx, day in enumerate(days):
             bar_data = self.create_bardata(
-                simulation_dt_func=lambda: day,
+                simulation_dt_func=lambda day=day: day,
             )
             check_internal_consistency(
                 bar_data, [self.ASSET2, self.ASSET3], ALL_FIELDS, 10, "1d"
@@ -1744,7 +1745,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
         # days has 1/7, 1/8
         for idx, day in enumerate(days):
             bar_data = self.create_bardata(
-                simulation_dt_func=lambda: day,
+                simulation_dt_func=lambda day=day: day,
             )
             check_internal_consistency(bar_data, self.SHORT_ASSET, ALL_FIELDS, 2, "1d")
 

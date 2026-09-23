@@ -11,8 +11,7 @@ def bases_mro(bases):
     base classes of an object.
     """
     for base in bases:
-        for class_ in base.__mro__:
-            yield class_
+        yield from base.__mro__
 
 
 def is_final(name, mro):
@@ -33,7 +32,7 @@ class FinalMeta(type):
     """
 
     def __new__(mcls, name, bases, dict_):
-        for k, v in dict_.items():
+        for k in dict_:
             if is_final(k, bases):
                 raise _type_error
 

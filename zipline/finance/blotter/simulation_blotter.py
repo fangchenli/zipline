@@ -140,7 +140,7 @@ class SimulationBlotter(Blotter):
         elif amount > self.max_shares:
             # Arbitrary limit of 100 billion (US) shares will never be
             # exceeded except by a buggy algorithm.
-            raise OverflowError("Can't order more than %d shares" % self.max_shares)
+            raise OverflowError(f"Can't order more than {self.max_shares} shares")
 
         is_buy = amount > 0
         order = Order(

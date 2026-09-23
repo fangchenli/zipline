@@ -883,7 +883,7 @@ class VolatilityVolumeShareTestCase(
         remaining_shares = test_order.open_amount
 
         for i, minute in enumerate(next_3_minutes):
-            data = self.create_bardata(simulation_dt_func=lambda: minute)
+            data = self.create_bardata(simulation_dt_func=lambda minute=minute: minute)
             new_order = Order(
                 dt=data.current_dt,
                 asset=self.ASSET,
@@ -915,7 +915,7 @@ class VolatilityVolumeShareTestCase(
         ]
 
         for minute, asset in cases:
-            data = self.create_bardata(simulation_dt_func=lambda: minute)
+            data = self.create_bardata(simulation_dt_func=lambda minute=minute: minute)
 
             order = Order(dt=data.current_dt, asset=asset, amount=10)
             price, amount = model.process_order(data, order)

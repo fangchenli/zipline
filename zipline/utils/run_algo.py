@@ -123,10 +123,10 @@ def _run(
         for assign in defines:
             try:
                 name, value = assign.split("=", 2)
-            except ValueError:
+            except ValueError as err:
                 raise ValueError(
                     f"invalid define {assign!r}, should be of the form name=value",
-                )
+                ) from err
             try:
                 # evaluate in the same namespace so names may refer to
                 # eachother
@@ -134,7 +134,7 @@ def _run(
             except Exception as e:
                 raise ValueError(
                     f"failed to execute definition for name {name!r}: {e}",
-                )
+                ) from e
     elif defines:
         raise _RunAlgoError(
             "cannot pass define without `algotext`",
@@ -181,13 +181,13 @@ def _run(
         try:
             metrics_set = metrics.load(metrics_set)
         except ValueError as e:
-            raise _RunAlgoError(str(e))
+            raise _RunAlgoError(str(e)) from e
 
     if isinstance(blotter, str):
         try:
             blotter = load(Blotter, blotter)
         except ValueError as e:
-            raise _RunAlgoError(str(e))
+            raise _RunAlgoError(str(e)) from e
 
     try:
         perf = TradingAlgorithm(
@@ -230,7 +230,7 @@ def _run(
                 " provided, and ``zipline.api.set_benchmark`` was not called"
                 " in ``initialize``. Did you mean to pass '--no-benchmark'?"
             ),
-        )
+        ) from None
 
     if output == "-":
         click.echo(str(perf))
@@ -516,8 +516,9 @@ class BenchmarkSpec:
                 benchmark_returns = None
             except SymbolNotFound:
                 raise _RunAlgoError(
-                    f"Symbol {self.benchmark_symbol!r} as a benchmark not found in this bundle."
-                )
+                    f"Symbol {self.benchmark_symbol!r} as a benchmark not found in "
+                    "this bundle."
+                ) from None
         elif self.no_benchmark:
             benchmark_sid = None
             benchmark_returns = self._zero_benchmark_returns(

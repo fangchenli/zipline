@@ -330,24 +330,24 @@ class TestDataSetFamily(ZiplineTestCase):
 
         expected_msg = make_expected_msg("Parent", "column_0")
         with assert_raises_str(AttributeError, expected_msg):
-            Parent.column_0
+            _ = Parent.column_0
 
         expected_msg = make_expected_msg("Parent", "column_1")
         with assert_raises_str(AttributeError, expected_msg):
-            Parent.column_1
+            _ = Parent.column_1
 
         expected_msg = make_expected_msg("Child", "column_0")
         with assert_raises_str(AttributeError, expected_msg):
-            Child.column_0
+            _ = Child.column_0
 
         expected_msg = make_expected_msg("Child", "column_1")
         with assert_raises_str(AttributeError, expected_msg):
-            Child.column_1
+            _ = Child.column_1
 
         expected_msg = make_expected_msg("Child", "column_2")
         with assert_raises_str(AttributeError, expected_msg):
-            Child.column_2
+            _ = Child.column_2
 
         expected_msg = make_expected_msg("Child", "column_3")
         with assert_raises_str(AttributeError, expected_msg):
-            Child.column_3
+            _ = Child.column_3

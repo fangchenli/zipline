@@ -208,7 +208,7 @@ class AssetDispatchSessionBarTestCase(
             ),
         )
 
-        for i, (sid, expected, msg) in enumerate(expected_per_sid):
+        for i, (_sid, expected, msg) in enumerate(expected_per_sid):
             for j, result in enumerate(results):
                 assert_almost_equal(result[:, i], expected[j], err_msg=msg)
 
@@ -380,7 +380,7 @@ class AssetDispatchMinuteBarTestCase(
             ),
         )
 
-        for i, (sid, expected, msg) in enumerate(expected_per_sid):
+        for i, (_sid, expected, msg) in enumerate(expected_per_sid):
             for j, result in enumerate(results):
                 assert_almost_equal(result[:, i], expected[j], err_msg=msg)
 
@@ -422,6 +422,6 @@ class AssetDispatchMinuteBarTestCase(
             ),
         )
 
-        for i, (sid, expected, msg) in enumerate(expected_per_sid):
+        for i, (_sid, expected, msg) in enumerate(expected_per_sid):
             for j, result in enumerate(results):
                 assert_almost_equal(result[:, i], expected[j], err_msg=msg)

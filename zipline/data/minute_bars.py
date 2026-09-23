@@ -379,7 +379,7 @@ class BcolzMinuteBarWriter:
         compression ratios are not ideal.
 
         Defaults to supporting 15 years of NYSE equity market data.
-        see: http://bcolz.blosc.org/opt-tips.html#informing-about-the-length-of-your-carrays # noqa
+        see: http://bcolz.blosc.org/opt-tips.html#informing-about-the-length-of-your-carrays
     write_metadata : bool, optional
         If True, writes the minute bar metadata (on init of the writer).
         If False, no metadata is written (existing metadata is
@@ -1061,8 +1061,8 @@ class BcolzMinuteBarReader(MinuteBarReader):
                     rootdir=self._get_carray_path(sid, field),
                     mode="r",
                 )
-            except OSError:
-                raise NoDataForSid(f"No minute data for sid {sid}.")
+            except OSError as err:
+                raise NoDataForSid(f"No minute data for sid {sid}.") from err
 
         return carray
 
@@ -1112,8 +1112,8 @@ class BcolzMinuteBarReader(MinuteBarReader):
         else:
             try:
                 minute_pos = self._find_position_of_minute(dt)
-            except ValueError:
-                raise NoDataOnDate()
+            except ValueError as err:
+                raise NoDataOnDate() from err
 
             self._last_get_value_dt_value = dt.value
             self._last_get_value_dt_position = minute_pos

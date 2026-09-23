@@ -4,6 +4,7 @@ Tests for Term.
 
 from collections import Counter
 from itertools import product
+from operator import neg
 from unittest import TestCase
 
 import pandas as pd
@@ -294,7 +295,7 @@ class ObjectIdentityTestCase(TestCase):
         ((most_common_id, count),) = id_counts.most_common(1)
         if count > 1:
             dupe = [o for o in objs if id(o) == most_common_id][0]
-            self.fail("%s appeared %d times in %s" % (dupe, count, objs))
+            self.fail(f"{dupe} appeared {count} times in {objs}")
 
     def test_instance_caching(self):
 
@@ -449,8 +450,8 @@ class ObjectIdentityTestCase(TestCase):
     def test_instance_caching_unary_ops(self):
         f = SomeFactor()
         self.assertIs(-f, -f)
-        self.assertIs(--f, --f)
-        self.assertIs(---f, ---f)
+        self.assertIs(neg(neg(f)), neg(neg(f)))
+        self.assertIs(neg(neg(neg(f))), neg(neg(neg(f))))
 
     def test_instance_caching_math_funcs(self):
         f = SomeFactor()
@@ -603,7 +604,7 @@ class ObjectIdentityTestCase(TestCase):
 
     def test_bad_output_access(self):
         with self.assertRaises(AttributeError) as e:
-            SomeFactor().not_an_attr
+            _ = SomeFactor().not_an_attr
 
         errmsg = str(e.exception)
         self.assertEqual(
@@ -613,7 +614,7 @@ class ObjectIdentityTestCase(TestCase):
 
         mo = MultipleOutputs()
         with self.assertRaises(AttributeError) as e:
-            mo.not_an_attr
+            _ = mo.not_an_attr
 
         errmsg = str(e.exception)
         expected = (

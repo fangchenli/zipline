@@ -463,7 +463,7 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
         # The wording of the underlying TypeError varies across Python
         # versions, so take it from Python itself.
         try:
-            {{"a": 1}}
+            _ = {{"a": 1}}
         except TypeError as exc:
             hash_error = exc
         expected = (

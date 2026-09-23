@@ -419,9 +419,9 @@ class AssetTestCase(TestCase):
 
     def test_type_mismatch(self):
         with self.assertRaises(TypeError):
-            self.asset3 < "a"
+            _ = self.asset3 < "a"
         with self.assertRaises(TypeError):
-            "a" < self.asset3
+            _ = "a" < self.asset3
 
 
 class TestFuture(WithAssetFinder, ZiplineTestCase):
@@ -537,7 +537,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
             [
                 {
                     "sid": sid,
-                    "symbol": "TEST.%d" % sid,
+                    "symbol": f"TEST.{sid}",
                     "start_date": as_of.value,
                     "end_date": as_of.value,
                     "exchange": uuid.uuid4().hex,
@@ -555,8 +555,8 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
             [
                 {
                     "sid": i,
-                    "symbol": "TEST.%d" % i,
-                    "company_name": "company%d" % i,
+                    "symbol": f"TEST.{i}",
+                    "company_name": f"company{i}",
                     "start_date": as_of.value,
                     "end_date": as_of.value,
                     "exchange": uuid.uuid4().hex,
@@ -569,7 +569,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         asset_0, asset_1, asset_2 = (finder.retrieve_asset(i) for i in range(3))
 
         # we do it twice to catch caching bugs
-        for i in range(2):
+        for _i in range(2):
             with self.assertRaises(SymbolNotFound):
                 finder.lookup_symbol("TEST", as_of)
             with self.assertRaises(SymbolNotFound):
@@ -1047,9 +1047,9 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         with warnings.catch_warnings(record=True) as w:
             # Cause all warnings to always be triggered
             warnings.simplefilter("always")
-            equity_asset.security_start_date
-            equity_asset.security_end_date
-            equity_asset.security_name
+            _ = equity_asset.security_start_date
+            _ = equity_asset.security_end_date
+            _ = equity_asset.security_name
             # Verify the warning
             self.assertEqual(3, len(w))
             for warning in w:
@@ -1580,10 +1580,10 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
                 {
                     "sid": sid,
                     "symbol": "TEST.A",
-                    "company_name": "company %d" % sid,
+                    "company_name": f"company {sid}",
                     "start_date": as_of.value,
                     "end_date": as_of.value,
-                    "exchange": "EXCHANGE %d" % sid,
+                    "exchange": f"EXCHANGE {sid}",
                 }
                 for sid in sids
             ]
@@ -1639,7 +1639,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
         num_countries = 3
         metadata = pd.DataFrame.from_records(
             [
-                {"symbol": symbol, "exchange": "EXCHANGE %d" % n}
+                {"symbol": symbol, "exchange": f"EXCHANGE {n}"}
                 for n in range(num_countries)
                 for symbol in ("PRTY_HRD", "BRKA", "BRK_A")
             ]
@@ -1752,12 +1752,12 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
             index=np.repeat(np.arange(num_countries * 2), 2),
         )
         metadata["exchange"] = np.repeat(
-            ["EXCHANGE %d" % n for n in range(num_countries)],
+            [f"EXCHANGE {n}" for n in range(num_countries)],
             4,
         )
         exchanges = pd.DataFrame(
             {
-                "exchange": ["EXCHANGE %d" % n for n in range(num_countries)],
+                "exchange": [f"EXCHANGE {n}" for n in range(num_countries)],
                 "country_code": [self.country_code(n) for n in range(num_countries)],
             }
         )
@@ -1880,7 +1880,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
                     "symbol": "existing",
                     "start_date": date.value,
                     "end_date": (date + timedelta(days=1)).value,
-                    "exchange": "EXCHANGE %d" % n,
+                    "exchange": f"EXCHANGE {n}",
                 }
                 for n in range(num_countries)
                 for i, date in enumerate(dates)
@@ -1888,7 +1888,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
         )
         exchanges = pd.DataFrame(
             {
-                "exchange": ["EXCHANGE %d" % n for n in range(num_countries)],
+                "exchange": [f"EXCHANGE {n}" for n in range(num_countries)],
                 "country_code": [self.country_code(n) for n in range(num_countries)],
             }
         )
@@ -1942,7 +1942,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
                         "symbol": "multiple",
                         "start_date": pd.Timestamp("2010-01-01"),
                         "end_date": pd.Timestamp("2012-01-01"),
-                        "exchange": "EXCHANGE %d" % n,
+                        "exchange": f"EXCHANGE {n}",
                     },
                     # Same as asset 1, but with a later end date.
                     {
@@ -1950,7 +1950,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
                         "symbol": "multiple",
                         "start_date": pd.Timestamp("2010-01-01"),
                         "end_date": pd.Timestamp("2013-01-01"),
-                        "exchange": "EXCHANGE %d" % n,
+                        "exchange": f"EXCHANGE {n}",
                     },
                     # Same as asset 1, but with a later start_date
                     {
@@ -1958,7 +1958,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
                         "symbol": "multiple",
                         "start_date": pd.Timestamp("2011-01-01"),
                         "end_date": pd.Timestamp("2012-01-01"),
-                        "exchange": "EXCHANGE %d" % n,
+                        "exchange": f"EXCHANGE {n}",
                     },
                 ]
                 for n in range(num_countries)
@@ -1966,7 +1966,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
         )
         exchanges = pd.DataFrame(
             {
-                "exchange": ["EXCHANGE %d" % n for n in range(num_countries)],
+                "exchange": [f"EXCHANGE {n}" for n in range(num_countries)],
                 "country_code": [self.country_code(n) for n in range(num_countries)],
             }
         )
@@ -2024,21 +2024,21 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
                         "symbol": "FOOB",
                         "start_date": date.value,
                         "end_date": pd.Timestamp.max.value,
-                        "exchange": "EXCHANGE %d" % n,
+                        "exchange": f"EXCHANGE {n}",
                     },
                     {
                         "sid": n * 2,
                         "symbol": "FOO_B",
                         "start_date": (date + timedelta(days=31)).value,
                         "end_date": (date + timedelta(days=60)).value,
-                        "exchange": "EXCHANGE %d" % n,
+                        "exchange": f"EXCHANGE {n}",
                     },
                     {
                         "sid": n * 2 + 1,
                         "symbol": "FOO_B",
                         "start_date": (date + timedelta(days=61)).value,
                         "end_date": pd.Timestamp.max.value,
-                        "exchange": "EXCHANGE %d" % n,
+                        "exchange": f"EXCHANGE {n}",
                     },
                 ]
                 for n in range(num_countries)
@@ -2046,7 +2046,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
         )
         exchanges = pd.DataFrame(
             {
-                "exchange": ["EXCHANGE %d" % n for n in range(num_countries)],
+                "exchange": [f"EXCHANGE {n}" for n in range(num_countries)],
                 "country_code": [self.country_code(n) for n in range(num_countries)],
             }
         )
@@ -2458,7 +2458,7 @@ class TestWrite(WithInstanceTmpDir, ZiplineTestCase):
                     # Change the exchange with each mapping period. We don't
                     # currently support point in time exchange information,
                     # so we just take the most recent by end date.
-                    "exchange": "EXCHANGE-%d-%d" % (sid, n),
+                    "exchange": f"EXCHANGE-{sid}-{n}",
                 }
                 for n, date in enumerate(dates)
                 for sid in sids
@@ -2470,7 +2470,7 @@ class TestWrite(WithInstanceTmpDir, ZiplineTestCase):
         equities = reader.retrieve_all(reader.sids)
 
         for eq in equities:
-            expected_exchange = "EXCHANGE-%d-%d" % (eq.sid, len(dates) - 1)
+            expected_exchange = f"EXCHANGE-{eq.sid}-{len(dates) - 1}"
             assert_equal(eq.exchange, expected_exchange)
 
     def test_write_direct(self):

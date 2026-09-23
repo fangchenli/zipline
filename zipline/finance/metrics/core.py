@@ -72,7 +72,7 @@ def _make_metrics_set_core():
         except KeyError:
             raise ValueError(
                 f"metrics set {name!r} was not already registered",
-            )
+            ) from None
 
     def load(name):
         """Return an instance of the metrics set registered with the given name.
@@ -91,8 +91,9 @@ def _make_metrics_set_core():
             function = _metrics_sets[name]
         except KeyError:
             raise ValueError(
-                f"no metrics set registered as {name!r}, options are: {sorted(_metrics_sets)!r}",
-            )
+                f"no metrics set registered as {name!r}, options are: "
+                f"{sorted(_metrics_sets)!r}",
+            ) from None
 
         return function()
 

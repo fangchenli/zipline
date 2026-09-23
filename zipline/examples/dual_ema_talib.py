@@ -30,14 +30,14 @@ from zipline.finance import commission, slippage
 # Import exponential moving average from talib wrapper
 try:
     from talib import EMA
-except ImportError:
+except ImportError as err:
     msg = (
         "Unable to import module TA-lib. Use `pip install TA-lib` to "
         "install. Note: if installation fails, you might need to install "
         "the underlying TA-lib library (more information can be found in "
         "the zipline installation documentation)."
     )
-    raise ImportError(msg)
+    raise ImportError(msg) from err
 
 
 def initialize(context):

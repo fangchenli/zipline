@@ -310,7 +310,7 @@ class FinanceTestCase(zf.WithAssetFinder, zf.WithTradingCalendars, zf.ZiplineTes
                 else:
                     bar_data = BarData(
                         data_portal=data_portal,
-                        simulation_dt_func=lambda: tick,
+                        simulation_dt_func=lambda tick=tick: tick,
                         data_frequency=sim_params.data_frequency,
                         trading_calendar=self.trading_calendar,
                         restrictions=NoRestrictions(),

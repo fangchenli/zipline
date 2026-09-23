@@ -109,14 +109,16 @@ def int_dtype_with_size_in_bytes(size):
     try:
         return INT_DTYPES_BY_SIZE_BYTES[size]
     except KeyError:
-        raise ValueError("No integral dtype whose size is %d bytes." % size)
+        raise ValueError(f"No integral dtype whose size is {size} bytes.") from None
 
 
 def unsigned_int_dtype_with_size_in_bytes(size):
     try:
         return UNSIGNED_INT_DTYPES_BY_SIZE_BYTES[size]
     except KeyError:
-        raise ValueError("No unsigned integral dtype whose size is %d bytes." % size)
+        raise ValueError(
+            f"No unsigned integral dtype whose size is {size} bytes."
+        ) from None
 
 
 class NoDefaultMissingValue(Exception):
@@ -167,7 +169,9 @@ def default_missing_value_for_dtype(dtype):
     try:
         return _FILLVALUE_DEFAULTS[dtype]
     except KeyError:
-        raise NoDefaultMissingValue(f"No default value registered for dtype {dtype}.")
+        raise NoDefaultMissingValue(
+            f"No default value registered for dtype {dtype}."
+        ) from None
 
 
 def repeat_first_axis(array, count):

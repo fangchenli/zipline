@@ -125,7 +125,8 @@ class CustomTermMixin(Term):
         unexpected_keys = set(kwargs) - set(cls.params)
         if unexpected_keys:
             raise TypeError(
-                f"{cls.__name__} received unexpected keyword arguments { ({k: kwargs[k] for k in unexpected_keys}) }"
+                f"{cls.__name__} received unexpected keyword arguments "
+                f"{ ({k: kwargs[k] for k in unexpected_keys}) }"
             )
 
         return super().__new__(
@@ -218,7 +219,7 @@ class CustomTermMixin(Term):
     def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
         # Graphviz interprets `\l` as "divide label into lines, left-justified"
-        return type(self).__name__ + ":\\l  window_length: %d\\l" % self.window_length
+        return type(self).__name__ + f":\\l  window_length: {self.window_length}\\l"
 
 
 class LatestMixin(SingleInputMixin):
@@ -348,7 +349,10 @@ class AliasedMixin(SingleInputMixin, UniversalMixin):
         return inputs[0]
 
     def __repr__(self):
-        return f"{type(self).__name__}({self.inputs[0].recursive_repr()}, name={self.name!r})"
+        return (
+            f"{type(self).__name__}({self.inputs[0].recursive_repr()}, "
+            f"name={self.name!r})"
+        )
 
     def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
@@ -445,7 +449,7 @@ class DownsampledMixin(StandardOutputs, UniversalMixin):
                 f"Pipeline start_date {start_date} is not in calendar.\n"
                 f"Latest date before start_date is {before}.\n"
                 f"Earliest date after start_date is {after}."
-            )
+            ) from None
 
         # Our possible target dates are all the dates on or before the current
         # starting position.

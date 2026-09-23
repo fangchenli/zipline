@@ -45,8 +45,8 @@ class SimulationParameters:
         arena="backtest",
     ):
 
-        assert type(start_session) == pd.Timestamp
-        assert type(end_session) == pd.Timestamp
+        assert type(start_session) is pd.Timestamp
+        assert type(end_session) is pd.Timestamp
 
         # chop off any minutes or hours on the given start and end dates,
         # as we only support session labels here (and we represent session

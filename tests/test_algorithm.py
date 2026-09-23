@@ -277,8 +277,8 @@ def handle_data(algo, data):
             name = method.__name__
             sentinel = object()
 
-            def fake_method(*args, **kwargs):
-                return sentinel
+            def fake_method(*args, _sentinel=sentinel, **kwargs):
+                return _sentinel
 
             setattr(algo, name, fake_method)
             with ZiplineAPI(algo):
@@ -582,8 +582,8 @@ def log_nyse_close(context, data):
             self.assertEqual(
                 f,
                 g,
-                "function at position %d was incorrect, expected %s but got %s"
-                % (n, g.__name__, f.__name__),
+                f"function at position {n} was incorrect, expected {g.__name__}"
+                f" but got {f.__name__}",
             )
 
     @parameterized.expand(
@@ -3095,7 +3095,7 @@ class TestTradingControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
             algo.set_max_order_count(count)
 
         def handle_data(algo, data):
-            for i in range(5):
+            for _i in range(5):
                 algo.order(self.asset, 1)
                 algo.order_count += 1
 
@@ -3121,7 +3121,7 @@ class TestTradingControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
         # 9. The last order of the second batch should fail.
         def handle_data(algo, data):
             if algo.minute_count == 0 or algo.minute_count == 100:
-                for i in range(5):
+                for _i in range(5):
                     algo.order(self.asset, 1)
                     algo.order_count += 1
 
@@ -3144,7 +3144,7 @@ class TestTradingControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
         # reset each day.
         def handle_data(algo, data):
             if (algo.minute_count % 390) == 0:
-                for i in range(5):
+                for _i in range(5):
                     algo.order(self.asset, 1)
                     algo.order_count += 1
 

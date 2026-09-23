@@ -364,7 +364,10 @@ class IPythonWidgetProgressPublisher:
             self._details_body.value = details_heading + term_list
 
             chunk_start, chunk_end = model.current_chunk_bounds
-            self._heading.value = f"<b>Running Pipeline</b>: Chunk Start={chunk_start.date()}, Chunk End={chunk_end.date()}"
+            self._heading.value = (
+                f"<b>Running Pipeline</b>: Chunk Start={chunk_start.date()}, Chunk "
+                f"End={chunk_end.date()}"
+            )
 
             self._set_progress(model.percent_complete)
 
@@ -375,7 +378,8 @@ class IPythonWidgetProgressPublisher:
             self._stop_displaying()
             display(
                 IPython_HTML(
-                    f"<b>Pipeline Execution Time:</b> {self._format_execution_time(model.execution_time)}"
+                    "<b>Pipeline Execution Time:</b> "
+                    f"{self._format_execution_time(model.execution_time)}"
                 ),
             )
 

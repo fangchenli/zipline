@@ -1459,8 +1459,12 @@ class PopulateInitialWorkspaceTestCase(
                     "precomputed_term": precomputed_term,
                     "precomputed_term_with_window": precomputed_term_with_window,
                     "depends_on_precomputed_term": depends_on_precomputed_term,
-                    "depends_on_precomputed_term_with_window": depends_on_precomputed_term_with_window,
-                    "depends_on_window_of_precomputed_term": depends_on_window_of_precomputed_term,
+                    "depends_on_precomputed_term_with_window": (
+                        depends_on_precomputed_term_with_window
+                    ),
+                    "depends_on_window_of_precomputed_term": (
+                        depends_on_window_of_precomputed_term
+                    ),
                 },
                 domain=self.domain,
             ),

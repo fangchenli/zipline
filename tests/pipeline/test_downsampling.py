@@ -569,7 +569,8 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
             self.assertEqual(
                 result,
                 expected_extra_rows,
-                f"Expected {expected_extra_rows} extra_rows from {term}, but got {result}.",
+                f"Expected {expected_extra_rows} extra_rows from {term}, "
+                f"but got {result}.",
             )
 
 

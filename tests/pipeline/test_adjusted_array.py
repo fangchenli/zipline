@@ -129,7 +129,7 @@ def _gen_unadjusted_cases(name, make_input, make_expected_output, missing_value)
         )
 
         yield AdjustmentCase(
-            name="%s_length_%d" % (name, windowlen),
+            name=f"{name}_length_{windowlen}",
             baseline=input_array,
             window_length=windowlen,
             adjustments={},
@@ -420,7 +420,10 @@ def _gen_expectations(
             for slice_, perspective in zip(slices, perspectives)
         ]
 
-        test_name = f"dtype_{baseline.dtype}_length_{windowlen}_perpective_offset_{perspective_offset}"
+        test_name = (
+            f"dtype_{baseline.dtype}_length_{windowlen}"
+            f"_perpective_offset_{perspective_offset}"
+        )
 
         yield AdjustmentCase(
             name=test_name,
@@ -650,7 +653,7 @@ class AdjustedArrayTestCase(TestCase):
                 check_arrays(yielded, expected_yield)
 
     def test_object1darrayoverwrite(self):
-        pairs = [u + l for u, l in product(ascii_uppercase, ascii_lowercase)]
+        pairs = [u + lo for u, lo in product(ascii_uppercase, ascii_lowercase)]
         categories = pairs + ["~" + c for c in pairs]
         baseline = LabelArray(
             array([["".join((r, c)) for c in "abc"] for r in ascii_uppercase]),

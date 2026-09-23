@@ -489,7 +489,8 @@ class SimplePipelineEngine(PipelineEngine):
 
         elif end_date not in sessions:
             raise ValueError(
-                f"Pipeline end date {end_date} is not a trading session for domain {domain}."
+                f"Pipeline end date {end_date} is not a trading session for domain "
+                f"{domain}."
             )
 
         start_idx, end_idx = sessions.slice_locs(start_date, end_date)
@@ -516,7 +517,7 @@ class SimplePipelineEngine(PipelineEngine):
         if not lifetimes.columns.unique:
             columns = lifetimes.columns
             duplicated = columns[columns.duplicated()].unique()
-            raise AssertionError("Duplicated sids: %d" % duplicated)
+            raise AssertionError(f"Duplicated sids: {duplicated}")
 
         # Filter out columns that didn't exist from the farthest look back
         # window through the end of the requested dates.
@@ -526,7 +527,8 @@ class SimplePipelineEngine(PipelineEngine):
 
         if num_assets == 0:
             raise ValueError(
-                f"Failed to find any assets with country_code {domain.country_code!r} that traded "
+                f"Failed to find any assets with country_code {domain.country_code!r} "
+                "that traded "
                 f"between {start_date} and {end_date}.\n"
                 "This probably means that your asset db is old or that it has "
                 "incorrect country/exchange metadata."

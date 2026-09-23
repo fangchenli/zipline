@@ -57,7 +57,8 @@ def verify_indices_all_unique(obj):
             continue
 
         raise ValueError(
-            f"Duplicate entries in {type(obj).__name__}.{axis_name}: {sorted(index[index.duplicated()])}."
+            f"Duplicate entries in {type(obj).__name__}.{axis_name}: "
+            f"{sorted(index[index.duplicated()])}."
         )
     return obj
 
@@ -108,7 +109,8 @@ def ensure_upper_case(func, argname, arg):
         return arg.upper()
     else:
         raise TypeError(
-            f"{func.__name__}() expected argument '{argname}' to be a string, but got {arg} instead.",
+            f"{func.__name__}() expected argument '{argname}' to be a string, but got "
+            f"{arg} instead.",
         )
 
 
@@ -129,11 +131,11 @@ def ensure_dtype(func, argname, arg):
     """
     try:
         return dtype(arg)
-    except TypeError:
+    except TypeError as err:
         raise TypeError(
             f"{_qualified_name(func)}() couldn't convert argument "
             f"{argname}={arg!r} to a numpy dtype.",
-        )
+        ) from err
 
 
 def ensure_timezone(func, argname, arg):
@@ -154,7 +156,8 @@ def ensure_timezone(func, argname, arg):
         return ZoneInfo(arg)
 
     raise TypeError(
-        f"{_qualified_name(func)}() couldn't convert argument {argname}={arg!r} to a timezone.",
+        f"{_qualified_name(func)}() couldn't convert argument {argname}={arg!r} to a "
+        "timezone.",
     )
 
 
@@ -178,7 +181,7 @@ def ensure_timestamp(func, argname, arg):
             f"{_qualified_name(func)}() couldn't convert argument "
             f"{argname}={arg!r} to a pandas Timestamp.\n"
             f"Original error was: {_qualified_name(type(e))}: {e}",
-        )
+        ) from e
 
 
 def expect_dtypes(__funcname=_qualified_name, **named):
@@ -715,7 +718,7 @@ def expect_dimensions(__funcname=_qualified_name, **dimensions):
                 if actual_ndim == 0:
                     actual_repr = "scalar"
                 else:
-                    actual_repr = "%d-D array" % actual_ndim
+                    actual_repr = f"{actual_ndim}-D array"
                 raise ValueError(
                     f"{get_funcname(func)}() expected a {expected_ndim:d}-D array"
                     f" for argument {argname!r}, but got a {actual_repr}"
@@ -819,11 +822,13 @@ def validate_keys(dict_, expected, funcname):
     missing = expected - received
     if missing:
         raise ValueError(
-            f"Missing keys in {funcname}:\nExpected Keys: {sorted(expected)}\nReceived Keys: {sorted(received)}"
+            f"Missing keys in {funcname}:\nExpected Keys: {sorted(expected)}\nReceived "
+            f"Keys: {sorted(received)}"
         )
 
     unexpected = received - expected
     if unexpected:
         raise ValueError(
-            f"Unexpected keys in {funcname}:\nExpected Keys: {sorted(expected)}\nReceived Keys: {sorted(received)}"
+            f"Unexpected keys in {funcname}:\nExpected Keys: "
+            f"{sorted(expected)}\nReceived Keys: {sorted(received)}"
         )

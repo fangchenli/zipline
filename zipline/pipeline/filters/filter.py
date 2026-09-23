@@ -280,7 +280,8 @@ class Filter(RestrictedDTypeMixin, ComputableTerm):
 
         if true_type is not false_type:
             raise TypeError(
-                f"Mismatched types in if_else(): if_true={true_type.__name__}, but if_false={false_type.__name__}"
+                f"Mismatched types in if_else(): if_true={true_type.__name__}, but "
+                f"if_false={false_type.__name__}"
             )
 
         if if_true.dtype != if_false.dtype:
@@ -292,13 +293,15 @@ class Filter(RestrictedDTypeMixin, ComputableTerm):
         if if_true.outputs != if_false.outputs:
             raise ValueError(
                 "Mismatched outputs in if_else(): "
-                f"if_true.outputs = {if_true.outputs}, if_false.outputs = {if_false.outputs}",
+                f"if_true.outputs = {if_true.outputs}, if_false.outputs = "
+                f"{if_false.outputs}",
             )
 
         if not same(if_true.missing_value, if_false.missing_value):
             raise ValueError(
                 "Mismatched missing values in if_else(): "
-                f"if_true.missing_value = {if_true.missing_value!r}, if_false.missing_value = {if_false.missing_value!r}"
+                f"if_true.missing_value = {if_true.missing_value!r}, "
+                f"if_false.missing_value = {if_false.missing_value!r}"
             )
 
         return_type = type(if_true)._with_mixin(IfElseMixin)
@@ -471,7 +474,10 @@ class PercentileFilter(SingleInputMixin, Filter):
 
     def graph_repr(self):
         # Graphviz interprets `\l` as "divide label into lines, left-justified"
-        return f"{type(self).__name__}:\\l  min: {self._min_percentile}, max: {self._max_percentile}\\l"
+        return (
+            f"{type(self).__name__}:\\l  min: {self._min_percentile}, max: "
+            f"{self._max_percentile}\\l"
+        )
 
 
 class CustomFilter(PositiveWindowLengthMixin, CustomTermMixin, Filter):
@@ -534,13 +540,13 @@ class CustomFilter(PositiveWindowLengthMixin, CustomTermMixin, Filter):
                     typename=type(self).__name__,
                     dtype=self.dtype,
                     hint="Did you mean to create a CustomClassifier?",
-                )
+                ) from None
             elif self.dtype in FACTOR_DTYPES:
                 raise UnsupportedDataType(
                     typename=type(self).__name__,
                     dtype=self.dtype,
                     hint="Did you mean to create a CustomFactor?",
-                )
+                ) from None
             raise
 
 
@@ -739,8 +745,15 @@ class MaximumFilter(Filter, StandardOutputs):
         )
 
     def __repr__(self):
-        return f"Maximum({self.inputs[0].recursive_repr()}, groupby={self.inputs[1].recursive_repr()}, mask={self.mask.recursive_repr()})"
+        return (
+            f"Maximum({self.inputs[0].recursive_repr()}, "
+            f"groupby={self.inputs[1].recursive_repr()}, "
+            f"mask={self.mask.recursive_repr()})"
+        )
 
     def graph_repr(self):
         # Graphviz interprets `\l` as "divide label into lines, left-justified"
-        return f"Maximum:\\l  groupby: {self.inputs[1].recursive_repr()}\\l  mask: {self.mask.recursive_repr()}\\l"
+        return (
+            f"Maximum:\\l  groupby: {self.inputs[1].recursive_repr()}\\l  mask: "
+            f"{self.mask.recursive_repr()}\\l"
+        )

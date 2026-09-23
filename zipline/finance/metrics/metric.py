@@ -539,7 +539,7 @@ class _ClassicRiskMetrics:
             return
 
         for period_timestamp in months:
-            period = period_timestamp.to_period(freq="%dM" % months_per)
+            period = period_timestamp.to_period(freq=f"{months_per}M")
             if period.end_time > end_date:
                 break
 

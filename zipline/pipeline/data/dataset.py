@@ -103,7 +103,7 @@ class _BoundColumnDescr:
                 f"Columns with dtype {dtype} require a missing_value.\n"
                 "Please pass missing_value to Column() or use a different"
                 " dtype."
-            )
+            ) from None
         self.name = name
         self.doc = doc
         self.metadata = metadata
@@ -176,7 +176,8 @@ class BoundColumn(LoadableTerm):
         if currency_aware and dtype != float64_dtype:
             raise AssertionError(
                 f"The {name} column on dataset {dataset} cannot be constructed with "
-                f"currency_aware={currency_aware}, dtype={dtype}. Currency aware columns must "
+                f"currency_aware={currency_aware}, dtype={dtype}. Currency aware "
+                "columns must "
                 "have a float64 dtype."
             )
 
@@ -291,7 +292,8 @@ class BoundColumn(LoadableTerm):
 
         if not self._currency_aware:
             raise TypeError(
-                f"The .fx() method cannot be called on {self.qualname} because it does not "
+                f"The .fx() method cannot be called on {self.qualname} because it does "
+                "not "
                 "produce currency-denominated data."
             )
         elif conversion is not None and conversion.currency == currency:
@@ -370,7 +372,10 @@ class BoundColumn(LoadableTerm):
     def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
         # Graphviz interprets `\l` as "divide label into lines, left-justified"
-        return f"BoundColumn:\\l  Dataset: {self.dataset.__name__}\\l  Column: {self.name}\\l"
+        return (
+            f"BoundColumn:\\l  Dataset: {self.dataset.__name__}\\l  Column: "
+            f"{self.name}\\l"
+        )
 
     def recursive_repr(self):
         """Short repr used to render in recursive contexts."""
@@ -399,7 +404,8 @@ class DataSetMeta(type):
 
         if not isinstance(newtype.domain, Domain):
             raise TypeError(
-                f"Expected a Domain for {newtype.__name__}.domain, but got {type(newtype.domain)} instead."
+                f"Expected a Domain for {newtype.__name__}.domain, but got "
+                f"{type(newtype.domain)} instead."
             )
 
         # Collect all of the column names that we inherit from our parents.
@@ -458,7 +464,7 @@ class DataSetMeta(type):
                 # new specializations of.
                 raise ValueError(
                     f"Can't specialize {self.__name__} to new domain {domain}"
-                )
+                ) from None
             new_type = self._create_specialization(domain)
             self._domain_specializations[domain] = new_type
             return new_type
@@ -493,7 +499,8 @@ class DataSetMeta(type):
         )
         if domain is not GENERIC:
             assert self.domain is GENERIC, (
-                f"Can't specialize dataset with domain {self.domain} to domain {domain}."
+                f"Can't specialize dataset with domain {self.domain} to domain "
+                f"{domain}."
             )
 
         # Create a new subclass of ``self`` with the given domain.
@@ -648,7 +655,7 @@ class DataSet(metaclass=DataSetMeta):
                         max_count=10,
                     ),
                 )
-            )
+            ) from None
 
         # Resolve column descriptor into a BoundColumn.
         return maybe_column.__get__(None, cls)
@@ -679,9 +686,12 @@ class DataSetFamilyLookupError(AttributeError):
 
     def __str__(self):
         # NOTE: when ``aggregate`` is added, remember to update this message
-        return dedent(
-            f"""\
-            Attempted to access column {self.column_name} from DataSetFamily {self.family_name}:
+        header = (
+            f"Attempted to access column {self.column_name} from DataSetFamily"
+            f" {self.family_name}:"
+        )
+        return header + dedent(
+            f"""
 
             To work with dataset families, you must first select a
             slice using the ``slice`` method:
@@ -873,14 +883,9 @@ class DataSetFamily(metaclass=DataSetFamilyMeta):
 
         if len(args) > len(extra_dims):
             raise TypeError(
-                "%s has %d extra %s but %d %s given"
-                % (
-                    cls.__name__,
-                    len(extra_dims),
-                    s("dimension", extra_dims),
-                    len(args),
-                    plural("was", "were", args),
-                ),
+                f"{cls.__name__} has {len(extra_dims)} extra"
+                f" {s('dimension', extra_dims)} but {len(args)}"
+                f" {plural('was', 'were', args)} given"
             )
 
         missing = object()
@@ -913,7 +918,8 @@ class DataSetFamily(metaclass=DataSetFamilyMeta):
         for key, value in coords.items():
             if value not in cls.extra_dims[key]:
                 raise ValueError(
-                    f"{value!r} is not a value along the {key} dimension of {cls.__name__}",
+                    f"{value!r} is not a value along the {key} dimension of "
+                    f"{cls.__name__}",
                 )
 
         return coords, tuple(coords.items())

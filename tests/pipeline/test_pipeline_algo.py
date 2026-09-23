@@ -617,7 +617,7 @@ class PipelineAlgorithmTestCase(
         vwaps = self.compute_expected_vwaps(window_lengths)
 
         def vwap_key(length):
-            return "vwap_%d" % length
+            return f"vwap_{length}"
 
         def initialize(context):
             pipeline = Pipeline()

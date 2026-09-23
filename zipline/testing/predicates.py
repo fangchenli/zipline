@@ -456,7 +456,10 @@ def _check_sets(result, expected, msg, path, type_):
         else:
             in_result = result - expected
             in_expected = expected - result
-            msg = f"{s(type_, in_result)} only in result: {in_result}\n{s(type_, in_expected)} only in expected: {in_expected}"
+            msg = (
+                f"{s(type_, in_result)} only in result: "
+                f"{in_result}\n{s(type_, in_expected)} only in expected: {in_expected}"
+            )
         raise AssertionError(
             f"{type_}s do not match\n{_fmt_msg(msg)}{_fmt_path(path)}",
         )
@@ -530,15 +533,12 @@ def assert_ordereddict_equal(result, expected, path=(), **kwargs):
 def assert_sequence_equal(result, expected, path=(), msg="", **kwargs):
     result_len = len(result)
     expected_len = len(expected)
-    assert result_len == expected_len, "%s%s lengths do not match: %d != %d\n%s" % (
-        _fmt_msg(msg),
-        type(result).__name__,
-        result_len,
-        expected_len,
-        _fmt_path(path),
+    assert result_len == expected_len, (
+        f"{_fmt_msg(msg)}{type(result).__name__} lengths do not match:"
+        f" {result_len} != {expected_len}\n{_fmt_path(path)}"
     )
     for n, (resultv, expectedv) in enumerate(zip(result, expected)):
-        assert_equal(resultv, expectedv, path=path + ("[%d]" % n,), msg=msg, **kwargs)
+        assert_equal(resultv, expectedv, path=path + (f"[{n}]",), msg=msg, **kwargs)
 
 
 @assert_equal.register(set, set)
@@ -587,7 +587,7 @@ def assert_array_equal(
             err_msg=msg,
         )
     except AssertionError as e:
-        raise AssertionError("\n".join((str(e), _fmt_path(path))))
+        raise AssertionError("\n".join((str(e), _fmt_path(path)))) from e
 
 
 @assert_equal.register(LabelArray, LabelArray)
@@ -629,7 +629,7 @@ def _register_assert_equal_wrapper(type_, assert_eq):
         except AssertionError as e:
             raise AssertionError(
                 _fmt_msg(msg) + "\n".join((str(e), _fmt_path(path))),
-            )
+            ) from e
 
     return assert_ndframe_equal
 
@@ -692,8 +692,9 @@ def assert_timestamp_and_datetime_equal(
 
     Returns raises unless ``allow_datetime_coercions`` is passed as True.
     """
-    assert allow_datetime_coercions or type(result) == type(expected), (
-        f"{_fmt_msg(msg)}datetime types ({type(result)}, {type(expected)}) don't match and "
+    assert allow_datetime_coercions or type(result) is type(expected), (
+        f"{_fmt_msg(msg)}datetime types ({type(result)}, {type(expected)}) don't match "
+        "and "
         f"allow_datetime_coercions was not set.\n{_fmt_path(path)}"
     )
 
@@ -785,4 +786,4 @@ def index_of_first_difference(left, right):
     try:
         return next(difflocs)
     except StopIteration:
-        raise ValueError("Left was equal to right!")
+        raise ValueError("Left was equal to right!") from None

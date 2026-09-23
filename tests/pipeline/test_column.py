@@ -109,11 +109,11 @@ class LatestTestCase(
         )
 
         with self.assertRaises(TypeError) as e:
-            column < 1000
+            _ = column < 1000
         self.assertEqual(str(e.exception), err_msg)
 
         try:
-            column.latest < 1000
+            _ = column.latest < 1000
         except TypeError:
             self.fail()
 

@@ -31,8 +31,8 @@ class Currency:
             else:
                 try:
                     name = ISO4217Currency(code).currency_name
-                except ValueError:
-                    raise ValueError(f"{code!r} is not a valid currency code.")
+                except ValueError as err:
+                    raise ValueError(f"{code!r} is not a valid currency code.") from err
 
             obj = _ALL_CURRENCIES[code] = super().__new__(cls)
             obj._code = code
@@ -60,7 +60,7 @@ class Currency:
         return self._name
 
     def __eq__(self, other):
-        if type(self) != type(other):
+        if type(self) is not type(other):
             return NotImplemented
         return self.code == other.code
 

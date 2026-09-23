@@ -20,7 +20,8 @@ class NamedExplodingObject:
     def __getattr__(self, attr):
         extra_message = self._extra_message
         raise AttributeError(
-            f"attempted to access attribute {attr!r} of ExplodingObject {attr!r}{self._name}",
+            f"attempted to access attribute {attr!r} of ExplodingObject "
+            f"{attr!r}{self._name}",
             " " + extra_message if extra_message is not None else "",
         )
 

@@ -285,13 +285,10 @@ class PreprocessTestCase(TestCase):
         with self.assertRaises(ValueError) as e:
             f("c")
 
+        # We special-case set to show a tuple instead of the set repr.
         expected_message = (
-            "{qualname}() expected a value in {set_!r}"
+            f"{qualname(f)}() expected a value in {tuple(sorted(set_))!r}"
             " for argument 'a', but got 'c' instead."
-        ).format(
-            # We special-case set to show a tuple instead of the set repr.
-            set_=tuple(sorted(set_)),
-            qualname=qualname(f),
         )
         self.assertEqual(e.exception.args[0], expected_message)
 
@@ -307,12 +304,10 @@ class PreprocessTestCase(TestCase):
         with self.assertRaises(ValueError) as e:
             Foo("c")
 
+        # We special-case set to show a tuple instead of the set repr.
         expected_message = (
-            "ArgleBargle() expected a value in {set_!r}"
+            f"ArgleBargle() expected a value in {tuple(sorted(set_))!r}"
             " for argument 'a', but got 'c' instead."
-        ).format(
-            # We special-case set to show a tuple instead of the set repr.
-            set_=tuple(sorted(set_)),
         )
         self.assertEqual(e.exception.args[0], expected_message)
 

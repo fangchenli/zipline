@@ -102,4 +102,4 @@ class TestRememberLast(TestCase):
         while gc.collect():
             pass
 
-        self.assertFalse([inst for inst in gc.get_objects() if type(inst) == clz])
+        self.assertFalse([inst for inst in gc.get_objects() if type(inst) is clz])

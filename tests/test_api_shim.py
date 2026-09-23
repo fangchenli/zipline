@@ -239,11 +239,11 @@ class TestAPIShim(WithCreateBarData, WithMakeAlgo, ZiplineTestCase):
         # data[sid(n)].field.
         for field in ohlcvp_fields:
             assert_get_spot_value_called(
-                lambda: getattr(bar_data[self.asset1], field),
+                lambda field=field: getattr(bar_data[self.asset1], field),
                 field,
             )
             assert_get_spot_value_called(
-                lambda: bar_data.current(self.asset1, field),
+                lambda field=field: bar_data.current(self.asset1, field),
                 field,
             )
 

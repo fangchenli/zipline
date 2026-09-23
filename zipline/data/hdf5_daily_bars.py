@@ -890,7 +890,8 @@ class MultiCountryDailyBarReader(CurrencyAwareSessionBarReader):
             raise ValueError("At least one valid asset id is required.")
         elif num_countries > 1:
             raise NotImplementedError(
-                f"Assets were requested from multiple countries ({list(unique_country_codes)}),"
+                "Assets were requested from multiple countries "
+                f"({list(unique_country_codes)}),"
                 " but multi-country reads are not yet supported."
             )
 
@@ -1001,8 +1002,10 @@ class MultiCountryDailyBarReader(CurrencyAwareSessionBarReader):
         """
         try:
             country_code = self._country_code_for_assets([sid])
-        except ValueError:
-            raise NoDataForSid(f"Asset not contained in daily pricing file: {sid}")
+        except ValueError as err:
+            raise NoDataForSid(
+                f"Asset not contained in daily pricing file: {sid}"
+            ) from err
         return self._readers[country_code].get_value(sid, dt, field)
 
     def get_last_traded_dt(self, asset, dt):

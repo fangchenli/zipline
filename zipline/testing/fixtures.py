@@ -92,7 +92,7 @@ class DebugMROMeta(FinalMeta):
         except TypeError as e:
             if "(MRO)" in str(e):
                 msg = debug_mro_failure(name, bases)
-                raise TypeError(msg)
+                raise TypeError(msg) from e
             else:
                 raise
 
@@ -588,7 +588,8 @@ class WithBenchmarkReturns(WithDefaultDateBounds, WithTradingCalendars):
         warning_message = (
             "The WithBenchmarkReturns fixture uses static data between "
             f"{static_start_date} and {static_end_date}. To use a start and end date "
-            f"of {cls.START_DATE.date()} and {cls.END_DATE.date()} you will have to update the "
+            f"of {cls.START_DATE.date()} and {cls.END_DATE.date()} you will have to "
+            "update the "
             f"file in {STATIC_BENCHMARK_PATH} to include the missing dates."
         )
         if (
@@ -1044,7 +1045,6 @@ class WithBcolzEquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
 
     BCOLZ_DAILY_BAR_PATH = "daily_equity_pricing.bcolz"
     BCOLZ_DAILY_BAR_READ_ALL_THRESHOLD = None
-    BCOLZ_DAILY_BAR_COUNTRY_CODE = None
     EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = False
     # allows WithBcolzEquityDailyBarReaderFromCSVs to call the
     # `write_csvs`method without needing to reimplement `init_class_fixtures`

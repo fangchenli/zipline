@@ -58,6 +58,8 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
 
     def init_instance_fixtures(self):
         super().init_instance_fixtures()
+        # Output dirs written by the bundle that ``_empty_ingest`` registers.
+        self._empty_ingest_wrote_to = []
         (
             self.bundles,
             self.register,
@@ -389,7 +391,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             )
         }
 
-    def _empty_ingest(self, _wrote_to=[]):
+    def _empty_ingest(self):
         """Run the nth empty ingest.
 
         Returns
@@ -397,6 +399,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         wrote_to : str
             The timestr of the bundle written.
         """
+        _wrote_to = self._empty_ingest_wrote_to
         if not self.bundles:
 
             @self.register(

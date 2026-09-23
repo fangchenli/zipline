@@ -123,13 +123,13 @@ def _normalize_array(data, missing_value):
         try:
             outarray = data.astype("datetime64[ns]", copy=False).view("int64")
             return outarray, {"dtype": datetime64ns_dtype}
-        except OverflowError:
+        except OverflowError as err:
             raise ValueError(
                 "AdjustedArray received a datetime array "
                 "not representable as datetime64[ns].\n"
                 f"Min Date: {data.min()}\n"
                 f"Max Date: {data.max()}\n"
-            )
+            ) from err
     else:
         raise TypeError(
             f"Don't know how to construct AdjustedArray on data of type {data_dtype}."
@@ -243,7 +243,7 @@ class AdjustedArray:
                 "Invalid merge method {}\nValid methods are: {}".format(
                     method, ", ".join(_merge_methods)
                 )
-            )
+            ) from None
 
         self.adjustments = merge_with(
             merge_func,

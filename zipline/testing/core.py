@@ -341,7 +341,7 @@ def check_allclose(actual, desired, rtol=1e-07, atol=0, err_msg="", verbose=True
     --------
     np.assert_allclose
     """
-    if type(actual) != type(desired):
+    if type(actual) is not type(desired):
         raise AssertionError(f"{type(actual)} != {type(desired)}")
     return assert_allclose(
         actual,
@@ -362,7 +362,7 @@ def check_arrays(x, y, err_msg="", verbose=True, check_dtypes=True):
     --------
     np.assert_array_equal
     """
-    assert type(x) == type(y), f"{type(x)} != {type(y)}"
+    assert type(x) is type(y), f"{type(x)} != {type(y)}"
     assert x.dtype == y.dtype, f"{x.dtype} != {y.dtype}"
 
     if isinstance(x, LabelArray):
@@ -1513,7 +1513,8 @@ def patch_read_csv(url_map, module=pd, strict=False):
             return read_csv(filepath_or_buffer, *args, **kwargs)
         else:
             raise AssertionError(
-                f"attempted to call read_csv on  {filepath_or_buffer!r} which not in the url map",
+                f"attempted to call read_csv on  {filepath_or_buffer!r} which not in "
+                "the url map",
             )
 
     with patch.object(module, "read_csv", patched_read_csv):

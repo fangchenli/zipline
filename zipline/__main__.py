@@ -1,3 +1,4 @@
+import builtins
 import errno
 import os
 from functools import wraps
@@ -13,10 +14,8 @@ from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.cli import Date, Timestamp
 from zipline.utils.run_algo import BenchmarkSpec, _run, load_extensions
 
-try:
-    __IPYTHON__
-except NameError:
-    __IPYTHON__ = False
+# IPython defines ``__IPYTHON__`` in builtins.
+__IPYTHON__ = getattr(builtins, "__IPYTHON__", False)
 
 
 @click.group()
@@ -358,7 +357,7 @@ def zipline_magic(line, cell=None):
         # https://github.com/mitsuhiko/click/pull/533
         # even in standalone_mode=False `--help` really wants to kill us ;_;
         if e.code:
-            raise ValueError("main returned non-zero status code: %d" % e.code)
+            raise ValueError(f"main returned non-zero status code: {e.code}") from e
 
 
 @main.command()

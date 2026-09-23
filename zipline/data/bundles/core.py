@@ -87,7 +87,7 @@ def minute_equity_relative(bundle_name, timestr):
 def asset_db_relative(bundle_name, timestr, db_version=None):
     db_version = ASSET_DB_VERSION if db_version is None else db_version
 
-    return bundle_name, timestr, "assets-%d.sqlite" % db_version
+    return bundle_name, timestr, f"assets-{db_version}.sqlite"
 
 
 def to_bundle_ingest_dirname(ts):
@@ -358,7 +358,7 @@ def _make_bundle_core():
         try:
             del _bundles[name]
         except KeyError:
-            raise UnknownBundle(name)
+            raise UnknownBundle(name) from None
 
     def ingest(
         name,
@@ -386,7 +386,7 @@ def _make_bundle_core():
         try:
             bundle = bundles[name]
         except KeyError:
-            raise UnknownBundle(name)
+            raise UnknownBundle(name) from None
 
         calendar = get_calendar(bundle.calendar_name)
 
@@ -521,7 +521,7 @@ def _make_bundle_core():
             raise ValueError(
                 f"no data for bundle {bundle_name!r} on or before {timestamp}\n"
                 f"maybe you need to run: $ zipline ingest -b {bundle_name}",
-            )
+            ) from e
 
     def load(name, environ=os.environ, timestamp=None):
         """Loads a previously ingested bundle.
@@ -607,7 +607,7 @@ def _make_bundle_core():
         except OSError as e:
             if e.errno != errno.ENOENT:
                 raise
-            raise UnknownBundle(name)
+            raise UnknownBundle(name) from e
 
         if before is after is keep_last is None:
             raise BadClean(before, after, keep_last)

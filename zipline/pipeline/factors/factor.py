@@ -8,7 +8,7 @@ from numbers import Number
 from operator import attrgetter
 from textwrap import dedent
 
-from numpy import empty_like, inf, isnan, nan, where
+from numpy import asarray, empty_like, inf, isnan, nan, where
 from scipy.stats import rankdata
 
 from zipline.errors import (
@@ -93,7 +93,12 @@ def coerce_numbers_to_my_dtype(f):
     @wraps(f)
     def method(self, other):
         if isinstance(other, Number):
-            other = coerce_to_dtype(self.dtype, other)
+            if self.dtype.kind in "biufc":
+                other = coerce_to_dtype(self.dtype, other)
+            else:
+                # Numbers can't become e.g. datetimes. Keep the number's own
+                # numpy dtype so the operator reports the dtype mismatch.
+                other = asarray(other)[()]
         return f(self, other)
 
     return method
@@ -1538,11 +1543,17 @@ class Rank(SingleInputMixin, Factor):
         else:
             mask_info = f", mask={self.mask.recursive_repr()}"
 
-        return f"{type(self).__name__}({self.inputs[0].recursive_repr()}, method='{self._method}'{mask_info})"
+        return (
+            f"{type(self).__name__}({self.inputs[0].recursive_repr()}, "
+            f"method='{self._method}'{mask_info})"
+        )
 
     def graph_repr(self):
         # Graphviz interprets `\l` as "divide label into lines, left-justified"
-        return f"Rank:\\l  method: {self._method!r}\\l  mask: {type(self.mask).__name__}\\l"
+        return (
+            f"Rank:\\l  method: {self._method!r}\\l  mask: "
+            f"{type(self.mask).__name__}\\l"
+        )
 
 
 class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
@@ -1700,13 +1711,13 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
                     typename=type(self).__name__,
                     dtype=self.dtype,
                     hint="Did you mean to create a CustomClassifier?",
-                )
+                ) from None
             elif self.dtype in FILTER_DTYPES:
                 raise UnsupportedDataType(
                     typename=type(self).__name__,
                     dtype=self.dtype,
                     hint="Did you mean to create a CustomFilter?",
-                )
+                ) from None
             raise
 
     def __getattribute__(self, name):
@@ -1722,7 +1733,7 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
                 raise AttributeError(
                     f"Instance of {type(self).__name__} has no output named {name!r}. "
                     f"Possible choices are: {self.outputs}."
-                )
+                ) from None
 
     def __iter__(self):
         if self.outputs is NotSpecified:
