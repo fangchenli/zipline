@@ -17,14 +17,14 @@
 Unit tests for finance.slippage
 """
 
-from collections import namedtuple
 import datetime
+from collections import namedtuple
 from math import sqrt
+from zoneinfo import ZoneInfo
 
-from parameterized import parameterized
 import numpy as np
 import pandas as pd
-from zoneinfo import ZoneInfo
+from parameterized import parameterized
 
 from zipline.assets import Equity, Future
 from zipline.data.data_portal import DataPortal
@@ -32,12 +32,12 @@ from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.finance.order import Order
 from zipline.finance.slippage import (
     EquitySlippageModel,
-    fill_price_worse_than_limit_price,
+    FixedBasisPointsSlippage,
     FutureSlippageModel,
     SlippageModel,
     VolatilityVolumeShare,
     VolumeShareSlippage,
-    FixedBasisPointsSlippage,
+    fill_price_worse_than_limit_price,
 )
 from zipline.protocol import DATASOURCE_TYPE, BarData
 from zipline.testing import (
@@ -53,7 +53,6 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
 )
 from zipline.utils.classproperty import classproperty
-
 
 TestOrder = namedtuple("TestOrder", "limit direction")
 
@@ -243,11 +242,11 @@ class SlippageTestCase(
         txn = orders_txns[0][1]
 
         expected_txn = {
-            "price": float(3.50021875),
+            "price": 3.50021875,
             "dt": datetime.datetime(2006, 1, 5, 14, 34, tzinfo=ZoneInfo("UTC")),
             # we ordered 100 shares, but default volume slippage only allows
             # for 2.5% of the volume.  2.5% * 2000 = 50 shares
-            "amount": int(50),
+            "amount": 50,
             "asset": self.ASSET133,
             "order_id": open_orders[0].id,
         }
@@ -340,9 +339,9 @@ class SlippageTestCase(
         _, txn = orders_txns[0]
 
         expected_txn = {
-            "price": float(3.49978125),
+            "price": 3.49978125,
             "dt": datetime.datetime(2006, 1, 5, 14, 32, tzinfo=ZoneInfo("UTC")),
-            "amount": int(-50),
+            "amount": (-50),
             "asset": self.ASSET133,
         }
 
@@ -483,9 +482,9 @@ class SlippageTestCase(
         _, txn = orders_txns[0]
 
         expected_txn = {
-            "price": float(3.50021875),
+            "price": 3.50021875,
             "dt": datetime.datetime(2006, 1, 5, 14, 34, tzinfo=ZoneInfo("UTC")),
-            "amount": int(50),
+            "amount": 50,
             "asset": self.ASSET133,
         }
 
@@ -621,9 +620,9 @@ class SlippageTestCase(
         _, txn = orders_txns[0]
 
         expected_txn = {
-            "price": float(3.49978125),
+            "price": 3.49978125,
             "dt": datetime.datetime(2006, 1, 5, 14, 32, tzinfo=ZoneInfo("UTC")),
-            "amount": int(-50),
+            "amount": (-50),
             "asset": self.ASSET133,
         }
 
@@ -732,9 +731,9 @@ class VolumeShareSlippageTestCase(
         _, txn = orders_txns[0]
 
         expected_txn = {
-            "price": float(3.0001875),
+            "price": 3.0001875,
             "dt": datetime.datetime(2006, 1, 5, 14, 31, tzinfo=ZoneInfo("UTC")),
-            "amount": int(5),
+            "amount": 5,
             "asset": self.ASSET133,
             "type": DATASOURCE_TYPE.TRANSACTION,
             "order_id": open_orders[0].id,

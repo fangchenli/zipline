@@ -14,28 +14,22 @@
 # limitations under the License.
 import os
 
+from exchange_calendars.calendar_utils import global_calendar_dispatcher
+
 # This is *not* a place to dump arbitrary classes/modules for convenience,
 # it is a place to expose the public interfaces.
-from exchange_calendars import get_calendar
-
-from . import data
-from . import finance
-from . import gens
-from . import utils
-from .utils.run_algo import run_algorithm
-from ._version import __version__
-
-# These need to happen after the other imports.
-from .algorithm import TradingAlgorithm
-from . import api
 from zipline import extensions as ext
 from zipline.finance.blotter import Blotter
+
+from . import api, data, finance, gens, utils
+from ._version import __version__
+from .algorithm import TradingAlgorithm
+from .utils.calendar_utils import get_calendar
+from .utils.run_algo import run_algorithm
 
 # PERF: Fire a warning if calendars were instantiated during zipline import.
 # Having calendars doesn't break anything per-se, but it makes zipline imports
 # noticeably slower, which becomes particularly noticeable in the Zipline CLI.
-from exchange_calendars.calendar_utils import global_calendar_dispatcher
-
 if global_calendar_dispatcher._calendars:
     import warnings
 

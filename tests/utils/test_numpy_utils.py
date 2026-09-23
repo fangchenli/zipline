@@ -15,21 +15,20 @@ from numpy import (
     int64,
 )
 from pandas import Timestamp
-from toolz import concat, keyfilter
-from toolz import curry
+from toolz import concat, curry, keyfilter
 from toolz.curried.operator import ne
 
 from zipline.testing.predicates import assert_equal
 from zipline.utils.functional import mapall as lazy_mapall
 from zipline.utils.numpy_utils import (
+    NaTD,
+    NaTns,
     bytes_array_to_native_str_object_array,
+    is_datetime,
     is_float,
     is_int,
-    is_datetime,
     make_datetime64D,
     make_datetime64ns,
-    NaTns,
-    NaTD,
 )
 
 

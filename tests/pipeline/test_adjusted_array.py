@@ -8,7 +8,6 @@ from string import ascii_lowercase, ascii_uppercase
 from textwrap import dedent
 from unittest import TestCase
 
-from parameterized import parameterized
 from numpy import (
     arange,
     array,
@@ -16,30 +15,31 @@ from numpy import (
     dtype,
     full,
 )
+from parameterized import parameterized
 from toolz import curry
-
-from zipline.errors import WindowLengthNotPositive, WindowLengthTooLong
 from zipline.lib.adjustment import (
     Boolean1DArrayOverwrite,
     BooleanOverwrite,
-    Datetime641DArrayOverwrite,
     Datetime64Overwrite,
-    Float641DArrayOverwrite,
+    Datetime641DArrayOverwrite,
     Float64Multiply,
     Float64Overwrite,
+    Float641DArrayOverwrite,
     Int64Overwrite,
     Object1DArrayOverwrite,
     ObjectOverwrite,
 )
+
+from zipline.errors import WindowLengthNotPositive, WindowLengthTooLong
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.labelarray import LabelArray
 from zipline.testing import check_arrays
 from zipline.testing.predicates import assert_equal
 from zipline.utils.numpy_utils import (
+    bool_dtype,
     coerce_to_dtype,
     datetime64ns_dtype,
     default_missing_value_for_dtype,
-    bool_dtype,
     float64_dtype,
     int64_dtype,
     object_dtype,
@@ -420,11 +420,7 @@ def _gen_expectations(
             for slice_, perspective in zip(slices, perspectives)
         ]
 
-        test_name = "dtype_{}_length_{}_perpective_offset_{}".format(
-            baseline.dtype,
-            windowlen,
-            perspective_offset,
-        )
+        test_name = f"dtype_{baseline.dtype}_length_{windowlen}_perpective_offset_{perspective_offset}"
 
         yield AdjustmentCase(
             name=test_name,

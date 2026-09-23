@@ -2,13 +2,11 @@
 Utilities for validating inputs to user-facing API functions.
 """
 
+from functools import wraps
 from textwrap import dedent
 from uuid import uuid4
-from functools import wraps
-
 
 from zipline.utils.compat import getargspec
-
 
 NO_DEFAULT = object()
 

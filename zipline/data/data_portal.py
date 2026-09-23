@@ -12,14 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from operator import mul
 from functools import reduce
-
-from logbook import Logger
+from operator import mul
 
 import numpy as np
-from numpy import float64, int64, nan
 import pandas as pd
+from logbook import Logger
+from numpy import float64, int64, nan
 from pandas import isnull
 
 from zipline.assets import (
@@ -30,30 +29,29 @@ from zipline.assets import (
     PricingDataAssociable,
 )
 from zipline.assets.continuous_futures import ContinuousFuture
-from zipline.data.continuous_future_reader import (
-    ContinuousFutureSessionBarReader,
-    ContinuousFutureMinuteBarReader,
-)
 from zipline.assets.roll_finder import CalendarRollFinder, VolumeRollFinder
+from zipline.data.bar_reader import NoDataOnDate
+from zipline.data.continuous_future_reader import (
+    ContinuousFutureMinuteBarReader,
+    ContinuousFutureSessionBarReader,
+)
 from zipline.data.dispatch_bar_reader import (
     AssetDispatchMinuteBarReader,
     AssetDispatchSessionBarReader,
+)
+from zipline.data.history_loader import (
+    DailyHistoryLoader,
+    MinuteHistoryLoader,
 )
 from zipline.data.resample import (
     DailyHistoryAggregator,
     ReindexMinuteBarReader,
     ReindexSessionBarReader,
 )
-from zipline.data.history_loader import (
-    DailyHistoryLoader,
-    MinuteHistoryLoader,
-)
-from zipline.data.bar_reader import NoDataOnDate
-from zipline.utils.math_utils import nansum, nanmean, nanstd
+from zipline.errors import HistoryWindowStartsBeforeData
+from zipline.utils.math_utils import nanmean, nanstd, nansum
 from zipline.utils.memoize import remember_last, weak_lru_cache
 from zipline.utils.pandas_utils import timedelta_to_integral_minutes
-from zipline.errors import HistoryWindowStartsBeforeData
-
 
 log = Logger("DataPortal")
 
@@ -513,9 +511,7 @@ class DataPortal:
             try:
                 iter(assets)
             except TypeError:
-                raise TypeError(
-                    "Unexpected 'assets' value of type {}.".format(type(assets))
-                )
+                raise TypeError(f"Unexpected 'assets' value of type {type(assets)}.")
 
         session_label = self.trading_calendar.minute_to_session(dt)
 

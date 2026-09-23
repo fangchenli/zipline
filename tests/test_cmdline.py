@@ -1,18 +1,19 @@
 from unittest import mock
 
-import zipline.__main__ as main
+from click.testing import CliRunner
+
 import zipline
+import zipline.__main__ as main
+from zipline.extensions import (
+    Namespace,
+    create_args,
+    parse_extension_arg,
+)
 from zipline.testing import ZiplineTestCase
 from zipline.testing.fixtures import WithTmpDir
 from zipline.testing.predicates import (
     assert_equal,
     assert_raises_str,
-)
-from click.testing import CliRunner
-from zipline.extensions import (
-    Namespace,
-    create_args,
-    parse_extension_arg,
 )
 
 
@@ -157,9 +158,7 @@ class CmdLineTestCase(WithTmpDir, ZiplineTestCase):
 
             if result.exit_code != 0:
                 raise AssertionError(
-                    "Cli run failed with {exc}\n\nOutput was:\n\n{output}".format(
-                        exc=result.exception, output=result.output
-                    ),
+                    f"Cli run failed with {result.exception}\n\nOutput was:\n\n{result.output}",
                 )
 
             mock_run.assert_called_once()

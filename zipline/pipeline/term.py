@@ -2,25 +2,27 @@
 Base class for Filters, Factors and Classifiers
 """
 
-from abc import abstractproperty, abstractmethod, ABC
+from abc import ABC, abstractmethod, abstractproperty
 from bisect import insort
 from collections.abc import Mapping
 from weakref import WeakValueDictionary
 
 from numpy import (
     array,
-    dtype as dtype_class,
     ndarray,
+)
+from numpy import (
+    dtype as dtype_class,
 )
 
 from zipline.assets import Asset
 from zipline.errors import (
     DTypeNotSpecified,
     InvalidOutputName,
+    NonPipelineInputs,
     NonSliceableTerm,
     NonWindowSafeInput,
     NotDType,
-    NonPipelineInputs,
     TermInputsNotSpecified,
     TermOutputsEmpty,
     UnsupportedDType,
@@ -38,12 +40,12 @@ from zipline.utils.numpy_utils import (
     float64_dtype,
 )
 from zipline.utils.sharedoc import (
-    templated_docstring,
     PIPELINE_ALIAS_NAME_DOC,
     PIPELINE_DOWNSAMPLING_FREQUENCY_DOC,
+    templated_docstring,
 )
 
-from .domain import Domain, GENERIC, infer_domain
+from .domain import GENERIC, Domain, infer_domain
 from .downsample_helpers import expect_downsample_frequency
 from .sentinels import NotSpecified
 
@@ -206,20 +208,12 @@ class Term(ABC):
                 # instead of trying to hash the param values tuple later.
                 hash(value)
             except KeyError:
-                raise TypeError(
-                    "{typename} expected a keyword parameter {name!r}.".format(
-                        typename=cls.__name__, name=key
-                    )
-                )
+                raise TypeError(f"{cls.__name__} expected a keyword parameter {key!r}.")
             except TypeError:
                 # Value wasn't hashable.
                 raise TypeError(
-                    "{typename} expected a hashable value for parameter "
-                    "{name!r}, but got {value!r} instead.".format(
-                        typename=cls.__name__,
-                        name=key,
-                        value=value,
-                    )
+                    f"{cls.__name__} expected a hashable value for parameter "
+                    f"{key!r}, but got {value!r} instead."
                 )
 
             param_values.append((key, value))
@@ -290,11 +284,8 @@ class Term(ABC):
         for name, value in params:
             if hasattr(self, name):
                 raise TypeError(
-                    "Parameter {name!r} conflicts with already-present"
-                    " attribute with value {value!r}.".format(
-                        name=name,
-                        value=getattr(self, name),
-                    )
+                    f"Parameter {name!r} conflicts with already-present"
+                    f" attribute with value {getattr(self, name)!r}."
                 )
             # TODO: Consider setting these values as attributes and replacing
             # the boilerplate in NumericalExpression, Rank, and
@@ -570,9 +561,7 @@ class ComputableTerm(Term):
 
         if not isinstance(self.domain, Domain):
             raise TypeError(
-                "Expected {}.domain to be an instance of Domain, but got {}.".format(
-                    type(self).__name__, type(self.domain)
-                )
+                f"Expected {type(self).__name__}.domain to be an instance of Domain, but got {type(self.domain)}."
             )
 
         # Check outputs.
@@ -850,8 +839,8 @@ class ComputableTerm(Term):
 
         if isinstance(fill_value, LoadableTerm):
             raise TypeError(
-                "Can't use expression {} as a fill value. Did you mean to "
-                "append '.latest?'".format(fill_value)
+                f"Can't use expression {fill_value} as a fill value. Did you mean to "
+                "append '.latest?'"
             )
         elif isinstance(fill_value, ComputableTerm):
             if_false = fill_value
@@ -862,14 +851,9 @@ class ComputableTerm(Term):
                 fill_value = _coerce_to_dtype(fill_value, self.dtype)
             except TypeError as e:
                 raise TypeError(
-                    "Fill value {value!r} is not a valid choice "
-                    "for term {termname} with dtype {dtype}.\n\n"
-                    "Coercion attempt failed with: {error}".format(
-                        termname=type(self).__name__,
-                        value=fill_value,
-                        dtype=self.dtype,
-                        error=e,
-                    )
+                    f"Fill value {fill_value!r} is not a valid choice "
+                    f"for term {type(self).__name__} with dtype {self.dtype}.\n\n"
+                    f"Coercion attempt failed with: {e}"
                 )
 
             if_false = self._constant_type(
@@ -951,14 +935,9 @@ def validate_dtype(termname, dtype, missing_value):
         _coerce_to_dtype(missing_value, dtype)
     except TypeError as e:
         raise TypeError(
-            "Missing value {value!r} is not a valid choice "
-            "for term {termname} with dtype {dtype}.\n\n"
-            "Coercion attempt failed with: {error}".format(
-                termname=termname,
-                value=missing_value,
-                dtype=dtype,
-                error=e,
-            )
+            f"Missing value {missing_value!r} is not a valid choice "
+            f"for term {termname} with dtype {dtype}.\n\n"
+            f"Coercion attempt failed with: {e}"
         )
 
     return dtype, missing_value

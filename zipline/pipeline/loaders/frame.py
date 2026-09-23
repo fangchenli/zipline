@@ -9,15 +9,17 @@ from numpy import (
     zeros,
 )
 from pandas import (
-    isnull,
     DataFrame,
     DatetimeIndex,
     Index,
+    isnull,
 )
+
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.adjustment import make_adjustment_from_labels
 from zipline.utils.date_utils import to_session_labels
 from zipline.utils.numpy_utils import as_column
+
 from .base import PipelineLoader
 
 ADJUSTMENT_COLUMNS = Index(

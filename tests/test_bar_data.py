@@ -12,24 +12,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from datetime import timedelta, time
+from datetime import time, timedelta
 from itertools import chain
 
-from parameterized import parameterized
 import numpy as np
+import pandas as pd
 from numpy import nan
 from numpy.testing import assert_almost_equal
-import pandas as pd
+from parameterized import parameterized
 from toolz import concat
-from zipline.utils.calendar_utils import get_calendar
-from zipline.utils.calendar_utils import days_at_time
-
 from zipline._protocol import handle_non_market_minutes
 
 from zipline.finance.asset_restrictions import (
-    Restriction,
-    HistoricalRestrictions,
     RESTRICTION_STATES,
+    HistoricalRestrictions,
+    Restriction,
 )
 from zipline.testing import (
     MockDailyBarReader,
@@ -42,6 +39,7 @@ from zipline.testing.fixtures import (
     WithDataPortal,
     ZiplineTestCase,
 )
+from zipline.utils.calendar_utils import days_at_time, get_calendar
 
 OHLC = ["open", "high", "low", "close"]
 OHLCP = OHLC + ["price"]
@@ -468,7 +466,7 @@ class TestMinuteBarData(
         day = self.equity_minute_bar_days[1]
 
         eight_fortyfive_am_eastern = pd.Timestamp(
-            "{}-{}-{} 8:45".format(day.year, day.month, day.day), tz="US/Eastern"
+            f"{day.year}-{day.month}-{day.day} 8:45", tz="US/Eastern"
         )
 
         bar_data = self.create_bardata(
@@ -618,7 +616,7 @@ class TestMinuteBarData(
         # Current day is 1/06/16
         day = self.equity_daily_bar_days[1]
         eight_fortyfive_am_eastern = pd.Timestamp(
-            "{}-{}-{} 8:45".format(day.year, day.month, day.day), tz="US/Eastern"
+            f"{day.year}-{day.month}-{day.day} 8:45", tz="US/Eastern"
         )
 
         bar_data = self.create_bardata(

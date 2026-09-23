@@ -4,9 +4,8 @@ Tests BoundColumn attributes and methods.
 
 import operator
 
+from pandas import DataFrame, Timestamp
 from parameterized import parameterized
-from pandas import Timestamp, DataFrame
-from zipline.testing.predicates import assert_frame_equal
 
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Pipeline
@@ -19,6 +18,7 @@ from zipline.testing.fixtures import (
     WithTradingSessions,
     ZiplineTestCase,
 )
+from zipline.testing.predicates import assert_frame_equal
 from zipline.utils.numpy_utils import datetime64ns_dtype
 from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning
 

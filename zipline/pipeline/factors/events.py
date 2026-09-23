@@ -4,6 +4,7 @@ announcements, acquisitions, dividends, etc.).
 """
 
 from numpy import newaxis
+
 from zipline.utils.numpy_utils import (
     NaTD,
     busday_count_mask_NaT,

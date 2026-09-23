@@ -1,14 +1,14 @@
 import os
 
-from parameterized import parameterized
 import pandas as pd
 import sqlalchemy as sa
-from toolz import valmap
 import toolz.curried.operator as op
-from zipline.utils.calendar_utils import ExchangeCalendar, get_calendar
+from parameterized import parameterized
+from toolz import valmap
+from zipline.lib.adjustment import Float64Multiply
 
+import zipline.utils.paths as pth
 from zipline.assets import ASSET_DB_VERSION
-
 from zipline.assets.asset_writer import check_version_info
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.data.bundles import (
@@ -17,24 +17,23 @@ from zipline.data.bundles import (
     ingestions_for_bundle,
 )
 from zipline.data.bundles.core import (
-    _make_bundle_core,
     BadClean,
-    to_bundle_ingest_dirname,
+    _make_bundle_core,
     asset_db_path,
+    to_bundle_ingest_dirname,
 )
-from zipline.lib.adjustment import Float64Multiply
 from zipline.pipeline.loaders.synthetic import (
-    make_bar_data,
     expected_bar_values_2d,
+    make_bar_data,
 )
 from zipline.testing import (
-    subtest,
     str_to_seconds,
+    subtest,
 )
 from zipline.testing.fixtures import (
+    WithDefaultDateBounds,
     WithInstanceTmpDir,
     ZiplineTestCase,
-    WithDefaultDateBounds,
 )
 from zipline.testing.predicates import (
     assert_equal,
@@ -47,9 +46,8 @@ from zipline.testing.predicates import (
     assert_true,
 )
 from zipline.utils.cache import dataframe_cache
+from zipline.utils.calendar_utils import ExchangeCalendar, get_calendar
 from zipline.utils.functional import apply
-import zipline.utils.paths as pth
-
 
 _1_ns = pd.Timedelta(1, unit="ns")
 

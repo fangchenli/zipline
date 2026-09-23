@@ -2,11 +2,12 @@
 Utilities for working with pandas objects.
 """
 
-from contextlib import contextmanager
 import warnings
+from contextlib import contextmanager
 
 import numpy as np
 import pandas as pd
+
 from zipline.utils.calendar_utils import days_at_time  # noqa: F401
 
 
@@ -227,7 +228,5 @@ def check_indexes_all_same(indexes, message="Indexes are not equal."):
         if not same.all():
             bad_loc = np.flatnonzero(~same)[0]
             raise ValueError(
-                "{}\nFirst difference is at index {}: {} != {}".format(
-                    message, bad_loc, first[bad_loc], other[bad_loc]
-                ),
+                f"{message}\nFirst difference is at index {bad_loc}: {first[bad_loc]} != {other[bad_loc]}",
             )

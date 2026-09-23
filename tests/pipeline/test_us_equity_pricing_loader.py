@@ -16,7 +16,6 @@
 Tests for USEquityPricingLoader and related classes.
 """
 
-from parameterized import parameterized
 from numpy import (
     arange,
     float64,
@@ -28,35 +27,35 @@ from numpy.testing import (
     assert_array_equal,
 )
 from pandas import (
-    concat,
     DataFrame,
     Index,
     Timestamp,
+    concat,
 )
-from zipline.testing.predicates import assert_frame_equal
+from parameterized import parameterized
 from toolz.curried.operator import getitem
-
 from zipline.lib.adjustment import Float64Multiply
-from zipline.pipeline.domain import US_EQUITIES
-from zipline.pipeline.loaders.synthetic import (
-    NullAdjustmentReader,
-    make_bar_data,
-    expected_bar_values_2d,
-)
-from zipline.pipeline.loaders.equity_pricing_loader import (
-    USEquityPricingLoader,
-)
 
 from zipline.errors import WindowLengthTooLong
 from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.domain import US_EQUITIES
+from zipline.pipeline.loaders.equity_pricing_loader import (
+    USEquityPricingLoader,
+)
+from zipline.pipeline.loaders.synthetic import (
+    NullAdjustmentReader,
+    expected_bar_values_2d,
+    make_bar_data,
+)
 from zipline.testing import (
-    str_to_seconds,
     MockDailyBarReader,
+    str_to_seconds,
 )
 from zipline.testing.fixtures import (
     WithAdjustmentReader,
     ZiplineTestCase,
 )
+from zipline.testing.predicates import assert_frame_equal
 
 # Test calendar ranges over the month of June 2015
 #      June 2015

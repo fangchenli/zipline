@@ -3,6 +3,7 @@ Technical Analysis Factors
 --------------------------
 """
 
+from numexpr import evaluate
 from numpy import (
     abs,
     average,
@@ -11,7 +12,6 @@ from numpy import (
     dstack,
     inf,
 )
-from numexpr import evaluate
 
 from zipline.pipeline.data import EquityPricing
 from zipline.pipeline.factors import CustomFactor
@@ -22,20 +22,20 @@ from zipline.utils.math_utils import (
     nanargmin,
     nanmax,
     nanmean,
-    nanstd,
     nanmin,
+    nanstd,
 )
 from zipline.utils.numpy_utils import rolling_window
 
-from .basic import exponential_weights
 from .basic import (  # noqa reexport
+    VWAP,
     # These are re-exported here for backwards compatibility with the old
     # definition site.
     LinearWeightedMovingAverage,
     MaxDrawdown,
     SimpleMovingAverage,
-    VWAP,
     WeightedAverageValue,
+    exponential_weights,
 )
 
 
@@ -218,11 +218,7 @@ class IchimokuKinkoHyo(CustomFactor):
         for k, v in self.params.items():
             if v > self.window_length:
                 raise ValueError(
-                    "{} must be <= the window_length: {} > {}".format(
-                        k,
-                        v,
-                        self.window_length,
-                    ),
+                    f"{k} must be <= the window_length: {v} > {self.window_length}",
                 )
 
     def compute(
@@ -353,10 +349,7 @@ class MovingAverageConvergenceDivergenceSignal(CustomFactor):
         if slow_period <= fast_period:
             raise ValueError(
                 "'slow_period' must be greater than 'fast_period', but got\n"
-                "slow_period={slow}, fast_period={fast}".format(
-                    slow=slow_period,
-                    fast=fast_period,
-                )
+                f"slow_period={slow_period}, fast_period={fast_period}"
             )
 
         return super().__new__(

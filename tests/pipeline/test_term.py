@@ -6,17 +6,17 @@ from collections import Counter
 from itertools import product
 from unittest import TestCase
 
-from toolz import assoc
 import pandas as pd
+from toolz import assoc
 
 from zipline.assets import Asset, ExchangeInfo
 from zipline.errors import (
     DTypeNotSpecified,
     InvalidOutputName,
+    NonPipelineInputs,
     NonWindowSafeInput,
     NotDType,
     TermInputsNotSpecified,
-    NonPipelineInputs,
     TermOutputsEmpty,
     UnsupportedDType,
     WindowLengthNotSpecified,
@@ -25,9 +25,9 @@ from zipline.pipeline import (
     Classifier,
     CustomClassifier,
     CustomFactor,
+    ExecutionPlan,
     Factor,
     Filter,
-    ExecutionPlan,
 )
 from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.data.testing import TestingDataSet
@@ -45,13 +45,13 @@ from zipline.testing.predicates import (
     assert_regex,
 )
 from zipline.utils.numpy_utils import (
+    NoDefaultMissingValue,
     bool_dtype,
     categorical_dtype,
     complex128_dtype,
     datetime64ns_dtype,
     float64_dtype,
     int64_dtype,
-    NoDefaultMissingValue,
 )
 
 
@@ -781,7 +781,7 @@ class SubDataSetTestCase(TestCase):
 
         expected_error = (
             "SomeClassifier does not support custom outputs, "
-            "but received custom outputs={outputs}.".format(outputs=outputs_)
+            f"but received custom outputs={outputs_}."
         )
 
         with self.assertRaises(ValueError) as e:
@@ -811,9 +811,9 @@ class SubDataSetTestCase(TestCase):
                 SomeTerm()
 
             prefix = (
-                "^Missing value {mv!r} is not a valid choice "
-                "for term SomeTerm with dtype {dtype}.\n\n"
+                f"^Missing value {bad_mv!r} is not a valid choice "
+                f"for term SomeTerm with dtype {dtype_}.\n\n"
                 "Coercion attempt failed with:"
-            ).format(mv=bad_mv, dtype=dtype_)
+            )
 
             self.assertRegex(str(e.exception), prefix)

@@ -1,13 +1,13 @@
+import sqlite3
 from collections import namedtuple
 from errno import ENOENT
 from os import remove
 
-from logbook import Logger
 import numpy as np
-from numpy import integer as any_integer
 import pandas as pd
+from logbook import Logger
+from numpy import integer as any_integer
 from pandas import Timestamp
-import sqlite3
 
 from zipline.utils.functional import keysorted
 from zipline.utils.input_validation import preprocess
@@ -19,7 +19,8 @@ from zipline.utils.numpy_utils import (
     uint64_dtype,
 )
 from zipline.utils.pandas_utils import empty_dataframe
-from zipline.utils.sqlite_utils import group_into_chunks, coerce_string_to_conn
+from zipline.utils.sqlite_utils import coerce_string_to_conn, group_into_chunks
+
 from ._adjustments import load_adjustments_from_sqlite
 
 log = Logger(__name__)
@@ -417,12 +418,8 @@ class SQLiteAdjustmentWriter:
                 actual = actual_dtypes[colname]
                 if not np.issubdtype(actual, expected):
                     raise TypeError(
-                        "Expected data of type {expected} for column"
-                        " '{colname}', but got '{actual}'.".format(
-                            expected=expected,
-                            colname=colname,
-                            actual=actual,
-                        ),
+                        f"Expected data of type {expected} for column"
+                        f" '{colname}', but got '{actual}'.",
                     )
 
         frame.to_sql(
@@ -435,10 +432,7 @@ class SQLiteAdjustmentWriter:
     def write_frame(self, tablename, frame):
         if tablename not in SQLITE_ADJUSTMENT_TABLENAMES:
             raise ValueError(
-                "Adjustment table {} not in {}".format(
-                    tablename,
-                    SQLITE_ADJUSTMENT_TABLENAMES,
-                )
+                f"Adjustment table {tablename} not in {SQLITE_ADJUSTMENT_TABLENAMES}"
             )
         if not (frame is None or frame.empty):
             frame = frame.copy()

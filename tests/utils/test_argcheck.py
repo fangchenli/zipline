@@ -15,16 +15,16 @@
 from unittest import TestCase
 
 from zipline.utils.argcheck import (
-    verify_callable_argspec,
     Argument,
-    NoStarargs,
-    UnexpectedStarargs,
+    MismatchedArguments,
     NoKwargs,
-    UnexpectedKwargs,
+    NoStarargs,
     NotCallable,
     NotEnoughArguments,
     TooManyArguments,
-    MismatchedArguments,
+    UnexpectedKwargs,
+    UnexpectedStarargs,
+    verify_callable_argspec,
 )
 
 

@@ -3,7 +3,7 @@
 from textwrap import dedent
 
 from zipline.pipeline.data.dataset import Column, DataSet
-from zipline.testing import chrange, ZiplineTestCase
+from zipline.testing import ZiplineTestCase, chrange
 from zipline.testing.predicates import assert_messages_equal
 
 

@@ -12,7 +12,8 @@ from numpy import (
     full,
     inf,
 )
-from zipline.pipeline.term import Term, ComputableTerm
+
+from zipline.pipeline.term import ComputableTerm, Term
 from zipline.utils.numpy_utils import bool_dtype
 
 _VARIABLE_NAME_RE = re.compile("^(x_)([0-9]+)$")
@@ -120,11 +121,7 @@ class BadBinaryOperator(TypeError):
 
     def __init__(self, op, left, right):
         super().__init__(
-            "Can't compute {left} {op} {right}".format(
-                op=op,
-                left=type(left).__name__,
-                right=type(right).__name__,
-            )
+            f"Can't compute {type(left).__name__} {op} {type(right).__name__}"
         )
 
 
@@ -232,10 +229,7 @@ class NumericalExpression(ComputableTerm):
         expected_indices = list(range(len(self.inputs)))
         if expr_indices != expected_indices:
             raise ValueError(
-                "Expected {} for variable indices, but got {}".format(
-                    expected_indices,
-                    expr_indices,
-                )
+                f"Expected {expected_indices} for variable indices, but got {expr_indices}"
             )
         super()._validate()
 
@@ -324,11 +318,7 @@ class NumericalExpression(ComputableTerm):
         return {"x_%d" % i: input_ for i, input_ in enumerate(self.inputs)}
 
     def __repr__(self):
-        return "{typename}(expr='{expr}', bindings={bindings})".format(
-            typename=type(self).__name__,
-            expr=self._expr,
-            bindings=self.bindings,
-        )
+        return f"{type(self).__name__}(expr='{self._expr}', bindings={self.bindings})"
 
     def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
@@ -339,6 +329,4 @@ class NumericalExpression(ComputableTerm):
             r"[-+]?\d*\.\d+", lambda x: format(float(x.group(0)), ".2E"), self._expr
         )
         # Graphviz interprets `\l` as "divide label into lines, left-justified"
-        return "Expression:\\l  {}\\l".format(
-            final,
-        )
+        return f"Expression:\\l  {final}\\l"

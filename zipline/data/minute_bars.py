@@ -11,38 +11,36 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import ABC, abstractmethod
 import json
 import os
+from abc import ABC, abstractmethod
 from glob import glob
 from os.path import join
 from textwrap import dedent
 from types import MappingProxyType
 
-from lru import LRU
 import bcolz
-from bcolz import ctable
-from intervaltree import IntervalTree
 import logbook
 import numpy as np
 import pandas as pd
-from pandas import HDFStore
 import tables
+from bcolz import ctable
+from intervaltree import IntervalTree
+from lru import LRU
+from pandas import HDFStore
 from toolz import keymap, valmap
-from zipline.utils.calendar_utils import get_calendar
 
 from zipline.data._minute_bar_internal import (
-    minute_value,
-    find_position_of_minute,
     find_last_traded_position_internal,
+    find_position_of_minute,
+    minute_value,
 )
-
-from zipline.gens.sim_engine import NANOS_IN_MINUTE
 from zipline.data.bar_reader import BarReader, NoDataForSid, NoDataOnDate
 from zipline.data.bcolz_daily_bars import check_uint32_safe
+from zipline.gens.sim_engine import NANOS_IN_MINUTE
+from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.cli import maybe_show_progress
 from zipline.utils.memoize import lazyval
-
 
 logger = logbook.Logger("MinuteBars")
 
@@ -107,7 +105,7 @@ def _sid_subdir_path(sid):
         padded_sid[0:2],
         # subdir 2 XX/00
         padded_sid[2:4],
-        "{}.bcolz".format(str(padded_sid)),
+        f"{str(padded_sid)}.bcolz",
     )
 
 
@@ -539,10 +537,10 @@ class BcolzMinuteBarWriter:
             The midnight of the last date written in to the output for the
             given sid.
         """
-        sizes_path = "{}/close/meta/sizes".format(self.sidpath(sid))
+        sizes_path = f"{self.sidpath(sid)}/close/meta/sizes"
         if not os.path.exists(sizes_path):
             return pd.NaT
-        with open(sizes_path, mode="r") as f:
+        with open(sizes_path) as f:
             sizes = f.read()
         data = json.loads(sizes)
         # use integer division so that the result is an int
@@ -645,9 +643,7 @@ class BcolzMinuteBarWriter:
         self._zerofill(table, len(days_to_zerofill))
 
         new_last_date = self.last_date_in_output_for_sid(sid)
-        assert new_last_date == date, "new_last_date={} != date={}".format(
-            new_last_date, date
-        )
+        assert new_last_date == date, f"new_last_date={new_last_date} != date={date}"
 
     def set_sid_attrs(self, sid, **kwargs):
         """Write all the supplied kwargs as attributes of the sid's file."""
@@ -745,9 +741,7 @@ class BcolzMinuteBarWriter:
             raise BcolzMinuteWriterColumnMismatch(
                 "Length of dts={} should match cols: {}".format(
                     len(dts),
-                    " ".join(
-                        "{}={}".format(name, len(cols[name])) for name in self.COL_NAMES
-                    ),
+                    " ".join(f"{name}={len(cols[name])}" for name in self.COL_NAMES),
                 )
             )
         # Accept tz-aware minutes (or arrays of them) as UTC datetime64s.

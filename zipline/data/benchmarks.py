@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logbook
-
 import pandas as pd
 
 log = logbook.Logger(__name__)

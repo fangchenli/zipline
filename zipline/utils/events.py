@@ -12,14 +12,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import datetime
+import warnings
 from abc import ABC, abstractmethod
 from collections import namedtuple
-import warnings
-import datetime
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
-from zoneinfo import ZoneInfo
 from toolz import curry
 
 from zipline.utils.calendar_utils import (
@@ -31,7 +31,6 @@ from zipline.utils.memoize import lazyval
 from zipline.utils.sentinel import sentinel
 
 from .context_tricks import nop_context
-
 
 __all__ = [
     "EventManager",
@@ -87,13 +86,7 @@ def _out_of_range_error(a, b=None, var="offset"):
     else:
         start = a
         end = b - 1
-    return ValueError(
-        "{var} must be in between {start} and {end} inclusive".format(
-            var=var,
-            start=start,
-            end=end,
-        )
-    )
+    return ValueError(f"{var} must be in between {start} and {end} inclusive")
 
 
 def _td_check(td):
@@ -170,12 +163,8 @@ def lossless_float_to_int(funcname, func, argname, arg):
     arg_as_int = int(arg)
     if arg == arg_as_int:
         warnings.warn(
-            "{f} expected an int for argument {name!r}, but got float {arg}."
-            " Coercing to int.".format(
-                f=funcname,
-                name=argname,
-                arg=arg,
-            ),
+            f"{funcname} expected an int for argument {argname!r}, but got float {arg}."
+            " Coercing to int.",
         )
         return arg_as_int
 

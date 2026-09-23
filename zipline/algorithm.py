@@ -12,28 +12,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import warnings
 from collections import namedtuple
 from collections.abc import Iterable
-from copy import copy
-import warnings
-from datetime import time, timedelta, tzinfo
 from contextlib import ExitStack
-
-import logbook
-import pandas as pd
-import numpy as np
-
+from copy import copy
+from datetime import time, timedelta, tzinfo
 from itertools import chain, repeat
 from zoneinfo import ZoneInfo
 
-from zipline.utils.calendar_utils import (
-    days_at_time,
-    execution_time_from_close,
-    execution_time_from_open,
-    get_calendar,
-)
+import logbook
+import numpy as np
+import pandas as pd
 
+import zipline.pipeline.domain as domain
+import zipline.protocol
+import zipline.utils.events
 from zipline._protocol import handle_non_market_minutes
+from zipline.assets import Asset, Equity, Future
 from zipline.errors import (
     AttachPipelineAfterInitialize,
     CannotOrderDelistedAsset,
@@ -57,13 +53,20 @@ from zipline.errors import (
     UnsupportedOrderParameters,
     ZeroCapitalError,
 )
+from zipline.finance.asset_restrictions import (
+    NoRestrictions,
+    Restrictions,
+    SecurityListRestrictions,
+    StaticRestrictions,
+)
 from zipline.finance.blotter import SimulationBlotter
+from zipline.finance.cancel_policy import CancelPolicy, NeverCancel
 from zipline.finance.controls import (
     LongOnly,
+    MaxLeverage,
     MaxOrderCount,
     MaxOrderSize,
     MaxPositionSize,
-    MaxLeverage,
     MinLeverage,
     RestrictedListOrder,
 )
@@ -73,28 +76,39 @@ from zipline.finance.execution import (
     StopLimitOrder,
     StopOrder,
 )
-from zipline.finance.asset_restrictions import Restrictions
-from zipline.finance.cancel_policy import NeverCancel, CancelPolicy
-from zipline.finance.asset_restrictions import (
-    NoRestrictions,
-    StaticRestrictions,
-    SecurityListRestrictions,
-)
-from zipline.assets import Asset, Equity, Future
+from zipline.finance.metrics import MetricsTracker
+from zipline.finance.metrics import load as load_metrics_set
+from zipline.gens.sim_engine import MinuteSimulationClock
 from zipline.gens.tradesimulation import AlgorithmSimulator
-from zipline.finance.metrics import MetricsTracker, load as load_metrics_set
 from zipline.pipeline import Pipeline
-import zipline.pipeline.domain as domain
 from zipline.pipeline.engine import (
     ExplodingPipelineEngine,
     SimplePipelineEngine,
 )
+from zipline.sources.benchmark_source import BenchmarkSource
+from zipline.sources.requests_csv import PandasRequestsCSV
 from zipline.utils.api_support import (
+    ZiplineAPI,
     api_method,
+    disallowed_in_before_trading_start,
     require_initialized,
     require_not_initialized,
-    ZiplineAPI,
-    disallowed_in_before_trading_start,
+)
+from zipline.utils.cache import ExpiringCache
+from zipline.utils.calendar_utils import (
+    days_at_time,
+    execution_time_from_close,
+    execution_time_from_open,
+    get_calendar,
+)
+from zipline.utils.events import (
+    AfterOpen,
+    BeforeClose,
+    EventManager,
+    calendars,
+    date_rules,
+    make_eventrule,
+    time_rules,
 )
 from zipline.utils.input_validation import (
     coerce_string,
@@ -105,34 +119,15 @@ from zipline.utils.input_validation import (
     optional,
     optionally,
 )
-from zipline.utils.numpy_utils import int64_dtype
-from zipline.utils.cache import ExpiringCache
-from zipline.utils.pandas_utils import clear_dataframe_indexer_caches
-
-import zipline.utils.events
-from zipline.utils.events import (
-    EventManager,
-    make_eventrule,
-    date_rules,
-    time_rules,
-    calendars,
-    AfterOpen,
-    BeforeClose,
-)
 from zipline.utils.math_utils import (
-    tolerant_equals,
     round_if_near_integer,
+    tolerant_equals,
 )
+from zipline.utils.numpy_utils import int64_dtype
+from zipline.utils.pandas_utils import clear_dataframe_indexer_caches
 from zipline.utils.preprocess import preprocess
 from zipline.utils.security_list import SecurityList
-
-import zipline.protocol
-from zipline.sources.requests_csv import PandasRequestsCSV
-
-from zipline.gens.sim_engine import MinuteSimulationClock
-from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.zipline_warnings import ZiplineDeprecationWarning
-
 
 log = logbook.Logger("ZiplineLog")
 
@@ -293,11 +288,8 @@ class TradingAlgorithm:
             self.trading_calendar = sim_params.trading_calendar
         else:
             raise ValueError(
-                "Conflicting calendars: trading_calendar={}, but "
-                "sim_params.trading_calendar={}".format(
-                    trading_calendar.name,
-                    self.sim_params.trading_calendar.name,
-                )
+                f"Conflicting calendars: trading_calendar={trading_calendar.name}, but "
+                f"sim_params.trading_calendar={self.sim_params.trading_calendar.name}"
             )
 
         self.metrics_tracker = None
@@ -356,9 +348,7 @@ class TradingAlgorithm:
             if unexpected_api_methods:
                 raise ValueError(
                     "TradingAlgorithm received a script and the following API"
-                    " methods as functions:\n{funcs}".format(
-                        funcs=unexpected_api_methods,
-                    )
+                    f" methods as functions:\n{unexpected_api_methods}"
                 )
 
             if algo_filename is None:
@@ -1177,27 +1167,23 @@ class TradingAlgorithm:
 
         if normalized_date < asset.start_date:
             raise CannotOrderDelistedAsset(
-                msg="Cannot order {}, as it started trading on {}.".format(
-                    asset.symbol, asset.start_date
-                )
+                msg=f"Cannot order {asset.symbol}, as it started trading on {asset.start_date}."
             )
         elif normalized_date > asset.end_date:
             raise CannotOrderDelistedAsset(
-                msg="Cannot order {}, as it stopped trading on {}.".format(
-                    asset.symbol, asset.end_date
-                )
+                msg=f"Cannot order {asset.symbol}, as it stopped trading on {asset.end_date}."
             )
         else:
             last_price = self.trading_client.current_data.current(asset, "price")
 
             if np.isnan(last_price):
                 raise CannotOrderDelistedAsset(
-                    msg="Cannot order {} on {} as there is no last "
-                    "price for the security.".format(asset.symbol, self.datetime)
+                    msg=f"Cannot order {asset.symbol} on {self.datetime} as there is no last "
+                    "price for the security."
                 )
 
         if tolerant_equals(last_price, 0):
-            zero_message = "Price of 0 for {psid}; can't infer value".format(psid=asset)
+            zero_message = f"Price of 0 for {asset}; can't infer value"
             if self.logger:
                 self.logger.debug(zero_message)
             # Don't place any order
@@ -1222,10 +1208,10 @@ class TradingAlgorithm:
                 # the user that they can't place an order for this asset, and
                 # return None.
                 log.warn(
-                    "Cannot place order for {}, as it has de-listed. "
+                    f"Cannot place order for {asset.symbol}, as it has de-listed. "
                     "Any existing positions for this asset will be "
                     "liquidated on "
-                    "{}.".format(asset.symbol, asset.auto_close_date)
+                    f"{asset.auto_close_date}."
                 )
 
                 return False

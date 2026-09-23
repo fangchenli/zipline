@@ -1,7 +1,7 @@
 from textwrap import dedent
 
-from parameterized import parameterized
 from pandas import DataFrame
+from parameterized import parameterized
 
 from zipline.assets import Equity, Future
 from zipline.errors import IncompatibleCommissionModel
@@ -506,8 +506,8 @@ class CommissionAlgorithmTests(WithMakeAlgo, ZiplineTestCase):
             self.code.format(
                 commission=(
                     "set_commission(us_futures=commission.PerContract("
-                    "cost=0.05, exchange_fee=1.3, min_trade_cost={}))"
-                ).format(min_trade_cost),
+                    f"cost=0.05, exchange_fee=1.3, min_trade_cost={min_trade_cost}))"
+                ),
                 sid=1000,
                 amount=10,
             ),

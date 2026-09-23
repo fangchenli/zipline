@@ -1,42 +1,42 @@
+import gzip
+import json
+import operator
+import os
+import shutil
+import sys
+import tempfile
 from abc import ABCMeta, abstractmethod, abstractproperty
 from contextlib import contextmanager
-import gzip
+from functools import wraps
 from itertools import (
     combinations,
     count,
     product,
 )
-import json
-import operator
-import os
 from os.path import abspath, dirname, join, realpath
-import shutil
-import sys
-import tempfile
 from traceback import format_exception
-from functools import wraps
-
-from logbook import TestHandler
 from unittest.mock import patch
-from numpy.testing import assert_allclose, assert_array_equal
+
+import numpy as np
 import pandas as pd
+from logbook import TestHandler
+from numpy import float64
+from numpy.testing import assert_allclose, assert_array_equal
 from sqlalchemy import create_engine
 from testfixtures import TempDirectory
 from toolz import concat, curry
-from zipline.utils.calendar_utils import get_calendar
 
-from zipline.assets import AssetFinder, AssetDBWriter
+from zipline.assets import AssetDBWriter, AssetFinder
 from zipline.assets.synthetic import make_simple_equity_info
-from zipline.utils.compat import getargspec
-from zipline.data.data_portal import DataPortal
-from zipline.data.minute_bars import (
-    BcolzMinuteBarReader,
-    BcolzMinuteBarWriter,
-    US_EQUITIES_MINUTES_PER_DAY,
-)
 from zipline.data.bcolz_daily_bars import (
     BcolzDailyBarReader,
     BcolzDailyBarWriter,
+)
+from zipline.data.data_portal import DataPortal
+from zipline.data.minute_bars import (
+    US_EQUITIES_MINUTES_PER_DAY,
+    BcolzMinuteBarReader,
+    BcolzMinuteBarWriter,
 )
 from zipline.finance.blotter import SimulationBlotter
 from zipline.finance.order import ORDER_STATUS
@@ -47,14 +47,12 @@ from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils import security_list
+from zipline.utils.calendar_utils import get_calendar
+from zipline.utils.compat import getargspec
 from zipline.utils.input_validation import expect_dimensions
 from zipline.utils.numpy_utils import as_column, isnat
 from zipline.utils.pandas_utils import timedelta_to_integral_seconds
 from zipline.utils.sentinel import sentinel
-
-import numpy as np
-from numpy import float64
-
 
 EPOCH = pd.Timestamp(0, tz="UTC")
 
@@ -344,7 +342,7 @@ def check_allclose(actual, desired, rtol=1e-07, atol=0, err_msg="", verbose=True
     np.assert_allclose
     """
     if type(actual) != type(desired):
-        raise AssertionError("{} != {}".format(type(actual), type(desired)))
+        raise AssertionError(f"{type(actual)} != {type(desired)}")
     return assert_allclose(
         actual,
         desired,
@@ -364,7 +362,7 @@ def check_arrays(x, y, err_msg="", verbose=True, check_dtypes=True):
     --------
     np.assert_array_equal
     """
-    assert type(x) == type(y), "{x} != {y}".format(x=type(x), y=type(y))
+    assert type(x) == type(y), f"{type(x)} != {type(y)}"
     assert x.dtype == y.dtype, f"{x.dtype} != {y.dtype}"
 
     if isinstance(x, LabelArray):

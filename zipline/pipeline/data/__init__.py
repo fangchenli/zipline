@@ -1,4 +1,3 @@
-from .equity_pricing import EquityPricing, USEquityPricing
 from .dataset import (
     BoundColumn,
     Column,
@@ -6,6 +5,7 @@ from .dataset import (
     DataSetFamily,
     DataSetFamilySlice,
 )
+from .equity_pricing import EquityPricing, USEquityPricing
 
 __all__ = [
     "BoundColumn",

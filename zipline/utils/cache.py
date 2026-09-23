@@ -2,15 +2,13 @@
 Caching utilities for zipline
 """
 
-from collections.abc import MutableMapping
 import errno
-from functools import partial
 import os
 import pickle
+from collections.abc import MutableMapping
+from functools import partial
 from shutil import copytree, move, rmtree
-from tempfile import mkdtemp, NamedTemporaryFile
-
-import pandas as pd
+from tempfile import NamedTemporaryFile, mkdtemp
 
 from .context_tricks import nop_context
 from .paths import ensure_directory

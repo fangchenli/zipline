@@ -12,21 +12,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from copy import copy
 from contextlib import ExitStack
+from copy import copy
 
 from logbook import Logger, Processor
-from zipline.finance.order import ORDER_STATUS
-from zipline.protocol import BarData
-from zipline.utils.api_support import ZiplineAPI
 
+from zipline.finance.order import ORDER_STATUS
 from zipline.gens.sim_engine import (
     BAR,
-    SESSION_START,
-    SESSION_END,
-    MINUTE_END,
     BEFORE_TRADING_START_BAR,
+    MINUTE_END,
+    SESSION_END,
+    SESSION_START,
 )
+from zipline.protocol import BarData
+from zipline.utils.api_support import ZiplineAPI
 
 log = Logger("Trade Simulation")
 

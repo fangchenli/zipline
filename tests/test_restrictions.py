@@ -1,19 +1,18 @@
-import pandas as pd
-from pandas.testing import assert_series_equal
 from functools import partial
 
+import pandas as pd
+from pandas.testing import assert_series_equal
 from toolz import groupby
 
 from zipline.finance.asset_restrictions import (
     RESTRICTION_STATES,
-    Restriction,
     HistoricalRestrictions,
-    StaticRestrictions,
-    SecurityListRestrictions,
     NoRestrictions,
+    Restriction,
+    SecurityListRestrictions,
+    StaticRestrictions,
     _UnionRestrictions,
 )
-
 from zipline.testing import parameter_space
 from zipline.testing.fixtures import (
     WithDataPortal,

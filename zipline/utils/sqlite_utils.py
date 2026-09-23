@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import partial
 import os
-
 import sqlite3
+from functools import partial
+
 import sqlalchemy as sa
 
 from .input_validation import coerce_string

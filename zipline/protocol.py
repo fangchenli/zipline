@@ -12,13 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from enum import IntEnum, auto
 from warnings import warn
-from enum import auto, IntEnum
 
 import pandas as pd
 
-from .assets import Asset
 from ._protocol import BarData, InnerPosition  # noqa
+from .assets import Asset
 
 
 class MutableView:
@@ -44,7 +44,7 @@ class MutableView:
         vars(self._mutable_view_ob)[attr] = value
 
     def __repr__(self):
-        return "{}({!r})".format(type(self).__name__, self._mutable_view_ob)
+        return f"{type(self).__name__}({self._mutable_view_ob!r})"
 
 
 # Datasource type should completely determine the other fields of a
@@ -407,8 +407,8 @@ class Positions(dict):
             )
         else:
             warn(
-                "Position lookup expected a value of type Asset but got {}"
-                " instead.".format(type(key).__name__)
+                f"Position lookup expected a value of type Asset but got {type(key).__name__}"
+                " instead."
             )
 
         return _DeprecatedSidLookupPosition(key)

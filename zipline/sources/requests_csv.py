@@ -1,20 +1,20 @@
+import hashlib
+import warnings
 from abc import ABC, abstractmethod
 from collections import namedtuple
-import hashlib
-from textwrap import dedent
-import warnings
 from io import StringIO
+from textwrap import dedent
+from zoneinfo import ZoneInfo
 
-from logbook import Logger
 import numpy
 import pandas as pd
-from pandas import read_csv
-from zoneinfo import ZoneInfo
 import requests
+from logbook import Logger
+from pandas import read_csv
 
+from zipline.assets import Equity
 from zipline.errors import MultipleSymbolsFound, SymbolNotFound, ZiplineError
 from zipline.protocol import DATASOURCE_TYPE, Event
-from zipline.assets import Equity
 
 logger = Logger("Requests Source Logger")
 
@@ -552,9 +552,7 @@ class PandasRequestsCSV(PandasCSV):
 
         content_length = 0
         logger.info(
-            "{} connection established in {:.1f} seconds".format(
-                url, response.elapsed.total_seconds()
-            )
+            f"{url} connection established in {response.elapsed.total_seconds():.1f} seconds"
         )
 
         # use the decode_unicode flag to ensure that the output of this is

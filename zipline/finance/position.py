@@ -32,11 +32,12 @@ Position Tracking
 """
 
 from math import copysign
-import numpy as np
-import logbook
 
-from zipline.assets import Future
+import logbook
+import numpy as np
+
 import zipline.protocol as zp
+from zipline.assets import Future
 
 log = logbook.Logger("Performance")
 

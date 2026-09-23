@@ -7,6 +7,8 @@ from operator import attrgetter
 
 from numpy import (
     any as np_any,
+)
+from numpy import (
     float64,
     nan,
     nanpercentile,
@@ -19,17 +21,17 @@ from zipline.errors import (
     UnsupportedDataType,
 )
 from zipline.lib.labelarray import LabelArray
-from zipline.lib.rank import is_missing, grouped_masked_is_maximal
+from zipline.lib.rank import grouped_masked_is_maximal, is_missing
 from zipline.pipeline.dtypes import (
     CLASSIFIER_DTYPES,
     FACTOR_DTYPES,
     FILTER_DTYPES,
 )
 from zipline.pipeline.expression import (
-    BadBinaryOperator,
     FILTER_BINOPS,
-    method_name_for_op,
+    BadBinaryOperator,
     NumericalExpression,
+    method_name_for_op,
 )
 from zipline.pipeline.mixins import (
     CustomTermMixin,
@@ -43,10 +45,10 @@ from zipline.pipeline.mixins import (
 from zipline.pipeline.term import ComputableTerm, Term
 from zipline.utils.input_validation import expect_types
 from zipline.utils.numpy_utils import (
-    same,
     bool_dtype,
     int64_dtype,
     repeat_first_axis,
+    same,
 )
 
 from ..sentinels import NotSpecified
@@ -78,11 +80,7 @@ def binary_operator(op):
                 other,
             )
             return NumExprFilter.create(
-                "({left}) {op} ({right})".format(
-                    left=self_expr,
-                    op=op,
-                    right=other_expr,
-                ),
+                f"({self_expr}) {op} ({other_expr})",
                 new_inputs,
             )
         elif isinstance(other, NumericalExpression):
@@ -104,7 +102,7 @@ def binary_operator(op):
             )
         elif isinstance(other, int):  # Note that this is true for bool as well
             return NumExprFilter.create(
-                "x_0 {op} {constant}".format(op=op, constant=int(other)),
+                f"x_0 {op} {int(other)}",
                 binds=(self,),
             )
         raise BadBinaryOperator(op, self, other)
@@ -282,33 +280,25 @@ class Filter(RestrictedDTypeMixin, ComputableTerm):
 
         if true_type is not false_type:
             raise TypeError(
-                "Mismatched types in if_else(): if_true={}, but if_false={}".format(
-                    true_type.__name__, false_type.__name__
-                )
+                f"Mismatched types in if_else(): if_true={true_type.__name__}, but if_false={false_type.__name__}"
             )
 
         if if_true.dtype != if_false.dtype:
             raise TypeError(
                 "Mismatched dtypes in if_else(): "
-                "if_true.dtype = {}, if_false.dtype = {}".format(
-                    if_true.dtype, if_false.dtype
-                )
+                f"if_true.dtype = {if_true.dtype}, if_false.dtype = {if_false.dtype}"
             )
 
         if if_true.outputs != if_false.outputs:
             raise ValueError(
                 "Mismatched outputs in if_else(): "
-                "if_true.outputs = {}, if_false.outputs = {}".format(
-                    if_true.outputs, if_false.outputs
-                ),
+                f"if_true.outputs = {if_true.outputs}, if_false.outputs = {if_false.outputs}",
             )
 
         if not same(if_true.missing_value, if_false.missing_value):
             raise ValueError(
                 "Mismatched missing values in if_else(): "
-                "if_true.missing_value = {!r}, if_false.missing_value = {!r}".format(
-                    if_true.missing_value, if_false.missing_value
-                )
+                f"if_true.missing_value = {if_true.missing_value!r}, if_false.missing_value = {if_false.missing_value!r}"
             )
 
         return_type = type(if_true)._with_mixin(IfElseMixin)
@@ -481,11 +471,7 @@ class PercentileFilter(SingleInputMixin, Filter):
 
     def graph_repr(self):
         # Graphviz interprets `\l` as "divide label into lines, left-justified"
-        return "{}:\\l  min: {}, max: {}\\l".format(
-            type(self).__name__,
-            self._min_percentile,
-            self._max_percentile,
-        )
+        return f"{type(self).__name__}:\\l  min: {self._min_percentile}, max: {self._max_percentile}\\l"
 
 
 class CustomFilter(PositiveWindowLengthMixin, CustomTermMixin, Filter):
@@ -753,15 +739,8 @@ class MaximumFilter(Filter, StandardOutputs):
         )
 
     def __repr__(self):
-        return "Maximum({}, groupby={}, mask={})".format(
-            self.inputs[0].recursive_repr(),
-            self.inputs[1].recursive_repr(),
-            self.mask.recursive_repr(),
-        )
+        return f"Maximum({self.inputs[0].recursive_repr()}, groupby={self.inputs[1].recursive_repr()}, mask={self.mask.recursive_repr()})"
 
     def graph_repr(self):
         # Graphviz interprets `\l` as "divide label into lines, left-justified"
-        return "Maximum:\\l  groupby: {}\\l  mask: {}\\l".format(
-            self.inputs[1].recursive_repr(),
-            self.mask.recursive_repr(),
-        )
+        return f"Maximum:\\l  groupby: {self.inputs[1].recursive_repr()}\\l  mask: {self.mask.recursive_repr()}\\l"

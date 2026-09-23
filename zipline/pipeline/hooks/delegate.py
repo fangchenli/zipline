@@ -1,7 +1,7 @@
-from contextlib import contextmanager, ExitStack
+from contextlib import ExitStack, contextmanager
 from functools import wraps
 
-from .iface import PipelineHooks, PIPELINE_HOOKS_CONTEXT_MANAGERS
+from .iface import PIPELINE_HOOKS_CONTEXT_MANAGERS, PipelineHooks
 from .no import NoHooks
 
 

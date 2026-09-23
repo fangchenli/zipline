@@ -6,11 +6,10 @@ from itertools import product
 from unittest import TestCase
 
 from numpy import array, empty
-
 from zipline._protocol import BarData
+
 from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.finance.order import Order
-
 from zipline.testing import (
     check_arrays,
     make_alternating_boolean_array,
@@ -22,8 +21,8 @@ from zipline.testing.fixtures import (
     WithDataPortal,
     ZiplineTestCase,
 )
+from zipline.testing.predicates import instance_of, wildcard
 from zipline.testing.slippage import TestingSlippage
-from zipline.testing.predicates import wildcard, instance_of
 from zipline.utils.numpy_utils import bool_dtype
 
 

@@ -168,12 +168,8 @@ class PerShare(EquityCommissionModel):
 
     def __repr__(self):
         return (
-            "{class_name}(cost_per_share={cost_per_share}, "
-            "min_trade_cost={min_trade_cost})".format(
-                class_name=self.__class__.__name__,
-                cost_per_share=self.cost_per_share,
-                min_trade_cost=self.min_trade_cost,
-            )
+            f"{self.__class__.__name__}(cost_per_share={self.cost_per_share}, "
+            f"min_trade_cost={self.min_trade_cost})"
         )
 
     def calculate(self, order, transaction):
@@ -252,13 +248,8 @@ class PerContract(FutureCommissionModel):
             exchange_fee = "<varies>"
 
         return (
-            "{class_name}(cost_per_contract={cost_per_contract}, "
-            "exchange_fee={exchange_fee}, min_trade_cost={min_trade_cost})".format(
-                class_name=self.__class__.__name__,
-                cost_per_contract=cost_per_contract,
-                exchange_fee=exchange_fee,
-                min_trade_cost=self.min_trade_cost,
-            )
+            f"{self.__class__.__name__}(cost_per_contract={cost_per_contract}, "
+            f"exchange_fee={exchange_fee}, min_trade_cost={self.min_trade_cost})"
         )
 
     def calculate(self, order, transaction):
@@ -298,10 +289,7 @@ class PerTrade(CommissionModel):
         self.cost = float(cost)
 
     def __repr__(self):
-        return "{class_name}(cost_per_trade={cost})".format(
-            class_name=self.__class__.__name__,
-            cost=self.cost,
-        )
+        return f"{self.__class__.__name__}(cost_per_trade={self.cost})"
 
     def calculate(self, order, transaction):
         """
@@ -348,10 +336,7 @@ class PerFutureTrade(PerContract):
             cost_per_trade = self._cost_per_trade["dummy key"]
         else:
             cost_per_trade = "<varies>"
-        return "{class_name}(cost_per_trade={cost_per_trade})".format(
-            class_name=self.__class__.__name__,
-            cost_per_trade=cost_per_trade,
-        )
+        return f"{self.__class__.__name__}(cost_per_trade={cost_per_trade})"
 
 
 class PerDollar(EquityCommissionModel):
@@ -373,9 +358,7 @@ class PerDollar(EquityCommissionModel):
         self.cost_per_dollar = float(cost)
 
     def __repr__(self):
-        return "{class_name}(cost_per_dollar={cost})".format(
-            class_name=self.__class__.__name__, cost=self.cost_per_dollar
-        )
+        return f"{self.__class__.__name__}(cost_per_dollar={self.cost_per_dollar})"
 
     def calculate(self, order, transaction):
         """

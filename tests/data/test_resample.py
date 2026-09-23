@@ -14,26 +14,25 @@
 from collections import OrderedDict
 from numbers import Real
 
-from parameterized import parameterized
-from numpy.testing import assert_almost_equal
-from numpy import nan, array, full, isnan
 import pandas as pd
+from numpy import array, full, isnan, nan
+from numpy.testing import assert_almost_equal
 from pandas import DataFrame
+from parameterized import parameterized
 
 from zipline.data.resample import (
-    minute_frame_to_session_frame,
     DailyHistoryAggregator,
     MinuteResampleSessionBarReader,
     ReindexMinuteBarReader,
     ReindexSessionBarReader,
+    minute_frame_to_session_frame,
 )
-
 from zipline.testing import parameter_space
 from zipline.testing.fixtures import (
-    WithEquityMinuteBarData,
-    WithBcolzEquityMinuteBarReader,
     WithBcolzEquityDailyBarReader,
+    WithBcolzEquityMinuteBarReader,
     WithBcolzFutureMinuteBarReader,
+    WithEquityMinuteBarData,
     ZiplineTestCase,
 )
 
@@ -512,7 +511,7 @@ class MinuteToDailyAggregationTestCase(
             assert_almost_equal(
                 value,
                 EXPECTED_AGGREGATION[sid][field][i],
-                err_msg="sid={} field={} dt={}".format(sid, field, minute),
+                err_msg=f"sid={sid} field={field} dt={minute}",
             )
 
             # Call a second time with the same dt, to prevent regression
@@ -526,7 +525,7 @@ class MinuteToDailyAggregationTestCase(
             assert_almost_equal(
                 value,
                 EXPECTED_AGGREGATION[sid][field][i],
-                err_msg="sid={} field={} dt={}".format(sid, field, minute),
+                err_msg=f"sid={sid} field={field} dt={minute}",
             )
 
     @parameterized.expand(OHLCV)
@@ -560,12 +559,12 @@ class MinuteToDailyAggregationTestCase(
             assert_almost_equal(
                 results[asset],
                 EXPECTED_AGGREGATION[asset][field],
-                err_msg="sid={} field={}".format(asset, field),
+                err_msg=f"sid={asset} field={field}",
             )
             assert_almost_equal(
                 repeat_results[asset],
                 EXPECTED_AGGREGATION[asset][field],
-                err_msg="sid={} field={}".format(asset, field),
+                err_msg=f"sid={asset} field={field}",
             )
 
     @parameterized.expand(OHLCV)
@@ -586,7 +585,7 @@ class MinuteToDailyAggregationTestCase(
                 assert_almost_equal(
                     value,
                     EXPECTED_AGGREGATION[asset][field][i],
-                    err_msg="sid={} field={} dt={}".format(asset, field, minute),
+                    err_msg=f"sid={asset} field={field} dt={minute}",
                 )
 
             # Call a second time with the same dt, to prevent regression
@@ -601,7 +600,7 @@ class MinuteToDailyAggregationTestCase(
                 assert_almost_equal(
                     value,
                     EXPECTED_AGGREGATION[asset][field][i],
-                    err_msg="sid={} field={} dt={}".format(asset, field, minute),
+                    err_msg=f"sid={asset} field={field} dt={minute}",
                 )
 
 
@@ -715,7 +714,7 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader, ZiplineTestCase):
                     assert_almost_equal(
                         result,
                         values[col],
-                        err_msg="sid={0} col={1} dt={2}".format(sid, col, dt),
+                        err_msg=f"sid={sid} col={col} dt={dt}",
                     )
 
     def test_first_trading_day(self):

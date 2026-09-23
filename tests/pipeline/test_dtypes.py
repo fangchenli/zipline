@@ -8,8 +8,7 @@ from zipline.pipeline.dtypes import (
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.testing import parameter_space
 from zipline.testing.fixtures import ZiplineTestCase
-from zipline.utils.numpy_utils import int64_dtype, bool_dtype
-
+from zipline.utils.numpy_utils import bool_dtype, int64_dtype
 
 missing_values = {
     int64_dtype: -1,

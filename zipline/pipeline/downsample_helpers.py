@@ -5,8 +5,8 @@ Helpers for downsampling code.
 from zipline.utils.input_validation import expect_element
 from zipline.utils.numpy_utils import changed_locations
 from zipline.utils.sharedoc import (
-    templated_docstring,
     PIPELINE_DOWNSAMPLING_FREQUENCY_DOC,
+    templated_docstring,
 )
 
 _dt_to_period = {

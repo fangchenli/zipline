@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from functools import partial
 import warnings
+from functools import partial
 
-from bcolz import carray, ctable
 import logbook
 import numpy as np
+from bcolz import carray, ctable
 from numpy import (
     array,
     full,
@@ -26,26 +26,26 @@ from numpy import (
 from pandas import (
     DatetimeIndex,
     NaT,
+    Timestamp,
     read_csv,
     to_datetime,
-    Timestamp,
 )
 from toolz import compose
-from zipline.utils.calendar_utils import get_calendar
 
-from zipline.data.session_bars import CurrencyAwareSessionBarReader
 from zipline.data.bar_reader import (
     NoDataAfterDate,
     NoDataBeforeDate,
     NoDataOnDate,
 )
+from zipline.data.session_bars import CurrencyAwareSessionBarReader
+from zipline.utils.calendar_utils import get_calendar
+from zipline.utils.cli import maybe_show_progress
 from zipline.utils.functional import apply
 from zipline.utils.input_validation import expect_element
-from zipline.utils.numpy_utils import iNaT, float64_dtype, uint32_dtype
 from zipline.utils.memoize import lazyval
-from zipline.utils.cli import maybe_show_progress
-from ._equities import _compute_row_slices, _read_bcolz_data
+from zipline.utils.numpy_utils import float64_dtype, iNaT, uint32_dtype
 
+from ._equities import _compute_row_slices, _read_bcolz_data
 
 logger = logbook.Logger("UsEquityPricing")
 
@@ -646,19 +646,13 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
         try:
             day_loc = self.sessions.get_loc(day)
         except Exception:
-            raise NoDataOnDate(
-                "day={} is outside of calendar={}".format(day, self.sessions)
-            )
+            raise NoDataOnDate(f"day={day} is outside of calendar={self.sessions}")
         offset = day_loc - self._calendar_offsets[sid]
         if offset < 0:
-            raise NoDataBeforeDate(
-                "No data on or before day={} for sid={}".format(day, sid)
-            )
+            raise NoDataBeforeDate(f"No data on or before day={day} for sid={sid}")
         ix = self._first_rows[sid] + offset
         if ix > self._last_rows[sid]:
-            raise NoDataAfterDate(
-                "No data on or after day={} for sid={}".format(day, sid)
-            )
+            raise NoDataAfterDate(f"No data on or after day={day} for sid={sid}")
         return ix
 
     def get_value(self, sid, dt, field):

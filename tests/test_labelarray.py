@@ -1,12 +1,12 @@
+import warnings
 from itertools import product
 from operator import eq, ne
-import warnings
 
 import numpy as np
 from toolz import take
 
 from zipline.lib.labelarray import LabelArray
-from zipline.testing import check_arrays, parameter_space, ZiplineTestCase
+from zipline.testing import ZiplineTestCase, check_arrays, parameter_space
 from zipline.testing.predicates import assert_equal
 
 

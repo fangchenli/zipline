@@ -4,11 +4,10 @@ Tests for Factor terms.
 
 from functools import partial
 from itertools import product
-from parameterized import parameterized
 from unittest import TestCase
 
-from toolz import compose
 import numpy as np
+import pandas as pd
 from numpy import (
     apply_along_axis,
     arange,
@@ -25,23 +24,26 @@ from numpy import (
     where,
 )
 from numpy.random import randn, seed
-import pandas as pd
+from parameterized import parameterized
 from scipy.stats.mstats import winsorize as scipy_winsorize
+from toolz import compose
+from zipline.lib.rank import masked_rankdata_2d
 
 from zipline.errors import BadPercentileBounds, UnknownRankMethod
 from zipline.lib.labelarray import LabelArray
-from zipline.lib.rank import masked_rankdata_2d
 from zipline.lib.normalize import naive_grouped_rowwise_apply as grouped_apply
 from zipline.pipeline import Classifier, Factor, Filter, Pipeline
-from zipline.pipeline.data import DataSet, Column, EquityPricing
+from zipline.pipeline.data import Column, DataSet, EquityPricing
 from zipline.pipeline.factors import (
     CustomFactor,
     DailyReturns,
-    Returns,
     PercentChange,
+    Returns,
 )
 from zipline.pipeline.factors.factor import (
     summary_funcs,
+)
+from zipline.pipeline.factors.factor import (
     winsorize as zp_winsorize,
 )
 from zipline.testing import (
@@ -55,16 +57,16 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
 )
 from zipline.testing.predicates import assert_equal
+from zipline.utils.math_utils import nanmean, nanstd
 from zipline.utils.numpy_utils import (
+    NaTns,
     as_column,
     categorical_dtype,
     datetime64ns_dtype,
     float64_dtype,
     ignore_nanwarnings,
     int64_dtype,
-    NaTns,
 )
-from zipline.utils.math_utils import nanmean, nanstd
 
 from .base import BaseUSEquityPipelineTestCase
 
@@ -1232,9 +1234,9 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         errmsg = str(e.exception)
         expected = (
-            "{normalizer}() is only defined on Factors of dtype float64,"
+            f"{method_name}() is only defined on Factors of dtype float64,"
             " but it was called on a Factor of dtype datetime64[ns]."
-        ).format(normalizer=method_name)
+        )
 
         self.assertEqual(errmsg, expected)
 

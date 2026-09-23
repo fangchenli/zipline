@@ -2,10 +2,9 @@ import numpy as np
 import pandas as pd
 from pandas import NaT
 
-from zipline.utils.calendar_utils import ExchangeCalendar
-
-from zipline.data.bar_reader import OHLCV, NoDataOnDate, NoDataForSid
+from zipline.data.bar_reader import OHLCV, NoDataForSid, NoDataOnDate
 from zipline.data.session_bars import CurrencyAwareSessionBarReader
+from zipline.utils.calendar_utils import ExchangeCalendar
 from zipline.utils.input_validation import expect_types, validate_keys
 from zipline.utils.pandas_utils import check_indexes_all_same
 

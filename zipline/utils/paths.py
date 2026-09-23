@@ -5,8 +5,8 @@ Paths are rooted at $ZIPLINE_ROOT if that environment variable is set.
 Otherwise default to expanduser(~/.zipline)
 """
 
-from errno import EEXIST
 import os
+from errno import EEXIST
 from os.path import exists, expanduser, join
 
 import pandas as pd

@@ -2,15 +2,14 @@
 Tools for memoization of function results.
 """
 
+from _thread import allocate_lock
 from collections import OrderedDict
 from collections.abc import Sequence
+from functools import wraps
 from itertools import compress
 from weakref import WeakKeyDictionary, ref
-from _thread import allocate_lock
 
 from toolz.sandbox import unzip
-
-from functools import wraps
 
 
 class lazyval:
@@ -230,7 +229,7 @@ class _WeakArgsDict(WeakKeyDictionary):
         return self.data[_WeakArgs(key)]
 
     def __repr__(self):
-        return "{}({!r})".format(type(self).__name__, self.data)
+        return f"{type(self).__name__}({self.data!r})"
 
     def __setitem__(self, key, value):
         self.data[_WeakArgs(key, self._remove)] = value

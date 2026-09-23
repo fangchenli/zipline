@@ -17,31 +17,40 @@
 Tests for the zipline.assets package
 """
 
-from collections import namedtuple
-from datetime import timedelta
-from functools import partial
 import os
 import pickle
 import string
 import sys
-from types import GetSetDescriptorType
-from unittest import TestCase
 import uuid
 import warnings
+from collections import namedtuple
+from datetime import timedelta
+from functools import partial
+from types import GetSetDescriptorType
+from unittest import TestCase
 
-from parameterized import parameterized
 import numpy as np
-from numpy import full, int32, int64
 import pandas as pd
 import sqlalchemy as sa
+from numpy import full, int32, int64
+from parameterized import parameterized
+from toolz import concat, valmap
 
 from zipline.assets import (
     Asset,
-    ExchangeInfo,
-    Equity,
-    Future,
     AssetDBWriter,
     AssetFinder,
+    Equity,
+    ExchangeInfo,
+    Future,
+)
+from zipline.assets.asset_db_migrations import downgrade
+from zipline.assets.asset_db_schema import ASSET_DB_VERSION
+from zipline.assets.asset_writer import (
+    SQLITE_MAX_VARIABLE_NUMBER,
+    _futures_defaults,
+    check_version_info,
+    write_version_info,
 )
 from zipline.assets.assets import OwnershipPeriod
 from zipline.assets.synthetic import (
@@ -49,17 +58,9 @@ from zipline.assets.synthetic import (
     make_rotating_equity_info,
     make_simple_equity_info,
 )
-from toolz import valmap, concat
-
-from zipline.assets.asset_writer import (
-    check_version_info,
-    write_version_info,
-    _futures_defaults,
-    SQLITE_MAX_VARIABLE_NUMBER,
-)
-from zipline.assets.asset_db_schema import ASSET_DB_VERSION
-from zipline.assets.asset_db_migrations import downgrade
 from zipline.errors import (
+    AssetDBImpossibleDowngrade,
+    AssetDBVersionError,
     EquitiesNotFound,
     FutureContractsNotFound,
     MultipleSymbolsFound,
@@ -67,11 +68,9 @@ from zipline.errors import (
     MultipleValuesFoundForField,
     MultipleValuesFoundForSid,
     NoValueForSid,
-    AssetDBVersionError,
     SameSymbolUsedAcrossCountries,
     SidsNotFound,
     SymbolNotFound,
-    AssetDBImpossibleDowngrade,
     ValueNotFoundForField,
 )
 from zipline.testing import (
@@ -79,18 +78,17 @@ from zipline.testing import (
     empty_assets_db,
     parameter_space,
     powerset,
-    tmp_assets_db,
     tmp_asset_finder,
+    tmp_assets_db,
 )
-from zipline.testing.predicates import assert_equal, assert_not_equal
 from zipline.testing.fixtures import (
     WithAssetFinder,
-    ZiplineTestCase,
-    WithTradingCalendars,
-    WithTmpDir,
     WithInstanceTmpDir,
+    WithTmpDir,
+    WithTradingCalendars,
+    ZiplineTestCase,
 )
-
+from zipline.testing.predicates import assert_equal, assert_not_equal
 
 Case = namedtuple("Case", "finder inputs as_of country_code expected")
 

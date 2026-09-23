@@ -3,6 +3,7 @@ Tests for statistical pipeline terms.
 """
 
 import numpy as np
+from empyrical.stats import beta_aligned as empyrical_beta
 from numpy import (
     arange,
     full,
@@ -12,15 +13,13 @@ from numpy import (
 )
 from pandas import (
     DataFrame,
-    date_range,
     Index,
     Timestamp,
+    date_range,
 )
-from zipline.testing.predicates import assert_frame_equal
 from scipy.stats import linregress, pearsonr, spearmanr
 
-from empyrical.stats import beta_aligned as empyrical_beta
-
+import zipline.testing.fixtures as zf
 from zipline.assets import Equity, ExchangeInfo
 from zipline.errors import IncompatibleTerms, NonExistentAssetInTimeFrame
 from zipline.pipeline import CustomFactor, Pipeline
@@ -49,8 +48,7 @@ from zipline.testing import (
     make_cascading_boolean_array,
     parameter_space,
 )
-import zipline.testing.fixtures as zf
-from zipline.testing.predicates import assert_equal
+from zipline.testing.predicates import assert_equal, assert_frame_equal
 from zipline.utils.numpy_utils import (
     as_column,
     bool_dtype,
@@ -492,9 +490,7 @@ class StatisticalBuiltInsTestCase(
             allowed_missing_percentage=0.5,
         )
         result = repr(beta)
-        expected = "SimpleBeta({}, length=50, allowed_missing=25)".format(
-            self.my_asset,
-        )
+        expected = f"SimpleBeta({self.my_asset}, length=50, allowed_missing=25)"
         self.assertEqual(result, expected)
 
     def test_simple_beta_graph_repr(self):

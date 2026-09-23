@@ -4,18 +4,18 @@ Tests for setting up an EventsLoader and a BlazeEventsLoader.
 
 from datetime import time
 from itertools import product
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
-from zoneinfo import ZoneInfo
 
 from zipline.pipeline import Pipeline, SimplePipelineEngine
 from zipline.pipeline.common import (
     EVENT_DATE_FIELD_NAME,
-    TS_FIELD_NAME,
     SID_FIELD_NAME,
+    TS_FIELD_NAME,
 )
-from zipline.pipeline.data import DataSet, Column
+from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.domain import US_EQUITIES, EquitySessionDomain
 from zipline.pipeline.loaders.events import EventsLoader
 from zipline.pipeline.loaders.utils import (

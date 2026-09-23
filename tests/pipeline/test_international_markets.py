@@ -2,28 +2,26 @@
 
 from itertools import cycle, islice
 
-from parameterized import parameterized
 import numpy as np
 import pandas as pd
+from parameterized import parameterized
 
-from zipline.utils.calendar_utils import get_calendar
-
+import zipline.testing.fixtures as zf
 from zipline.assets.synthetic import make_rotating_equity_info
 from zipline.data.in_memory_daily_bars import InMemoryDailyBarReader
+from zipline.pipeline import Pipeline
+from zipline.pipeline.data import EquityPricing, USEquityPricing
 from zipline.pipeline.domain import (
     CA_EQUITIES,
     GB_EQUITIES,
     US_EQUITIES,
 )
-from zipline.pipeline import Pipeline
-from zipline.pipeline.data import EquityPricing, USEquityPricing
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.loaders.equity_pricing_loader import EquityPricingLoader
 from zipline.pipeline.loaders.synthetic import NullAdjustmentReader
-from zipline.testing.predicates import assert_equal
 from zipline.testing.core import parameter_space, random_tick_prices
-
-import zipline.testing.fixtures as zf
+from zipline.testing.predicates import assert_equal
+from zipline.utils.calendar_utils import get_calendar
 
 
 def T(s):

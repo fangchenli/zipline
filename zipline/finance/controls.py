@@ -13,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-import logbook
 from datetime import datetime
 
+import logbook
 import pandas as pd
 
 from zipline.errors import (
@@ -26,7 +26,6 @@ from zipline.utils.input_validation import (
     expect_bounded,
     expect_types,
 )
-
 
 log = logbook.Logger("TradingControl")
 
@@ -63,9 +62,7 @@ class TradingControl(ABC):
     def _constraint_msg(self, metadata):
         constraint = repr(self)
         if metadata:
-            constraint = "{constraint} (Metadata: {metadata})".format(
-                constraint=constraint, metadata=metadata
-            )
+            constraint = f"{constraint} (Metadata: {metadata})"
         return constraint
 
     def handle_violation(self, asset, amount, datetime, metadata=None):
@@ -93,9 +90,7 @@ class TradingControl(ABC):
             )
 
     def __repr__(self):
-        return "{name}({attrs})".format(
-            name=self.__class__.__name__, attrs=self.__fail_args
-        )
+        return f"{self.__class__.__name__}({self.__fail_args})"
 
 
 class MaxOrderCount(TradingControl):
@@ -338,9 +333,7 @@ class AccountControl(ABC):
         raise AccountControlViolation(constraint=repr(self))
 
     def __repr__(self):
-        return "{name}({attrs})".format(
-            name=self.__class__.__name__, attrs=self.__fail_args
-        )
+        return f"{self.__class__.__name__}({self.__fail_args})"
 
 
 class MaxLeverage(AccountControl):

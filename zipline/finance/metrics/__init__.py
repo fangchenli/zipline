@@ -17,12 +17,13 @@ import empyrical
 from zipline.utils.deprecate import deprecated
 
 from .core import (
+    load,
     metrics_sets,
     register,
     unregister,
-    load,
 )
 from .metric import (
+    PNL,
     AlphaBeta,
     BenchmarkReturnsAndVolatility,
     CashFlow,
@@ -31,17 +32,15 @@ from .metric import (
     NumTradingDays,
     Orders,
     PeriodLabel,
-    PNL,
     Returns,
     ReturnsStatistic,
     SimpleLedgerField,
     StartOfPeriodLedgerField,
     Transactions,
-    _ConstantCumulativeRiskMetric,
     _ClassicRiskMetrics,
+    _ConstantCumulativeRiskMetric,
 )
 from .tracker import MetricsTracker
-
 
 __all__ = ["MetricsTracker", "unregister", "metrics_sets", "load"]
 

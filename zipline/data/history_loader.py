@@ -18,16 +18,16 @@ from abc import (
     abstractproperty,
 )
 
-from numpy import concatenate
 from lru import LRU
+from numpy import concatenate
 from pandas import isnull
 from toolz import sliding_window
 
 from zipline.assets import Equity, Future
 from zipline.assets.continuous_futures import ContinuousFuture
-from zipline.lib._int64window import AdjustedArrayWindow as Int64Window
 from zipline.lib._float64window import AdjustedArrayWindow as Float64Window
-from zipline.lib.adjustment import Float64Multiply, Float64Add
+from zipline.lib._int64window import AdjustedArrayWindow as Int64Window
+from zipline.lib.adjustment import Float64Add, Float64Multiply
 from zipline.utils.cache import ExpiringCache
 from zipline.utils.math_utils import number_of_decimal_places
 from zipline.utils.memoize import lazyval

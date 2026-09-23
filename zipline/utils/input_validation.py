@@ -12,19 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from datetime import tzinfo
-from functools import partial
+from functools import partial, wraps
 from operator import attrgetter
-
-from numpy import dtype
-import pandas as pd
 from zoneinfo import ZoneInfo
-from toolz import valmap, complement, compose
-import toolz.curried.operator as op
 
-from functools import wraps
+import pandas as pd
+import toolz.curried.operator as op
+from numpy import dtype
+from toolz import complement, compose, valmap
+
 from zipline.utils.functional import getattrs
 from zipline.utils.preprocess import call, preprocess
-
 
 _qualified_name = attrgetter("__qualname__")
 
@@ -59,11 +57,7 @@ def verify_indices_all_unique(obj):
             continue
 
         raise ValueError(
-            "Duplicate entries in {type}.{axis}: {dupes}.".format(
-                type=type(obj).__name__,
-                axis=axis_name,
-                dupes=sorted(index[index.duplicated()]),
-            )
+            f"Duplicate entries in {type(obj).__name__}.{axis_name}: {sorted(index[index.duplicated()])}."
         )
     return obj
 
@@ -114,11 +108,7 @@ def ensure_upper_case(func, argname, arg):
         return arg.upper()
     else:
         raise TypeError(
-            "{}() expected argument '{}' to be a string, but got {} instead.".format(
-                func.__name__,
-                argname,
-                arg,
-            ),
+            f"{func.__name__}() expected argument '{argname}' to be a string, but got {arg} instead.",
         )
 
 
@@ -141,12 +131,8 @@ def ensure_dtype(func, argname, arg):
         return dtype(arg)
     except TypeError:
         raise TypeError(
-            "{func}() couldn't convert argument "
-            "{argname}={arg!r} to a numpy dtype.".format(
-                func=_qualified_name(func),
-                argname=argname,
-                arg=arg,
-            ),
+            f"{_qualified_name(func)}() couldn't convert argument "
+            f"{argname}={arg!r} to a numpy dtype.",
         )
 
 
@@ -168,11 +154,7 @@ def ensure_timezone(func, argname, arg):
         return ZoneInfo(arg)
 
     raise TypeError(
-        "{func}() couldn't convert argument {argname}={arg!r} to a timezone.".format(
-            func=_qualified_name(func),
-            argname=argname,
-            arg=arg,
-        ),
+        f"{_qualified_name(func)}() couldn't convert argument {argname}={arg!r} to a timezone.",
     )
 
 
@@ -193,15 +175,9 @@ def ensure_timestamp(func, argname, arg):
         return pd.Timestamp(arg)
     except ValueError as e:
         raise TypeError(
-            "{func}() couldn't convert argument "
-            "{argname}={arg!r} to a pandas Timestamp.\n"
-            "Original error was: {t}: {e}".format(
-                func=_qualified_name(func),
-                argname=argname,
-                arg=arg,
-                t=_qualified_name(type(e)),
-                e=e,
-            ),
+            f"{_qualified_name(func)}() couldn't convert argument "
+            f"{argname}={arg!r} to a pandas Timestamp.\n"
+            f"Original error was: {_qualified_name(type(e))}: {e}",
         )
 
 
@@ -229,10 +205,7 @@ def expect_dtypes(__funcname=_qualified_name, **named):
         if not isinstance(type_, (dtype, tuple)):
             raise TypeError(
                 "expect_dtypes() expected a numpy dtype or tuple of dtypes"
-                " for argument {name!r}, but got {dtype} instead.".format(
-                    name=name,
-                    dtype=dtype,
-                )
+                f" for argument {name!r}, but got {dtype} instead."
             )
 
     if isinstance(__funcname, str):
@@ -301,10 +274,7 @@ def expect_kinds(**named):
         if not isinstance(kind, (str, tuple)):
             raise TypeError(
                 "expect_dtype_kinds() expected a string or tuple of strings"
-                " for argument {name!r}, but got {kind} instead.".format(
-                    name=name,
-                    kind=dtype,
-                )
+                f" for argument {name!r}, but got {dtype} instead."
             )
 
     @preprocess(kinds=call(lambda x: x if isinstance(x, tuple) else (x,)))
@@ -370,10 +340,7 @@ def expect_types(__funcname=_qualified_name, **named):
         if not isinstance(type_, (type, tuple)):
             raise TypeError(
                 "expect_types() expected a type or tuple of types for "
-                "argument '{name}', but got {type_} instead.".format(
-                    name=name,
-                    type_=type_,
-                )
+                f"argument '{name}', but got {type_} instead."
             )
 
     def _expect_type(type_):
@@ -513,9 +480,9 @@ def expect_element(__funcname=_qualified_name, **named):
             collection_for_error_message = collection
 
         template = (
-            "%(funcname)s() expected a value in {collection} "
+            f"%(funcname)s() expected a value in {collection_for_error_message} "
             "for argument '%(argname)s', but got %(actual)s instead."
-        ).format(collection=collection_for_error_message)
+        )
         return make_check(
             ValueError,
             template,
@@ -598,9 +565,9 @@ def expect_bounded(__funcname=_qualified_name, **named):
             predicate_descr = "inclusively between %s and %s" % bounds
 
         template = (
-            "%(funcname)s() expected a value {predicate}"
+            f"%(funcname)s() expected a value {predicate_descr}"
             " for argument '%(argname)s', but got %(actual)s instead."
-        ).format(predicate=predicate_descr)
+        )
 
         return make_check(
             exc_type=ValueError,
@@ -684,9 +651,9 @@ def expect_strictly_bounded(__funcname=_qualified_name, **named):
             predicate_descr = "exclusively between %s and %s" % bounds
 
         template = (
-            "%(funcname)s() expected a value {predicate}"
+            f"%(funcname)s() expected a value {predicate_descr}"
             " for argument '%(argname)s', but got %(actual)s instead."
-        ).format(predicate=predicate_descr)
+        )
 
         return make_check(
             exc_type=ValueError,
@@ -707,10 +674,7 @@ def _expect_bounded(make_bounded_check, __funcname, **named):
         if not valid_bounds(bounds):
             raise TypeError(
                 "expect_bounded() expected a tuple of bounds for"
-                " argument '{name}', but got {bounds} instead.".format(
-                    name=name,
-                    bounds=bounds,
-                )
+                f" argument '{name}', but got {bounds} instead."
             )
 
     return preprocess(**valmap(make_bounded_check, named))
@@ -753,14 +717,9 @@ def expect_dimensions(__funcname=_qualified_name, **dimensions):
                 else:
                     actual_repr = "%d-D array" % actual_ndim
                 raise ValueError(
-                    "{func}() expected a {expected:d}-D array"
-                    " for argument {argname!r}, but got a {actual}"
-                    " instead.".format(
-                        func=get_funcname(func),
-                        expected=expected_ndim,
-                        argname=argname,
-                        actual=actual_repr,
-                    )
+                    f"{get_funcname(func)}() expected a {expected_ndim:d}-D array"
+                    f" for argument {argname!r}, but got a {actual_repr}"
+                    " instead."
                 )
             return argvalue
 
@@ -860,19 +819,11 @@ def validate_keys(dict_, expected, funcname):
     missing = expected - received
     if missing:
         raise ValueError(
-            "Missing keys in {}:\nExpected Keys: {}\nReceived Keys: {}".format(
-                funcname,
-                sorted(expected),
-                sorted(received),
-            )
+            f"Missing keys in {funcname}:\nExpected Keys: {sorted(expected)}\nReceived Keys: {sorted(received)}"
         )
 
     unexpected = received - expected
     if unexpected:
         raise ValueError(
-            "Unexpected keys in {}:\nExpected Keys: {}\nReceived Keys: {}".format(
-                funcname,
-                sorted(expected),
-                sorted(received),
-            )
+            f"Unexpected keys in {funcname}:\nExpected Keys: {sorted(expected)}\nReceived Keys: {sorted(received)}"
         )

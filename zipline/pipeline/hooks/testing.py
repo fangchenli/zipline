@@ -2,8 +2,7 @@ from collections import namedtuple
 from contextlib import contextmanager
 from functools import wraps
 
-from .iface import PipelineHooks, PIPELINE_HOOKS_CONTEXT_MANAGERS
-
+from .iface import PIPELINE_HOOKS_CONTEXT_MANAGERS, PipelineHooks
 
 Call = namedtuple("Call", "method_name args kwargs")
 

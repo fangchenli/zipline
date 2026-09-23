@@ -1,6 +1,6 @@
-from copy import copy, deepcopy
-from pickle import loads, dumps
 import sys
+from copy import copy, deepcopy
+from pickle import dumps, loads
 from unittest import TestCase
 from weakref import ref
 

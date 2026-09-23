@@ -15,12 +15,13 @@
 from collections import OrderedDict
 from textwrap import dedent
 
-from parameterized import parameterized
 import numpy as np
-from numpy import nan
 import pandas as pd
+from numpy import nan
+from parameterized import parameterized
+from zipline._protocol import BarData, handle_non_market_minutes
 
-from zipline._protocol import handle_non_market_minutes, BarData
+import zipline.testing.fixtures as zf
 from zipline.assets import Asset, Equity
 from zipline.errors import (
     HistoryInInitialize,
@@ -28,12 +29,10 @@ from zipline.errors import (
 )
 from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.testing import (
+    MockDailyBarReader,
     create_minute_df_for_asset,
     str_to_seconds,
-    MockDailyBarReader,
 )
-import zipline.testing.fixtures as zf
-
 
 OHLC = ["open", "high", "low", "close"]
 OHLCP = OHLC + ["price"]
@@ -1511,7 +1510,7 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
             np.testing.assert_almost_equal(
                 window.iloc[-1],
                 last_val,
-                err_msg="field={0} minute={1}".format(field, minute),
+                err_msg=f"field={field} minute={minute}",
             )
 
     @parameterized.expand([(("bar_count%s" % x), x) for x in [1, 2, 3]])
@@ -1589,9 +1588,7 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
                 self.assertEqual(
                     len(window),
                     bar_count,
-                    "Unexpected window length at {}. Expected {}, but was {}.".format(
-                        minute, bar_count, len(window)
-                    ),
+                    f"Unexpected window length at {minute}. Expected {bar_count}, but was {len(window)}.",
                 )
                 np.testing.assert_allclose(
                     window.iloc[-1],

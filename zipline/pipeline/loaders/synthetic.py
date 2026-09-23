@@ -2,6 +2,8 @@
 Synthetic data loaders for testing.
 """
 
+from sqlite3 import connect as sqlite3_connect
+
 from numpy import (
     arange,
     array,
@@ -14,17 +16,13 @@ from numpy import (
 )
 from numpy.random import RandomState
 from pandas import DataFrame, Timestamp
-from sqlite3 import connect as sqlite3_connect
 
-from .base import PipelineLoader
-from .frame import DataFrameLoader
 from zipline.data.adjustments import (
     SQLiteAdjustmentReader,
     SQLiteAdjustmentWriter,
 )
 from zipline.data.bcolz_daily_bars import US_EQUITY_PRICING_BCOLZ_COLUMNS
 from zipline.utils.date_utils import to_session_label
-
 from zipline.utils.numpy_utils import (
     bool_dtype,
     datetime64ns_dtype,
@@ -33,6 +31,8 @@ from zipline.utils.numpy_utils import (
     object_dtype,
 )
 
+from .base import PipelineLoader
+from .frame import DataFrameLoader
 
 UINT_32_MAX = iinfo(uint32).max
 

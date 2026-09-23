@@ -1,6 +1,5 @@
-from contextlib import contextmanager as _contextmanager
 from abc import ABC, abstractmethod
-
+from contextlib import contextmanager as _contextmanager
 
 # Keep track of which methods of PipelineHooks are contextmanagers. Used by
 # DelegatingHooks to properly delegate to sub-hooks.

@@ -12,8 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from parameterized import parameterized
 import pandas as pd
+from parameterized import parameterized
 
 from zipline.errors import BadOrderParameters
 from zipline.finance.execution import (
@@ -23,11 +23,10 @@ from zipline.finance.execution import (
     StopOrder,
 )
 from zipline.testing.fixtures import (
+    WithConstantFutureMinuteBarData,
     WithLogger,
     ZiplineTestCase,
-    WithConstantFutureMinuteBarData,
 )
-
 from zipline.testing.predicates import assert_equal
 
 

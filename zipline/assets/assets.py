@@ -12,20 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import ABC
 import array
 import binascii
+import struct
+from abc import ABC
 from collections import deque, namedtuple
 from functools import partial
 from numbers import Integral
 from operator import attrgetter
-import struct
 
-from logbook import Logger
 import numpy as np
 import pandas as pd
-from pandas import isnull
 import sqlalchemy as sa
+from logbook import Logger
+from pandas import isnull
 from toolz import (
     compose,
     concat,
@@ -46,15 +46,29 @@ from zipline.errors import (
     MultipleValuesFoundForField,
     MultipleValuesFoundForSid,
     NoValueForSid,
-    ValueNotFoundForField,
     SameSymbolUsedAcrossCountries,
     SidsNotFound,
     SymbolNotFound,
+    ValueNotFoundForField,
 )
+from zipline.utils.functional import invert
+from zipline.utils.memoize import lazyval
+from zipline.utils.numpy_utils import as_column
+from zipline.utils.preprocess import preprocess
+from zipline.utils.sqlite_utils import coerce_string_to_eng, group_into_chunks
+
 from . import (
     Asset,
     Equity,
     Future,
+)
+from .asset_db_schema import ASSET_DB_VERSION
+from .asset_writer import (
+    SQLITE_MAX_VARIABLE_NUMBER,
+    asset_db_table_names,
+    check_version_info,
+    split_delimited_symbol,
+    symbol_columns,
 )
 from .continuous_futures import (
     ADJUSTMENT_STYLES,
@@ -62,20 +76,7 @@ from .continuous_futures import (
     ContinuousFuture,
     OrderedContracts,
 )
-from .asset_writer import (
-    check_version_info,
-    split_delimited_symbol,
-    asset_db_table_names,
-    symbol_columns,
-    SQLITE_MAX_VARIABLE_NUMBER,
-)
-from .asset_db_schema import ASSET_DB_VERSION
 from .exchange_info import ExchangeInfo
-from zipline.utils.functional import invert
-from zipline.utils.memoize import lazyval
-from zipline.utils.numpy_utils import as_column
-from zipline.utils.preprocess import preprocess
-from zipline.utils.sqlite_utils import group_into_chunks, coerce_string_to_eng
 
 log = Logger("assets.py")
 
@@ -1249,8 +1250,8 @@ class AssetFinder:
     def create_continuous_future(self, root_symbol, offset, roll_style, adjustment):
         if adjustment not in ADJUSTMENT_STYLES:
             raise ValueError(
-                "Invalid adjustment style {!r}. Allowed adjustment styles are "
-                "{}.".format(adjustment, list(ADJUSTMENT_STYLES))
+                f"Invalid adjustment style {adjustment!r}. Allowed adjustment styles are "
+                f"{list(ADJUSTMENT_STYLES)}."
             )
 
         oc = self.get_ordered_contracts(root_symbol)
@@ -1482,8 +1483,8 @@ class AssetFinder:
         """
         if isinstance(country_codes, str):
             raise TypeError(
-                "Got string {!r} instead of an iterable of strings in "
-                "AssetFinder.lifetimes.".format(country_codes),
+                f"Got string {country_codes!r} instead of an iterable of strings in "
+                "AssetFinder.lifetimes.",
             )
 
         # normalize to a cache-key so that we can memoize results.

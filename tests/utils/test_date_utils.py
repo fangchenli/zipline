@@ -1,8 +1,8 @@
 from pandas import Timestamp
 from parameterized import parameterized
-from zipline.utils.calendar_utils import get_calendar
 
 from zipline.testing import ZiplineTestCase
+from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.date_utils import compute_date_range_chunks
 
 

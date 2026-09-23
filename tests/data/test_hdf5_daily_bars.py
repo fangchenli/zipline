@@ -1,12 +1,12 @@
 import numpy as np
 import pandas as pd
 
+import zipline.testing.fixtures as zp_fixtures
 from zipline.data.hdf5_daily_bars import (
     HDF5DailyBarReader,
     HDF5DailyBarWriter,
     MultiCountryDailyBarReader,
 )
-import zipline.testing.fixtures as zp_fixtures
 from zipline.testing.predicates import assert_equal
 
 

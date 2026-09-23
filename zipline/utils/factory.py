@@ -18,15 +18,16 @@
 Factory functions to prepare useful data.
 """
 
-import pandas as pd
-import numpy as np
 from datetime import timedelta
+
+import numpy as np
+import pandas as pd
+
+from zipline.finance.trading import SimulationParameters
+from zipline.sources import SpecificEquityTrades
+from zipline.sources.test_source import create_trade
 from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.date_utils import to_session_label
-
-from zipline.sources import SpecificEquityTrades
-from zipline.finance.trading import SimulationParameters
-from zipline.sources.test_source import create_trade
 
 
 def create_simulation_parameters(

@@ -2,12 +2,13 @@
 Base class for Pipeline API unit tests.
 """
 
+from functools import wraps
+
 import numpy as np
 from numpy import arange, prod
 from pandas import DataFrame, Timestamp
 
 from zipline.lib.labelarray import LabelArray
-from functools import wraps
 from zipline.pipeline import ExecutionPlan
 from zipline.pipeline.domain import US_EQUITIES
 from zipline.pipeline.engine import SimplePipelineEngine

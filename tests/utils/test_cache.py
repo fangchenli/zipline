@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from pandas import Timestamp, Timedelta
+from pandas import Timedelta, Timestamp
 
 from zipline.utils.cache import CachedObject, Expired, ExpiringCache
 

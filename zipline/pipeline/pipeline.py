@@ -5,9 +5,9 @@ from zipline.utils.input_validation import (
     optional,
 )
 
-from .domain import Domain, GENERIC, infer_domain
-from .graph import ExecutionPlan, TermGraph, SCREEN_NAME
+from .domain import GENERIC, Domain, infer_domain
 from .filters import Filter
+from .graph import SCREEN_NAME, ExecutionPlan, TermGraph
 from .term import AssetExists, ComputableTerm, Term
 
 
@@ -47,11 +47,8 @@ class Pipeline:
             validate_column(column_name, term)
             if not isinstance(term, ComputableTerm):
                 raise TypeError(
-                    "Column {column_name!r} contains an invalid pipeline term "
-                    "({term}). Did you mean to append '.latest'?".format(
-                        column_name=column_name,
-                        term=term,
-                    )
+                    f"Column {column_name!r} contains an invalid pipeline term "
+                    f"({term}). Did you mean to append '.latest'?"
                 )
 
         self._columns = columns
@@ -120,8 +117,8 @@ class Pipeline:
 
         if not isinstance(term, ComputableTerm):
             raise TypeError(
-                "{term} is not a valid pipeline column. Did you mean to "
-                "append '.latest'?".format(term=term)
+                f"{term} is not a valid pipeline column. Did you mean to "
+                "append '.latest'?"
             )
 
         self._columns[name] = term
@@ -196,8 +193,8 @@ class Pipeline:
         """
         if self._domain is not GENERIC and self._domain is not domain:
             raise AssertionError(
-                "Attempted to compile Pipeline with domain {} to execution "
-                "plan with different domain {}.".format(self._domain, domain)
+                f"Attempted to compile Pipeline with domain {self._domain} to execution "
+                f"plan with different domain {domain}."
             )
 
         return ExecutionPlan(
@@ -317,7 +314,7 @@ class Pipeline:
             # Both non-generic. They have to match.
             if inferred is not self._domain:
                 raise ValueError(
-                    "Conflicting domains in Pipeline. Inferred {}, but {} was "
-                    "passed at construction.".format(inferred, self._domain)
+                    f"Conflicting domains in Pipeline. Inferred {inferred}, but {self._domain} was "
+                    "passed at construction."
                 )
             return inferred

@@ -1,7 +1,7 @@
 import numpy as np
 
-from zipline.testing.predicates import assert_equal
 from zipline.pipeline import Classifier, Factor, Filter
+from zipline.testing.predicates import assert_equal
 from zipline.utils.numpy_utils import float64_dtype, int64_dtype
 
 from .base import BaseUSEquityPipelineTestCase
@@ -30,9 +30,7 @@ class BaseAliasTestCase:
     def test_repr(self):
         assert_equal(
             repr(self.Term().alias("ayy lmao")),
-            "Aliased{}(Term(...), name='ayy lmao')".format(
-                self.Term.__base__.__name__,
-            ),
+            f"Aliased{self.Term.__base__.__name__}(Term(...), name='ayy lmao')",
         )
 
     def test_graph_repr(self):

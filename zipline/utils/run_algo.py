@@ -1,12 +1,13 @@
-import click
 import os
 import sys
 import warnings
 
+import click
+
 try:
     from pygments import highlight
-    from pygments.lexers import PythonLexer
     from pygments.formatters import TerminalFormatter
+    from pygments.lexers import PythonLexer
 
     PYGMENTS = True
 except ImportError:
@@ -14,22 +15,21 @@ except ImportError:
 import logbook
 import pandas as pd
 from toolz import concatv
-from zipline.utils.calendar_utils import get_calendar
-from zipline.utils.date_utils import to_session_label
 
+import zipline.utils.paths as pth
+from zipline.algorithm import NoBenchmark, TradingAlgorithm
 from zipline.data import bundles
 from zipline.data.benchmarks import get_benchmark_returns_from_file
 from zipline.data.data_portal import DataPortal
+from zipline.errors import SymbolNotFound
+from zipline.extensions import load
 from zipline.finance import metrics
+from zipline.finance.blotter import Blotter
 from zipline.finance.trading import SimulationParameters
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders import USEquityPricingLoader
-
-import zipline.utils.paths as pth
-from zipline.extensions import load
-from zipline.errors import SymbolNotFound
-from zipline.algorithm import TradingAlgorithm, NoBenchmark
-from zipline.finance.blotter import Blotter
+from zipline.utils.calendar_utils import get_calendar
+from zipline.utils.date_utils import to_session_label
 
 log = logbook.Logger(__name__)
 
@@ -104,10 +104,7 @@ def _run(
     # date parameter validation
     if trading_calendar.sessions_distance(start, end) < 1:
         raise _RunAlgoError(
-            "There are no trading days between {} and {}".format(
-                start.date(),
-                end.date(),
-            ),
+            f"There are no trading days between {start.date()} and {end.date()}",
         )
 
     benchmark_sid, benchmark_returns = benchmark_spec.resolve(

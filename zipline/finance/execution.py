@@ -17,6 +17,7 @@ from abc import ABC, abstractmethod
 from sys import float_info
 
 from numpy import isfinite
+
 import zipline.utils.math_utils as zp_math
 from zipline.errors import BadOrderParameters
 from zipline.utils.compat import consistent_round
@@ -214,16 +215,12 @@ def check_stoplimit_prices(price, label):
     try:
         if not isfinite(price):
             raise BadOrderParameters(
-                msg="Attempted to place an order with a {} price of {}.".format(
-                    label, price
-                )
+                msg=f"Attempted to place an order with a {label} price of {price}."
             )
     # This catches arbitrary objects
     except TypeError:
         raise BadOrderParameters(
-            msg="Attempted to place an order with a {} price of {}.".format(
-                label, type(price)
-            )
+            msg=f"Attempted to place an order with a {label} price of {type(price)}."
         )
 
     if price < 0:

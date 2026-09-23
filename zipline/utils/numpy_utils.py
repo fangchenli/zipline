@@ -310,11 +310,8 @@ def rolling_window(array, length):
         raise IndexError("Can't restride a scalar.")
     elif orig_shape[0] <= length:
         raise IndexError(
-            "Can't restride array of shape {shape} with"
-            " a window length of {len}".format(
-                shape=orig_shape,
-                len=length,
-            )
+            f"Can't restride array of shape {orig_shape} with"
+            f" a window length of {length}"
         )
 
     num_windows = orig_shape[0] - length + 1

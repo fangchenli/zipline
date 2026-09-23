@@ -14,10 +14,11 @@
 # limitations under the License.
 
 import random
+
 import numpy as np
 import pandas as pd
-
 from zipline.data.us_equity_minutes import BcolzMinuteBarWriter
+
 from zipline.utils.calendars import get_calendar
 
 

@@ -1,9 +1,9 @@
-from collections import OrderedDict
 import itertools
+from collections import OrderedDict
 from textwrap import dedent
 
-from parameterized import parameterized
 import numpy as np
+from parameterized import parameterized
 
 from zipline.pipeline.data import (
     Column,

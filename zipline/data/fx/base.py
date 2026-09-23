@@ -3,8 +3,8 @@ from abc import ABC, abstractmethod
 import numpy as np
 import pandas as pd
 
-from zipline.utils.sentinel import sentinel
 from zipline.lib._factorize import factorize_strings
+from zipline.utils.sentinel import sentinel
 
 DEFAULT_FX_RATE = sentinel("DEFAULT_FX_RATE")
 
@@ -130,9 +130,7 @@ class FXRateReader(ABC):
             multiple times. Datetimes do not need to be sorted.
         """
         if len(bases) != len(dts):
-            raise ValueError(
-                "len(bases) ({}) != len(dts) ({})".format(len(bases), len(dts))
-            )
+            raise ValueError(f"len(bases) ({len(bases)}) != len(dts) ({len(dts)})")
 
         bases_ix, unique_bases, _ = factorize_strings(
             bases,

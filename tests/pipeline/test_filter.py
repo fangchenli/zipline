@@ -6,7 +6,7 @@ from functools import partial
 from itertools import product
 from operator import and_
 
-from toolz import compose
+import pandas as pd
 from numpy import (
     arange,
     argsort,
@@ -22,15 +22,17 @@ from numpy import (
     ones_like,
     putmask,
     rot90,
-    sum as np_sum,
     where,
 )
+from numpy import (
+    sum as np_sum,
+)
 from numpy.random import RandomState
-import pandas as pd
+from toolz import compose
 
 from zipline.errors import BadPercentileBounds
 from zipline.lib.labelarray import labelarray_where
-from zipline.pipeline import Filter, Factor, Pipeline
+from zipline.pipeline import Factor, Filter, Pipeline
 from zipline.pipeline.classifiers import Classifier
 from zipline.pipeline.domain import US_EQUITIES
 from zipline.pipeline.factors import CustomFactor
@@ -42,7 +44,7 @@ from zipline.pipeline.filters import (
     StaticAssets,
     StaticSids,
 )
-from zipline.testing import parameter_space, permute_rows, ZiplineTestCase
+from zipline.testing import ZiplineTestCase, parameter_space, permute_rows
 from zipline.testing.fixtures import WithSeededRandomPipelineEngine
 from zipline.testing.predicates import assert_equal
 from zipline.utils.numpy_utils import (
@@ -51,6 +53,7 @@ from zipline.utils.numpy_utils import (
     int64_dtype,
     object_dtype,
 )
+
 from .base import BaseUSEquityPipelineTestCase
 
 
@@ -1256,11 +1259,7 @@ class ReprTestCase(ZiplineTestCase):
         rep = repr(m)
         assert_equal(
             rep,
-            "Maximum({}, groupby={}, mask={})".format(
-                SomeFactor().recursive_repr(),
-                SomeClassifier().recursive_repr(),
-                SomeFilter().recursive_repr(),
-            ),
+            f"Maximum({SomeFactor().recursive_repr()}, groupby={SomeClassifier().recursive_repr()}, mask={SomeFilter().recursive_repr()})",
         )
 
         short_rep = m.graph_repr()

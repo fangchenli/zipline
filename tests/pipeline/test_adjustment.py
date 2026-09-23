@@ -3,6 +3,7 @@ Tests for zipline.lib.adjustment
 """
 
 from unittest import TestCase
+
 from parameterized import parameterized
 
 from zipline.lib import adjustment as adj

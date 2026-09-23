@@ -1,7 +1,7 @@
 import numpy as np
 
-from zipline.pipeline.factors.factor import CustomFactor
 from zipline.pipeline.classifiers.classifier import CustomClassifier
+from zipline.pipeline.factors.factor import CustomFactor
 from zipline.utils.idbox import IDBox
 
 from .predicates import assert_equal

@@ -6,11 +6,11 @@ from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Classifier, Factor, Filter
 from zipline.testing import parameter_space
 from zipline.utils.numpy_utils import (
+    NaTns,
     categorical_dtype,
     datetime64ns_dtype,
     float64_dtype,
     int64_dtype,
-    NaTns,
 )
 
 from .base import BaseUSEquityPipelineTestCase

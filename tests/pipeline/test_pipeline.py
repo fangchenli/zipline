@@ -3,17 +3,16 @@ Tests for zipline.pipeline.Pipeline
 """
 
 from unittest import TestCase
-
 from unittest.mock import patch
 
 from zipline.pipeline import Factor, Filter, Pipeline
 from zipline.pipeline.data import Column, DataSet, USEquityPricing
 from zipline.pipeline.domain import (
-    AmbiguousDomain,
     CA_EQUITIES,
-    GENERIC,
     GB_EQUITIES,
+    GENERIC,
     US_EQUITIES,
+    AmbiguousDomain,
 )
 from zipline.pipeline.graph import display_graph
 from zipline.utils.compat import getargspec

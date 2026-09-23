@@ -1,16 +1,15 @@
+import os.path
 import warnings
 from datetime import datetime
 from os import listdir
-import os.path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
-from zoneinfo import ZoneInfo
-import zipline
 
+import zipline
 from zipline.errors import SymbolNotFound
 from zipline.finance.asset_restrictions import SecurityListRestrictions
 from zipline.zipline_warnings import ZiplineDeprecationWarning
-
 
 DATE_FORMAT = "%Y%m%d"
 zipline_dir = os.path.dirname(zipline.__file__)

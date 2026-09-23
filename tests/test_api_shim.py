@@ -1,6 +1,6 @@
 import warnings
-
 from unittest.mock import patch
+
 import numpy as np
 import pandas as pd
 from pandas.errors import PerformanceWarning
@@ -462,7 +462,7 @@ class TestAPIShim(WithCreateBarData, WithMakeAlgo, ZiplineTestCase):
                     str(warning1.message),
                 )
                 self.assertEqual(
-                    "The `{}` method is deprecated.".format(transforms[idx]),
+                    f"The `{transforms[idx]}` method is deprecated.",
                     str(warning2.message),
                 )
 

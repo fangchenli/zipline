@@ -13,40 +13,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import datetime
-from inspect import isabstract
 import random
-from unittest import TestCase
 import warnings
+from inspect import isabstract
+from unittest import TestCase
 
-from parameterized import parameterized
 import pandas as pd
-from zipline.utils.calendar_utils import get_calendar
+from parameterized import parameterized
 
 import zipline.utils.events
+from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.events import (
-    EventRule,
-    StatelessRule,
-    Always,
-    Never,
-    AfterOpen,
-    ComposedRule,
-    BeforeClose,
-    NotHalfDay,
-    NthTradingDayOfWeek,
-    NDaysBeforeLastTradingDayOfWeek,
-    NthTradingDayOfMonth,
-    NDaysBeforeLastTradingDayOfMonth,
-    StatefulRule,
-    OncePerDay,
-    _build_offset,
-    _build_date,
-    _build_time,
-    EventManager,
-    Event,
     MAX_MONTH_RANGE,
     MAX_WEEK_RANGE,
+    AfterOpen,
+    Always,
+    BeforeClose,
+    ComposedRule,
+    Event,
+    EventManager,
+    EventRule,
+    NDaysBeforeLastTradingDayOfMonth,
+    NDaysBeforeLastTradingDayOfWeek,
+    Never,
+    NotHalfDay,
+    NthTradingDayOfMonth,
+    NthTradingDayOfWeek,
+    OncePerDay,
+    StatefulRule,
+    StatelessRule,
     TradingDayOfMonthRule,
     TradingDayOfWeekRule,
+    _build_date,
+    _build_offset,
+    _build_time,
 )
 
 

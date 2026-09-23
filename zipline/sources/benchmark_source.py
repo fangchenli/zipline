@@ -16,9 +16,9 @@
 import pandas as pd
 
 from zipline.errors import (
-    InvalidBenchmarkAsset,
     BenchmarkAssetNotAvailableTooEarly,
     BenchmarkAssetNotAvailableTooLate,
+    InvalidBenchmarkAsset,
 )
 from zipline.utils.date_utils import to_session_labels
 

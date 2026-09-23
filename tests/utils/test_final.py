@@ -1,6 +1,5 @@
-from abc import abstractmethod, ABCMeta
+from abc import ABCMeta, abstractmethod
 from unittest import TestCase
-
 
 from zipline.utils.final import (
     FinalMeta,

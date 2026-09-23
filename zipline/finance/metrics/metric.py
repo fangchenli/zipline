@@ -13,16 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import datetime
-from functools import partial
 import operator as op
+from functools import partial
 
-from dateutil.relativedelta import relativedelta
 import empyrical as ep
 import numpy as np
 import pandas as pd
+from dateutil.relativedelta import relativedelta
 
-from zipline.utils.exploding_object import NamedExplodingObject
 from zipline.finance._finance_ext import minute_annual_volatility
+from zipline.utils.exploding_object import NamedExplodingObject
 
 
 class SimpleLedgerField:

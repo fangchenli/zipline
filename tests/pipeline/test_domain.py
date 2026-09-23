@@ -1,17 +1,17 @@
-from collections import namedtuple
 import datetime
+from collections import namedtuple
 from textwrap import dedent
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
-from zoneinfo import ZoneInfo
 
+import zipline.testing.fixtures as zf
 from zipline.country import CountryCode
 from zipline.pipeline import Pipeline
 from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.domain import (
-    AmbiguousDomain,
     AR_EQUITIES,
     AT_EQUITIES,
     AU_EQUITIES,
@@ -26,8 +26,6 @@ from zipline.pipeline.domain import (
     CZ_EQUITIES,
     DE_EQUITIES,
     DK_EQUITIES,
-    EquityCalendarDomain,
-    EquitySessionDomain,
     ES_EQUITIES,
     FI_EQUITIES,
     FR_EQUITIES,
@@ -39,7 +37,6 @@ from zipline.pipeline.domain import (
     ID_EQUITIES,
     IE_EQUITIES,
     IN_EQUITIES,
-    infer_domain,
     IT_EQUITIES,
     JP_EQUITIES,
     KR_EQUITIES,
@@ -61,9 +58,12 @@ from zipline.pipeline.domain import (
     TW_EQUITIES,
     US_EQUITIES,
     ZA_EQUITIES,
+    AmbiguousDomain,
+    EquityCalendarDomain,
+    EquitySessionDomain,
+    infer_domain,
 )
 from zipline.pipeline.factors import CustomFactor
-import zipline.testing.fixtures as zf
 from zipline.testing.core import parameter_space, powerset
 from zipline.testing.predicates import assert_equal, assert_messages_equal
 from zipline.utils.pandas_utils import days_at_time
@@ -572,12 +572,9 @@ class RollForwardTestCase(zf.ZiplineTestCase):
 
         self.assertEqual(
             str(ve.exception),
-            "Date {} was past the last session for domain "
+            f"Date {after_last_session.date()} was past the last session for domain "
             "EquityCalendarDomain('JP', 'XTKS'). The last session for "
-            "this domain is {}.".format(
-                after_last_session.date(),
-                JP_EQUITIES.calendar.last_session.date(),
-            ),
+            f"this domain is {JP_EQUITIES.calendar.last_session.date()}.",
         )
 
         # test that a roll_forward works with an EquitySessionDomain,

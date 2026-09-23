@@ -11,17 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import OrderedDict
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
 
 from zipline.data._resample import (
-    _minute_to_session_open,
+    _minute_to_session_close,
     _minute_to_session_high,
     _minute_to_session_low,
-    _minute_to_session_close,
+    _minute_to_session_open,
     _minute_to_session_volume,
 )
 from zipline.data.bar_reader import NoDataOnDate

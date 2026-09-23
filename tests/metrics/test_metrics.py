@@ -14,9 +14,9 @@ from zipline.testing import (
     simulate_minutes_for_day,
 )
 from zipline.testing.fixtures import (
-    WithMakeAlgo,
     WithConstantEquityMinuteBarData,
     WithConstantFutureMinuteBarData,
+    WithMakeAlgo,
     WithWerror,
     ZiplineTestCase,
 )

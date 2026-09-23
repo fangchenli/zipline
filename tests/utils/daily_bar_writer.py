@@ -1,11 +1,11 @@
+from bcolz import ctable
 from numpy import (
     float64,
-    uint32,
     int64,
+    uint32,
 )
-from bcolz import ctable
 
-from zipline.data.bcolz_daily_bars import BcolzDailyBarWriter, OHLC, UINT32_MAX
+from zipline.data.bcolz_daily_bars import OHLC, UINT32_MAX, BcolzDailyBarWriter
 
 
 class DailyBarWriterFromDataFrames(BcolzDailyBarWriter):

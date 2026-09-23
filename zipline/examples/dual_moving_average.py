@@ -69,8 +69,8 @@ def handle_data(context, data):
 # Note: this function can be removed if running
 # this algorithm on quantopian.com
 def analyze(context=None, results=None):
-    import matplotlib.pyplot as plt
     import logbook
+    import matplotlib.pyplot as plt
 
     logbook.StderrHandler().push_application()
     log = logbook.Logger("Algorithm")

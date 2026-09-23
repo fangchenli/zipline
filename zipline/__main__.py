@@ -1,5 +1,6 @@
 import errno
 import os
+from functools import wraps
 
 import click
 import logbook
@@ -7,11 +8,10 @@ import pandas as pd
 
 import zipline
 from zipline.data import bundles as bundles_module
-from zipline.utils.calendar_utils import get_calendar
-from functools import wraps
-from zipline.utils.cli import Date, Timestamp
-from zipline.utils.run_algo import _run, BenchmarkSpec, load_extensions
 from zipline.extensions import create_args
+from zipline.utils.calendar_utils import get_calendar
+from zipline.utils.cli import Date, Timestamp
+from zipline.utils.run_algo import BenchmarkSpec, _run, load_extensions
 
 try:
     __IPYTHON__

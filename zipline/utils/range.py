@@ -63,10 +63,7 @@ def maybe_from_tuple(tup_or_range):
         return tup_or_range
 
     raise ValueError(
-        "maybe_from_tuple expects a tuple or range, got {!r}: {!r}".format(
-            type(tup_or_range).__name__,
-            tup_or_range,
-        ),
+        f"maybe_from_tuple expects a tuple or range, got {type(tup_or_range).__name__!r}: {tup_or_range!r}",
     )
 
 

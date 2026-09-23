@@ -16,7 +16,6 @@ from numpy.testing import assert_almost_equal
 from pandas import DataFrame, Timestamp
 
 from zipline.assets import Equity, Future
-
 from zipline.data.dispatch_bar_reader import (
     AssetDispatchMinuteBarReader,
     AssetDispatchSessionBarReader,
@@ -27,8 +26,8 @@ from zipline.data.resample import (
     ReindexSessionBarReader,
 )
 from zipline.testing.fixtures import (
-    WithBcolzEquityMinuteBarReader,
     WithBcolzEquityDailyBarReader,
+    WithBcolzEquityMinuteBarReader,
     WithBcolzFutureMinuteBarReader,
     WithTradingSessions,
     ZiplineTestCase,

@@ -2,16 +2,16 @@
 Tools for visualizing dependencies between Terms.
 """
 
-from contextlib import contextmanager
 import errno
+from contextlib import contextmanager
 from functools import partial
 from io import BytesIO
-from subprocess import Popen, PIPE
+from subprocess import PIPE, Popen
 
 from networkx import topological_sort
 
+from zipline.pipeline import Classifier, Factor, Filter, Term
 from zipline.pipeline.data import BoundColumn
-from zipline.pipeline import Filter, Factor, Classifier, Term
 from zipline.pipeline.term import AssetExists
 
 
@@ -39,13 +39,13 @@ bracket = partial(delimit, "[]")
 
 def begin_graph(f, name, **attrs):
     writeln(f, "strict digraph %s {" % name)
-    writeln(f, "graph {}".format(format_attrs(attrs)))
+    writeln(f, f"graph {format_attrs(attrs)}")
 
 
 def begin_cluster(f, name, **attrs):
     attrs.setdefault("label", quote(name))
     writeln(f, "subgraph cluster_%s {" % name)
-    writeln(f, "graph {}".format(format_attrs(attrs)))
+    writeln(f, f"graph {format_attrs(attrs)}")
 
 
 def end_graph(f):
@@ -179,7 +179,7 @@ def add_term_node(f, term):
 
 
 def declare_node(f, name, attributes):
-    writeln(f, "{} {};".format(name, format_attrs(attributes)))
+    writeln(f, f"{name} {format_attrs(attributes)};")
 
 
 def add_edge(f, source, dest):

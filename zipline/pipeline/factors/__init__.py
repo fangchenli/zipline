@@ -1,3 +1,6 @@
+# ruff: noqa: I001
+# Import order matters here: submodules import from this package while it is
+# still initializing, so keep the order below.
 from .factor import (
     CustomFactor,
     Factor,

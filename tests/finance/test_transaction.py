@@ -12,8 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pandas as pd
 from unittest import TestCase
+
+import pandas as pd
 
 from zipline.assets import Equity, ExchangeInfo
 from zipline.finance.transaction import Transaction

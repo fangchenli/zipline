@@ -115,7 +115,6 @@ from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import bytes_array_to_native_str_object_array
 from zipline.utils.pandas_utils import check_indexes_all_same
 
-
 log = logbook.Logger("HDF5DailyBars")
 
 VERSION = 0
@@ -651,7 +650,7 @@ class HDF5DailyBarReader(CurrencyAwareSessionBarReader):
 
         if len(missing_sids):
             raise NoDataForSid(
-                "Assets not contained in daily pricing file: {}".format(missing_sids)
+                f"Assets not contained in daily pricing file: {missing_sids}"
             )
 
     def _validate_timestamp(self, ts):
@@ -891,10 +890,8 @@ class MultiCountryDailyBarReader(CurrencyAwareSessionBarReader):
             raise ValueError("At least one valid asset id is required.")
         elif num_countries > 1:
             raise NotImplementedError(
-                (
-                    "Assets were requested from multiple countries ({}),"
-                    " but multi-country reads are not yet supported."
-                ).format(list(unique_country_codes))
+                f"Assets were requested from multiple countries ({list(unique_country_codes)}),"
+                " but multi-country reads are not yet supported."
             )
 
         return unique_country_codes.item()
@@ -1053,9 +1050,7 @@ def check_sids_arrays_match(left, right, message):
     """Check that two 1d arrays of sids are equal"""
     if len(left) != len(right):
         raise ValueError(
-            "{}:\nlen(left) ({}) != len(right) ({})".format(
-                message, len(left), len(right)
-            )
+            f"{message}:\nlen(left) ({len(left)}) != len(right) ({len(right)})"
         )
 
     diff = left != right

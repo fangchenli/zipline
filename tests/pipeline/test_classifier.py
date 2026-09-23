@@ -1,5 +1,5 @@
-from functools import reduce
 import operator as op
+from functools import reduce
 
 import numpy as np
 import pandas as pd
@@ -17,7 +17,6 @@ from zipline.utils.numpy_utils import (
 )
 
 from .base import BaseUSEquityPipelineTestCase
-
 
 bytes_dtype = np.dtype("S3")
 unicode_dtype = np.dtype("U3")
@@ -177,12 +176,10 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
         errmsg = str(e.exception)
         self.assertEqual(
             errmsg,
-            "Comparison against self.missing_value ({v!r}) in C.eq().\n"
+            f"Comparison against self.missing_value ({missing!r}) in C.eq().\n"
             "Missing values have NaN semantics, so the requested comparison"
             " would always produce False.\n"
-            "Use the isnull() method to check for missing values.".format(
-                v=missing,
-            ),
+            "Use the isnull() method to check for missing values.",
         )
 
     @parameter_space(compval=[0, 1, 999], missing=[-1, 0, 999])
@@ -444,7 +441,7 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
                 "Missing values have NaN semantics, so the requested"
                 " comparison would always produce False.\n"
                 "Use the isnull() method to check for missing values.\n"
-                "Received choices were {}.".format(bad_elems)
+                f"Received choices were {bad_elems}."
             )
             self.assertEqual(errmsg, expected)
 

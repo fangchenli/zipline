@@ -1,38 +1,39 @@
-from textwrap import dedent
 from functools import partial
+from textwrap import dedent
+
 from numpy import (
     bool_,
     dtype,
     float32,
     float64,
+    int16,
     int32,
     int64,
-    int16,
-    uint16,
     ndarray,
-    uint32,
     uint8,
+    uint16,
+    uint32,
 )
 from toolz import merge_with
+
 from zipline.errors import (
     WindowLengthNotPositive,
     WindowLengthTooLong,
 )
 from zipline.lib.labelarray import LabelArray
+from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import (
     datetime64ns_dtype,
     float64_dtype,
     int64_dtype,
     uint8_dtype,
 )
-from zipline.utils.memoize import lazyval
 
 # These class names are all the same because of our bootleg templating system.
 from ._float64window import AdjustedArrayWindow as Float64Window
 from ._int64window import AdjustedArrayWindow as Int64Window
 from ._labelwindow import AdjustedArrayWindow as LabelWindow
 from ._uint8window import AdjustedArrayWindow as UInt8Window
-
 
 BOOL_DTYPES = frozenset(
     map(dtype, [bool_, uint8]),

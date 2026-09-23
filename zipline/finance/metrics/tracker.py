@@ -14,13 +14,13 @@
 # limitations under the License.
 import logbook
 
-from ..ledger import Ledger
 from zipline.utils.calendar_utils import (
     execution_time_from_close,
     execution_time_from_open,
 )
 from zipline.utils.exploding_object import NamedExplodingObject
 
+from ..ledger import Ledger
 
 log = logbook.Logger(__name__)
 

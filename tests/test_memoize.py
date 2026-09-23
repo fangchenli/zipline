@@ -2,8 +2,8 @@
 Tests for zipline.utils.memoize.
 """
 
-from collections import defaultdict
 import gc
+from collections import defaultdict
 from unittest import TestCase
 
 from zipline.utils.memoize import remember_last

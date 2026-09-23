@@ -6,13 +6,12 @@ from toolz import groupby
 
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.adjustment import (
-    Datetime641DArrayOverwrite,
     Datetime64Overwrite,
-    Float641DArrayOverwrite,
+    Datetime641DArrayOverwrite,
     Float64Multiply,
     Float64Overwrite,
+    Float641DArrayOverwrite,
 )
-
 from zipline.pipeline.common import (
     EVENT_DATE_FIELD_NAME,
     FISCAL_QUARTER_FIELD_NAME,
@@ -21,13 +20,12 @@ from zipline.pipeline.common import (
     TS_FIELD_NAME,
 )
 from zipline.pipeline.loaders.base import PipelineLoader
-from zipline.utils.date_utils import to_session_label
-from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
 from zipline.pipeline.loaders.utils import (
     ffill_across_cols,
     last_in_date_group,
 )
-
+from zipline.utils.date_utils import to_session_label
+from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
 
 INVALID_NUM_QTRS_MESSAGE = (
     "Passed invalid number of quarters %s; must pass a number of quarters >= 0"
@@ -84,13 +82,9 @@ def validate_column_specs(events, columns):
     missing = required - received
     if missing:
         raise ValueError(
-            "EarningsEstimatesLoader missing required columns {missing}.\n"
-            "Got Columns: {received}\n"
-            "Expected Columns: {required}".format(
-                missing=sorted(missing),
-                received=sorted(received),
-                required=sorted(required),
-            )
+            f"EarningsEstimatesLoader missing required columns {sorted(missing)}.\n"
+            f"Got Columns: {sorted(received)}\n"
+            f"Expected Columns: {sorted(required)}"
         )
 
 
@@ -847,13 +841,9 @@ def validate_split_adjusted_column_specs(name_map, columns):
     if extra:
         raise ValueError(
             "EarningsEstimatesLoader got the following extra columns to be "
-            "split-adjusted: {extra}.\n"
-            "Got Columns: {to_be_split}\n"
-            "Available Columns: {available}".format(
-                extra=sorted(extra),
-                to_be_split=sorted(to_be_split),
-                available=sorted(available),
-            )
+            f"split-adjusted: {sorted(extra)}.\n"
+            f"Got Columns: {sorted(to_be_split)}\n"
+            f"Available Columns: {sorted(available)}"
         )
 
 

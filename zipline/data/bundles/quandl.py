@@ -2,15 +2,16 @@
 Module for building a complete daily dataset from Quandl's WIKI dataset.
 """
 
-from io import BytesIO
 import tarfile
-from zipfile import ZipFile
+from io import BytesIO
 from urllib.parse import urlencode
+from zipfile import ZipFile
 
-from click import progressbar
-from logbook import Logger
 import pandas as pd
 import requests
+from click import progressbar
+from logbook import Logger
+
 from zipline.utils.calendar_utils import register_calendar_alias
 
 from . import core as bundles

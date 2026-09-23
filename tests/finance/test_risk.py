@@ -14,15 +14,14 @@
 # limitations under the License.
 
 import datetime
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 
-from zipline.utils import factory
-
-from zipline.finance.trading import SimulationParameters
 import zipline.testing.fixtures as zf
-
 from zipline.finance.metrics import _ClassicRiskMetrics as ClassicRiskMetrics
+from zipline.finance.trading import SimulationParameters
+from zipline.utils import factory
 
 RETURNS_BASE = 0.01
 RETURNS = [RETURNS_BASE] * 251
@@ -263,15 +262,9 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
                 len(col),
                 total_months - (period_length - 1),
                 (
-                    "mismatch for total months - expected:{total_months}/"
-                    "actual:{actual}, period:{period_length}, "
-                    "start:{start_date}, calculated end:{end}"
-                ).format(
-                    total_months=total_months,
-                    period_length=period_length,
-                    start_date=start_date,
-                    end=period_end,
-                    actual=len(col),
+                    f"mismatch for total months - expected:{total_months}/"
+                    f"actual:{len(col)}, period:{period_length}, "
+                    f"start:{start_date}, calculated end:{period_end}"
                 ),
             )
             self.assert_month(start_date.month, period_end.month)

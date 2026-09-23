@@ -12,29 +12,37 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import re
 from collections import namedtuple
 from contextlib import ExitStack
-import re
 
 import numpy as np
 import pandas as pd
 import sqlalchemy as sa
 from toolz import first
 
-from zipline.errors import AssetDBVersionError
 from zipline.assets.asset_db_schema import (
     ASSET_DB_VERSION,
     asset_db_table_names,
     asset_router,
-    equities as equities_table,
     equity_symbol_mappings,
-    equity_supplementary_mappings as equity_supplementary_mappings_table,
-    futures_contracts as futures_contracts_table,
-    exchanges as exchanges_table,
     futures_root_symbols,
     metadata,
     version_info,
 )
+from zipline.assets.asset_db_schema import (
+    equities as equities_table,
+)
+from zipline.assets.asset_db_schema import (
+    equity_supplementary_mappings as equity_supplementary_mappings_table,
+)
+from zipline.assets.asset_db_schema import (
+    exchanges as exchanges_table,
+)
+from zipline.assets.asset_db_schema import (
+    futures_contracts as futures_contracts_table,
+)
+from zipline.errors import AssetDBVersionError
 from zipline.utils.preprocess import preprocess
 from zipline.utils.range import from_tuple, intersecting_ranges
 from zipline.utils.sqlite_utils import coerce_string_to_eng
@@ -320,12 +328,7 @@ def _check_symbol_mappings(df, exchanges, asset_exchange):
                 len(ambigious),
                 "" if len(ambigious) == 1 else "s",
                 "\n".join(
-                    "{} ({}):\n  intersections: {}\n  {}".format(
-                        symbol,
-                        country_code,
-                        tuple(map(_format_range, intersections)),
-                        cs,
-                    )
+                    f"{symbol} ({country_code}):\n  intersections: {tuple(map(_format_range, intersections))}\n  {cs}"
                     for (symbol, country_code), (intersections, cs) in sorted(
                         ambigious.items(),
                         key=first,

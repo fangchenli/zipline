@@ -1,3 +1,6 @@
+# ruff: noqa: I001
+# Import order matters here: submodules import from this package while it is
+# still initializing, so keep the order below.
 from .classifiers import Classifier, CustomClassifier
 from .domain import Domain
 from .factors import Factor, CustomFactor

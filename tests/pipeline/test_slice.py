@@ -4,7 +4,6 @@ Tests for slicing pipeline terms.
 
 from numpy import where
 from pandas import Index, Timestamp
-from zipline.testing.predicates import assert_frame_equal
 
 from zipline.assets import Asset, ExchangeInfo
 from zipline.errors import (
@@ -13,7 +12,7 @@ from zipline.errors import (
     NonWindowSafeInput,
     UnsupportedPipelineOutput,
 )
-from zipline.pipeline import CustomFactor, Factor, Filter, Classifier, Pipeline
+from zipline.pipeline import Classifier, CustomFactor, Factor, Filter, Pipeline
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.domain import US_EQUITIES
@@ -27,14 +26,15 @@ from zipline.pipeline.factors import (
 from zipline.testing import (
     AssetID,
     AssetIDPlusDay,
-    check_arrays,
     OpenPrice,
+    check_arrays,
     parameter_space,
 )
 from zipline.testing.fixtures import (
     WithSeededRandomPipelineEngine,
     ZiplineTestCase,
 )
+from zipline.testing.predicates import assert_frame_equal
 from zipline.utils.numpy_utils import datetime64ns_dtype
 
 

@@ -14,9 +14,9 @@
 # limitations under the License.
 from collections import OrderedDict
 
-from numpy import array, append, nan, full
-from numpy.testing import assert_almost_equal
 import pandas as pd
+from numpy import append, array, full, nan
+from numpy.testing import assert_almost_equal
 from pandas import Timedelta
 
 from zipline.assets import Equity, Future
@@ -27,9 +27,9 @@ from zipline.data.minute_bars import (
 )
 from zipline.testing import parameter_space
 from zipline.testing.fixtures import (
-    ZiplineTestCase,
-    WithTradingSessions,
     WithDataPortal,
+    WithTradingSessions,
+    ZiplineTestCase,
     alias,
 )
 from zipline.testing.predicates import assert_equal
@@ -466,7 +466,7 @@ class DataPortalTestBase(WithDataPortal, WithTradingSessions):
             assert_almost_equal(
                 val,
                 expected,
-                err_msg="at dt={} perspective={}".format(dt, perspective_dt),
+                err_msg=f"at dt={dt} perspective={perspective_dt}",
             )
 
     def test_bar_count_for_simple_transforms(self):

@@ -2,15 +2,15 @@
 factor.py
 """
 
-from operator import attrgetter
-from numbers import Number
+from functools import wraps
 from math import ceil
+from numbers import Number
+from operator import attrgetter
 from textwrap import dedent
 
 from numpy import empty_like, inf, isnan, nan, where
 from scipy.stats import rankdata
 
-from functools import wraps
 from zipline.errors import (
     BadPercentileBounds,
     UnknownRankMethod,
@@ -26,21 +26,21 @@ from zipline.pipeline.dtypes import (
     FILTER_DTYPES,
 )
 from zipline.pipeline.expression import (
-    BadBinaryOperator,
     COMPARISONS,
-    is_comparison,
     MATH_BINOPS,
-    method_name_for_op,
-    NumericalExpression,
     NUMEXPR_MATH_FUNCS,
     UNARY_OPS,
+    BadBinaryOperator,
+    NumericalExpression,
+    is_comparison,
+    method_name_for_op,
     unary_op_name,
 )
 from zipline.pipeline.filters import (
     Filter,
+    MaximumFilter,
     NumExprFilter,
     PercentileFilter,
-    MaximumFilter,
 )
 from zipline.pipeline.mixins import (
     CustomTermMixin,
@@ -69,7 +69,6 @@ from zipline.utils.numpy_utils import (
     is_missing,
 )
 from zipline.utils.sharedoc import templated_docstring
-
 
 _RANK_METHODS = frozenset(["average", "min", "max", "dense", "ordinal"])
 
@@ -121,21 +120,17 @@ def binop_return_dtype(op, left, right):
     if is_comparison(op):
         if left != right:
             raise TypeError(
-                "Don't know how to compute {left} {op} {right}.\n"
+                f"Don't know how to compute {left} {op} {right}.\n"
                 "Comparisons are only supported between Factors of equal "
-                "dtypes.".format(left=left, op=op, right=right)
+                "dtypes."
             )
         return bool_dtype
 
     elif left != float64_dtype or right != float64_dtype:
         raise TypeError(
-            "Don't know how to compute {left} {op} {right}.\n"
+            f"Don't know how to compute {left.name} {op} {right.name}.\n"
             "Arithmetic operators are only supported between Factors of "
-            "dtype 'float64'.".format(
-                left=left.name,
-                op=op,
-                right=right.name,
-            )
+            "dtype 'float64'."
         )
     return float64_dtype
 
@@ -208,11 +203,7 @@ def binary_operator(op):
                 other,
             )
             return return_type(
-                "({left}) {op} ({right})".format(
-                    left=self_expr,
-                    op=op,
-                    right=other_expr,
-                ),
+                f"({self_expr}) {op} ({other_expr})",
                 new_inputs,
                 dtype=binop_return_dtype(op, self.dtype, other.dtype),
             )
@@ -262,11 +253,7 @@ def reflected_binary_operator(op):
         if isinstance(self, NumericalExpression):
             self_expr, other_expr, new_inputs = self.build_binary_op(op, other)
             return NumExprFactor(
-                "({left}) {op} ({right})".format(
-                    left=other_expr,
-                    right=self_expr,
-                    op=op,
-                ),
+                f"({other_expr}) {op} ({self_expr})",
                 new_inputs,
                 dtype=binop_return_dtype(op, other.dtype, self.dtype),
             )
@@ -298,14 +285,10 @@ def unary_operator(op):
     def unary_operator(self):
         if self.dtype != float64_dtype:
             raise TypeError(
-                "Can't apply unary operator {op!r} to instance of "
-                "{typename!r} with dtype {dtypename!r}.\n"
-                "{op!r} is only supported for Factors of dtype "
-                "'float64'.".format(
-                    op=op,
-                    typename=type(self).__name__,
-                    dtypename=self.dtype.name,
-                )
+                f"Can't apply unary operator {op!r} to instance of "
+                f"{type(self).__name__!r} with dtype {self.dtype.name!r}.\n"
+                f"{op!r} is only supported for Factors of dtype "
+                "'float64'."
             )
 
         # This can't be hoisted up a scope because the types returned by
@@ -336,13 +319,13 @@ def function_application(func):
         raise ValueError("Unsupported mathematical function '%s'" % func)
 
     docstring = dedent(
-        """\
-        Construct a Factor that computes ``{}()`` on each output of ``self``.
+        f"""\
+        Construct a Factor that computes ``{func}()`` on each output of ``self``.
 
         Returns
         -------
         factor : zipline.pipeline.Factor
-        """.format(func)
+        """
     )
 
     @with_doc(docstring)
@@ -1555,19 +1538,11 @@ class Rank(SingleInputMixin, Factor):
         else:
             mask_info = f", mask={self.mask.recursive_repr()}"
 
-        return "{type}({input_}, method='{method}'{mask_info})".format(
-            type=type(self).__name__,
-            input_=self.inputs[0].recursive_repr(),
-            method=self._method,
-            mask_info=mask_info,
-        )
+        return f"{type(self).__name__}({self.inputs[0].recursive_repr()}, method='{self._method}'{mask_info})"
 
     def graph_repr(self):
         # Graphviz interprets `\l` as "divide label into lines, left-justified"
-        return "Rank:\\l  method: {!r}\\l  mask: {}\\l".format(
-            self._method,
-            type(self.mask).__name__,
-        )
+        return f"Rank:\\l  method: {self._method!r}\\l  mask: {type(self.mask).__name__}\\l"
 
 
 class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
@@ -1745,21 +1720,13 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
                 return super().__getattribute__(name)
             except AttributeError:
                 raise AttributeError(
-                    "Instance of {factor} has no output named {attr!r}. "
-                    "Possible choices are: {choices}.".format(
-                        factor=type(self).__name__,
-                        attr=name,
-                        choices=self.outputs,
-                    )
+                    f"Instance of {type(self).__name__} has no output named {name!r}. "
+                    f"Possible choices are: {self.outputs}."
                 )
 
     def __iter__(self):
         if self.outputs is NotSpecified:
-            raise ValueError(
-                "{factor} does not have multiple outputs.".format(
-                    factor=type(self).__name__,
-                )
-            )
+            raise ValueError(f"{type(self).__name__} does not have multiple outputs.")
         return (RecarrayField(self, attr) for attr in self.outputs)
 
 
@@ -1795,7 +1762,7 @@ class RecarrayField(SingleInputMixin, Factor):
         return windows[0][self._attribute]
 
     def graph_repr(self):
-        return "{}.{}".format(self.inputs[0].recursive_repr(), self._attribute)
+        return f"{self.inputs[0].recursive_repr()}.{self._attribute}"
 
 
 class Latest(LatestMixin, CustomFactor):
@@ -1824,7 +1791,7 @@ class DailySummary(SingleInputMixin, Factor):
         # requires extra care for handling NaT.
         if dtype != float64_dtype:
             raise AssertionError(
-                "DailySummary only supports float64 dtype, got {}".format(dtype),
+                f"DailySummary only supports float64 dtype, got {dtype}",
             )
 
         return super().__new__(

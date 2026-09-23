@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
+
 from zipline.errors import NoFurtherDataError
-from zipline.pipeline.common import TS_FIELD_NAME, SID_FIELD_NAME
+from zipline.pipeline.common import SID_FIELD_NAME, TS_FIELD_NAME
 from zipline.utils.numpy_utils import categorical_dtype
 
 
@@ -325,11 +326,8 @@ def shift_dates(dates, start_date, end_date, shift):
         if start_date < dates[0]:
             raise NoFurtherDataError(
                 msg=(
-                    "Pipeline Query requested data starting on {query_start}, "
-                    "but first known date is {calendar_start}"
-                ).format(
-                    query_start=str(start_date),
-                    calendar_start=str(dates[0]),
+                    f"Pipeline Query requested data starting on {str(start_date)}, "
+                    f"but first known date is {str(dates[0])}"
                 )
             )
         else:
@@ -339,10 +337,10 @@ def shift_dates(dates, start_date, end_date, shift):
     if start < shift:
         raise NoFurtherDataError(
             msg=(
-                "Pipeline Query requested data from {shift}"
-                " days before {query_start}, but first known date is only "
-                "{start} days earlier."
-            ).format(shift=shift, query_start=start_date, start=start),
+                f"Pipeline Query requested data from {shift}"
+                f" days before {start_date}, but first known date is only "
+                f"{start} days earlier."
+            ),
         )
 
     try:
@@ -351,11 +349,8 @@ def shift_dates(dates, start_date, end_date, shift):
         if end_date > dates[-1]:
             raise NoFurtherDataError(
                 msg=(
-                    "Pipeline Query requesting data up to {query_end}, "
-                    "but last known date is {calendar_end}"
-                ).format(
-                    query_end=end_date,
-                    calendar_end=dates[-1],
+                    f"Pipeline Query requesting data up to {end_date}, "
+                    f"but last known date is {dates[-1]}"
                 )
             )
         else:

@@ -12,8 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import abstractmethod
 import math
+from abc import abstractmethod
 
 import numpy as np
 from pandas import isnull
@@ -357,10 +357,7 @@ class FixedSlippage(SlippageModel):
         self.spread = spread
 
     def __repr__(self):
-        return "{class_name}(spread={spread})".format(
-            class_name=self.__class__.__name__,
-            spread=self.spread,
-        )
+        return f"{self.__class__.__name__}(spread={self.spread})"
 
     def process_order(self, data, order):
         price = data.current(order.asset, "close")
@@ -568,11 +565,7 @@ class VolatilityVolumeShare(MarketImpactBase):
             eta = self._eta["dummy key"]
         else:
             eta = "<varies>"
-        return "{class_name}(volume_limit={volume_limit}, eta={eta})".format(
-            class_name=self.__class__.__name__,
-            volume_limit=self.volume_limit,
-            eta=eta,
-        )
+        return f"{self.__class__.__name__}(volume_limit={self.volume_limit}, eta={eta})"
 
     def get_simulated_impact(
         self, order, current_price, current_volume, txn_volume, mean_volume, volatility

@@ -2,18 +2,16 @@
 An ndarray subclass for working with arrays of strings.
 """
 
+import re
 from functools import partial, total_ordering
 from operator import eq, ne
-import re
 
 import numpy as np
-from numpy import ndarray
 import pandas as pd
+from numpy import ndarray
 from toolz import compose
 
 from zipline.utils.functional import instance
-from zipline.utils.preprocess import preprocess
-from zipline.utils.sentinel import sentinel
 from zipline.utils.input_validation import (
     coerce,
     expect_kinds,
@@ -22,10 +20,12 @@ from zipline.utils.input_validation import (
 )
 from zipline.utils.numpy_utils import (
     bool_dtype,
-    unsigned_int_dtype_with_size_in_bytes,
     is_object,
     object_dtype,
+    unsigned_int_dtype_with_size_in_bytes,
 )
+from zipline.utils.preprocess import preprocess
+from zipline.utils.sentinel import sentinel
 
 from ._factorize import (
     factorize_strings,
@@ -56,9 +56,7 @@ class MissingValueMismatch(ValueError):
 
     def __init__(self, left, right):
         super().__init__(
-            "LabelArray missing_values don't match: left={}, right={}".format(
-                left, right
-            )
+            f"LabelArray missing_values don't match: left={left}, right={right}"
         )
 
 
@@ -73,13 +71,9 @@ class CategoryMismatch(ValueError):
         assert len(mismatches), "Not actually a mismatch!"
         super().__init__(
             "LabelArray categories don't match:\n"
-            "Mismatched Indices: {mismatches}\n"
-            "Left: {left}\n"
-            "Right: {right}".format(
-                mismatches=mismatches,
-                left=left[mismatches],
-                right=right[mismatches],
-            )
+            f"Mismatched Indices: {mismatches}\n"
+            f"Left: {left[mismatches]}\n"
+            f"Right: {right[mismatches]}"
         )
 
 
@@ -352,11 +346,8 @@ class LabelArray(ndarray):
         if expected_shape != self.shape:
             raise ValueError(
                 "Can't construct a DataFrame with provided indices:\n\n"
-                "LabelArray shape is {actual}, but index and columns imply "
-                "that shape should be {expected}.".format(
-                    actual=self.shape,
-                    expected=expected_shape,
-                )
+                f"LabelArray shape is {self.shape}, but index and columns imply "
+                f"that shape should be {expected_shape}."
             )
 
         return pd.Series(
@@ -395,9 +386,7 @@ class LabelArray(ndarray):
         else:
             raise NotImplementedError(
                 "Setting into a LabelArray with a value of "
-                "type {type} is not yet supported.".format(
-                    type=type(value).__name__,
-                ),
+                f"type {type(value).__name__} is not yet supported.",
             )
 
     def set_scalar(self, indexer, value):
@@ -492,7 +481,7 @@ class LabelArray(ndarray):
                 i = self._reverse_categories.get(other, -1)
                 return op(self.as_int_array(), i) & self.not_missing()
 
-            return op(super(LabelArray, self), other)
+            return op(super(), other)
 
         return method
 
@@ -671,13 +660,9 @@ class LabelArray(ndarray):
 
             if not isinstance(ret, otypes):
                 raise TypeError(
-                    "LabelArray.map expected function {f} to return a string"
-                    " or None, but got {type} instead.\n"
-                    "Value was {value}.".format(
-                        f=f.__name__,
-                        type=type(ret).__name__,
-                        value=ret,
-                    )
+                    f"LabelArray.map expected function {f.__name__} to return a string"
+                    f" or None, but got {type(ret).__name__} instead.\n"
+                    f"Value was {ret}."
                 )
 
             if ret == missing_value:

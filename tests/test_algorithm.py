@@ -12,28 +12,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import warnings
 import datetime
+import warnings
+from copy import deepcopy
 from datetime import timedelta
 from textwrap import dedent
-from copy import deepcopy
+from zoneinfo import ZoneInfo
 
 import logbook
-import toolz
-from logbook import TestHandler, WARNING
-from parameterized import parameterized
-from testfixtures import TempDirectory
-
 import numpy as np
 import pandas as pd
-from zoneinfo import ZoneInfo
+import toolz
+from logbook import WARNING, TestHandler
 from pandas.errors import PerformanceWarning
-from zipline.utils.calendar_utils import get_calendar, register_calendar
+from parameterized import parameterized
+from testfixtures import TempDirectory
+from zipline.assets.continuous_futures import ContinuousFuture
 
 import zipline.api
+import zipline.testing.fixtures as zf
+import zipline.utils.factory as factory
 from zipline.api import FixedSlippage
-from zipline.assets import Equity, Future, Asset
-from zipline.assets.continuous_futures import ContinuousFuture
+from zipline.assets import Asset, Equity, Future
 from zipline.assets.synthetic import (
     make_jagged_equity_info,
     make_simple_equity_info,
@@ -51,20 +51,58 @@ from zipline.errors import (
     UnsupportedDatetimeFormat,
     ZeroCapitalError,
 )
-
+from zipline.finance.asset_restrictions import (
+    RESTRICTION_STATES,
+    HistoricalRestrictions,
+    Restriction,
+    StaticRestrictions,
+)
 from zipline.finance.commission import PerShare, PerTrade
+from zipline.finance.controls import AssetDateBounds
 from zipline.finance.execution import LimitOrder
 from zipline.finance.order import ORDER_STATUS
 from zipline.finance.trading import SimulationParameters
-from zipline.finance.asset_restrictions import (
-    Restriction,
-    HistoricalRestrictions,
-    StaticRestrictions,
-    RESTRICTION_STATES,
+from zipline.test_algorithms import (
+    access_account_in_init,
+    access_portfolio_in_init,
+    api_algo,
+    api_get_environment_algo,
+    api_symbol_algo,
+    bad_type_can_trade_assets,
+    bad_type_current_assets,
+    bad_type_current_assets_kwarg,
+    bad_type_current_fields,
+    bad_type_current_fields_kwarg,
+    bad_type_history_assets,
+    bad_type_history_assets_kwarg,
+    bad_type_history_assets_kwarg_list,
+    bad_type_history_bar_count,
+    bad_type_history_bar_count_kwarg,
+    bad_type_history_fields,
+    bad_type_history_fields_kwarg,
+    bad_type_history_frequency,
+    bad_type_history_frequency_kwarg,
+    bad_type_is_stale_assets,
+    call_with_bad_kwargs_current,
+    call_with_bad_kwargs_get_open_orders,
+    call_with_bad_kwargs_history,
+    call_with_good_kwargs_get_open_orders,
+    call_with_kwargs,
+    call_with_no_kwargs_get_open_orders,
+    call_without_kwargs,
+    empty_positions,
+    handle_data_api,
+    handle_data_noop,
+    initialize_api,
+    initialize_noop,
+    no_handle_data,
+    noop_algo,
+    record_float_magic,
+    record_variables,
 )
-from zipline.finance.controls import AssetDateBounds
 from zipline.testing import (
     FakeDataPortal,
+    RecordBatchBlotter,
     create_daily_df_for_asset,
     create_data_portal_from_trade_history,
     create_minute_df_for_asset,
@@ -74,61 +112,21 @@ from zipline.testing import (
     str_to_seconds,
     to_utc,
 )
-from zipline.testing import RecordBatchBlotter
-import zipline.testing.fixtures as zf
-from zipline.test_algorithms import (
-    access_account_in_init,
-    access_portfolio_in_init,
-    api_algo,
-    api_get_environment_algo,
-    api_symbol_algo,
-    handle_data_api,
-    handle_data_noop,
-    initialize_api,
-    initialize_noop,
-    noop_algo,
-    record_float_magic,
-    record_variables,
-    call_with_kwargs,
-    call_without_kwargs,
-    call_with_bad_kwargs_current,
-    call_with_bad_kwargs_history,
-    bad_type_history_assets,
-    bad_type_history_fields,
-    bad_type_history_bar_count,
-    bad_type_history_frequency,
-    bad_type_history_assets_kwarg_list,
-    bad_type_current_assets,
-    bad_type_current_fields,
-    bad_type_can_trade_assets,
-    bad_type_is_stale_assets,
-    bad_type_history_assets_kwarg,
-    bad_type_history_fields_kwarg,
-    bad_type_history_bar_count_kwarg,
-    bad_type_history_frequency_kwarg,
-    bad_type_current_assets_kwarg,
-    bad_type_current_fields_kwarg,
-    call_with_bad_kwargs_get_open_orders,
-    call_with_good_kwargs_get_open_orders,
-    call_with_no_kwargs_get_open_orders,
-    empty_positions,
-    no_handle_data,
-)
 from zipline.testing.predicates import (
     assert_dict_contains_subset,
     assert_equal,
 )
 from zipline.utils.api_support import ZiplineAPI
+from zipline.utils.calendar_utils import get_calendar, register_calendar
 from zipline.utils.context_tricks import CallbackManager, nop_context
 from zipline.utils.events import (
-    date_rules,
-    time_rules,
     Always,
     ComposedRule,
     Never,
     OncePerDay,
+    date_rules,
+    time_rules,
 )
-import zipline.utils.factory as factory
 
 # Because test cases appear to reuse some resources.
 
@@ -1579,7 +1577,7 @@ def handle_data(context, data):
             else:
                 commission_line = (
                     "set_commission(commission.PerShare(0.02, "
-                    "min_trade_cost={}))".format(minimum_commission)
+                    f"min_trade_cost={minimum_commission}))"
                 )
 
             # verify order -> transaction -> portfolio position.
@@ -1598,7 +1596,7 @@ def handle_data(context, data):
             )
             test_algo = self.make_algo(
                 data_portal=data_portal,
-                script="""
+                script=f"""
 from zipline.api import *
 
 def initialize(context):
@@ -1607,7 +1605,7 @@ def initialize(context):
                             price_impact=0.05
                        )
     set_slippage(model)
-    {}
+    {commission_line}
 
     context.count = 2
     context.incr = 0
@@ -1621,7 +1619,7 @@ def handle_data(context, data):
     record(volume=data.current(sid(0), "volume"))
     record(incr=context.incr)
     context.incr += 1
-    """.format(commission_line),
+    """,
             )
             results = test_algo.run()
 
@@ -1810,15 +1808,15 @@ def handle_data(context, data):
         # order_value and order_percent should blow up
         for order_str in ["order_value", "order_percent"]:
             test_algo = self.make_algo(
-                script="""
+                script=f"""
 from zipline.api import order_percent, order_value, sid
 
 def initialize(context):
     pass
 
 def handle_data(context, data):
-    {}(sid(0), 10)
-        """.format(order_str),
+    {order_str}(sid(0), 10)
+        """,
                 sim_params=params,
             )
 
@@ -4488,9 +4486,9 @@ class TestOrderAfterDelist(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
             for w in warnings:
                 expected_message = (
-                    "Cannot place order for ASSET{sid}, as it has de-listed. "
+                    f"Cannot place order for ASSET{sid}, as it has de-listed. "
                     "Any existing positions for this asset will be liquidated "
-                    "on {date}.".format(sid=sid, date=asset.auto_close_date)
+                    f"on {asset.auto_close_date}."
                 )
                 self.assertEqual(expected_message, w.message)
 

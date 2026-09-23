@@ -1,12 +1,11 @@
 import itertools
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
-from zipline.data.fx import DEFAULT_FX_RATE
-
-from zipline.testing.predicates import assert_equal
 import zipline.testing.fixtures as zp_fixtures
+from zipline.data.fx import DEFAULT_FX_RATE
+from zipline.testing.predicates import assert_equal
 
 
 class _FXReaderTestCase(zp_fixtures.WithFXRates, zp_fixtures.ZiplineTestCase):

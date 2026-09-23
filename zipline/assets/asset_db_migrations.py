@@ -1,10 +1,11 @@
+from functools import wraps
+
+import sqlalchemy as sa
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
-import sqlalchemy as sa
 from toolz.curried import do, operator
 
 from zipline.assets.asset_writer import write_version_info
-from functools import wraps
 from zipline.errors import AssetDBImpossibleDowngrade
 from zipline.utils.preprocess import preprocess
 from zipline.utils.sqlite_utils import coerce_string_to_eng
@@ -52,11 +53,7 @@ def alter_columns(op, name, *columns, **kwargs):
 
     op.create_table(name, *columns)
     op.execute(
-        "insert into {} select {} from {}".format(
-            name,
-            selection_string,
-            tmp_name,
-        ),
+        f"insert into {name} select {selection_string} from {tmp_name}",
     )
     op.drop_table(tmp_name)
 

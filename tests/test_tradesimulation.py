@@ -14,15 +14,14 @@
 # limitations under the License.
 
 import pandas as pd
-
 from zipline.gens.sim_engine import BEFORE_TRADING_START_BAR
 
-from zipline.finance.asset_restrictions import NoRestrictions
+import zipline.testing.fixtures as zf
 from zipline.finance import metrics
+from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.finance.trading import SimulationParameters
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.testing.core import parameter_space
-import zipline.testing.fixtures as zf
 
 
 class TestBeforeTradingStartTiming(

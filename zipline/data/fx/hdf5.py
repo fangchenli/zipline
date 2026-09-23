@@ -94,14 +94,14 @@ for column i in a data node is the ith element of /index/dts.
 """
 
 import h5py
-from logbook import Logger
 import numpy as np
 import pandas as pd
+from logbook import Logger
 
 from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import bytes_array_to_native_str_object_array
 
-from .base import FXRateReader, DEFAULT_FX_RATE
+from .base import DEFAULT_FX_RATE, FXRateReader
 from .utils import as_utc, check_dts, is_sorted_ascending
 
 HDF5_FX_VERSION = 0
@@ -133,10 +133,7 @@ class HDF5FXRateReader(FXRateReader):
 
         if self.version != HDF5_FX_VERSION:
             raise ValueError(
-                "FX Reader version ({}) != File Version ({})".format(
-                    HDF5_FX_VERSION,
-                    self.version,
-                )
+                f"FX Reader version ({HDF5_FX_VERSION}) != File Version ({self.version})"
             )
 
     @classmethod
@@ -198,9 +195,7 @@ class HDF5FXRateReader(FXRateReader):
             dataset = self._group[DATA][rate][quote][RATES]
         except KeyError:
             raise ValueError(
-                "FX rates not available for rate={}, quote_currency={}.".format(
-                    rate, quote
-                )
+                f"FX rates not available for rate={rate}, quote_currency={quote}."
             )
 
         # OPTIMIZATION: Column indices correspond to dates, which must be in
@@ -305,10 +300,8 @@ class HDF5FXRateWriter:
         for rate, quote, array in data:
             if array.shape != expected_shape:
                 raise ValueError(
-                    "Unexpected shape for rate={}, quote={}."
-                    "\nExpected shape: {}. Got {}.".format(
-                        rate, quote, expected_shape, array.shape
-                    )
+                    f"Unexpected shape for rate={rate}, quote={quote}."
+                    f"\nExpected shape: {expected_shape}. Got {array.shape}."
                 )
 
             self._log_writing(DATA, rate, quote)

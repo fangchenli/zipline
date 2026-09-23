@@ -1,16 +1,27 @@
-from collections import namedtuple
-from contextlib import ExitStack
 import errno
 import os
 import shutil
 import warnings
+from collections import namedtuple
+from contextlib import ExitStack
 from types import MappingProxyType
 
 import click
-from logbook import Logger
 import pandas as pd
+from logbook import Logger
+from toolz import complement, curry, take
+
+import zipline.utils.paths as pth
+from zipline.assets import ASSET_DB_VERSION, AssetDBWriter, AssetFinder
+from zipline.assets.asset_db_migrations import downgrade
+from zipline.utils.cache import (
+    dataframe_cache,
+    working_dir,
+    working_file,
+)
 from zipline.utils.calendar_utils import get_calendar
-from toolz import curry, complement, take
+from zipline.utils.input_validation import ensure_timestamp, optionally
+from zipline.utils.preprocess import preprocess
 
 from ..adjustments import SQLiteAdjustmentReader, SQLiteAdjustmentWriter
 from ..bcolz_daily_bars import BcolzDailyBarReader, BcolzDailyBarWriter
@@ -18,16 +29,6 @@ from ..minute_bars import (
     BcolzMinuteBarReader,
     BcolzMinuteBarWriter,
 )
-from zipline.assets import AssetDBWriter, AssetFinder, ASSET_DB_VERSION
-from zipline.assets.asset_db_migrations import downgrade
-from zipline.utils.cache import (
-    dataframe_cache,
-    working_dir,
-    working_file,
-)
-from zipline.utils.input_validation import ensure_timestamp, optionally
-import zipline.utils.paths as pth
-from zipline.utils.preprocess import preprocess
 
 log = Logger(__name__)
 
@@ -523,11 +524,8 @@ def _make_bundle_core():
             if getattr(e, "errno", errno.ENOENT) != errno.ENOENT:
                 raise
             raise ValueError(
-                "no data for bundle {bundle!r} on or before {timestamp}\n"
-                "maybe you need to run: $ zipline ingest -b {bundle}".format(
-                    bundle=bundle_name,
-                    timestamp=timestamp,
-                ),
+                f"no data for bundle {bundle_name!r} on or before {timestamp}\n"
+                f"maybe you need to run: $ zipline ingest -b {bundle_name}",
             )
 
     def load(name, environ=os.environ, timestamp=None):

@@ -1,17 +1,15 @@
+import operator
 from abc import ABC, abstractmethod
+from collections import namedtuple
 from enum import IntEnum
 from functools import partial, reduce
-import operator
-from collections import namedtuple
 
-from numpy import vectorize
 import pandas as pd
+from numpy import vectorize
 from toolz import groupby
 
-
-from zipline.utils.numpy_utils import vectorized_is_element
 from zipline.assets import Asset
-
+from zipline.utils.numpy_utils import vectorized_is_element
 
 Restriction = namedtuple("Restriction", ["asset", "effective_date", "state"])
 

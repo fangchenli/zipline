@@ -12,15 +12,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from datetime import timedelta
 import os
+from datetime import timedelta
 
 from numpy import (
     arange,
     array,
-    int64,
     float64,
     full,
+    int64,
     nan,
     transpose,
     zeros,
@@ -29,24 +29,23 @@ from numpy.testing import assert_almost_equal, assert_array_equal
 from pandas import (
     DataFrame,
     DatetimeIndex,
-    Timestamp,
-    Timedelta,
     NaT,
+    Timedelta,
+    Timestamp,
     date_range,
 )
 
 from zipline.data.bar_reader import NoDataForSid, NoDataOnDate
 from zipline.data.minute_bars import (
-    BcolzMinuteBarMetadata,
-    BcolzMinuteBarWriter,
-    BcolzMinuteBarReader,
-    BcolzMinuteOverlappingData,
     US_EQUITIES_MINUTES_PER_DAY,
+    BcolzMinuteBarMetadata,
+    BcolzMinuteBarReader,
+    BcolzMinuteBarWriter,
+    BcolzMinuteOverlappingData,
     BcolzMinuteWriterColumnMismatch,
-    H5MinuteBarUpdateWriter,
     H5MinuteBarUpdateReader,
+    H5MinuteBarUpdateWriter,
 )
-
 from zipline.testing.fixtures import (
     WithAssetFinder,
     WithInstanceTmpDir,

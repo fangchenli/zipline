@@ -16,26 +16,26 @@ from collections import deque
 from functools import partial
 from textwrap import dedent
 
+import pandas as pd
 from numpy import (
     arange,
     array,
-    int64,
     full,
+    int64,
     repeat,
     tile,
 )
 from numpy.testing import assert_almost_equal
-import pandas as pd
-from pandas import Timestamp, DataFrame
-
+from pandas import DataFrame, Timestamp
 from zipline.assets.continuous_futures import OrderedContracts, delivery_predicate
+
+import zipline.testing.fixtures as zf
 from zipline.assets.roll_finder import (
     ROLL_DAYS_FOR_CURRENT_CONTRACT,
     VolumeRollFinder,
 )
 from zipline.data.minute_bars import FUTURES_MINUTES_PER_DAY
 from zipline.errors import SymbolNotFound
-import zipline.testing.fixtures as zf
 
 
 class ContinuousFuturesTestCase(

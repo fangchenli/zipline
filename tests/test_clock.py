@@ -1,16 +1,16 @@
 from datetime import time
 from unittest import TestCase
-import pandas as pd
-from zipline.utils.calendar_utils import get_calendar
-from zipline.utils.calendar_utils import days_at_time
 
+import pandas as pd
 from zipline.gens.sim_engine import (
-    MinuteSimulationClock,
-    SESSION_START,
-    BEFORE_TRADING_START_BAR,
     BAR,
+    BEFORE_TRADING_START_BAR,
     SESSION_END,
+    SESSION_START,
+    MinuteSimulationClock,
 )
+
+from zipline.utils.calendar_utils import days_at_time, get_calendar
 
 
 class TestClock(TestCase):

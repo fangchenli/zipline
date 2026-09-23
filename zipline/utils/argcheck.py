@@ -18,7 +18,6 @@ from itertools import chain, zip_longest
 from zipline.errors import ZiplineError
 from zipline.utils.compat import getargspec
 
-
 Argspec = namedtuple("Argspec", ["args", "starargs", "kwargs"])
 
 
@@ -78,7 +77,7 @@ class Argument(namedtuple("Argument", ["name", "default"])):
             return "=".join([str(self.name), str(self.default)])
 
     def __repr__(self):
-        return "Argument({}, {})".format(repr(self.name), repr(self.default))
+        return f"Argument({repr(self.name)}, {repr(self.default)})"
 
     def _defaults_match(self, arg):
         return (

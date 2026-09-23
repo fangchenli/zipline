@@ -1,6 +1,5 @@
 from abc import ABCMeta, abstractmethod
 
-
 # Consistent error to be thrown in various cases regarding overriding
 # `final` attributes.
 _type_error = TypeError("Cannot override final attribute")
@@ -51,7 +50,7 @@ class FinalMeta(type):
             # users cannot just avoid the descriptor protocol.
             dict_["__setattr__"] = final(setattr_)
 
-        return super(FinalMeta, mcls).__new__(mcls, name, bases, dict_)
+        return super().__new__(mcls, name, bases, dict_)
 
     def __setattr__(self, name, value):
         """This stops the `final` attributes from being reassigned on the
@@ -60,7 +59,7 @@ class FinalMeta(type):
         if is_final(name, self.__mro__):
             raise _type_error
 
-        super(FinalMeta, self).__setattr__(name, value)
+        super().__setattr__(name, value)
 
 
 class final(metaclass=ABCMeta):

@@ -1,10 +1,10 @@
-from importlib import import_module
 import os
+from importlib import import_module
 
 from toolz import merge
-from zipline.utils.calendar_utils import register_calendar, get_calendar
 
 from zipline import run_algorithm
+from zipline.utils.calendar_utils import get_calendar, register_calendar
 
 
 # These are used by test_examples.py to discover the examples to run.

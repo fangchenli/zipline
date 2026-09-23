@@ -8,14 +8,13 @@ from zipline.data.adjustments import (
 )
 from zipline.data.in_memory_daily_bars import InMemoryDailyBarReader
 from zipline.testing import parameter_space
-from zipline.testing.predicates import assert_equal
 from zipline.testing.fixtures import (
     WithInstanceTmpDir,
-    WithTradingCalendars,
     WithLogger,
+    WithTradingCalendars,
     ZiplineTestCase,
 )
-
+from zipline.testing.predicates import assert_equal
 
 nat = pd.Timestamp("nat")
 

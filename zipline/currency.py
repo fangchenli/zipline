@@ -1,4 +1,5 @@
 from functools import total_ordering
+
 from iso4217 import Currency as ISO4217Currency
 
 _ALL_CURRENCIES = {}
@@ -70,4 +71,4 @@ class Currency:
         return self.code < other.code
 
     def __repr__(self):
-        return "{}({!r})".format(type(self).__name__, self.code)
+        return f"{type(self).__name__}({self.code!r})"

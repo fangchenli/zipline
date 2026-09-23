@@ -15,9 +15,9 @@
 
 
 import numbers
-
-from hashlib import md5
 from datetime import datetime, timedelta
+from hashlib import md5
+
 from zipline.protocol import DATASOURCE_TYPE
 
 

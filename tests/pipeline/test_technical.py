@@ -1,26 +1,27 @@
-from parameterized import parameterized
 import numpy as np
 import pandas as pd
 import talib
 from numpy.random import RandomState
+from parameterized import parameterized
 
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.factors import (
-    BollingerBands,
+    RSI,
+    AnnualizedVolatility,
     Aroon,
+    BollingerBands,
     FastStochasticOscillator,
     IchimokuKinkoHyo,
     LinearWeightedMovingAverage,
+    MovingAverageConvergenceDivergenceSignal,
     RateOfChangePercentage,
     TrueRange,
-    MovingAverageConvergenceDivergenceSignal,
-    AnnualizedVolatility,
-    RSI,
 )
 from zipline.testing import check_allclose, parameter_space
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import assert_equal
+
 from .base import BaseUSEquityPipelineTestCase
 
 

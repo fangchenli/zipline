@@ -2,12 +2,12 @@
 classifier.py
 """
 
-from numbers import Number
 import operator
 import re
+from numbers import Number
 
-from numpy import where, isnan, nan, zeros
 import pandas as pd
+from numpy import isnan, nan, where, zeros
 
 from zipline.errors import UnsupportedDataType
 from zipline.lib.labelarray import LabelArray
@@ -20,7 +20,7 @@ from zipline.pipeline.dtypes import (
 )
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import ComputableTerm
-from zipline.utils.input_validation import expect_types, expect_dtypes
+from zipline.utils.input_validation import expect_dtypes, expect_types
 from zipline.utils.numpy_utils import (
     categorical_dtype,
     int64_dtype,
@@ -36,7 +36,6 @@ from ..mixins import (
     SingleInputMixin,
     StandardOutputs,
 )
-
 
 string_classifiers_only = restrict_to_dtype(
     dtype=categorical_dtype,
@@ -75,14 +74,11 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         # certainly not what the user wants.
         if other == self.missing_value:
             raise ValueError(
-                "Comparison against self.missing_value ({value!r}) in"
-                " {typename}.eq().\n"
+                f"Comparison against self.missing_value ({other!r}) in"
+                f" {type(self).__name__}.eq().\n"
                 "Missing values have NaN semantics, so the "
                 "requested comparison would always produce False.\n"
-                "Use the isnull() method to check for missing values.".format(
-                    value=other,
-                    typename=(type(self).__name__),
-                )
+                "Use the isnull() method to check for missing values."
             )
 
         if isinstance(other, Number) != (self.dtype == int64_dtype):
@@ -90,7 +86,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
 
         if isinstance(other, Number):
             return NumExprFilter.create(
-                "x_0 == {other}".format(other=int(other)),
+                f"x_0 == {int(other)}",
                 binds=(self,),
             )
         else:
@@ -110,10 +106,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
 
         if isinstance(other, Number):
             return NumExprFilter.create(
-                "((x_0 != {other}) & (x_0 != {missing}))".format(
-                    other=int(other),
-                    missing=self.missing_value,
-                ),
+                f"((x_0 != {int(other)}) & (x_0 != {self.missing_value}))",
                 binds=(self,),
             )
         else:
@@ -269,23 +262,18 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         except Exception as e:
             raise TypeError(
                 "Expected `choices` to be an iterable of hashable values,"
-                " but got {} instead.\n"
-                "This caused the following error: {!r}.".format(choices, e)
+                f" but got {choices} instead.\n"
+                f"This caused the following error: {e!r}."
             )
 
         if self.missing_value in choices:
             raise ValueError(
-                "Found self.missing_value ({mv!r}) in choices supplied to"
-                " {typename}.{meth_name}().\n"
+                f"Found self.missing_value ({self.missing_value!r}) in choices supplied to"
+                f" {type(self).__name__}.{self.element_of.__name__}().\n"
                 "Missing values have NaN semantics, so the"
                 " requested comparison would always produce False.\n"
                 "Use the isnull() method to check for missing values.\n"
-                "Received choices were {choices}.".format(
-                    mv=self.missing_value,
-                    typename=(type(self).__name__),
-                    choices=sorted(choices),
-                    meth_name=self.element_of.__name__,
-                )
+                f"Received choices were {sorted(choices)}."
             )
 
         def only_contains(type_, values):
@@ -300,11 +288,8 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
                 )
             else:
                 raise TypeError(
-                    "Found non-int in choices for {typename}.element_of.\n"
-                    "Supplied choices were {choices}.".format(
-                        typename=type(self).__name__,
-                        choices=choices,
-                    )
+                    f"Found non-int in choices for {type(self).__name__}.element_of.\n"
+                    f"Supplied choices were {choices}."
                 )
         elif self.dtype == categorical_dtype:
             if only_contains((bytes, str), choices):
@@ -315,11 +300,8 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
                 )
             else:
                 raise TypeError(
-                    "Found non-string in choices for {typename}.element_of.\n"
-                    "Supplied choices were {choices}.".format(
-                        typename=type(self).__name__,
-                        choices=choices,
-                    )
+                    f"Found non-string in choices for {type(self).__name__}.element_of.\n"
+                    f"Supplied choices were {choices}."
                 )
         assert False, "Unknown dtype in Classifier.element_of %s." % self.dtype
 
@@ -575,9 +557,5 @@ class InvalidClassifierComparison(TypeError):
     def __init__(self, classifier, compval):
         super().__init__(
             "Can't compare classifier of dtype"
-            " {dtype} to value {value} of type {type}.".format(
-                dtype=classifier.dtype,
-                value=compval,
-                type=type(compval).__name__,
-            )
+            f" {classifier.dtype} to value {compval} of type {type(compval).__name__}."
         )

@@ -8,57 +8,55 @@ from os.path import (
     realpath,
 )
 
-from parameterized import parameterized
 import numpy as np
+import pandas as pd
 from numpy import (
-    array,
     arange,
-    full_like,
+    array,
     float64,
+    full_like,
     nan,
     uint32,
 )
 from numpy.testing import assert_almost_equal
-import pandas as pd
 from pandas import (
-    concat,
     DataFrame,
-    date_range,
-    read_csv,
     Series,
     Timestamp,
+    concat,
+    date_range,
+    read_csv,
 )
-from zipline.utils.calendar_utils import get_calendar
+from parameterized import parameterized
+from zipline.lib.adjustment import MULTIPLY
 
 from zipline.api import (
     attach_pipeline,
-    pipeline_output,
     get_datetime,
+    pipeline_output,
 )
 from zipline.errors import (
     AttachPipelineAfterInitialize,
-    PipelineOutputDuringInitialize,
-    NoSuchPipeline,
     DuplicatePipelineName,
+    NoSuchPipeline,
+    PipelineOutputDuringInitialize,
 )
 from zipline.finance.trading import SimulationParameters
-from zipline.lib.adjustment import MULTIPLY
-from zipline.pipeline import Pipeline, CustomFactor
-from zipline.pipeline.factors import VWAP
+from zipline.pipeline import CustomFactor, Pipeline
 from zipline.pipeline.data import USEquityPricing
-from zipline.pipeline.loaders.frame import DataFrameLoader
+from zipline.pipeline.factors import VWAP
 from zipline.pipeline.loaders.equity_pricing_loader import (
     USEquityPricingLoader,
 )
-from zipline.testing import str_to_seconds
-from zipline.testing import create_empty_splits_mergers_frame
+from zipline.pipeline.loaders.frame import DataFrameLoader
+from zipline.testing import create_empty_splits_mergers_frame, str_to_seconds
 from zipline.testing.fixtures import (
-    WithMakeAlgo,
     WithAdjustmentReader,
     WithBcolzEquityDailyBarReaderFromCSVs,
+    WithMakeAlgo,
     ZiplineTestCase,
 )
-
+from zipline.utils.calendar_utils import get_calendar
 
 TEST_RESOURCE_PATH = join(
     dirname(dirname(realpath(__file__))),  # zipline_repo/tests

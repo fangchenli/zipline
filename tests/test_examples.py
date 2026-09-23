@@ -12,17 +12,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from functools import partial
-from operator import itemgetter
 import os
 import tarfile
+from functools import partial
+from operator import itemgetter
 
 import matplotlib
 import pandas as pd
 
 from zipline import examples
 from zipline.data.bundles import register, unregister
-from zipline.testing import test_resource_path, parameter_space
+from zipline.testing import parameter_space, test_resource_path
 from zipline.testing.fixtures import (
     WithTmpDir,
     ZiplineTestCase,
@@ -30,7 +30,6 @@ from zipline.testing.fixtures import (
 )
 from zipline.testing.predicates import assert_equal
 from zipline.utils.cache import dataframe_cache
-
 
 # Otherwise the next line sometimes complains about being run too late.
 _multiprocess_can_split_ = False

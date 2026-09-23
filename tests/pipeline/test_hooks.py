@@ -7,21 +7,21 @@ import toolz
 
 from zipline.pipeline import Pipeline
 from zipline.pipeline.classifiers import Everything
-from zipline.pipeline.domain import US_EQUITIES
-from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.data.testing import TestingDataSet
-from zipline.pipeline.hooks.testing import TestingHooks
+from zipline.pipeline.domain import US_EQUITIES
+from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.hooks.progress import (
     ProgressHooks,
-    repr_htmlsafe,
     TestingProgressPublisher,
+    repr_htmlsafe,
 )
+from zipline.pipeline.hooks.testing import TestingHooks
 from zipline.pipeline.term import AssetExists, ComputableTerm, LoadableTerm
 from zipline.testing import parameter_space
 from zipline.testing.fixtures import (
-    ZiplineTestCase,
     WithSeededRandomPipelineEngine,
+    ZiplineTestCase,
 )
 from zipline.testing.predicates import assert_almost_equal, instance_of
 

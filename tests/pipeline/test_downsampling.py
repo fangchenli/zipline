@@ -3,31 +3,31 @@ Tests for Downsampled Filters/Factors/Classifiers
 """
 
 import pandas as pd
-from zipline.testing.predicates import assert_frame_equal
 
 from zipline.errors import NoFurtherDataError
 from zipline.pipeline import (
-    Pipeline,
+    CustomClassifier,
     CustomFactor,
     CustomFilter,
-    CustomClassifier,
+    Pipeline,
     SimplePipelineEngine,
 )
 from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.domain import (
     CA_EQUITIES,
-    EquitySessionDomain,
     GB_EQUITIES,
     US_EQUITIES,
+    EquitySessionDomain,
 )
 from zipline.pipeline.factors import SimpleMovingAverage
 from zipline.pipeline.filters.smoothing import All
-from zipline.testing import ZiplineTestCase, parameter_space, ExplodingObject
+from zipline.testing import ExplodingObject, ZiplineTestCase, parameter_space
 from zipline.testing.fixtures import (
-    WithTradingSessions,
-    WithSeededRandomPipelineEngine,
     WithAssetFinder,
+    WithSeededRandomPipelineEngine,
+    WithTradingSessions,
 )
+from zipline.testing.predicates import assert_frame_equal
 from zipline.utils.classproperty import classproperty
 from zipline.utils.input_validation import _qualified_name
 from zipline.utils.numpy_utils import int64_dtype
@@ -569,11 +569,7 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
             self.assertEqual(
                 result,
                 expected_extra_rows,
-                "Expected {} extra_rows from {}, but got {}.".format(
-                    expected_extra_rows,
-                    term,
-                    result,
-                ),
+                f"Expected {expected_extra_rows} extra_rows from {term}, but got {result}.",
             )
 
 
@@ -719,10 +715,10 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine, ZiplineTestCas
             f.downsample("bad")
 
         expected = (
-            "{}() expected a value in "
+            f"{_qualified_name(f.downsample)}() expected a value in "
             "('month_start', 'quarter_start', 'week_start', 'year_start') "
             "for argument 'frequency', but got 'bad' instead."
-        ).format(_qualified_name(f.downsample))
+        )
         self.assertEqual(str(e.exception), expected)
 
 

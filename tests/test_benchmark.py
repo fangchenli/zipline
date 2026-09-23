@@ -23,17 +23,14 @@ from zipline.errors import (
     BenchmarkAssetNotAvailableTooLate,
     InvalidBenchmarkAsset,
 )
-
 from zipline.sources.benchmark_source import BenchmarkSource
-from zipline.utils.run_algo import BenchmarkSpec
-
 from zipline.testing import (
     MockDailyBarReader,
     create_minute_bar_data,
     parameter_space,
     tmp_bcolz_equity_minute_bar_reader,
 )
-from zipline.testing.predicates import assert_equal
+from zipline.testing.core import make_test_handler
 from zipline.testing.fixtures import (
     WithAssetFinder,
     WithDataPortal,
@@ -42,7 +39,8 @@ from zipline.testing.fixtures import (
     WithTradingCalendars,
     ZiplineTestCase,
 )
-from zipline.testing.core import make_test_handler
+from zipline.testing.predicates import assert_equal
+from zipline.utils.run_algo import BenchmarkSpec
 
 
 class TestBenchmark(

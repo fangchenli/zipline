@@ -13,15 +13,15 @@
 # limitations under the License.
 from collections import defaultdict
 
-from numpy import iinfo, uint32, multiply
+from numpy import iinfo, multiply, uint32
 
 from zipline.data.fx import ExplodingFXRateReader
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.utils.numpy_utils import repeat_first_axis
 
+from ..data.equity_pricing import EquityPricing
 from .base import PipelineLoader
 from .utils import shift_dates
-from ..data.equity_pricing import EquityPricing
 
 UINT32_MAX = iinfo(uint32).max
 

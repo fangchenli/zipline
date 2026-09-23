@@ -13,8 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import zipline.api
 from functools import wraps
+
+import zipline.api
 from zipline.utils.algo_instance import get_algo_instance, set_algo_instance
 
 

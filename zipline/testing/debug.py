@@ -18,7 +18,7 @@ def debug_mro_failure(name, bases):
     lines = [f"Cycle found when trying to compute MRO for {name}:\n"]
     for source, dest in list(zip(cycle, cycle[1:])) + [(cycle[-1], cycle[0])]:
         label = verbosify_label(graph.get_edge_data(source, dest)["label"])
-        lines.append("{} comes before {}: cause={}".format(source, dest, label))
+        lines.append(f"{source} comes before {dest}: cause={label}")
 
     # Either graphviz graph and tell the user where it went, or tell people how
     # to enable that feature.

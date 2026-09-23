@@ -5,8 +5,9 @@ Dependency-Graph representation of Pipeline API terms.
 import uuid
 
 import networkx as nx
-from zipline.utils.memoize import lazyval
+
 from zipline.pipeline.visualize import display_graph
+from zipline.utils.memoize import lazyval
 
 from .term import LoadableTerm
 

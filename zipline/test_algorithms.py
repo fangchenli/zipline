@@ -74,14 +74,12 @@ The algorithm must expose methods:
 
 import numpy as np
 
-from zipline.testing.predicates import assert_raises
-
 from zipline.algorithm import TradingAlgorithm
 from zipline.api import (
     FixedSlippage,
     order,
-    set_slippage,
     record,
+    set_slippage,
     sid,
 )
 from zipline.errors import UnsupportedOrderParameters
@@ -91,6 +89,7 @@ from zipline.finance.execution import (
     StopLimitOrder,
     StopOrder,
 )
+from zipline.testing.predicates import assert_raises
 
 
 class TestAlgorithm(TradingAlgorithm):

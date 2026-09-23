@@ -12,26 +12,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from logbook import Logger
 from collections import defaultdict
 from copy import copy
 
-from zipline.assets import Equity, Future, Asset
-from .blotter import Blotter
+from logbook import Logger
+
+from zipline.assets import Asset, Equity, Future
 from zipline.extensions import register
-from zipline.finance.order import Order
-from zipline.finance.slippage import (
-    DEFAULT_FUTURE_VOLUME_SLIPPAGE_BAR_LIMIT,
-    VolatilityVolumeShare,
-    FixedBasisPointsSlippage,
-)
 from zipline.finance.commission import (
     DEFAULT_PER_CONTRACT_COST,
     FUTURE_EXCHANGE_FEES_BY_SYMBOL,
     PerContract,
     PerShare,
 )
+from zipline.finance.order import Order
+from zipline.finance.slippage import (
+    DEFAULT_FUTURE_VOLUME_SLIPPAGE_BAR_LIMIT,
+    FixedBasisPointsSlippage,
+    VolatilityVolumeShare,
+)
 from zipline.utils.input_validation import expect_types
+
+from .blotter import Blotter
 
 log = Logger("Blotter")
 warning_logger = Logger("AlgoWarning")
@@ -195,40 +197,27 @@ class SimulationBlotter(Blotter):
                 # been a partial fill or not.
                 if order.filled > 0:
                     warning_logger.warn(
-                        "Your order for {order_amt} shares of "
-                        "{order_sym} has been partially filled. "
-                        "{order_filled} shares were successfully "
-                        "purchased. {order_failed} shares were not "
+                        f"Your order for {order.amount} shares of "
+                        f"{order.asset.symbol} has been partially filled. "
+                        f"{order.filled} shares were successfully "
+                        f"purchased. {order.amount - order.filled} shares were not "
                         "filled by the end of day and "
-                        "were canceled.".format(
-                            order_amt=order.amount,
-                            order_sym=order.asset.symbol,
-                            order_filled=order.filled,
-                            order_failed=order.amount - order.filled,
-                        )
+                        "were canceled."
                     )
                 elif order.filled < 0:
                     warning_logger.warn(
-                        "Your order for {order_amt} shares of "
-                        "{order_sym} has been partially filled. "
-                        "{order_filled} shares were successfully "
-                        "sold. {order_failed} shares were not "
+                        f"Your order for {order.amount} shares of "
+                        f"{order.asset.symbol} has been partially filled. "
+                        f"{-1 * order.filled} shares were successfully "
+                        f"sold. {-1 * (order.amount - order.filled)} shares were not "
                         "filled by the end of day and "
-                        "were canceled.".format(
-                            order_amt=order.amount,
-                            order_sym=order.asset.symbol,
-                            order_filled=-1 * order.filled,
-                            order_failed=-1 * (order.amount - order.filled),
-                        )
+                        "were canceled."
                     )
                 else:
                     warning_logger.warn(
-                        "Your order for {order_amt} shares of "
-                        "{order_sym} failed to fill by the end of day "
-                        "and was canceled.".format(
-                            order_amt=order.amount,
-                            order_sym=order.asset.symbol,
-                        )
+                        f"Your order for {order.amount} shares of "
+                        f"{order.asset.symbol} failed to fill by the end of day "
+                        "and was canceled."
                     )
 
         assert not orders

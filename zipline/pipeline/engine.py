@@ -60,13 +60,17 @@ from abc import ABC, abstractmethod
 from functools import partial
 
 import numpy as np
-from numpy import array, arange
+from numpy import arange, array
 from pandas import CategoricalDtype, DataFrame, Index, MultiIndex, concat
 from pandas.api.types import union_categoricals
 from toolz import groupby
 
-from zipline.lib.adjusted_array import ensure_adjusted_array, ensure_ndarray
 from zipline.errors import NoFurtherDataError
+from zipline.lib.adjusted_array import ensure_adjusted_array, ensure_ndarray
+from zipline.utils.date_utils import (
+    compute_date_range_chunks,
+    to_session_label,
+)
 from zipline.utils.input_validation import expect_types
 from zipline.utils.numpy_utils import (
     as_column,
@@ -76,14 +80,10 @@ from zipline.utils.numpy_utils import (
 from zipline.utils.pandas_utils import explode
 from zipline.utils.string_formatting import bulleted_list
 
-from .domain import Domain, GENERIC
+from .domain import GENERIC, Domain
 from .graph import maybe_specialize
 from .hooks import DelegatingHooks
 from .term import AssetExists, InputDates, LoadableTerm
-from zipline.utils.date_utils import (
-    compute_date_range_chunks,
-    to_session_label,
-)
 
 
 class PipelineEngine(ABC):
@@ -483,15 +483,13 @@ class SimplePipelineEngine(PipelineEngine):
 
         if start_date not in sessions:
             raise ValueError(
-                "Pipeline start date ({}) is not a trading session for "
-                "domain {}.".format(start_date, domain)
+                f"Pipeline start date ({start_date}) is not a trading session for "
+                f"domain {domain}."
             )
 
         elif end_date not in sessions:
             raise ValueError(
-                "Pipeline end date {} is not a trading session for domain {}.".format(
-                    end_date, domain
-                )
+                f"Pipeline end date {end_date} is not a trading session for domain {domain}."
             )
 
         start_idx, end_idx = sessions.slice_locs(start_date, end_date)
@@ -528,14 +526,10 @@ class SimplePipelineEngine(PipelineEngine):
 
         if num_assets == 0:
             raise ValueError(
-                "Failed to find any assets with country_code {!r} that traded "
-                "between {} and {}.\n"
+                f"Failed to find any assets with country_code {domain.country_code!r} that traded "
+                f"between {start_date} and {end_date}.\n"
                 "This probably means that your asset db is old or that it has "
-                "incorrect country/exchange metadata.".format(
-                    domain.country_code,
-                    start_date,
-                    end_date,
-                )
+                "incorrect country/exchange metadata."
             )
 
         return ret
@@ -819,21 +813,15 @@ class SimplePipelineEngine(PipelineEngine):
         compute_chunk_name = self.compute_chunk.__name__
         if root not in initial_workspace:
             raise AssertionError(
-                "root_mask values not supplied to {cls}.{method}".format(
-                    cls=clsname,
-                    method=compute_chunk_name,
-                )
+                f"root_mask values not supplied to {clsname}.{compute_chunk_name}"
             )
 
         shape = initial_workspace[root].shape
         implied_shape = len(dates), len(sids)
         if shape != implied_shape:
             raise AssertionError(
-                "root_mask shape is {shape}, but received dates/assets "
-                "imply that shape should be {implied}".format(
-                    shape=shape,
-                    implied=implied_shape,
-                )
+                f"root_mask shape is {shape}, but received dates/assets "
+                f"imply that shape should be {implied_shape}"
             )
 
         for term in initial_workspace:
@@ -872,17 +860,13 @@ class SimplePipelineEngine(PipelineEngine):
                 if isinstance(term, LoadableTerm):
                     raise ValueError(
                         "Loadable workspace terms must be specialized to a "
-                        "domain, but got generic term {}".format(term)
+                        f"domain, but got generic term {term}"
                     )
 
             elif term.domain != graph.domain:
                 raise ValueError(
-                    "Initial workspace term {} has domain {}. "
-                    "Does not match pipeline domain {}".format(
-                        term,
-                        term.domain,
-                        graph.domain,
-                    )
+                    f"Initial workspace term {term} has domain {term.domain}. "
+                    f"Does not match pipeline domain {graph.domain}"
                 )
 
     def resolve_domain(self, pipeline):
@@ -911,7 +895,7 @@ class SimplePipelineEngine(PipelineEngine):
             if bad:
                 raise ValueError(
                     "Requested currency conversion is not supported for the "
-                    "following terms:\n{}".format(bulleted_list(bad))
+                    f"following terms:\n{bulleted_list(bad)}"
                 )
 
 

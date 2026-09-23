@@ -16,16 +16,15 @@ Currently, this means that a domain defines two things:
 """
 
 import datetime
-from textwrap import dedent
-
 from abc import ABC, abstractmethod
-import numpy as np
-import pandas as pd
+from textwrap import dedent
 from zoneinfo import ZoneInfo
 
-from zipline.utils.calendar_utils import get_calendar
+import numpy as np
+import pandas as pd
 
 from zipline.country import CountryCode
+from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.date_utils import to_session_label, to_session_labels
 from zipline.utils.formatting import bulleted_list
 from zipline.utils.input_validation import expect_types, optional
@@ -97,10 +96,8 @@ class IDomain(ABC):
             return trading_days[trading_days.searchsorted(dt)]
         except IndexError:
             raise ValueError(
-                "Date {} was past the last session for domain {}. "
-                "The last session for this domain is {}.".format(
-                    dt.date(), self, trading_days[-1].date()
-                )
+                f"Date {dt.date()} was past the last session for domain {self}. "
+                f"The last session for this domain is {trading_days[-1].date()}."
             )
 
 
@@ -212,10 +209,7 @@ class EquityCalendarDomain(Domain):
         return pd.DatetimeIndex(opens + self._data_query_offset)
 
     def __repr__(self):
-        return "EquityCalendarDomain({!r}, {!r})".format(
-            self.country_code,
-            self.calendar_name,
-        )
+        return f"EquityCalendarDomain({self.country_code!r}, {self.calendar_name!r})"
 
 
 AR_EQUITIES = EquityCalendarDomain(CountryCode.ARGENTINA, "XBUE")

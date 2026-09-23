@@ -12,21 +12,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from parameterized import parameterized
-
-import pandas as pd
-import numpy as np
 from unittest.mock import patch
+
+import numpy as np
+import pandas as pd
+from parameterized import parameterized
 
 from zipline.errors import UnsupportedOrderParameters
 from zipline.sources.requests_csv import mask_requests_args
-from zipline.utils import factory
 from zipline.testing import FetcherDataPortal
 from zipline.testing.fixtures import (
-    WithResponses,
     WithMakeAlgo,
+    WithResponses,
     ZiplineTestCase,
 )
+from zipline.utils import factory
+
 from .resources.fetcher_inputs.fetcher_test_data import (
     AAPL_CSV_DATA,
     AAPL_IBM_CSV_DATA,
@@ -36,9 +37,9 @@ from .resources.fetcher_inputs.fetcher_test_data import (
     FETCHER_UNIVERSE_DATA,
     FETCHER_UNIVERSE_DATA_TICKER_COLUMN,
     MULTI_SIGNAL_CSV_DATA,
+    NFLX_DATA,
     NON_ASSET_FETCHER_UNIVERSE_DATA,
     PALLADIUM_DATA,
-    NFLX_DATA,
 )
 
 

@@ -17,10 +17,10 @@
 A source to be used in testing.
 """
 
-from datetime import timedelta
 import itertools
+from datetime import timedelta
 
-from zipline.protocol import Event, DATASOURCE_TYPE
+from zipline.protocol import DATASOURCE_TYPE, Event
 from zipline.utils.date_utils import to_session_label
 
 

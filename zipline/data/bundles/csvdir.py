@@ -5,12 +5,12 @@ Module for building a complete dataset from local directory with csv files.
 import os
 import sys
 
+import pandas as pd
 from logbook import Logger, StreamHandler
 from numpy import empty
-import pandas as pd
-from pandas import DataFrame, read_csv, Index, Timedelta, NaT
-from zipline.utils.calendar_utils import register_calendar_alias
+from pandas import DataFrame, Index, NaT, Timedelta, read_csv
 
+from zipline.utils.calendar_utils import register_calendar_alias
 from zipline.utils.cli import maybe_show_progress
 
 from . import core as bundles

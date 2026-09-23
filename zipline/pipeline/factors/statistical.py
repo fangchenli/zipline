@@ -1,5 +1,5 @@
-from numexpr import evaluate
 import numpy as np
+from numexpr import evaluate
 from numpy import broadcast_arrays
 from scipy.stats import (
     linregress,
@@ -24,9 +24,7 @@ from zipline.utils.numpy_utils import (
     int64_dtype,
 )
 
-
 from .basic import Returns
-
 
 ALLOWED_DTYPES = (float64_dtype, int64_dtype)
 

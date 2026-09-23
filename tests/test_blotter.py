@@ -12,9 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from parameterized import parameterized
-
 import pandas as pd
+from parameterized import parameterized
+from zipline.gens.sim_engine import BAR, SESSION_END
 
 from zipline.assets import Equity
 from zipline.finance.blotter import SimulationBlotter
@@ -32,7 +32,6 @@ from zipline.finance.slippage import (
     FixedSlippage,
     VolumeShareSlippage,
 )
-from zipline.gens.sim_engine import BAR, SESSION_END
 from zipline.testing.fixtures import (
     WithCreateBarData,
     WithDataPortal,

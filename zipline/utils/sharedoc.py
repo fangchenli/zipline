@@ -5,6 +5,7 @@ across different functions.
 
 import re
 from textwrap import dedent
+
 from toolz import curry
 
 PIPELINE_DOWNSAMPLING_FREQUENCY_DOC = dedent(
@@ -59,16 +60,16 @@ def format_docstring(owner_name, docstring, formatters):
         matches = regex.findall(docstring)
         if not matches:
             raise ValueError(
-                "Couldn't find template for parameter {!r} in docstring "
-                "for {}."
+                f"Couldn't find template for parameter {target!r} in docstring "
+                f"for {owner_name}."
                 "\nParameter name must be alone on a line surrounded by "
-                "braces.".format(target, owner_name),
+                "braces.",
             )
         elif len(matches) > 1:
             raise ValueError(
-                "Couldn't found multiple templates for parameter {!r}"
-                "in docstring for {}."
-                "\nParameter should only appear once.".format(target, owner_name)
+                f"Couldn't found multiple templates for parameter {target!r}"
+                f"in docstring for {owner_name}."
+                "\nParameter should only appear once."
             )
 
         (leading_whitespace, _) = matches[0]

@@ -2,11 +2,10 @@
 Tests for SimplePipelineEngine
 """
 
-from collections import OrderedDict
+from collections import ChainMap, OrderedDict
 from itertools import product
 from operator import add, sub
 
-from parameterized import parameterized
 import numpy as np
 from numpy import (
     arange,
@@ -26,19 +25,19 @@ from numpy.testing import assert_almost_equal
 from pandas import (
     Categorical,
     DataFrame,
-    date_range,
     Index,
     MultiIndex,
     Series,
     Timestamp,
+    date_range,
 )
-from collections import ChainMap
-from zipline.testing.predicates import assert_frame_equal
+from parameterized import parameterized
 from toolz import merge
+from zipline.lib.adjustment import MULTIPLY
 
+import zipline.testing.fixtures as zf
 from zipline.assets.synthetic import make_rotating_equity_info
 from zipline.errors import NoFurtherDataError
-from zipline.lib.adjustment import MULTIPLY
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import CustomFactor, Pipeline
 from zipline.pipeline.data import (
@@ -49,16 +48,16 @@ from zipline.pipeline.data import (
 )
 from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.domain import (
-    EquitySessionDomain,
     GENERIC,
     JP_EQUITIES,
     US_EQUITIES,
+    EquitySessionDomain,
 )
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.factors import (
-    AverageDollarVolume,
     EWMA,
     EWMSTD,
+    AverageDollarVolume,
     ExponentialWeightedMovingAverage,
     ExponentialWeightedMovingStdDev,
     MaxDrawdown,
@@ -71,25 +70,24 @@ from zipline.pipeline.loaders.equity_pricing_loader import (
 from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.pipeline.loaders.synthetic import (
     PrecomputedLoader,
-    make_bar_data,
     expected_bar_values_2d,
+    make_bar_data,
 )
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import InputDates
 from zipline.testing import (
     AssetID,
     AssetIDPlusDay,
+    OpenPrice,
     check_arrays,
     make_alternating_boolean_array,
     make_cascading_boolean_array,
-    OpenPrice,
     parameter_space,
     product_upper_triangle,
 )
-import zipline.testing.fixtures as zf
-from zipline.utils.exploding_object import NamedExplodingObject
 from zipline.testing.core import create_simple_domain
-from zipline.testing.predicates import assert_equal
+from zipline.testing.predicates import assert_equal, assert_frame_equal
+from zipline.utils.exploding_object import NamedExplodingObject
 from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import bool_dtype, datetime64ns_dtype
 

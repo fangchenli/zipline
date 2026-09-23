@@ -6,6 +6,7 @@ from os.path import (
     dirname,
     join,
 )
+
 from pandas_datareader.data import DataReader
 
 here = join(dirname(__file__))

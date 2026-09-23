@@ -1,13 +1,13 @@
+import itertools
 from datetime import timedelta
 
-import itertools
-from parameterized import parameterized
 import numpy as np
-from numpy.testing import assert_array_equal, assert_almost_equal
 import pandas as pd
+from numpy.testing import assert_almost_equal, assert_array_equal
+from parameterized import parameterized
 from toolz import merge
 
-from zipline.pipeline import SimplePipelineEngine, Pipeline, CustomFactor
+from zipline.pipeline import CustomFactor, Pipeline, SimplePipelineEngine
 from zipline.pipeline.common import (
     EVENT_DATE_FIELD_NAME,
     FISCAL_QUARTER_FIELD_NAME,
@@ -15,16 +15,15 @@ from zipline.pipeline.common import (
     SID_FIELD_NAME,
     TS_FIELD_NAME,
 )
-from zipline.pipeline.data import DataSet
-from zipline.pipeline.data import Column
+from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.domain import EquitySessionDomain
 from zipline.pipeline.loaders.earnings_estimates import (
     INVALID_NUM_QTRS_MESSAGE,
     NextEarningsEstimatesLoader,
     NextSplitAdjustedEarningsEstimatesLoader,
-    normalize_quarters,
     PreviousEarningsEstimatesLoader,
     PreviousSplitAdjustedEarningsEstimatesLoader,
+    normalize_quarters,
     split_normalized_quarters,
 )
 from zipline.testing.fixtures import (
@@ -32,10 +31,12 @@ from zipline.testing.fixtures import (
     WithTradingSessions,
     ZiplineTestCase,
 )
-from zipline.testing.predicates import assert_equal, assert_raises_regex
-from zipline.testing.predicates import assert_frame_equal
-from zipline.utils.numpy_utils import datetime64ns_dtype
-from zipline.utils.numpy_utils import float64_dtype
+from zipline.testing.predicates import (
+    assert_equal,
+    assert_frame_equal,
+    assert_raises_regex,
+)
+from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
 
 
 class Estimates(DataSet):

@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from itertools import permutations, product, islice
+from itertools import islice, permutations, product
 from operator import (
     add,
     ge,
@@ -26,16 +26,16 @@ from numpy import (
 )
 from pandas import (
     DataFrame,
-    date_range,
     Index,
+    date_range,
 )
 
 from zipline.pipeline import Factor, Filter
-from zipline.pipeline.factors.factor import NumExprFactor
 from zipline.pipeline.expression import (
     NUMEXPR_MATH_FUNCS,
     NumericalExpression,
 )
+from zipline.pipeline.factors.factor import NumExprFactor
 from zipline.testing import check_allclose, parameter_space
 from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
 
@@ -233,20 +233,20 @@ class NumericalExpressionTestCase(TestCase):
                     op(self.f, self.d)
                 message = e.exception.args[0]
                 expected = (
-                    "Don't know how to compute float64 {sym} datetime64[ns].\n"
+                    f"Don't know how to compute float64 {sym} datetime64[ns].\n"
                     "Arithmetic operators are only supported between Factors"
                     " of dtype 'float64'."
-                ).format(sym=sym)
+                )
                 self.assertEqual(message, expected)
 
                 with self.assertRaises(TypeError) as e:
                     op(self.d, self.f)
                 message = e.exception.args[0]
                 expected = (
-                    "Don't know how to compute datetime64[ns] {sym} float64.\n"
+                    f"Don't know how to compute datetime64[ns] {sym} float64.\n"
                     "Arithmetic operators are only supported between Factors"
                     " of dtype 'float64'."
-                ).format(sym=sym)
+                )
                 self.assertEqual(message, expected)
 
     def test_negate_datetime(self):

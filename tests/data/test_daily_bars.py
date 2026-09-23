@@ -12,11 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import re
 from itertools import cycle, islice
 from sys import maxsize
-import re
 
-from parameterized import parameterized
 import numpy as np
 from numpy import (
     arange,
@@ -25,14 +24,14 @@ from numpy import (
     nan,
 )
 from pandas import (
-    concat,
     DataFrame,
     NaT,
     Series,
     Timestamp,
+    concat,
 )
+from parameterized import parameterized
 from toolz import merge
-from zipline.utils.calendar_utils import get_calendar
 
 from zipline.data.bar_reader import (
     NoDataAfterDate,
@@ -51,8 +50,8 @@ from zipline.data.hdf5_daily_bars import (
 )
 from zipline.pipeline.loaders.synthetic import (
     OHLCV,
-    asset_start,
     asset_end,
+    asset_start,
     expected_bar_value_with_holes,
     expected_bar_values_2d,
     make_bar_data,
@@ -69,6 +68,7 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
 )
 from zipline.testing.predicates import assert_equal, assert_sequence_equal
+from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.classproperty import classproperty
 
 TEST_CALENDAR_START = Timestamp("2015-06-01")
@@ -366,8 +366,8 @@ class _DailyBarsTestCase(
         reader = self.daily_bar_reader
 
         def make_failure_msg(asset, date, field):
-            return "Unexpected value for sid={}; date={}; field={}.".format(
-                asset, date.date(), field
+            return (
+                f"Unexpected value for sid={asset}; date={date.date()}; field={field}."
             )
 
         for asset in self.assets:
@@ -462,17 +462,17 @@ class _DailyBarsTestCase(
                     reader.get_value(asset, date, CLOSE),
                     nan,
                     msg=(
-                        "Expected a hole for sid={}; date={}, but got a"
+                        f"Expected a hole for sid={asset}; date={date.date()}, but got a"
                         " non-nan value for close."
-                    ).format(asset, date.date()),
+                    ),
                 )
                 assert_equal(
                     reader.get_value(asset, date, VOLUME),
                     0.0,
                     msg=(
-                        "Expected a hole for sid={}; date={}, but got a"
+                        f"Expected a hole for sid={asset}; date={date.date()}, but got a"
                         " non-zero value for volume."
-                    ).format(asset, date.date()),
+                    ),
                 )
 
     def test_get_last_traded_dt(self):
@@ -722,9 +722,7 @@ class _HDF5DailyBarTestCase(
             assert_equal(
                 self.single_country_reader.asset_end_dates[ix],
                 self.asset_end(sid).asm8,
-                msg=("asset_end_dates value for sid={} differs from expected").format(
-                    sid
-                ),
+                msg=(f"asset_end_dates value for sid={sid} differs from expected"),
             )
 
     def test_asset_start_dates(self):
@@ -734,9 +732,7 @@ class _HDF5DailyBarTestCase(
             assert_equal(
                 self.single_country_reader.asset_start_dates[ix],
                 self.asset_start(sid).asm8,
-                msg=("asset_start_dates value for sid={} differs from expected").format(
-                    sid
-                ),
+                msg=(f"asset_start_dates value for sid={sid} differs from expected"),
             )
 
     def test_invalid_date(self):

@@ -1,6 +1,7 @@
 """Simple common factors."""
 
 from numbers import Number
+
 from numpy import (
     arange,
     average,
@@ -13,8 +14,10 @@ from numpy import (
     isnan,
     log,
     sqrt,
-    sum as np_sum,
     unique,
+)
+from numpy import (
+    sum as np_sum,
 )
 
 from zipline.pipeline.data import EquityPricing
@@ -31,8 +34,8 @@ from zipline.utils.numpy_utils import (
     ignore_nanwarnings,
 )
 
-from .factor import CustomFactor
 from ..mixins import SingleInputMixin
+from .factor import CustomFactor
 
 
 class Returns(CustomFactor):
@@ -50,8 +53,8 @@ class Returns(CustomFactor):
         if self.window_length < 2:
             raise ValueError(
                 "'Returns' expected a window length of at least 2, but was "
-                "given {window_length}. For daily returns, use a window "
-                "length of 2.".format(window_length=self.window_length)
+                f"given {self.window_length}. For daily returns, use a window "
+                "length of 2."
             )
 
     def compute(self, today, assets, out, close):
@@ -78,9 +81,9 @@ class PercentChange(SingleInputMixin, CustomFactor):
         if self.window_length < 2:
             raise ValueError(
                 "'PercentChange' expected a window length"
-                "of at least 2, but was given {window_length}. "
+                f"of at least 2, but was given {self.window_length}. "
                 "For daily percent change, use a window "
-                "length of 2.".format(window_length=self.window_length)
+                "length of 2."
             )
 
     def compute(self, today, assets, out, values):
@@ -507,7 +510,7 @@ class PeerCount(SingleInputMixin, CustomFactor):
         if self.window_length != 1:
             raise ValueError(
                 "'PeerCount' expected a window length of 1, but was given"
-                "{window_length}.".format(window_length=self.window_length)
+                f"{self.window_length}."
             )
 
     def compute(self, today, assets, out, classifier_values):

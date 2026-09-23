@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import namedtuple, OrderedDict
+from collections import OrderedDict, namedtuple
 from functools import partial
 from math import isnan
 
@@ -20,16 +20,17 @@ import logbook
 import numpy as np
 import pandas as pd
 
+import zipline.protocol as zp
 from zipline.assets import Future
 from zipline.finance.transaction import Transaction
-import zipline.protocol as zp
 from zipline.utils.sentinel import sentinel
-from .position import Position
+
 from ._finance_ext import (
     PositionStats,
     calculate_position_tracker_stats,
     update_position_last_sale_prices,
 )
+from .position import Position
 
 log = logbook.Logger("Performance")
 

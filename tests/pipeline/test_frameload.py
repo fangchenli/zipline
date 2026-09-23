@@ -3,28 +3,28 @@ Tests for zipline.pipeline.loaders.frame.DataFrameLoader.
 """
 
 from unittest import TestCase
-
 from unittest.mock import patch
+
 from numpy import arange, ones
 from numpy.testing import assert_array_equal
 from pandas import (
-    date_range,
     DataFrame,
     Index,
+    date_range,
 )
-from zipline.utils.calendar_utils import get_calendar
-
 from zipline.lib.adjustment import (
     ADD,
+    MULTIPLY,
+    OVERWRITE,
     Float64Add,
     Float64Multiply,
     Float64Overwrite,
-    MULTIPLY,
-    OVERWRITE,
 )
+
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.domain import US_EQUITIES
 from zipline.pipeline.loaders.frame import DataFrameLoader
+from zipline.utils.calendar_utils import get_calendar
 
 
 class DataFrameLoaderTestCase(TestCase):

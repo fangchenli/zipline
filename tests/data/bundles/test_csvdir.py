@@ -1,11 +1,11 @@
 import numpy as np
 import pandas as pd
-from zipline.utils.calendar_utils import get_calendar
 
-from zipline.data.bundles import ingest, load, bundles
+from zipline.data.bundles import bundles, ingest, load
 from zipline.testing import test_resource_path
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import assert_equal
+from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.functional import apply
 
 

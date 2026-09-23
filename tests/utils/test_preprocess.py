@@ -5,21 +5,21 @@ Tests for zipline.utils.validate.
 from operator import attrgetter
 from types import FunctionType
 from unittest import TestCase
-
-from parameterized import parameterized
-from numpy import arange, array, dtype
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from zipline.utils.preprocess import call, preprocess
+from numpy import arange, array, dtype
+from parameterized import parameterized
+
 from zipline.utils.input_validation import (
-    expect_dimensions,
     ensure_timezone,
-    expect_element,
+    expect_dimensions,
     expect_dtypes,
+    expect_element,
     expect_types,
     optional,
     optionally,
 )
+from zipline.utils.preprocess import call, preprocess
 
 
 def noop(func, argname, argvalue):
@@ -206,11 +206,8 @@ class PreprocessTestCase(TestCase):
                 foo(not_int(1), 2, 3)
             self.assertEqual(
                 e.exception.args[0],
-                "{qualname}() expected a value of type "
-                "int for argument 'a', but got {t} instead.".format(
-                    qualname=qualname(foo),
-                    t=not_int.__name__,
-                ),
+                f"{qualname(foo)}() expected a value of type "
+                f"int for argument 'a', but got {not_int.__name__} instead.",
             )
             with self.assertRaises(TypeError):
                 foo(1, not_int(2), 3)
@@ -233,9 +230,7 @@ class PreprocessTestCase(TestCase):
             self.assertEqual(
                 e.exception.args[0],
                 "ArgleBargle() expected a value of type "
-                "int for argument 'a', but got {t} instead.".format(
-                    t=not_int.__name__,
-                ),
+                f"int for argument 'a', but got {not_int.__name__} instead.",
             )
 
     def test_expect_types_with_tuple(self):
@@ -250,9 +245,9 @@ class PreprocessTestCase(TestCase):
             foo("1")
 
         expected_message = (
-            "{qualname}() expected a value of "
+            f"{qualname(foo)}() expected a value of "
             "type int or float for argument 'a', but got str instead."
-        ).format(qualname=qualname(foo))
+        )
         self.assertEqual(e.exception.args[0], expected_message)
 
     def test_expect_optional_types(self):
@@ -272,9 +267,9 @@ class PreprocessTestCase(TestCase):
             foo("1")
 
         expected_message = (
-            "{qualname}() expected a value of "
+            f"{qualname(foo)}() expected a value of "
             "type int or NoneType for argument 'a', but got str instead."
-        ).format(qualname=qualname(foo))
+        )
         self.assertEqual(e.exception.args[0], expected_message)
 
     def test_expect_element(self):
@@ -340,18 +335,18 @@ class PreprocessTestCase(TestCase):
             foo(good_a, arange(3, dtype="int64"), good_c)
 
         expected_message = (
-            "{qualname}() expected a value with dtype 'datetime64[ns]'"
+            f"{qualname(foo)}() expected a value with dtype 'datetime64[ns]'"
             " for argument 'b', but got 'int64' instead."
-        ).format(qualname=qualname(foo))
+        )
         self.assertEqual(e.exception.args[0], expected_message)
 
         with self.assertRaises(TypeError) as e:
             foo(arange(3, dtype="uint32"), good_c, good_c)
 
         expected_message = (
-            "{qualname}() expected a value with dtype 'float64'"
+            f"{qualname(foo)}() expected a value with dtype 'float64'"
             " for argument 'a', but got 'uint32' instead."
-        ).format(qualname=qualname(foo))
+        )
         self.assertEqual(e.exception.args[0], expected_message)
 
     def test_expect_dtypes_with_tuple(self):
@@ -373,9 +368,9 @@ class PreprocessTestCase(TestCase):
             foo(arange(3, dtype="uint32"), object())
 
         expected_message = (
-            "{qualname}() expected a value with dtype 'datetime64[ns]' "
+            f"{qualname(foo)}() expected a value with dtype 'datetime64[ns]' "
             "or 'float64' for argument 'a', but got 'uint32' instead."
-        ).format(qualname=qualname(foo))
+        )
         self.assertEqual(e.exception.args[0], expected_message)
 
     def test_expect_dtypes_custom_funcname(self):
@@ -455,8 +450,8 @@ class PreprocessTestCase(TestCase):
             foo(arange(1), 1)
         errmsg = str(e.exception)
         expected = (
-            "{qualname}() expected a 2-D array for argument 'x', but got"
-            " a 1-D array instead.".format(qualname=qualname(foo))
+            f"{qualname(foo)}() expected a 2-D array for argument 'x', but got"
+            " a 1-D array instead."
         )
         self.assertEqual(errmsg, expected)
 
@@ -464,8 +459,8 @@ class PreprocessTestCase(TestCase):
             foo(arange(1).reshape(1, 1, 1), 1)
         errmsg = str(e.exception)
         expected = (
-            "{qualname}() expected a 2-D array for argument 'x', but got"
-            " a 3-D array instead.".format(qualname=qualname(foo))
+            f"{qualname(foo)}() expected a 2-D array for argument 'x', but got"
+            " a 3-D array instead."
         )
         self.assertEqual(errmsg, expected)
 
@@ -473,8 +468,8 @@ class PreprocessTestCase(TestCase):
             foo(array(0), 1)
         errmsg = str(e.exception)
         expected = (
-            "{qualname}() expected a 2-D array for argument 'x', but got"
-            " a scalar instead.".format(qualname=qualname(foo))
+            f"{qualname(foo)}() expected a 2-D array for argument 'x', but got"
+            " a scalar instead."
         )
         self.assertEqual(errmsg, expected)
 

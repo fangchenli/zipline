@@ -1,13 +1,13 @@
-from parameterized import parameterized
 import pandas as pd
+from parameterized import parameterized
 
-from zipline.algorithm import TradingAlgorithm
 import zipline.api as api
 import zipline.errors as ze
-from zipline.finance.execution import StopLimitOrder
-import zipline.testing.fixtures as zf
-from zipline.testing.predicates import assert_equal
 import zipline.test_algorithms as zta
+import zipline.testing.fixtures as zf
+from zipline.algorithm import TradingAlgorithm
+from zipline.finance.execution import StopLimitOrder
+from zipline.testing.predicates import assert_equal
 
 
 def T(s):
@@ -73,15 +73,15 @@ class TestOrderMethods(
         ]
     )
     def test_cannot_order_in_before_trading_start(self, order_method, amount):
-        algotext = """
-from zipline.api import sid, {order_func}
+        algotext = f"""
+from zipline.api import sid, {order_method}
 
 def initialize(context):
     context.asset = sid(1)
 
 def before_trading_start(context, data):
-    {order_func}(context.asset, {arg})
-     """.format(order_func=order_method, arg=amount)
+    {order_method}(context.asset, {amount})
+     """
 
         algo = self.make_algo(script=algotext)
         with self.assertRaises(ze.OrderInBeforeTradingStart):
@@ -97,7 +97,7 @@ def before_trading_start(context, data):
     )
     def test_order_equity_non_targeted(self, order_method, amount):
         # Every day, place an order for $10000 worth of sid(1)
-        algotext = """
+        algotext = f"""
 import zipline.api as api
 
 def initialize(context):
@@ -114,8 +114,8 @@ def initialize(context):
 
 def do_order(context, data):
     context.ordered = True
-    api.{order_func}(context.equity, {arg})
-     """.format(order_func=order_method, arg=amount)
+    api.{order_method}(context.equity, {amount})
+     """
         result = self.run_algorithm(script=algotext)
 
         for orders in result.orders.values:
@@ -139,7 +139,7 @@ def do_order(context, data):
     def test_order_equity_targeted(self, order_method, amount):
         # Every day, place an order for a target of $10000 worth of sid(1).
         # With no commissions or slippage, we should only place one order.
-        algotext = """
+        algotext = f"""
 import zipline.api as api
 
 def initialize(context):
@@ -156,8 +156,8 @@ def initialize(context):
 
 def do_order(context, data):
     context.ordered = True
-    api.{order_func}(context.equity, {arg})
-     """.format(order_func=order_method, arg=amount)
+    api.{order_method}(context.equity, {amount})
+     """
 
         result = self.run_algorithm(script=algotext)
 
@@ -182,7 +182,7 @@ def do_order(context, data):
     )
     def test_order_future_non_targeted(self, order_method, amount):
         # Every day, place an order for $10000 worth of sid(2)
-        algotext = """
+        algotext = f"""
 import zipline.api as api
 
 def initialize(context):
@@ -199,8 +199,8 @@ def initialize(context):
 
 def do_order(context, data):
     context.ordered = True
-    api.{order_func}(context.future, {arg})
-     """.format(order_func=order_method, arg=amount)
+    api.{order_method}(context.future, {amount})
+     """
         result = self.run_algorithm(script=algotext)
 
         for orders in result.orders.values:
@@ -225,7 +225,7 @@ def do_order(context, data):
     def test_order_future_targeted(self, order_method, amount):
         # Every day, place an order for a target of $10000 worth of sid(2).
         # With no commissions or slippage, we should only place one order.
-        algotext = """
+        algotext = f"""
 import zipline.api as api
 
 def initialize(context):
@@ -242,8 +242,8 @@ def initialize(context):
 
 def do_order(context, data):
     context.ordered = True
-    api.{order_func}(context.future, {arg})
-     """.format(order_func=order_method, arg=amount)
+    api.{order_method}(context.future, {amount})
+     """
 
         result = self.run_algorithm(script=algotext)
 
