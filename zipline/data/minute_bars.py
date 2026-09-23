@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 import tables
 from bcolz import ctable
+from bcolz.attrs import attrs as bcolz_attrs
 from intervaltree import IntervalTree
 from lru import LRU
 from pandas import HDFStore
@@ -1073,7 +1074,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
     def get_sid_attr(self, sid, name):
         sid_subdir = _sid_subdir_path(sid)
         sid_path = os.path.join(self._rootdir, sid_subdir)
-        attrs = bcolz.attrs.attrs(sid_path, "r")
+        attrs = bcolz_attrs(sid_path, "r")
         try:
             return attrs[name]
         except KeyError:
@@ -1208,28 +1209,28 @@ class BcolzMinuteBarReader(MinuteBarReader):
             False,
         )
 
-    def load_raw_arrays(self, fields, start_dt, end_dt, sids):
+    def load_raw_arrays(self, columns, start_date, end_date, assets):
         """
         Parameters
         ----------
-        fields : list of str
+        columns : list of str
            'open', 'high', 'low', 'close', or 'volume'
-        start_dt: Timestamp
+        start_date: Timestamp
            Beginning of the window range.
-        end_dt: Timestamp
+        end_date: Timestamp
            End of the window range.
-        sids : list of int
+        assets : list of int
            The asset identifiers in the window.
 
         Returns
         -------
         list of np.ndarray
             A list with an entry per field of ndarrays with shape
-            (minutes in range, sids) with a dtype of float64, containing the
+            (minutes in range, assets) with a dtype of float64, containing the
             values for the respective field over start and end dt range.
         """
-        start_idx = self._find_position_of_minute(start_dt)
-        end_idx = self._find_position_of_minute(end_dt)
+        start_idx = self._find_position_of_minute(start_date)
+        end_idx = self._find_position_of_minute(end_date)
 
         num_minutes = end_idx - start_idx + 1
 
@@ -1241,15 +1242,15 @@ class BcolzMinuteBarReader(MinuteBarReader):
                 length = excl_stop - excl_start + 1
                 num_minutes -= length
 
-        shape = num_minutes, len(sids)
+        shape = num_minutes, len(assets)
 
-        for field in fields:
+        for field in columns:
             if field != "volume":
                 out = np.full(shape, np.nan)
             else:
                 out = np.zeros(shape, dtype=np.uint32)
 
-            for i, sid in enumerate(sids):
+            for i, sid in enumerate(assets):
                 carray = self._open_minute_file(field, sid)
                 values = carray[start_idx : end_idx + 1]
                 if indices_to_exclude is not None:

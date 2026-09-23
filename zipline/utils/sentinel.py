@@ -14,13 +14,17 @@ class _Sentinel:
     __slots__ = ("__weakref__",)
 
 
+# Sentinels created so far, by name.
+_cache = {}
+
+
 def is_sentinel(obj):
     return isinstance(obj, _Sentinel)
 
 
 def sentinel(name, doc=None):
     try:
-        value = sentinel._cache[name]  # memoized
+        value = _cache[name]  # memoized
     except KeyError:
         pass
     else:
@@ -77,17 +81,10 @@ def sentinel(name, doc=None):
         def __copy__(self):
             return self
 
-    cls = type(Sentinel)
-    try:
-        cls.__module__ = frame.f_globals["__name__"]
-    except (AttributeError, KeyError):
-        # Couldn't get the name from the calling scope, just use None.
-        # AttributeError is when frame is None, KeyError is when f_globals
-        # doesn't hold '__name__'
-        cls.__module__ = None
+    # Report the calling module as the sentinel's module, or None if it can't
+    # be determined.
+    module = frame.f_globals.get("__name__") if frame is not None else None
+    type(Sentinel).__module__ = module  # ty: ignore[invalid-assignment]
 
-    sentinel._cache[name] = Sentinel  # cache result
+    _cache[name] = Sentinel  # cache result
     return Sentinel
-
-
-sentinel._cache = {}

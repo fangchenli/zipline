@@ -20,6 +20,8 @@ def to_session_label(dt):
     resolution, like calendar sessions.
     """
     dt = pd.Timestamp(dt)
+    if not isinstance(dt, pd.Timestamp):
+        return dt  # NaT
     if dt.tz is not None:
         dt = dt.tz_convert("UTC").tz_localize(None)
     return dt.normalize().as_unit("ns")
@@ -30,7 +32,8 @@ def to_session_labels(dts):
     dts = pd.DatetimeIndex(dts)
     if dts.tz is not None:
         dts = dts.tz_convert("UTC").tz_localize(None)
-    return dts.normalize().as_unit("ns")
+    # pandas delegates normalize to DatetimeArray, which ty can't see.
+    return dts.normalize().as_unit("ns")  # ty: ignore[unresolved-attribute]
 
 
 def compute_date_range_chunks(sessions, start_date, end_date, chunksize):

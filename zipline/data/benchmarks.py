@@ -41,8 +41,9 @@ def get_benchmark_returns_from_file(filelike):
     )
     # Returns are labelled by (tz-naive) session. Older files carry a UTC
     # offset on each date; drop it.
-    if df.index.tz is not None:
-        df.index = df.index.tz_convert(None)
+    index = pd.DatetimeIndex(df.index)
+    if index.tz is not None:
+        df.index = index.tz_convert(None)
 
     if "return" not in df.columns:
         raise ValueError(

@@ -44,8 +44,19 @@ class ProgressHooks(PipelineHooks):
         """Construct a ProgressHooks that uses an already-constructed publisher."""
         return cls(publisher_factory=lambda: publisher)
 
+    @property
+    def _active_model(self):
+        # The model (and publisher) are created by the first computing_chunk of
+        # a pipeline run; the engine only loads and computes terms inside a
+        # chunk.
+        if self._model is None:
+            raise RuntimeError("ProgressHooks event received outside of a chunk.")
+        return self._model
+
     def _publish(self):
-        self._publisher.publish(self._model)
+        if self._publisher is None:
+            raise RuntimeError("ProgressHooks event received outside of a chunk.")
+        self._publisher.publish(self._active_model)
 
     @contextmanager
     def running_pipeline(self, pipeline, start_date, end_date):
@@ -65,7 +76,7 @@ class ProgressHooks(PipelineHooks):
             self._publish()
             raise
         else:
-            self._model.finish(success=True)
+            self._active_model.finish(success=True)
             self._publish()
         finally:
             self._reset_transient_state()
@@ -79,33 +90,34 @@ class ProgressHooks(PipelineHooks):
                 start_date=self._start_date,
                 end_date=self._end_date,
             )
+        model = self._model
 
         try:
-            self._model.start_chunk(terms, start_date, end_date)
+            model.start_chunk(terms, start_date, end_date)
             self._publish()
             yield
         finally:
-            self._model.finish_chunk(terms, start_date, end_date)
+            model.finish_chunk(terms, start_date, end_date)
             self._publish()
 
     @contextmanager
     def loading_terms(self, terms):
         try:
-            self._model.start_load_terms(terms)
+            self._active_model.start_load_terms(terms)
             self._publish()
             yield
         finally:
-            self._model.finish_load_terms(terms)
+            self._active_model.finish_load_terms(terms)
             self._publish()
 
     @contextmanager
     def computing_term(self, term):
         try:
-            self._model.start_compute_term(term)
+            self._active_model.start_compute_term(term)
             self._publish()
             yield
         finally:
-            self._model.finish_compute_term(term)
+            self._active_model.finish_compute_term(term)
             self._publish()
 
 
@@ -161,19 +173,20 @@ class ProgressModel:
 
         self._state = "init"
 
-        # Number of days in current chunk.
-        self._current_chunk_size = None
+        # Number of days in current chunk (set by start_chunk).
+        self._current_chunk_size = 0
 
         # (start_date, end_date) of current chunk.
         self._current_chunk_bounds = None
 
         # How much should we increment progress by after completing a term?
-        self._completed_term_increment = None
+        # (Set by start_chunk.)
+        self._completed_term_increment = 0.0
 
         # How much should we increment progress by after completing a chunk?
         # This is zero unless we compute a pipeline with no terms, in which
-        # case it will be the full chunk percentage.
-        self._completed_chunk_increment = None
+        # case it will be the full chunk percentage. (Set by start_chunk.)
+        self._completed_chunk_increment = 0.0
 
         # Terms currently being computed.
         self._current_work = None

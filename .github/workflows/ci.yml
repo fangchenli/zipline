@@ -20,8 +20,6 @@ jobs:
 
   types:
     runs-on: ubuntu-latest
-    # Advisory until the existing ty diagnostics are cleared.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
         with:

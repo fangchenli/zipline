@@ -22,6 +22,9 @@ class Currency:
         Plain english name for the currency, e.g., 'US Dollar'.
     """
 
+    _code: str | None
+    _name: str
+
     def __new__(cls, code):
         try:
             return _ALL_CURRENCIES[code]

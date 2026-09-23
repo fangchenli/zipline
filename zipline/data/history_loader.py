@@ -318,7 +318,7 @@ class HistoryLoader(ABC):
         pass
 
     @abstractmethod
-    def _array(self, start, end, assets, field):
+    def _array(self, dts, assets, field):
         pass
 
     def _decimal_places_for_asset(self, asset, reference_date):

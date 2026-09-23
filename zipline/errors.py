@@ -18,7 +18,8 @@ from zipline.utils.memoize import lazyval
 
 
 class ZiplineError(Exception):
-    msg = None
+    # Format string for the error message, filled from the constructor's kwargs.
+    msg: str
 
     def __init__(self, **kwargs):
         self.kwargs = kwargs

@@ -2,6 +2,7 @@ import abc
 from collections import OrderedDict, namedtuple
 from itertools import repeat
 from textwrap import dedent
+from typing import TYPE_CHECKING, Any
 from weakref import WeakKeyDictionary
 
 from toolz import first
@@ -38,6 +39,12 @@ class Column:
     """
     An abstract column of data, not yet associated with a dataset.
     """
+
+    if TYPE_CHECKING:
+        # DataSetMeta replaces each Column in a DataSet's class body with a
+        # _BoundColumnDescr, so accessing a column on a DataSet gives a
+        # BoundColumn. (Type-checking only; Column itself isn't a descriptor.)
+        def __get__(self, instance: object, owner: type) -> "BoundColumn": ...
 
     @preprocess(dtype=ensure_dtype)
     def __init__(
@@ -390,6 +397,12 @@ class DataSetMeta(type):
     families of specialized dataset.
     """
 
+    # Attributes of DataSet classes, set in their class bodies or by __new__
+    # below. (Annotations only: these are per-class, not metaclass, values.)
+    domain: Domain
+    _column_names: frozenset[str]
+    _domain_specializations: WeakKeyDictionary
+
     def __new__(mcls, name, bases, dict_):
         if len(bases) > 1:
             # Disallowing multiple inheritance makes it easier for us to
@@ -722,6 +735,14 @@ class _DataSetFamilyColumn:
 
 
 class DataSetFamilyMeta(abc.ABCMeta):
+    # Attributes of DataSetFamily classes, set in their class bodies or by
+    # __new__ below. (Annotations only; see DataSetMeta.)
+    domain: Domain
+    extra_dims: Any
+    slice_ndim: int
+    _SliceType: type["DataSetFamilySlice"]
+    _slice_cache: dict
+
     def __new__(cls, name, bases, dict_):
         columns = {}
         for k, v in dict_.items():
@@ -752,7 +773,8 @@ class DataSetFamilyMeta(abc.ABCMeta):
                     " extra_dims, or with `_abstract = True`",
                 )
 
-            class BaseSlice(self._SliceType):
+            # ty can't model a base class chosen at runtime.
+            class BaseSlice(self._SliceType):  # ty: ignore[unsupported-base]
                 dataset_family = self
 
                 ndim = self.slice_ndim
@@ -928,7 +950,8 @@ class DataSetFamily(metaclass=DataSetFamilyMeta):
     def _make_dataset(cls, coords):
         """Construct a new dataset given the coordinates."""
 
-        class Slice(cls._SliceType):
+        # ty can't model a base class chosen at runtime.
+        class Slice(cls._SliceType):  # ty: ignore[unsupported-base]
             extra_coords = coords
 
         Slice.__name__ = "{}.slice({})".format(

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import warnings
+from collections.abc import Hashable
 from functools import partial
 
 import logbook
@@ -141,7 +142,7 @@ class BcolzDailyBarWriter:
     zipline.data.bcolz_daily_bars.BcolzDailyBarReader
     """
 
-    _csv_dtypes = {
+    _csv_dtypes: dict[Hashable, np.dtype] = {
         "open": float64_dtype,
         "high": float64_dtype,
         "low": float64_dtype,
@@ -595,10 +596,10 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
             col = self._spot_cols[colname] = self._table[colname]
         return col
 
-    def get_last_traded_dt(self, asset, day):
+    def get_last_traded_dt(self, asset, dt):
         volumes = self._spot_col("volume")
 
-        search_day = day
+        search_day = dt
 
         while True:
             try:

@@ -5,6 +5,7 @@ classifier.py
 import operator
 import re
 from numbers import Number
+from typing import Any
 
 import pandas as pd
 from numpy import isnan, nan, where, zeros
@@ -432,7 +433,7 @@ class Quantiles(SingleInputMixin, Classifier):
     A classifier computing quantiles over an input.
     """
 
-    params = ("bins",)
+    params: Any = ("bins",)  # see Term.params
     dtype = int64_dtype
     window_length = 0
     missing_value = -1
@@ -466,7 +467,7 @@ class Relabel(SingleInputMixin, Classifier):
     """
 
     window_length = 0
-    params = ("relabeler",)
+    params: Any = ("relabeler",)  # see Term.params
 
     # TODO: Support relabeling for integer dtypes.
     @expect_dtypes(term=categorical_dtype)

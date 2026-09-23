@@ -5,6 +5,7 @@ An ndarray subclass for working with arrays of strings.
 import re
 from functools import partial, total_ordering
 from operator import eq, ne
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -78,6 +79,45 @@ class CategoryMismatch(ValueError):
 
 
 _NotPassed = sentinel("_NotPassed")
+
+
+def _equality_check(op):
+    """
+    Shared code for LabelArray.__eq__ and __ne__, parameterized on the actual
+    comparison operator to use.
+    """
+
+    def method(self, other):
+        if isinstance(other, LabelArray):
+            self_mv = self.missing_value
+            other_mv = other.missing_value
+            if self_mv != other_mv:
+                raise MissingValueMismatch(self_mv, other_mv)
+
+            self_categories = self.categories
+            other_categories = other.categories
+            if not compare_arrays(self_categories, other_categories):
+                raise CategoryMismatch(self_categories, other_categories)
+
+            return (
+                op(self.as_int_array(), other.as_int_array())
+                & self.not_missing()
+                & other.not_missing()
+            )
+
+        elif isinstance(other, ndarray):
+            # Compare to ndarrays as though we were an array of strings.
+            # This is fairly expensive, and should generally be avoided.
+            return op(self.as_string_array(), other) & self.not_missing()
+
+        elif isinstance(other, self.SUPPORTED_SCALAR_TYPES):
+            i = self._reverse_categories.get(other, -1)
+            return op(self.as_int_array(), i) & self.not_missing()
+
+        # Let Python fall back to the other operand, or to identity.
+        return NotImplemented
+
+    return method
 
 
 class LabelArray(ndarray):
@@ -350,9 +390,11 @@ class LabelArray(ndarray):
                 f"that shape should be {expected_shape}."
             )
 
+        # ndarray methods like ravel() preserve the LabelArray subclass.
+        raveled = cast(LabelArray, self.ravel())
         return pd.Series(
             index=pd.MultiIndex.from_product([index, columns]),
-            data=self.ravel().as_categorical(),
+            data=raveled.as_categorical(),
             name=name,
         ).unstack()
 
@@ -447,47 +489,8 @@ class LabelArray(ndarray):
         """
         return self.as_int_array() != self.reverse_categories[self.missing_value]
 
-    def _equality_check(op):
-        """
-        Shared code for __eq__ and __ne__, parameterized on the actual
-        comparison operator to use.
-        """
-
-        def method(self, other):
-
-            if isinstance(other, LabelArray):
-                self_mv = self.missing_value
-                other_mv = other.missing_value
-                if self_mv != other_mv:
-                    raise MissingValueMismatch(self_mv, other_mv)
-
-                self_categories = self.categories
-                other_categories = other.categories
-                if not compare_arrays(self_categories, other_categories):
-                    raise CategoryMismatch(self_categories, other_categories)
-
-                return (
-                    op(self.as_int_array(), other.as_int_array())
-                    & self.not_missing()
-                    & other.not_missing()
-                )
-
-            elif isinstance(other, ndarray):
-                # Compare to ndarrays as though we were an array of strings.
-                # This is fairly expensive, and should generally be avoided.
-                return op(self.as_string_array(), other) & self.not_missing()
-
-            elif isinstance(other, self.SUPPORTED_SCALAR_TYPES):
-                i = self._reverse_categories.get(other, -1)
-                return op(self.as_int_array(), i) & self.not_missing()
-
-            return op(super(), other)
-
-        return method
-
     __eq__ = _equality_check(eq)
     __ne__ = _equality_check(ne)
-    del _equality_check
 
     def view(self, dtype=_NotPassed, type=_NotPassed):
         if type is _NotPassed and dtype not in (_NotPassed, self.dtype):

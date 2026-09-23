@@ -474,8 +474,8 @@ class _ClassicRiskMetrics:
             & (benchmark_returns.index <= algorithm_returns.index[-1])
         ]
 
-        benchmark_period_returns = ep.cum_returns(benchmark_returns).iloc[-1]
-        algorithm_period_returns = ep.cum_returns(algorithm_returns).iloc[-1]
+        benchmark_period_returns = ep.cum_returns_final(benchmark_returns)
+        algorithm_period_returns = ep.cum_returns_final(algorithm_returns)
 
         alpha, beta = ep.alpha_beta_aligned(
             algorithm_returns.values,

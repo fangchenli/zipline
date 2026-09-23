@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from collections import namedtuple
 from io import StringIO
 from textwrap import dedent
+from typing import Any, cast
 from zoneinfo import ZoneInfo
 
 import numpy
@@ -12,8 +13,12 @@ import requests
 from logbook import Logger
 from pandas import read_csv
 
-from zipline.assets import Equity
-from zipline.errors import MultipleSymbolsFound, SymbolNotFound, ZiplineError
+from zipline.errors import (
+    MultipleSymbolsFound,
+    SidsNotFound,
+    SymbolNotFound,
+    ZiplineError,
+)
 from zipline.protocol import DATASOURCE_TYPE, Event
 
 logger = Logger("Requests Source Logger")
@@ -32,8 +37,19 @@ def roll_dts_to_midnight(dts, trading_day):
     )
 
 
+RequestPair = namedtuple("RequestPair", ("requests_kwargs", "url"))
+
+
 class FetcherEvent(Event):
-    pass
+    """An event built from one row of a fetched CSV.
+
+    Besides the fields declared here, it has one attribute per CSV column.
+    """
+
+    dt: Any
+    sid: Any
+    type: Any
+    source_id: str
 
 
 class FetcherCSVRedirectError(ZiplineError):
@@ -129,11 +145,14 @@ def mask_requests_args(url, validating=False, params_checker=None, **kwargs):
     requests_kwargs["timeout"] = 1.0 if validating else 30.0
     requests_kwargs.update(SHARED_REQUESTS_KWARGS)
 
-    request_pair = namedtuple("RequestPair", ("requests_kwargs", "url"))
-    return request_pair(requests_kwargs, url)
+    return RequestPair(requests_kwargs, url)
 
 
 class PandasCSV(ABC):
+    # Set by subclasses: the fetched frame and the source's name.
+    df: pd.DataFrame
+    namestring: str
+
     def __init__(
         self,
         pre_func,
@@ -429,7 +448,8 @@ class PandasCSV(ABC):
                 if isinstance(v, numpy.integer):
                     v = int(v)
 
-                setattr(event, k, v)
+                # Column labels of a CSV-loaded frame are strings.
+                setattr(event, cast(str, k), v)
 
             # If it has start_date, then it's already an Asset
             # object from asset_for_symbol, and we don't have to
@@ -449,9 +469,9 @@ class PandasCSV(ABC):
                     # When masking drop all non-mappable values.
                     continue
                 elif self.symbol is None:
-                    # If the event's sid property is an int we coerce
-                    # it into an Equity.
-                    event.sid = asset_cache[event.sid] = Equity(event.sid)
+                    # There's no asset for this sid, and without exchange
+                    # information we can't make a valid Equity for it.
+                    raise SidsNotFound(sids=[event.sid])
 
             event.type = DATASOURCE_TYPE.CUSTOM
             event.source_id = self.namestring

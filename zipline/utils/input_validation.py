@@ -17,9 +17,8 @@ from operator import attrgetter
 from zoneinfo import ZoneInfo
 
 import pandas as pd
-import toolz.curried.operator as op
 from numpy import dtype
-from toolz import complement, compose, valmap
+from toolz import compose, valmap
 
 from zipline.utils.functional import getattrs
 from zipline.utils.preprocess import call, preprocess
@@ -489,7 +488,7 @@ def expect_element(__funcname=_qualified_name, **named):
         return make_check(
             ValueError,
             template,
-            complement(op.contains(collection)),
+            lambda value: value not in collection,
             repr,
             funcname=__funcname,
         )
@@ -580,7 +579,7 @@ def expect_bounded(__funcname=_qualified_name, **named):
             funcname=__funcname,
         )
 
-    return _expect_bounded(_make_bounded_check, __funcname=__funcname, **named)
+    return _expect_bounded(_make_bounded_check, **named)
 
 
 def expect_strictly_bounded(__funcname=_qualified_name, **named):
@@ -666,10 +665,10 @@ def expect_strictly_bounded(__funcname=_qualified_name, **named):
             funcname=__funcname,
         )
 
-    return _expect_bounded(_make_bounded_check, __funcname=__funcname, **named)
+    return _expect_bounded(_make_bounded_check, **named)
 
 
-def _expect_bounded(make_bounded_check, __funcname, **named):
+def _expect_bounded(make_bounded_check, **named):
     def valid_bounds(t):
         return isinstance(t, tuple) and len(t) == 2 and t != (None, None)
 

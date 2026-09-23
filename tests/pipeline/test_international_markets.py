@@ -147,9 +147,9 @@ class WithInternationalPricingPipelineEngine(
 ):
     @classmethod
     def init_class_fixtures(cls):
-        (super().init_class_fixtures())
+        super().init_class_fixtures()
 
-        adjustments = NullAdjustmentReader()
+        adjustments = cls.enter_class_context(NullAdjustmentReader())
         cls.loaders = {
             GB_EQUITIES: EquityPricingLoader(
                 cls.daily_bar_readers["XLON"],

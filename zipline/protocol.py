@@ -181,6 +181,19 @@ class Portfolio:
         Amount of cash in the portfolio at the start of the backtest.
     """
 
+    # Set through a MutableView in __init__, since the attributes are
+    # read-only to users.
+    cash_flow: float
+    starting_cash: float
+    portfolio_value: float
+    pnl: float
+    returns: float
+    cash: float
+    positions: "Positions"
+    start_date: pd.Timestamp | None
+    positions_value: float
+    positions_exposure: float
+
     def __init__(self, start_date=None, capital_base=0.0):
         self_ = MutableView(self)
         self_.cash_flow = 0.0

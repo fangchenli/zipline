@@ -70,6 +70,8 @@ class _UnionRestrictions(Restrictions):
       instead use the `|` operator to combine restrictions
     """
 
+    sub_restrictions: list[Restrictions]
+
     def __new__(cls, sub_restrictions):
         # Filter out NoRestrictions and deal with resulting cases involving
         # one or zero sub_restrictions

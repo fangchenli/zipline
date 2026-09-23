@@ -22,7 +22,7 @@ Lint, types and tests:
 ```bash
 uv run ruff check zipline tests
 uv run ruff format zipline tests
-uv run ty check zipline                          # advisory in CI for now
+uv run ty check zipline
 uv run pytest                                   # full suite
 uv run pytest tests/test_algorithm.py
 uv run pytest "tests/test_algorithm.py::TestMiscellaneousAPI::test_zipline_api_resolves_dynamically"

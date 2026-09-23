@@ -29,7 +29,11 @@ from zipline.assets import (
     PricingDataAssociable,
 )
 from zipline.assets.continuous_futures import ContinuousFuture
-from zipline.assets.roll_finder import CalendarRollFinder, VolumeRollFinder
+from zipline.assets.roll_finder import (
+    CalendarRollFinder,
+    RollFinder,
+    VolumeRollFinder,
+)
 from zipline.data.bar_reader import NoDataOnDate
 from zipline.data.continuous_future_reader import (
     ContinuousFutureMinuteBarReader,
@@ -211,7 +215,7 @@ class DataPortal:
         aligned_future_minute_reader = self._ensure_reader_aligned(future_minute_reader)
         aligned_future_session_reader = self._ensure_reader_aligned(future_daily_reader)
 
-        self._roll_finders = {
+        self._roll_finders: dict[str, RollFinder] = {
             "calendar": CalendarRollFinder(self.trading_calendar, self.asset_finder),
         }
 

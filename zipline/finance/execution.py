@@ -62,10 +62,10 @@ class MarketOrder(ExecutionStyle):
     def __init__(self, exchange=None):
         self._exchange = exchange
 
-    def get_limit_price(self, _is_buy):
+    def get_limit_price(self, is_buy):
         return None
 
-    def get_stop_price(self, _is_buy):
+    def get_stop_price(self, is_buy):
         return None
 
 
@@ -95,7 +95,7 @@ class LimitOrder(ExecutionStyle):
             tick_size=(0.01 if self.asset is None else self.asset.tick_size),
         )
 
-    def get_stop_price(self, _is_buy):
+    def get_stop_price(self, is_buy):
         return None
 
 
@@ -119,7 +119,7 @@ class StopOrder(ExecutionStyle):
         self._exchange = exchange
         self.asset = asset
 
-    def get_limit_price(self, _is_buy):
+    def get_limit_price(self, is_buy):
         return None
 
     def get_stop_price(self, is_buy):

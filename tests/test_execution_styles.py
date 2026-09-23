@@ -169,11 +169,11 @@ class ExecutionStyleTestCase(
         """
         style = MarketOrder()
 
-        assert_equal(style.get_limit_price(_is_buy=True), None)
-        assert_equal(style.get_limit_price(_is_buy=False), None)
+        assert_equal(style.get_limit_price(is_buy=True), None)
+        assert_equal(style.get_limit_price(is_buy=False), None)
 
-        assert_equal(style.get_stop_price(_is_buy=True), None)
-        assert_equal(style.get_stop_price(_is_buy=False), None)
+        assert_equal(style.get_stop_price(is_buy=True), None)
+        assert_equal(style.get_stop_price(is_buy=False), None)
 
     @parameterized.expand(FINAL_PARAMETER_SET)
     def test_limit_order_prices(
@@ -195,8 +195,8 @@ class ExecutionStyleTestCase(
             expected_limit_sell_or_stop_buy, style.get_limit_price(is_buy=False)
         )
 
-        assert_equal(None, style.get_stop_price(_is_buy=True))
-        assert_equal(None, style.get_stop_price(_is_buy=False))
+        assert_equal(None, style.get_stop_price(is_buy=True))
+        assert_equal(None, style.get_stop_price(is_buy=False))
 
     @parameterized.expand(FINAL_PARAMETER_SET)
     def test_stop_order_prices(
@@ -212,8 +212,8 @@ class ExecutionStyleTestCase(
         """
         style = StopOrder(price, asset=self.asset_finder.retrieve_asset(asset))
 
-        assert_equal(None, style.get_limit_price(_is_buy=False))
-        assert_equal(None, style.get_limit_price(_is_buy=True))
+        assert_equal(None, style.get_limit_price(is_buy=False))
+        assert_equal(None, style.get_limit_price(is_buy=True))
 
         assert_equal(
             expected_limit_buy_or_stop_sell, style.get_stop_price(is_buy=False)

@@ -36,7 +36,7 @@ def handle_data(context, data):
 
 # Note: this function can be removed if running
 # this algorithm on quantopian.com
-def analyze(context=None, results=None):
+def analyze(context, results):
     import matplotlib.pyplot as plt
 
     # Plot the portfolio and asset data.

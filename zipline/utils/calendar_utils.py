@@ -40,7 +40,15 @@ __all__ = [
     "register_calendar_type",
 ]
 
-DEFAULT_START = pd.Timestamp("1990-01-01")
+
+def _date(text: str) -> pd.Timestamp:
+    ts = pd.Timestamp(text)
+    if not isinstance(ts, pd.Timestamp):  # NaT
+        raise ValueError(f"not a date: {text!r}")
+    return ts
+
+
+DEFAULT_START = _date("1990-01-01")
 SIDE = "right"
 
 
@@ -60,7 +68,7 @@ def get_calendar(name, start=None, end=None, side=SIDE):
         factory = dispatcher._calendar_factories.get(resolved)
         bound_min = factory.bound_min() if factory is not None else None
         start = DEFAULT_START
-        if bound_min is not None and bound_min > start:
+        if isinstance(bound_min, pd.Timestamp) and bound_min > start:
             start = bound_min
 
     return _xc_get_calendar(resolved, start=start, end=end, side=side)

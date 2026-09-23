@@ -316,11 +316,21 @@ class AssetFinder:
     :class:`zipline.assets.AssetDBWriter`
     """
 
+    # The asset db's tables (see asset_db_schema), reflected in __init__.
+    exchanges: sa.Table
+    equities: sa.Table
+    equity_symbol_mappings: sa.Table
+    equity_supplementary_mappings: sa.Table
+    futures_root_symbols: sa.Table
+    futures_contracts: sa.Table
+    asset_router: sa.Table
+    version_info: sa.Table
+
     @preprocess(engine=coerce_string_to_eng(require_exists=True))
     def __init__(self, engine, future_chain_predicates=CHAIN_PREDICATES):
         self.engine = engine
         metadata = sa.MetaData()
-        metadata.reflect(bind=engine, only=asset_db_table_names)
+        metadata.reflect(bind=engine, only=sorted(asset_db_table_names))
         for table_name in asset_db_table_names:
             setattr(self, table_name, metadata.tables[table_name])
 
@@ -1280,31 +1290,23 @@ class AssetFinder:
 
         return {None: cf, "mul": mul_cf, "add": add_cf}[adjustment]
 
-    def _make_sids(tblattr):
-        def _(self):
-            return tuple(
-                row.sid
-                for row in _fetchall(
-                    self.engine,
-                    sa.select(getattr(self, tblattr).c.sid),
-                )
-            )
+    def _all_sids(self, table):
+        return tuple(row.sid for row in _fetchall(self.engine, sa.select(table.c.sid)))
 
-        return _
+    @property
+    def sids(self):
+        """All the sids in the asset finder."""
+        return self._all_sids(self.asset_router)
 
-    sids = property(
-        _make_sids("asset_router"),
-        doc="All the sids in the asset finder.",
-    )
-    equities_sids = property(
-        _make_sids("equities"),
-        doc="All of the sids for equities in the asset finder.",
-    )
-    futures_sids = property(
-        _make_sids("futures_contracts"),
-        doc="All of the sids for futures consracts in the asset finder.",
-    )
-    del _make_sids
+    @property
+    def equities_sids(self):
+        """All of the sids for equities in the asset finder."""
+        return self._all_sids(self.equities)
+
+    @property
+    def futures_sids(self):
+        """All of the sids for futures contracts in the asset finder."""
+        return self._all_sids(self.futures_contracts)
 
     def _lookup_generic_scalar(self, obj, as_of_date, country_code, matches, missing):
         """

@@ -114,7 +114,7 @@ class EyeLoader(PrecomputedLoader):
     def __init__(self, columns, dates, sids):
         shape = (len(dates), len(sids))
         super().__init__(
-            {column: eye(shape, dtype=column.dtype) for column in columns},
+            {column: eye(*shape, dtype=column.dtype) for column in columns},
             dates,
             sids,
         )

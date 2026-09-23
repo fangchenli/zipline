@@ -21,35 +21,32 @@ from zipline.utils.compat import getargspec
 Argspec = namedtuple("Argspec", ["args", "starargs", "kwargs"])
 
 
-def singleton(cls):
-    instances = {}
+class _Singleton:
+    """Base class whose subclasses each have exactly one instance."""
 
-    def getinstance():
-        if cls not in instances:
-            instances[cls] = cls()
-        return instances[cls]
+    _instance = None
 
-    return getinstance
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
 
 
-@singleton
-class Ignore:
+class Ignore(_Singleton):
     def __str__(self):
         return "Argument.ignore"
 
     __repr__ = __str__
 
 
-@singleton
-class NoDefault:
+class NoDefault(_Singleton):
     def __str__(self):
         return "Argument.no_default"
 
     __repr__ = __str__
 
 
-@singleton
-class AnyDefault:
+class AnyDefault(_Singleton):
     def __str__(self):
         return "Argument.any_default"
 
@@ -186,9 +183,7 @@ def verify_callable_argspec(
     if not callable(callable_):
         raise NotCallable(callable_)
 
-    expected_arg_list = list(
-        expected_args if expected_args is not Argument.ignore else []
-    )
+    expected_arg_list = [] if isinstance(expected_args, Ignore) else list(expected_args)
 
     args, starargs, kwargs = Argument.parse_argspec(callable_)
 

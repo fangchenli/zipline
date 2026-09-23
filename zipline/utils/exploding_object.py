@@ -17,13 +17,17 @@ class NamedExplodingObject:
         self._name = name
         self._extra_message = extra_message
 
+    def _explode(self, what):
+        message = f"attempted to access {what} of ExplodingObject {self._name!r}"
+        if self._extra_message is not None:
+            message += " " + self._extra_message
+        raise AttributeError(message)
+
     def __getattr__(self, attr):
-        extra_message = self._extra_message
-        raise AttributeError(
-            f"attempted to access attribute {attr!r} of ExplodingObject "
-            f"{attr!r}{self._name}",
-            " " + extra_message if extra_message is not None else "",
-        )
+        self._explode(f"attribute {attr!r}")
+
+    def __getitem__(self, key):
+        self._explode(f"item {key!r}")
 
     def __repr__(self):
         return "{}({!r}{})".format(

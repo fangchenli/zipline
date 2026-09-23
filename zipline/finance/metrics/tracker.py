@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections.abc import Callable
+
 import logbook
 
 from zipline.utils.calendar_utils import (
@@ -66,6 +68,13 @@ class MetricsTracker:
         "end_of_session",
         "end_of_bar",
     )
+
+    # Bound in __init__ to call the hook of the same name on every metric.
+    start_of_simulation: Callable[..., None]
+    end_of_simulation: Callable[..., None]
+    start_of_session: Callable[..., None]
+    end_of_session: Callable[..., None]
+    end_of_bar: Callable[..., None]
 
     @staticmethod
     def _execution_open_and_close(calendar, session):

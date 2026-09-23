@@ -4,7 +4,7 @@ Tools for memoization of function results.
 
 from _thread import allocate_lock
 from collections import OrderedDict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from functools import wraps
 from itertools import compress
 from weakref import WeakKeyDictionary, ref
@@ -166,8 +166,9 @@ def _weak_lru_cache(maxsize=100):
                 cache.clear()
                 hits[0] = misses[0] = 0
 
-        wrapper.cache_info = cache_info
-        wrapper.cache_clear = cache_clear
+        # Mirror functools.lru_cache's API on the wrapper function.
+        wrapper.cache_info = cache_info  # ty: ignore[unresolved-attribute]
+        wrapper.cache_clear = cache_clear  # ty: ignore[unresolved-attribute]
         return wrapper
 
     return decorating_function
@@ -224,6 +225,10 @@ class _WeakArgs(Sequence):
 
 
 class _WeakArgsDict(WeakKeyDictionary):
+    # WeakKeyDictionary internals that this subclass builds on.
+    data: dict
+    _remove: Callable
+
     def __delitem__(self, key):
         del self.data[_WeakArgs(key)]
 
@@ -243,11 +248,14 @@ class _WeakArgsDict(WeakKeyDictionary):
             return False
         return wr in self.data
 
-    def pop(self, key, *args):
+    def pop(self, key, *args):  # ty: ignore[invalid-method-override]
+        # Same behaviour as WeakKeyDictionary.pop(key[, default]).
         return self.data.pop(_WeakArgs(key), *args)
 
 
 class _WeakArgsOrderedDict(_WeakArgsDict):
+    data: OrderedDict
+
     def __init__(self):
         super().__init__()
         self.data = OrderedDict()

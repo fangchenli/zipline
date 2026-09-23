@@ -10,7 +10,6 @@ from types import MappingProxyType
 
 import numpy as np
 import pandas as pd
-import toolz.curried.operator as op
 from pandas.testing import (
     assert_frame_equal,
     assert_index_equal,
@@ -197,7 +196,8 @@ def filter_kwargs(f, kwargs):
     -----
     Taken from odo.utils
     """
-    return keyfilter(op.contains(keywords(f)), kwargs)
+    valid = keywords(f)
+    return keyfilter(lambda key: key in valid, kwargs)
 
 
 def _fmt_path(path):

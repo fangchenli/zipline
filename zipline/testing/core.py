@@ -682,7 +682,7 @@ class FakeDataPortal(DataPortal):
 
         super().__init__(asset_finder, trading_calendar, first_trading_day)
 
-    def get_spot_value(self, asset, field, dt, data_frequency):
+    def get_spot_value(self, assets, field, dt, data_frequency):
         return 100 if field == "volume" else 1.0
 
     def get_scalar_asset_spot_value(self, asset, field, dt, data_frequency):
@@ -723,13 +723,13 @@ class FetcherDataPortal(DataPortal):
     def __init__(self, asset_finder, trading_calendar, first_trading_day=None):
         super().__init__(asset_finder, trading_calendar, first_trading_day)
 
-    def get_spot_value(self, asset, field, dt, data_frequency):
+    def get_spot_value(self, assets, field, dt, data_frequency):
         # if this is a fetcher field, exercise the regular code path
-        if self._is_extra_source(asset, field, self._augmented_sources_map):
-            return super().get_spot_value(asset, field, dt, data_frequency)
+        if self._is_extra_source(assets, field, self._augmented_sources_map):
+            return super().get_spot_value(assets, field, dt, data_frequency)
 
         # otherwise just return a fixed value
-        return int(asset)
+        return int(assets)
 
     # XXX: These aren't actually the methods that are used by the superclasses,
     # so these don't do anything, and this class will likely produce unexpected
@@ -1354,7 +1354,7 @@ def test_resource_path(*path_parts):
 
 
 # Not a test, despite the name; keep pytest from collecting it.
-test_resource_path.__test__ = False
+test_resource_path.__test__ = False  # ty: ignore[unresolved-attribute] pytest reads __test__ off functions
 
 
 @contextmanager
@@ -1412,9 +1412,11 @@ class _TmpBarReader(tmp_dir, metaclass=ABCMeta):
     def _reader_cls(self):
         raise NotImplementedError("_reader")
 
+    # Not ``_write``: that would shadow TempDirectory's own private method.
+    @staticmethod
     @abstractmethod
-    def _write(self, cal, days, path, data):
-        raise NotImplementedError("_write")
+    def _write_data(cal, days, path, data, /):
+        raise NotImplementedError("_write_data")
 
     def __init__(self, cal, days, data, path=None):
         super().__init__(path=path)
@@ -1425,7 +1427,7 @@ class _TmpBarReader(tmp_dir, metaclass=ABCMeta):
     def __enter__(self):
         tmpdir = super().__enter__()
         try:
-            self._write(
+            self._write_data(
                 self._cal,
                 self._days,
                 tmpdir.path,
@@ -1458,7 +1460,7 @@ class tmp_bcolz_equity_minute_bar_reader(_TmpBarReader):
     """
 
     _reader_cls = BcolzMinuteBarReader
-    _write = staticmethod(write_bcolz_minute_data)
+    _write_data = staticmethod(write_bcolz_minute_data)
 
 
 class tmp_bcolz_equity_daily_bar_reader(_TmpBarReader):
@@ -1484,8 +1486,8 @@ class tmp_bcolz_equity_daily_bar_reader(_TmpBarReader):
     _reader_cls = BcolzDailyBarReader
 
     @staticmethod
-    def _write(cal, days, path, data):
-        BcolzDailyBarWriter(path, days).write(data)
+    def _write_data(cal, days, path, data):
+        BcolzDailyBarWriter(path, cal, days[0], days[-1]).write(data)
 
 
 @contextmanager

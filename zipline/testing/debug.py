@@ -6,7 +6,8 @@ import networkx as nx
 
 def debug_mro_failure(name, bases):
     graph = build_linearization_graph(name, bases)
-    cycles = sorted(nx.cycles.simple_cycles(graph), key=len)
+    cycles = list(nx.cycles.simple_cycles(graph))
+    cycles.sort(key=len)
     cycle = cycles[0]
 
     if os.environ.get("DRAW_MRO_FAILURES"):

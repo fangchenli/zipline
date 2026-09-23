@@ -3,7 +3,7 @@ from functools import wraps
 import sqlalchemy as sa
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
-from toolz.curried import do, operator
+from sqlalchemy.exc import OperationalError
 
 from zipline.assets.asset_writer import write_version_info
 from zipline.errors import AssetDBImpossibleDowngrade
@@ -48,7 +48,7 @@ def alter_columns(op, name, *columns, **kwargs):
         for table in name, tmp_name:
             try:
                 op.drop_index(f"ix_{table}_{column.name}")
-            except sa.exc.OperationalError:
+            except OperationalError:
                 pass
 
     op.create_table(name, *columns)
@@ -150,13 +150,13 @@ def downgrades(src):
     def _(f):
         destination = src - 1
 
-        @do(operator.setitem(_downgrade_methods, destination))
         @wraps(f)
         def wrapper(op, conn, version_info_table):
             conn.execute(version_info_table.delete())  # clear the version
             f(op)
             write_version_info(conn, version_info_table, destination)
 
+        _downgrade_methods[destination] = wrapper
         return wrapper
 
     return _

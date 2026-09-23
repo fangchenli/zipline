@@ -22,6 +22,7 @@ from zipline.utils.cache import (
 from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.input_validation import ensure_timestamp, optionally
 from zipline.utils.preprocess import preprocess
+from zipline.utils.sqlite_utils import check_and_create_engine
 
 from ..adjustments import SQLiteAdjustmentReader, SQLiteAdjustmentWriter
 from ..bcolz_daily_bars import BcolzDailyBarReader, BcolzDailyBarWriter
@@ -439,6 +440,7 @@ def _make_bundle_core():
                 )
                 assets_db_path = wd.getpath(*asset_db_relative(name, timestr))
                 asset_db_writer = AssetDBWriter(assets_db_path)
+                stack.callback(asset_db_writer.engine.dispose)
 
                 adjustment_db_writer = stack.enter_context(
                     SQLiteAdjustmentWriter(
@@ -483,7 +485,11 @@ def _make_bundle_core():
                 )
                 with working_file(version_path) as wf:
                     shutil.copy2(assets_db_path, wf.path)
-                    downgrade(wf.path, version)
+                    engine = check_and_create_engine(wf.path, require_exists=True)
+                    try:
+                        downgrade(engine, version)
+                    finally:
+                        engine.dispose()
 
     def most_recent_data(bundle_name, timestamp, environ=None):
         """Get the path to the most recent data after ``date``for the

@@ -13,6 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from zipline.assets.assets import AssetFinder
+    from zipline.utils.calendar_utils import ExchangeCalendar
 
 # Number of days over which to compute rolls when finding the current contract
 # for a volume-rolling contract chain. For more details on why this is needed,
@@ -25,6 +30,10 @@ class RollFinder(ABC):
     Abstract base class for calculating when futures contracts are the active
     contract.
     """
+
+    # Set by subclasses.
+    trading_calendar: "ExchangeCalendar"
+    asset_finder: "AssetFinder"
 
     @abstractmethod
     def _active_contract(self, oc, front, back, dt):

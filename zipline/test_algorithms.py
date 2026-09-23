@@ -181,7 +181,8 @@ class SetPortfolioAlgorithm(TradingAlgorithm):
         pass
 
     def handle_data(self, data):
-        self.portfolio = 3
+        # Deliberately assign the read-only property; tests expect it to fail.
+        self.portfolio = 3  # ty: ignore[invalid-assignment]
 
 
 class TALIBAlgorithm(TradingAlgorithm):

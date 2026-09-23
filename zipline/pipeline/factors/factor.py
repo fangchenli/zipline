@@ -7,6 +7,7 @@ from math import ceil
 from numbers import Number
 from operator import attrgetter
 from textwrap import dedent
+from typing import Any
 
 from numpy import asarray, empty_like, inf, isnan, nan, where
 from scipy.stats import rankdata
@@ -26,10 +27,7 @@ from zipline.pipeline.dtypes import (
     FILTER_DTYPES,
 )
 from zipline.pipeline.expression import (
-    COMPARISONS,
-    MATH_BINOPS,
     NUMEXPR_MATH_FUNCS,
-    UNARY_OPS,
     BadBinaryOperator,
     NumericalExpression,
     is_comparison,
@@ -482,31 +480,35 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
     ALLOWED_DTYPES = FACTOR_DTYPES  # Used by RestrictedDTypeMixin
 
-    # Dynamically add functions for creating NumExprFactor/NumExprFilter
-    # instances.
-    clsdict = locals()
-    clsdict.update(
-        {
-            method_name_for_op(op): binary_operator(op)
-            # Don't override __eq__ because it breaks comparisons on tuples of
-            # Factors.
-            for op in MATH_BINOPS.union(COMPARISONS - {"=="})
-        }
-    )
-    clsdict.update(
-        {
-            method_name_for_op(op, commute=True): reflected_binary_operator(op)
-            for op in MATH_BINOPS
-        }
-    )
-    clsdict.update({unary_op_name(op): unary_operator(op) for op in UNARY_OPS})
+    # Operators build NumExprFactor/NumExprFilter instances. (``__eq__`` is not
+    # overridden because it breaks comparisons on tuples of Factors; use
+    # ``eq`` below.)
+    __add__ = binary_operator("+")
+    __sub__ = binary_operator("-")
+    __mul__ = binary_operator("*")
+    __div__ = __truediv__ = binary_operator("/")
+    __pow__ = binary_operator("**")
+    __mod__ = binary_operator("%")
+    __lt__ = binary_operator("<")
+    __le__ = binary_operator("<=")
+    __ne__ = binary_operator("!=")
+    __ge__ = binary_operator(">=")
+    __gt__ = binary_operator(">")
 
+    __radd__ = reflected_binary_operator("+")
+    __rsub__ = reflected_binary_operator("-")
+    __rmul__ = reflected_binary_operator("*")
+    __rdiv__ = __rtruediv__ = reflected_binary_operator("/")
+    __rpow__ = reflected_binary_operator("**")
+    __rmod__ = reflected_binary_operator("%")
+
+    __neg__ = unary_operator("-")
+
+    # Dynamically add the numexpr math functions (log, sqrt, ...).
+    clsdict = locals()
     clsdict.update(
         {funcname: function_application(funcname) for funcname in NUMEXPR_MATH_FUNCS}
     )
-
-    __truediv__ = clsdict["__div__"]
-    __rtruediv__ = clsdict["__rdiv__"]
 
     # Add summary functions.
     clsdict.update(
@@ -1795,7 +1797,7 @@ class DailySummary(SingleInputMixin, Factor):
 
     ndim = 1
     window_length = 0
-    params = ("func",)
+    params: Any = ("func",)  # see Term.params
 
     def __new__(cls, func, input_, mask, dtype):
         # TODO: We should be able to support datetime64 as well, but that

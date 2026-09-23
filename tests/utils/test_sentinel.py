@@ -4,12 +4,13 @@ from pickle import dumps, loads
 from unittest import TestCase
 from weakref import ref
 
+from zipline.utils import sentinel as sentinel_module
 from zipline.utils.sentinel import sentinel
 
 
 class SentinelTestCase(TestCase):
     def tearDown(self):
-        sentinel._cache.clear()  # don't pollute cache.
+        sentinel_module._cache.clear()  # don't pollute cache.
 
     def test_name(self):
         self.assertEqual(sentinel("a").__name__, "a")

@@ -63,4 +63,4 @@ def bulleted_list(items, indent=0, bullet_type="-"):
         The formatted list as a single string.
     """
     format_string = " " * indent + bullet_type + " {}"
-    return "\n".join(map(format_string.format, items))
+    return "\n".join(format_string.format(item) for item in items)

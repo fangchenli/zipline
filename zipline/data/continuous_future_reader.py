@@ -122,14 +122,15 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
         """
         return self._bar_reader.first_trading_day
 
-    def get_value(self, continuous_future, dt, field):
+    def get_value(self, sid, dt, field):
         """
         Retrieve the value at the given coordinates.
 
         Parameters
         ----------
-        sid : int
-            The asset identifier.
+        sid : ContinuousFuture
+            The continuous future (named ``sid`` for compatibility with
+            ``BarReader.get_value``).
         dt : pd.Timestamp
             The timestamp for the desired data point.
         field : string
@@ -147,6 +148,7 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
             If the given dt is not a valid market minute (in minute mode) or
             session (in daily mode) according to this reader's tradingcalendar.
         """
+        continuous_future = sid
         rf = self._roll_finders[continuous_future.roll_style]
         sid = rf.get_contract_center(
             continuous_future.root_symbol, dt, continuous_future.offset
@@ -303,14 +305,15 @@ class ContinuousFutureMinuteBarReader(SessionBarReader):
         """
         return self._bar_reader.first_trading_day
 
-    def get_value(self, continuous_future, dt, field):
+    def get_value(self, sid, dt, field):
         """
         Retrieve the value at the given coordinates.
 
         Parameters
         ----------
-        sid : int
-            The asset identifier.
+        sid : ContinuousFuture
+            The continuous future (named ``sid`` for compatibility with
+            ``BarReader.get_value``).
         dt : pd.Timestamp
             The timestamp for the desired data point.
         field : string
@@ -328,6 +331,7 @@ class ContinuousFutureMinuteBarReader(SessionBarReader):
             If the given dt is not a valid market minute (in minute mode) or
             session (in daily mode) according to this reader's tradingcalendar.
         """
+        continuous_future = sid
         rf = self._roll_finders[continuous_future.roll_style]
         sid = rf.get_contract_center(
             continuous_future.root_symbol, dt, continuous_future.offset

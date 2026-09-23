@@ -76,7 +76,7 @@ def get_next_trading_dt(current, interval, trading_calendar):
     while True:
         # Convert timestamp to naive before adding day, otherwise the when
         # stepping over EDT an hour is added.
-        next_dt = pd.Timestamp(next_dt.replace(tzinfo=None))
+        next_dt = next_dt.tz_localize(None)
         next_dt = next_dt + interval
         next_dt = pd.Timestamp(next_dt, tz=trading_calendar.tz)
         next_dt_utc = next_dt.tz_convert("UTC")

@@ -279,23 +279,32 @@ class AssetDateBounds(TradingControl):
         if amount == 0:
             return
 
-        normalized_algo_dt = pd.Timestamp(algo_datetime).normalize()
-        if normalized_algo_dt.tz is not None:
-            # Asset lifetime dates are tz-naive session labels.
-            normalized_algo_dt = normalized_algo_dt.tz_localize(None)
+        normalized_algo_dt = _naive_date(algo_datetime)
+        if normalized_algo_dt is None:
+            return
 
         # Fail if the algo is before this Asset's start_date
-        if asset.start_date:
-            normalized_start = pd.Timestamp(asset.start_date).normalize()
-            if normalized_algo_dt < normalized_start:
-                metadata = {"asset_start_date": normalized_start}
-                self.handle_violation(asset, amount, algo_datetime, metadata=metadata)
+        normalized_start = _naive_date(asset.start_date)
+        if normalized_start is not None and normalized_algo_dt < normalized_start:
+            metadata = {"asset_start_date": normalized_start}
+            self.handle_violation(asset, amount, algo_datetime, metadata=metadata)
         # Fail if the algo has passed this Asset's end_date
-        if asset.end_date:
-            normalized_end = pd.Timestamp(asset.end_date).normalize()
-            if normalized_algo_dt > normalized_end:
-                metadata = {"asset_end_date": normalized_end}
-                self.handle_violation(asset, amount, algo_datetime, metadata=metadata)
+        normalized_end = _naive_date(asset.end_date)
+        if normalized_end is not None and normalized_algo_dt > normalized_end:
+            metadata = {"asset_end_date": normalized_end}
+            self.handle_violation(asset, amount, algo_datetime, metadata=metadata)
+
+
+def _naive_date(dt):
+    """The tz-naive date of ``dt``, or None if it is missing (None or NaT).
+
+    Asset lifetime dates are tz-naive session labels.
+    """
+    ts = pd.Timestamp(dt) if dt is not None else None
+    if not isinstance(ts, pd.Timestamp):
+        return None
+    ts = ts.normalize()
+    return ts.tz_localize(None) if ts.tz is not None else ts
 
 
 class AccountControl(ABC):
@@ -312,7 +321,7 @@ class AccountControl(ABC):
         self.__fail_args = kwargs
 
     @abstractmethod
-    def validate(self, _portfolio, _account, _algo_datetime, _algo_current_data):
+    def validate(self, portfolio, account, algo_datetime, algo_current_data):
         """
         On each call to handle data by TradingAlgorithm, this method should be
         called *exactly once* on each registered AccountControl object.
@@ -356,11 +365,11 @@ class MaxLeverage(AccountControl):
         if max_leverage < 0:
             raise ValueError("max_leverage must be positive")
 
-    def validate(self, _portfolio, _account, _algo_datetime, _algo_current_data):
+    def validate(self, portfolio, account, algo_datetime, algo_current_data):
         """
         Fail if the leverage is greater than the allowed leverage.
         """
-        if _account.leverage > self.max_leverage:
+        if account.leverage > self.max_leverage:
             self.fail()
 
 
@@ -388,7 +397,7 @@ class MinLeverage(AccountControl):
         self.min_leverage = min_leverage
         self.deadline = deadline
 
-    def validate(self, _portfolio, account, algo_datetime, _algo_current_data):
+    def validate(self, portfolio, account, algo_datetime, algo_current_data):
         """
         Make validation checks if we are after the deadline.
         Fail if the leverage is less than the min leverage.

@@ -563,15 +563,15 @@ class MinuteResampleSessionBarReader(SessionBarReader):
     def trading_calendar(self):
         return self._calendar
 
-    def load_raw_arrays(self, columns, start_dt, end_dt, sids):
-        return self._get_resampled(columns, start_dt, end_dt, sids)
+    def load_raw_arrays(self, columns, start_date, end_date, assets):
+        return self._get_resampled(columns, start_date, end_date, assets)
 
-    def get_value(self, sid, session, colname):
+    def get_value(self, sid, dt, field):
         # WARNING: This will need caching or other optimization if used in a
         # tight loop.
         # This was developed to complete interface, but has not been tuned
         # for real world use.
-        return self._get_resampled([colname], session, session, [sid])[0][0][0]
+        return self._get_resampled([field], dt, dt, [sid])[0][0][0]
 
     @lazyval
     def sessions(self):
@@ -639,8 +639,8 @@ class ReindexBarReader(ABC):
     def last_available_dt(self):
         return self._reader.last_available_dt
 
-    def get_last_traded_dt(self, sid, dt):
-        return self._reader.get_last_traded_dt(sid, dt)
+    def get_last_traded_dt(self, asset, dt):
+        return self._reader.get_last_traded_dt(asset, dt)
 
     @property
     def first_trading_day(self):
@@ -674,24 +674,24 @@ class ReindexBarReader(ABC):
             self._first_trading_session, self._last_trading_session
         )
 
-    def load_raw_arrays(self, fields, start_dt, end_dt, sids):
-        outer_dts = self._outer_dts(start_dt, end_dt)
-        inner_dts = self._inner_dts(start_dt, end_dt)
+    def load_raw_arrays(self, columns, start_date, end_date, assets):
+        outer_dts = self._outer_dts(start_date, end_date)
+        inner_dts = self._inner_dts(start_date, end_date)
 
         indices = outer_dts.searchsorted(inner_dts)
 
-        shape = len(outer_dts), len(sids)
+        shape = len(outer_dts), len(assets)
 
         outer_results = []
 
         if len(inner_dts) > 0:
             inner_results = self._reader.load_raw_arrays(
-                fields, inner_dts[0], inner_dts[-1], sids
+                columns, inner_dts[0], inner_dts[-1], assets
             )
         else:
             inner_results = None
 
-        for i, field in enumerate(fields):
+        for i, field in enumerate(columns):
             if field != "volume":
                 out = np.full(shape, np.nan)
             else:

@@ -58,18 +58,18 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
     def sessions(self):
         return self._sessions
 
-    def load_raw_arrays(self, columns, start_dt, end_dt, assets):
-        if start_dt not in self._sessions:
-            raise NoDataOnDate(start_dt)
-        if end_dt not in self._sessions:
-            raise NoDataOnDate(end_dt)
+    def load_raw_arrays(self, columns, start_date, end_date, assets):
+        if start_date not in self._sessions:
+            raise NoDataOnDate(start_date)
+        if end_date not in self._sessions:
+            raise NoDataOnDate(end_date)
 
         asset_indexer = self._sids.get_indexer(assets)
         if -1 in asset_indexer:
             bad_assets = assets[asset_indexer == -1]
             raise NoDataForSid(bad_assets)
 
-        date_indexer = self._sessions.slice_indexer(start_dt, end_dt)
+        date_indexer = self._sessions.slice_indexer(start_date, end_date)
 
         out = []
         for c in columns:
@@ -97,7 +97,7 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
             Returns -1 if the day is within the date range, but the price is
             0.
         """
-        return self.frames[field].loc[dt, sid]
+        return self._frames[field].loc[dt, sid]
 
     def get_last_traded_dt(self, asset, dt):
         """
@@ -114,7 +114,7 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
                        NaT if no trade is found before the given dt.
         """
         try:
-            return self.frames["close"].loc[:, asset.sid].last_valid_index()
+            return self._frames["close"].loc[:, asset.sid].last_valid_index()
         except IndexError:
             return NaT
 

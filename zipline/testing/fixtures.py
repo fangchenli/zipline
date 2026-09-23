@@ -1,7 +1,9 @@
+import gc
 import os
 import sqlite3
 import warnings
 from contextlib import ExitStack
+from typing import TYPE_CHECKING
 from unittest import TestCase
 
 import h5py
@@ -27,6 +29,7 @@ from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.protocol import BarData
 from zipline.utils.calendar_utils import (
+    ExchangeCalendar,
     get_calendar,
     register_calendar_alias,
 )
@@ -248,6 +251,15 @@ class ZiplineTestCase(TestCase, metaclass=DebugMROMeta):
         return self._instance_teardown_stack.callback(callback)
 
 
+if TYPE_CHECKING:
+    # The fixture mixins below are only ever combined with ZiplineTestCase,
+    # whose fixture API (init_class_fixtures, enter_class_context, ...) they
+    # use. Tell type checkers; at runtime the mixins derive from object.
+    _FixtureMixin = ZiplineTestCase
+else:
+    _FixtureMixin = object
+
+
 def alias(attr_name):
     """Make a fixture attribute an alias of another fixture's attribute by
     default.
@@ -285,7 +297,7 @@ def alias(attr_name):
     return classproperty(flip(getattr, attr_name))
 
 
-class WithDefaultDateBounds(metaclass=DebugMROMeta):
+class WithDefaultDateBounds(_FixtureMixin, metaclass=DebugMROMeta):
     """
     ZiplineTestCase mixin which makes it possible to synchronize date bounds
     across fixtures.
@@ -305,7 +317,7 @@ class WithDefaultDateBounds(metaclass=DebugMROMeta):
     END_DATE = pd.Timestamp("2006-12-29")
 
 
-class WithLogger:
+class WithLogger(_FixtureMixin):
     """
     ZiplineTestCase mixin providing cls.log_handler as an instance-level
     fixture.
@@ -493,7 +505,7 @@ class WithAssetFinder(WithDefaultDateBounds):
 
 
 # TODO_SS: The API here doesn't make sense in a multi-country test scenario.
-class WithTradingCalendars:
+class WithTradingCalendars(_FixtureMixin):
     """
     ZiplineTestCase mixin providing cls.trading_calendar,
     cls.all_trading_calendars, cls.trading_calendar_for_asset_type as a
@@ -629,6 +641,9 @@ class WithSimParams(WithDefaultDateBounds):
     zipline.finance.trading.SimulationParameters
     """
 
+    # Provided by WithTradingCalendars, which subclasses mix in.
+    trading_calendar: ExchangeCalendar
+
     SIM_PARAMS_CAPITAL_BASE = 1.0e5
     SIM_PARAMS_DATA_FREQUENCY = "daily"
     SIM_PARAMS_EMISSION_RATE = "daily"
@@ -704,7 +719,7 @@ class WithTradingSessions(WithDefaultDateBounds, WithTradingCalendars):
             cls.trading_sessions[cal_str] = sessions
 
 
-class WithTmpDir:
+class WithTmpDir(_FixtureMixin):
     """
     ZiplineTestCase mixing providing cls.tmpdir as a class-level fixture.
 
@@ -728,7 +743,7 @@ class WithTmpDir:
         )
 
 
-class WithInstanceTmpDir:
+class WithInstanceTmpDir(_FixtureMixin):
     """
     ZiplineTestCase mixing providing self.tmpdir as an instance-level fixture.
 
@@ -785,6 +800,8 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
     EQUITY_DAILY_BAR_START_DATE = alias("START_DATE")
     EQUITY_DAILY_BAR_END_DATE = alias("END_DATE")
     EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = None
+    # Provided by WithEquityMinuteBarData when sourcing from minute bars.
+    EQUITY_MINUTE_BAR_LOOKBACK_DAYS: int
 
     @classproperty
     def EQUITY_DAILY_BAR_LOOKBACK_DAYS(cls):
@@ -924,6 +941,8 @@ class WithFutureDailyBarData(WithAssetFinder, WithTradingCalendars):
     FUTURE_DAILY_BAR_START_DATE = alias("START_DATE")
     FUTURE_DAILY_BAR_END_DATE = alias("END_DATE")
     FUTURE_DAILY_BAR_SOURCE_FROM_MINUTE = None
+    # Provided by WithFutureMinuteBarData when sourcing from minute bars.
+    FUTURE_MINUTE_BAR_LOOKBACK_DAYS: int
 
     @classproperty
     def FUTURE_DAILY_BAR_LOOKBACK_DAYS(cls):
@@ -1975,7 +1994,7 @@ class WithDataPortal(
         self.data_portal = self.make_data_portal()
 
 
-class WithResponses:
+class WithResponses(_FixtureMixin):
     """
     ZiplineTestCase mixin that provides self.responses as an instance
     fixture.
@@ -2086,9 +2105,12 @@ class WithMakeAlgo(WithBenchmarkReturns, WithSimParams, WithLogger, WithDataPort
         return self.make_algo(**overrides).run()
 
 
-class WithWerror:
+class WithWerror(_FixtureMixin):
     @classmethod
     def init_class_fixtures(cls):
+        # Collect garbage left by earlier tests first, so that resource
+        # warnings from their finalizers aren't raised as errors here.
+        gc.collect()
         cls.enter_class_context(warnings.catch_warnings())
         warnings.simplefilter("error")
 
@@ -2098,7 +2120,7 @@ class WithWerror:
 register_calendar_alias("TEST", "NYSE")
 
 
-class WithSeededRandomState:
+class WithSeededRandomState(_FixtureMixin):
     RANDOM_SEED = np.array(list("lmao"), dtype="S1").view("i4").item()
 
     def init_instance_fixtures(self):
@@ -2106,7 +2128,7 @@ class WithSeededRandomState:
         self.rand = np.random.RandomState(self.RANDOM_SEED)
 
 
-class WithFXRates:
+class WithFXRates(_FixtureMixin):
     """Fixture providing a factory for in-memory exchange rate data."""
 
     # Start date for exchange rates data.

@@ -171,8 +171,8 @@ class EarningsEstimatesLoader(PipelineLoader):
         requested_quarter,
         sid,
         sid_idx,
-        col_to_split_adjustments,
-        split_adjusted_asof_idx,
+        col_to_split_adjustments=None,
+        split_adjusted_asof_idx=None,
     ):
         raise NotImplementedError("create_overwrite_for_estimate")
 
@@ -246,31 +246,6 @@ class EarningsEstimatesLoader(PipelineLoader):
         # Once we're left with just dates as the index, we can reindex by all
         # dates so that we have a value for each calendar date.
         return requested_qtr_data.unstack(SID_FIELD_NAME).reindex(dates)
-
-    def get_split_adjusted_asof_idx(self, dates):
-        """
-        Compute the index in `dates` where the split-adjusted-asof-date
-        falls. This is the date up to which, and including which, we will
-        need to unapply all adjustments for and then re-apply them as they
-        come in. After this date, adjustments are applied as normal.
-
-        Parameters
-        ----------
-        dates : pd.DatetimeIndex
-            The calendar dates over which the Pipeline is being computed.
-
-        Returns
-        -------
-        split_adjusted_asof_idx : int
-            The index in `dates` at which the data should be split.
-        """
-        split_adjusted_asof_idx = dates.searchsorted(self._split_adjusted_asof)
-        # The split-asof date is after the date index.
-        if split_adjusted_asof_idx == len(dates):
-            split_adjusted_asof_idx = len(dates) - 1
-        elif self._split_adjusted_asof < dates[0]:
-            split_adjusted_asof_idx = -1
-        return split_adjusted_asof_idx
 
     def collect_overwrites_for_sid(
         self,
@@ -780,7 +755,7 @@ class PreviousEarningsEstimatesLoader(EarningsEstimatesLoader):
         self,
         column,
         column_name,
-        dates,
+        last_per_qtr,
         next_qtr_start_idx,
         requested_quarter,
         sid,
@@ -867,6 +842,31 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
         second half are applied sequentially as they appear in the timeline.
     """
 
+    def get_split_adjusted_asof_idx(self, dates):
+        """
+        Compute the index in `dates` where the split-adjusted-asof-date
+        falls. This is the date up to which, and including which, we will
+        need to unapply all adjustments for and then re-apply them as they
+        come in. After this date, adjustments are applied as normal.
+
+        Parameters
+        ----------
+        dates : pd.DatetimeIndex
+            The calendar dates over which the Pipeline is being computed.
+
+        Returns
+        -------
+        split_adjusted_asof_idx : int
+            The index in `dates` at which the data should be split.
+        """
+        split_adjusted_asof_idx = dates.searchsorted(self._split_adjusted_asof)
+        # The split-asof date is after the date index.
+        if split_adjusted_asof_idx == len(dates):
+            split_adjusted_asof_idx = len(dates) - 1
+        elif self._split_adjusted_asof < dates[0]:
+            split_adjusted_asof_idx = -1
+        return split_adjusted_asof_idx
+
     def __init__(
         self,
         estimates,
@@ -898,7 +898,9 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
     ):
         raise NotImplementedError("collect_split_adjustments")
 
-    def get_adjustments_for_sid(
+    # Narrower than the base's **kwargs by design: get_adjustments below always
+    # forwards these keywords.
+    def get_adjustments_for_sid(  # ty: ignore[invalid-method-override]
         self,
         group,
         dates,
@@ -907,8 +909,9 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
         sid_to_idx,
         columns,
         col_to_all_adjustments,
-        split_adjusted_asof_idx=None,
-        split_adjusted_cols_for_group=None,
+        *,
+        split_adjusted_asof_idx,
+        split_adjusted_cols_for_group,
     ):
         """
         Collects both overwrites and adjustments for a particular sid.

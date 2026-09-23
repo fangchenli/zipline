@@ -222,15 +222,16 @@ class PositionTracker:
         return net_cash_payment
 
     def maybe_create_close_position_transaction(self, asset, dt, data_portal):
-        if not self.positions.get(asset):
+        position = self.positions.get(asset)
+        if not position:
             return None
 
-        amount = self.positions.get(asset).amount
+        amount = position.amount
         price = data_portal.get_spot_value(asset, "price", dt, self.data_frequency)
 
         # Get the last traded price if price is no longer available
         if isnan(price):
-            price = self.positions.get(asset).last_sale_price
+            price = position.last_sale_price
 
         return Transaction(
             asset=asset,

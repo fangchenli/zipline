@@ -1,3 +1,5 @@
+from typing import Any
+
 import numpy as np
 from numexpr import evaluate
 from numpy import broadcast_arrays
@@ -484,7 +486,7 @@ class SimpleBeta(CustomFactor, StandardOutputs):
 
     window_safe = True
     dtype = float64_dtype
-    params = ("allowed_missing_count",)
+    params: Any = ("allowed_missing_count",)  # see Term.params
 
     @expect_types(
         target=Asset,

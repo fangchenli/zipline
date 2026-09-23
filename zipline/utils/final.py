@@ -47,7 +47,8 @@ class FinalMeta(type):
         if not is_final("__setattr__", bases) and not isinstance(setattr_, final):
             # implicitly make the `__setattr__` a `final` object so that
             # users cannot just avoid the descriptor protocol.
-            dict_["__setattr__"] = final(setattr_)
+            # final.__new__ returns a concrete subclass instance.
+            dict_["__setattr__"] = final(setattr_)  # ty: ignore[call-non-callable]
 
         return super().__new__(mcls, name, bases, dict_)
 

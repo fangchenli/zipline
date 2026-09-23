@@ -97,5 +97,7 @@ def number_of_decimal_places(n):
     >>> number_of_decimal_places('3.14')
     2
     """
-    decimal = Decimal(str(n))
-    return -decimal.as_tuple().exponent
+    exponent = Decimal(str(n)).as_tuple().exponent
+    if not isinstance(exponent, int):  # NaN or infinity
+        raise ValueError(f"{n!r} has no decimal places")
+    return -exponent

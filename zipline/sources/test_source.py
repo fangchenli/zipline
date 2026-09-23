@@ -26,20 +26,20 @@ from zipline.utils.date_utils import to_session_label
 
 def create_trade(sid, price, amount, datetime, source_id="test_factory"):
 
-    trade = Event()
-
-    trade.source_id = source_id
-    trade.type = DATASOURCE_TYPE.TRADE
-    trade.sid = sid
-    trade.dt = datetime
-    trade.price = price
-    trade.close_price = price
-    trade.open_price = price
-    trade.low = price * 0.95
-    trade.high = price * 1.05
-    trade.volume = amount
-
-    return trade
+    return Event(
+        {
+            "source_id": source_id,
+            "type": DATASOURCE_TYPE.TRADE,
+            "sid": sid,
+            "dt": datetime,
+            "price": price,
+            "close_price": price,
+            "open_price": price,
+            "low": price * 0.95,
+            "high": price * 1.05,
+            "volume": amount,
+        }
+    )
 
 
 def date_gen(start, end, trading_calendar, delta=timedelta(minutes=1), repeats=None):
@@ -123,19 +123,11 @@ class SpecificEquityTrades:
     def __iter__(self):
         return self
 
-    def next(self):
-        return self.generator.next()
-
     def __next__(self):
         return next(self.generator)
 
     def rewind(self):
         self.generator = self.create_fresh_generator()
-
-    def update_source_id(self, gen):
-        for event in gen:
-            event.source_id = self.get_hash()
-            yield event
 
     def create_fresh_generator(self):
         date_generator = date_gen(

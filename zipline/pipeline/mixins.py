@@ -6,6 +6,8 @@ Term in the MRO of any class using the mixin
 """
 
 from abc import abstractmethod
+from collections.abc import Callable
+from typing import Any
 
 from numpy import (
     array,
@@ -42,6 +44,10 @@ class PositiveWindowLengthMixin(Term):
     Validation mixin enforcing that a Term gets a positive WindowLength
     """
 
+    # Provided by ComputableTerm. (Annotation only: a class attribute here
+    # would shadow ComputableTerm's default in the MRO.)
+    window_length: Any
+
     def _validate(self):
         super()._validate()
         if not self.windowed:
@@ -67,6 +73,9 @@ class StandardOutputs(Term):
     """
     Validation mixin enforcing that a Term cannot produce non-standard outputs.
     """
+
+    # Provided by ComputableTerm (annotation only; see PositiveWindowLengthMixin).
+    outputs: Any
 
     def _validate(self):
         super()._validate()
@@ -98,6 +107,13 @@ class RestrictedDTypeMixin(Term):
             )
 
 
+def _default_compute(self, today, assets, out, *arrays):
+    """
+    Override this method with a function that writes a value into `out`.
+    """
+    raise NotImplementedError(f"{type(self).__name__} must define a compute method")
+
+
 class CustomTermMixin(Term):
     """
     Mixin for user-defined rolling-window Terms.
@@ -107,6 +123,10 @@ class CustomTermMixin(Term):
 
     Used by CustomFactor, CustomFilter, CustomClassifier, etc.
     """
+
+    # Provided by ComputableTerm (annotation only; see PositiveWindowLengthMixin).
+    outputs: Any
+    window_length: Any
 
     ctx = nop_context
 
@@ -141,11 +161,10 @@ class CustomTermMixin(Term):
             **kwargs,
         )
 
-    def compute(self, today, assets, out, *arrays):
-        """
-        Override this method with a function that writes a value into `out`.
-        """
-        raise NotImplementedError(f"{type(self).__name__} must define a compute method")
+    # Subclasses define ``compute(self, today, assets, out, *inputs)`` with
+    # one parameter per input (and per param), so the signature varies by
+    # subclass; typing it as a Callable lets them override it.
+    compute: Callable[..., Any] = _default_compute
 
     def _allocate_output(self, windows, shape):
         """
@@ -187,7 +206,7 @@ class CustomTermMixin(Term):
                 inputs.append(window[:, column_mask])
         return inputs
 
-    def _compute(self, windows, dates, assets, mask):
+    def _compute(self, windows, dates, assets, mask, /):
         """
         Call the user's `compute` function on each window with a pre-built
         output array.
@@ -345,7 +364,7 @@ class AliasedMixin(SingleInputMixin, UniversalMixin):
             name,
         )
 
-    def _compute(self, inputs, dates, assets, mask):
+    def _compute(self, inputs, dates, assets, mask, /):
         return inputs[0]
 
     def __repr__(self):
@@ -471,7 +490,7 @@ class DownsampledMixin(StandardOutputs, UniversalMixin):
 
         return min_extra_rows + (current_start_pos - new_start_pos)
 
-    def _compute(self, inputs, dates, assets, mask):
+    def _compute(self, inputs, dates, assets, mask, /):
         """
         Compute by delegating to self._wrapped_term._compute on sample dates.
 
@@ -603,7 +622,7 @@ class SliceMixin(UniversalMixin):
             asset,
         )
 
-    def _compute(self, windows, dates, assets, mask):
+    def _compute(self, windows, dates, assets, mask, /):
         asset = self._asset
         asset_column = searchsorted(assets.values, asset.sid)
         if assets[asset_column] != asset.sid:
@@ -654,7 +673,7 @@ class IfElseMixin(UniversalMixin):
             outputs=if_true.outputs,
         )
 
-    def _compute(self, inputs, assets, dates, mask):
+    def _compute(self, inputs, dates, assets, mask, /):
         if self.dtype == object:
             return labelarray_where(inputs[0], inputs[1], inputs[2])
         return where(inputs[0], inputs[1], inputs[2])
@@ -673,9 +692,9 @@ class ConstantMixin(StandardOutputs, UniversalMixin):
 
     window_length = 0
     inputs = ()
-    params = ("const",)
+    params: Any = ("const",)  # see Term.params
 
-    def _compute(self, inputs, assets, dates, mask):
+    def _compute(self, inputs, dates, assets, mask, /):
         constant = self.params["const"]
         out = full(mask.shape, constant, dtype=self.dtype)
         if self.dtype == object:

@@ -88,149 +88,151 @@ def _run(
     This is shared between the cli and :func:`zipline.run_algo`.
     """
 
-    bundle_data = bundles.load(
+    # Close the bundle's database connections once the simulation is done.
+    with bundles.load(
         bundle,
         environ,
         bundle_timestamp,
-    )
+    ) as bundle_data:
+        if trading_calendar is None:
+            trading_calendar = get_calendar("XNYS")
 
-    if trading_calendar is None:
-        trading_calendar = get_calendar("XNYS")
+        # Sessions are tz-naive.
+        start = to_session_label(start)
+        end = to_session_label(end)
 
-    # Sessions are tz-naive.
-    start = to_session_label(start)
-    end = to_session_label(end)
+        # date parameter validation
+        if trading_calendar.sessions_distance(start, end) < 1:
+            raise _RunAlgoError(
+                f"There are no trading days between {start.date()} and {end.date()}",
+            )
 
-    # date parameter validation
-    if trading_calendar.sessions_distance(start, end) < 1:
-        raise _RunAlgoError(
-            f"There are no trading days between {start.date()} and {end.date()}",
+        benchmark_sid, benchmark_returns = benchmark_spec.resolve(
+            asset_finder=bundle_data.asset_finder,
+            start_date=start,
+            end_date=end,
         )
 
-    benchmark_sid, benchmark_returns = benchmark_spec.resolve(
-        asset_finder=bundle_data.asset_finder,
-        start_date=start,
-        end_date=end,
-    )
+        if algotext is not None:
+            if local_namespace:
+                from IPython import get_ipython
 
-    if algotext is not None:
-        if local_namespace:
-            ip = get_ipython()  # noqa
-            namespace = ip.user_ns
-        else:
-            namespace = {}
+                ip = get_ipython()
+                namespace = ip.user_ns
+            else:
+                namespace = {}
 
-        for assign in defines:
-            try:
-                name, value = assign.split("=", 2)
-            except ValueError as err:
-                raise ValueError(
-                    f"invalid define {assign!r}, should be of the form name=value",
-                ) from err
-            try:
-                # evaluate in the same namespace so names may refer to
-                # eachother
-                namespace[name] = eval(value, namespace)
-            except Exception as e:
-                raise ValueError(
-                    f"failed to execute definition for name {name!r}: {e}",
-                ) from e
-    elif defines:
-        raise _RunAlgoError(
-            "cannot pass define without `algotext`",
-            "cannot pass '-D' / '--define' without '-t' / '--algotext'",
-        )
-    else:
-        namespace = {}
-        if algofile is not None:
-            algotext = algofile.read()
-
-    if print_algo:
-        if PYGMENTS:
-            highlight(
-                algotext,
-                PythonLexer(),
-                TerminalFormatter(),
-                outfile=sys.stdout,
+            for assign in defines:
+                try:
+                    name, value = assign.split("=", 2)
+                except ValueError as err:
+                    raise ValueError(
+                        f"invalid define {assign!r}, should be of the form name=value",
+                    ) from err
+                try:
+                    # evaluate in the same namespace so names may refer to
+                    # eachother
+                    namespace[name] = eval(value, namespace)
+                except Exception as e:
+                    raise ValueError(
+                        f"failed to execute definition for name {name!r}: {e}",
+                    ) from e
+        elif defines:
+            raise _RunAlgoError(
+                "cannot pass define without `algotext`",
+                "cannot pass '-D' / '--define' without '-t' / '--algotext'",
             )
         else:
-            click.echo(algotext)
+            namespace = {}
+            if algofile is not None:
+                algotext = algofile.read()
 
-    first_trading_day = bundle_data.equity_minute_bar_reader.first_trading_day
+        if print_algo:
+            if PYGMENTS:
+                highlight(
+                    algotext,
+                    PythonLexer(),
+                    TerminalFormatter(),
+                    outfile=sys.stdout,
+                )
+            else:
+                click.echo(algotext)
 
-    data = DataPortal(
-        bundle_data.asset_finder,
-        trading_calendar=trading_calendar,
-        first_trading_day=first_trading_day,
-        equity_minute_reader=bundle_data.equity_minute_bar_reader,
-        equity_daily_reader=bundle_data.equity_daily_bar_reader,
-        adjustment_reader=bundle_data.adjustment_reader,
-    )
+        first_trading_day = bundle_data.equity_minute_bar_reader.first_trading_day
 
-    pipeline_loader = USEquityPricingLoader.without_fx(
-        bundle_data.equity_daily_bar_reader,
-        bundle_data.adjustment_reader,
-    )
-
-    def choose_loader(column):
-        if column in USEquityPricing.columns:
-            return pipeline_loader
-        raise ValueError(f"No PipelineLoader registered for column {column}.")
-
-    if isinstance(metrics_set, str):
-        try:
-            metrics_set = metrics.load(metrics_set)
-        except ValueError as e:
-            raise _RunAlgoError(str(e)) from e
-
-    if isinstance(blotter, str):
-        try:
-            blotter = load(Blotter, blotter)
-        except ValueError as e:
-            raise _RunAlgoError(str(e)) from e
-
-    try:
-        perf = TradingAlgorithm(
-            namespace=namespace,
-            data_portal=data,
-            get_pipeline_loader=choose_loader,
+        data = DataPortal(
+            bundle_data.asset_finder,
             trading_calendar=trading_calendar,
-            sim_params=SimulationParameters(
-                start_session=start,
-                end_session=end,
+            first_trading_day=first_trading_day,
+            equity_minute_reader=bundle_data.equity_minute_bar_reader,
+            equity_daily_reader=bundle_data.equity_daily_bar_reader,
+            adjustment_reader=bundle_data.adjustment_reader,
+        )
+
+        pipeline_loader = USEquityPricingLoader.without_fx(
+            bundle_data.equity_daily_bar_reader,
+            bundle_data.adjustment_reader,
+        )
+
+        def choose_loader(column):
+            if column in USEquityPricing.columns:
+                return pipeline_loader
+            raise ValueError(f"No PipelineLoader registered for column {column}.")
+
+        if isinstance(metrics_set, str):
+            try:
+                metrics_set = metrics.load(metrics_set)
+            except ValueError as e:
+                raise _RunAlgoError(str(e)) from e
+
+        if isinstance(blotter, str):
+            try:
+                blotter = load(Blotter, blotter)
+            except ValueError as e:
+                raise _RunAlgoError(str(e)) from e
+
+        try:
+            perf = TradingAlgorithm(
+                namespace=namespace,
+                data_portal=data,
+                get_pipeline_loader=choose_loader,
                 trading_calendar=trading_calendar,
-                capital_base=capital_base,
-                data_frequency=data_frequency,
-            ),
-            metrics_set=metrics_set,
-            blotter=blotter,
-            benchmark_returns=benchmark_returns,
-            benchmark_sid=benchmark_sid,
-            **{
-                "initialize": initialize,
-                "handle_data": handle_data,
-                "before_trading_start": before_trading_start,
-                "analyze": analyze,
-            }
-            if algotext is None
-            else {
-                "algo_filename": getattr(algofile, "name", "<algorithm>"),
-                "script": algotext,
-            },
-        ).run()
-    except NoBenchmark:
-        raise _RunAlgoError(
-            (
-                "No ``benchmark_spec`` was provided, and"
-                " ``zipline.api.set_benchmark`` was not called in"
-                " ``initialize``."
-            ),
-            (
-                "Neither '--benchmark-symbol' nor '--benchmark-sid' was"
-                " provided, and ``zipline.api.set_benchmark`` was not called"
-                " in ``initialize``. Did you mean to pass '--no-benchmark'?"
-            ),
-        ) from None
+                sim_params=SimulationParameters(
+                    start_session=start,
+                    end_session=end,
+                    trading_calendar=trading_calendar,
+                    capital_base=capital_base,
+                    data_frequency=data_frequency,
+                ),
+                metrics_set=metrics_set,
+                blotter=blotter,
+                benchmark_returns=benchmark_returns,
+                benchmark_sid=benchmark_sid,
+                **{
+                    "initialize": initialize,
+                    "handle_data": handle_data,
+                    "before_trading_start": before_trading_start,
+                    "analyze": analyze,
+                }
+                if algotext is None
+                else {
+                    "algo_filename": getattr(algofile, "name", "<algorithm>"),
+                    "script": algotext,
+                },
+            ).run()
+        except NoBenchmark:
+            raise _RunAlgoError(
+                (
+                    "No ``benchmark_spec`` was provided, and"
+                    " ``zipline.api.set_benchmark`` was not called in"
+                    " ``initialize``."
+                ),
+                (
+                    "Neither '--benchmark-symbol' nor '--benchmark-sid' was"
+                    " provided, and ``zipline.api.set_benchmark`` was not called"
+                    " in ``initialize``. Did you mean to pass '--no-benchmark'?"
+                ),
+            ) from None
 
     if output == "-":
         click.echo(str(perf))

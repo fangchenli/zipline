@@ -636,6 +636,8 @@ class AssetDBWriter:
                 raise ValueError(
                     "equities provided with no symbol mapping data",
                 )
+            if exchanges is None:
+                raise ValueError("equities provided with no exchange data")
 
             equity_symbol_mappings = _generate_output_dataframe(
                 equity_symbol_mappings,

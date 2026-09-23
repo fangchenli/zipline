@@ -5,6 +5,7 @@ Base class for Filters, Factors and Classifiers
 from abc import ABC, abstractmethod
 from bisect import insort
 from collections.abc import Mapping
+from typing import Any
 from weakref import WeakValueDictionary
 
 from numpy import (
@@ -88,8 +89,10 @@ class Term(ABC):
     missing_value = NotSpecified
 
     # Subclasses aren't required to provide `params`.  The default behavior is
-    # no params.
-    params = ()
+    # no params. On a class, ``params`` names the term's parameters (a tuple of
+    # names, or a mapping of names to defaults); on an instance it maps each
+    # name to its value (see ``_init``).
+    params: Any = ()
 
     # All terms are generic by default.
     domain = GENERIC
@@ -240,7 +243,7 @@ class Term(ABC):
 
     @expect_types(key=Asset)
     def __getitem__(self, key):
-        if isinstance(self, LoadableTerm):
+        if not isinstance(self, ComputableTerm):
             raise NonSliceableTerm(term=self)
 
         from .mixins import SliceMixin
@@ -495,7 +498,6 @@ class ComputableTerm(Term):
         window_length=window_length,
         mask=mask,
         domain=domain,
-        *args,
         **kwargs,
     ):
 
@@ -533,7 +535,6 @@ class ComputableTerm(Term):
 
         return super().__new__(
             cls,
-            *args,
             inputs=inputs,
             outputs=outputs,
             mask=mask,
@@ -608,13 +609,16 @@ class ComputableTerm(Term):
                 if not child.window_safe:
                     raise NonWindowSafeInput(parent=self, child=child)
 
-    def _compute(self, inputs, dates, assets, mask):
+    def _compute(self, inputs, dates, assets, mask, /):
         """
         Subclasses should implement this to perform actual computation.
 
         This is named ``_compute`` rather than just ``compute`` because
         ``compute`` is reserved for user-supplied functions in
         CustomFilter/CustomFactor/CustomClassifier.
+
+        The engine passes the arguments positionally; subclasses may name
+        them to suit (e.g. ``arrays`` or ``windows`` for ``inputs``).
         """
         raise NotImplementedError("_compute")
 
@@ -761,9 +765,10 @@ class ComputableTerm(Term):
         if self.dtype == bool_dtype:
             raise TypeError("isnull() is not supported for Filters")
 
+        from .factors import Factor
         from .filters import NullFilter
 
-        if self.dtype == float64_dtype:
+        if isinstance(self, Factor) and self.dtype == float64_dtype:
             # Using isnan is more efficient when possible because we can fold
             # the isnan computation with other NumExpr expressions.
             return self.isnan()

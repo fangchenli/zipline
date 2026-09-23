@@ -4,6 +4,7 @@ filter.py
 
 from itertools import chain
 from operator import attrgetter
+from typing import Any
 
 from numpy import (
     any as np_any,
@@ -28,7 +29,6 @@ from zipline.pipeline.dtypes import (
     FILTER_DTYPES,
 )
 from zipline.pipeline.expression import (
-    FILTER_BINOPS,
     BadBinaryOperator,
     NumericalExpression,
     method_name_for_op,
@@ -193,16 +193,9 @@ class Filter(RestrictedDTypeMixin, ComputableTerm):
     ALLOWED_DTYPES = FILTER_DTYPES
     dtype = bool_dtype
 
-    clsdict = locals()
-    clsdict.update(
-        {method_name_for_op(op): binary_operator(op) for op in FILTER_BINOPS}
-    )
-    clsdict.update(
-        {
-            method_name_for_op(op, commute=True): binary_operator(op)
-            for op in FILTER_BINOPS
-        }
-    )
+    # & and | are commutative, so the reflected methods are the same.
+    __and__ = __rand__ = binary_operator("&")
+    __or__ = __ror__ = binary_operator("|")
 
     __invert__ = unary_operator("~")
 
@@ -565,7 +558,7 @@ class ArrayPredicate(SingleInputMixin, Filter):
         Additional argument to apply to ``op``.
     """
 
-    params = ("op", "opargs")
+    params: Any = ("op", "opargs")  # see Term.params
     window_length = 0
 
     @expect_types(term=Term, opargs=tuple)
@@ -657,7 +650,7 @@ class StaticSids(Filter):
 
     inputs = ()
     window_length = 0
-    params = ("sids",)
+    params: Any = ("sids",)  # see Term.params
 
     def __new__(cls, sids):
         sids = frozenset(sids)

@@ -255,7 +255,7 @@ class TradingAlgorithm:
         # set_benchmark.
         self.data_portal = data_portal
 
-        if self.data_portal is None:
+        if data_portal is None:
             if asset_finder is None:
                 raise ValueError(
                     "Must pass either data_portal or asset_finder to TradingAlgorithm()"
@@ -321,7 +321,6 @@ class TradingAlgorithm:
         # functions.
         self.algoscript = script
 
-        self._initialize = None
         self._before_trading_start = None
         self._analyze = None
 
@@ -716,7 +715,7 @@ class TradingAlgorithm:
             return
 
         self.capital_change_deltas.update({key: capital_change_amount})
-        self.metrics_tracker.capital_change(capital_change_amount)
+        self._running_metrics_tracker.capital_change(capital_change_amount)
 
         yield {
             "capital_change": {
@@ -871,7 +870,9 @@ class TradingAlgorithm:
         )
 
         # ingest this into dataportal
-        self.data_portal.handle_extra_source(csv_data_source.df, self.sim_params)
+        self._running_data_portal.handle_extra_source(
+            csv_data_source.df, self.sim_params
+        )
 
         return csv_data_source
 
@@ -1423,21 +1424,39 @@ class TradingAlgorithm:
             dt = self.datetime
 
         if dt != self._last_sync_time:
-            self.metrics_tracker.sync_last_sale_prices(
+            self._running_metrics_tracker.sync_last_sale_prices(
                 dt,
-                self.data_portal,
+                self._running_data_portal,
             )
             self._last_sync_time = dt
 
     @property
     def portfolio(self):
         self._sync_last_sale_prices()
-        return self.metrics_tracker.portfolio
+        return self._running_metrics_tracker.portfolio
 
     @property
     def account(self):
         self._sync_last_sale_prices()
-        return self.metrics_tracker.account
+        return self._running_metrics_tracker.account
+
+    @property
+    def _running_metrics_tracker(self):
+        """The metrics tracker, which only exists while the algorithm runs."""
+        if self.metrics_tracker is None:
+            raise RuntimeError(
+                "The algorithm's metrics are only available while it is running."
+            )
+        return self.metrics_tracker
+
+    @property
+    def _running_data_portal(self):
+        """The data portal, which is only guaranteed while the algorithm runs."""
+        if self.data_portal is None:
+            raise RuntimeError(
+                "The algorithm's data is only available while it is running."
+            )
+        return self.data_portal
 
     def set_logger(self, logger):
         self.logger = logger
@@ -1971,7 +1990,7 @@ class TradingAlgorithm:
 
     def get_history_window(self, bar_count, frequency, assets, field, ffill):
         if not self._in_before_trading_start:
-            return self.data_portal.get_history_window(
+            return self._running_data_portal.get_history_window(
                 assets,
                 self.datetime,
                 bar_count,
@@ -1985,7 +2004,7 @@ class TradingAlgorithm:
             # as of the previous market minute
             adjusted_dt = self.trading_calendar.previous_minute(self.datetime)
 
-            window = self.data_portal.get_history_window(
+            window = self._running_data_portal.get_history_window(
                 assets,
                 adjusted_dt,
                 bar_count,
@@ -1997,7 +2016,7 @@ class TradingAlgorithm:
 
             # Get the adjustments between the last market minute and the
             # current before_trading_start dt and apply to the window
-            adjs = self.data_portal.get_adjustments(
+            adjs = self._running_data_portal.get_adjustments(
                 assets, field, adjusted_dt, self.datetime
             )
             window = window * adjs

@@ -34,9 +34,9 @@ from pandas import (
 )
 from parameterized import parameterized
 from toolz.curried.operator import getitem
-from zipline.lib.adjustment import Float64Multiply
 
 from zipline.errors import WindowLengthTooLong
+from zipline.lib.adjustment import Float64Multiply
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.domain import US_EQUITIES
 from zipline.pipeline.loaders.equity_pricing_loader import (
@@ -460,7 +460,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
         )
 
     def test_read_no_adjustments(self):
-        adjustment_reader = NullAdjustmentReader()
+        adjustment_reader = self.enter_instance_context(NullAdjustmentReader())
         columns = [USEquityPricing.close, USEquityPricing.volume]
         query_days = self.calendar_days_between(TEST_QUERY_START, TEST_QUERY_STOP)
         # Our expected results for each day are based on values from the
