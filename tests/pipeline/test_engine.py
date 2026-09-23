@@ -33,11 +33,11 @@ from pandas import (
 )
 from parameterized import parameterized
 from toolz import merge
-from zipline.lib.adjustment import MULTIPLY
 
 import zipline.testing.fixtures as zf
 from zipline.assets.synthetic import make_rotating_equity_info
 from zipline.errors import NoFurtherDataError
+from zipline.lib.adjustment import MULTIPLY
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import CustomFactor, Pipeline
 from zipline.pipeline.data import (

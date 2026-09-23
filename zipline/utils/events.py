@@ -26,7 +26,7 @@ from zipline.utils.calendar_utils import (
     execution_time_from_close,
     execution_time_from_open,
 )
-from zipline.utils.input_validation import preprocess
+from zipline.utils.input_validation import get_timezone, preprocess
 from zipline.utils.memoize import lazyval
 from zipline.utils.sentinel import sentinel
 
@@ -75,7 +75,7 @@ def ensure_utc(time, tz="UTC"):
     Normalize a time. If the time is tz-naive, assume it is UTC.
     """
     if not time.tzinfo:
-        time = time.replace(tzinfo=ZoneInfo(tz))
+        time = time.replace(tzinfo=get_timezone(tz))
     return time.replace(tzinfo=ZoneInfo("UTC"))
 
 
@@ -595,7 +595,7 @@ class OncePerDay(StatefulRule):
 
             # record the timestamp for the next day, so that we can use it
             # to know if we've moved to the next day
-            self.next_date = dt + pd.Timedelta(1, unit="d")
+            self.next_date = dt + pd.Timedelta(days=1)
 
         if not self.triggered and self.rule.should_trigger(dt):
             self.triggered = True

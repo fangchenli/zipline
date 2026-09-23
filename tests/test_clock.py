@@ -2,6 +2,7 @@ from datetime import time
 from unittest import TestCase
 
 import pandas as pd
+
 from zipline.gens.sim_engine import (
     BAR,
     BEFORE_TRADING_START_BAR,
@@ -9,7 +10,6 @@ from zipline.gens.sim_engine import (
     SESSION_START,
     MinuteSimulationClock,
 )
-
 from zipline.utils.calendar_utils import days_at_time, get_calendar
 
 

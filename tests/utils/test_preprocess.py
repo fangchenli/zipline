@@ -391,10 +391,13 @@ class PreprocessTestCase(TestCase):
         def f(tz):
             return tz
 
+        # name -> canonical zoneinfo key; lookups ignore case, as pytz did.
         valid = {
-            "utc",
-            "EST",
-            "US/Eastern",
+            "utc": "UTC",
+            "UTC": "UTC",
+            "EST": "EST",
+            "US/Eastern": "US/Eastern",
+            "us/eastern": "US/Eastern",
         }
         invalid = {
             # unfortunately, these are not actually timezones (yet)
@@ -403,11 +406,11 @@ class PreprocessTestCase(TestCase):
         }
 
         # test coercing from string
-        for tz in valid:
-            self.assertEqual(f(tz), ZoneInfo(tz))
+        for name, key in valid.items():
+            self.assertEqual(f(name), ZoneInfo(key))
 
         # test pass through of tzinfo objects
-        for tz in map(ZoneInfo, valid):
+        for tz in map(ZoneInfo, set(valid.values())):
             self.assertEqual(f(tz), tz)
 
         # test invalid timezone strings

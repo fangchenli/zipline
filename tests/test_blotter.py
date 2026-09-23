@@ -14,7 +14,6 @@
 # limitations under the License.
 import pandas as pd
 from parameterized import parameterized
-from zipline.gens.sim_engine import BAR, SESSION_END
 
 from zipline.assets import Equity
 from zipline.finance.blotter import SimulationBlotter
@@ -32,6 +31,7 @@ from zipline.finance.slippage import (
     FixedSlippage,
     VolumeShareSlippage,
 )
+from zipline.gens.sim_engine import BAR, SESSION_END
 from zipline.testing.fixtures import (
     WithCreateBarData,
     WithDataPortal,

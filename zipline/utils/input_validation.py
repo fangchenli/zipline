@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from datetime import tzinfo
-from functools import partial, wraps
+from functools import cache, partial, wraps
 from operator import attrgetter
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, available_timezones
 
 import pandas as pd
 from numpy import dtype
@@ -137,6 +137,23 @@ def ensure_dtype(func, argname, arg):
         ) from err
 
 
+@cache
+def _timezone_names_by_lowercase():
+    return {name.lower(): name for name in available_timezones()}
+
+
+def get_timezone(name):
+    """Look up a time zone by name, ignoring case (as pytz did).
+
+    ``zoneinfo`` keys are case-sensitive, and whether a lowercase key works
+    depends on the filesystem, so ``'utc'`` would work on macOS but not on
+    Linux.
+    """
+    # Canonicalize first, so e.g. 'utc' gives ZoneInfo('UTC') on every
+    # platform; unknown names are left to ZoneInfo to reject.
+    return ZoneInfo(_timezone_names_by_lowercase().get(name.lower(), name))
+
+
 def ensure_timezone(func, argname, arg):
     """Argument preprocessor that converts the input into a tzinfo object.
 
@@ -152,7 +169,7 @@ def ensure_timezone(func, argname, arg):
     if isinstance(arg, tzinfo):
         return arg
     if isinstance(arg, str):
-        return ZoneInfo(arg)
+        return get_timezone(arg)
 
     raise TypeError(
         f"{_qualified_name(func)}() couldn't convert argument {argname}={arg!r} to a "

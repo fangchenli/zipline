@@ -50,7 +50,7 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
         cls.add_class_callback(partial(unregister, "test"))
 
         with tarfile.open(test_resource_path("example_data.tar.gz")) as tar:
-            tar.extractall(cls.tmpdir.path)
+            tar.extractall(cls.tmpdir.path, filter="data")
 
         cls.expected_perf = dataframe_cache(
             cls._expected_perf_dir(

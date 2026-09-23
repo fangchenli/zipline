@@ -27,11 +27,11 @@ from numpy.random import randn, seed
 from parameterized import parameterized
 from scipy.stats.mstats import winsorize as scipy_winsorize
 from toolz import compose
-from zipline.lib.rank import masked_rankdata_2d
 
 from zipline.errors import BadPercentileBounds, UnknownRankMethod
 from zipline.lib.labelarray import LabelArray
 from zipline.lib.normalize import naive_grouped_rowwise_apply as grouped_apply
+from zipline.lib.rank import masked_rankdata_2d
 from zipline.pipeline import Classifier, Factor, Filter, Pipeline
 from zipline.pipeline.data import Column, DataSet, EquityPricing
 from zipline.pipeline.factors import (

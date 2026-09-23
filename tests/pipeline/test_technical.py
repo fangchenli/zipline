@@ -581,7 +581,7 @@ class RSITestCase(ZiplineTestCase):
         out = np.empty((1,), dtype=float)
 
         closes = np.linspace(46, 60, num=15)
-        closes.shape = (15, 1)
+        closes = closes.reshape(15, 1)
         rsi.compute(today, assets, out, closes)
         self.assertEqual(out[0], 100.0)
 
@@ -596,7 +596,7 @@ class RSITestCase(ZiplineTestCase):
         out = np.empty((1,), dtype=float)
 
         closes = np.linspace(46, 32, num=15)
-        closes.shape = (15, 1)
+        closes = closes.reshape(15, 1)
 
         rsi.compute(today, assets, out, closes)
         self.assertEqual(out[0], 0.0)

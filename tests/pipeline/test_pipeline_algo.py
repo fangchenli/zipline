@@ -28,7 +28,6 @@ from pandas import (
     read_csv,
 )
 from parameterized import parameterized
-from zipline.lib.adjustment import MULTIPLY
 
 from zipline.api import (
     attach_pipeline,
@@ -42,6 +41,7 @@ from zipline.errors import (
     PipelineOutputDuringInitialize,
 )
 from zipline.finance.trading import SimulationParameters
+from zipline.lib.adjustment import MULTIPLY
 from zipline.pipeline import CustomFactor, Pipeline
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.factors import VWAP

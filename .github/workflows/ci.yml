@@ -15,8 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.2.0  # no floating major-version tags
-      - run: uvx ruff check zipline tests scripts
-      - run: uvx ruff format --check zipline tests scripts
+      # The locked ruff version, without building the package.
+      - run: uv run --locked --only-group lint ruff check zipline tests scripts
+      - run: uv run --locked --only-group lint ruff format --check zipline tests scripts
 
   types:
     runs-on: ubuntu-latest

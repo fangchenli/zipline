@@ -14,9 +14,8 @@
 # limitations under the License.
 from unittest import TestCase
 
-from zipline.gens.sim_engine import BAR, SESSION_END
-
 from zipline.finance.cancel_policy import EODCancel, NeverCancel
+from zipline.gens.sim_engine import BAR, SESSION_END
 
 
 class CancelPolicyTestCase(TestCase):

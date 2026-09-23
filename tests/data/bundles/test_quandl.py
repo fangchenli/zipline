@@ -1,11 +1,11 @@
 import numpy as np
 import pandas as pd
 import toolz.curried.operator as op
-from zipline.lib.adjustment import Float64Multiply
 
 from zipline import get_calendar
 from zipline.data.bundles import bundles, ingest, load
 from zipline.data.bundles.quandl import format_metadata_url, load_data_table
+from zipline.lib.adjustment import Float64Multiply
 from zipline.testing import (
     patch_read_csv,
     test_resource_path,

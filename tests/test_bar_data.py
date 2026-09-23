@@ -21,8 +21,8 @@ from numpy import nan
 from numpy.testing import assert_almost_equal
 from parameterized import parameterized
 from toolz import concat
-from zipline._protocol import handle_non_market_minutes
 
+from zipline._protocol import handle_non_market_minutes
 from zipline.finance.asset_restrictions import (
     RESTRICTION_STATES,
     HistoricalRestrictions,

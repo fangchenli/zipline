@@ -17,6 +17,9 @@ from numpy import (
 )
 from parameterized import parameterized
 from toolz import curry
+
+from zipline.errors import WindowLengthNotPositive, WindowLengthTooLong
+from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.adjustment import (
     Boolean1DArrayOverwrite,
     BooleanOverwrite,
@@ -29,9 +32,6 @@ from zipline.lib.adjustment import (
     Object1DArrayOverwrite,
     ObjectOverwrite,
 )
-
-from zipline.errors import WindowLengthNotPositive, WindowLengthTooLong
-from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.labelarray import LabelArray
 from zipline.testing import check_arrays
 from zipline.testing.predicates import assert_equal

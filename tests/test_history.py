@@ -19,9 +19,9 @@ import numpy as np
 import pandas as pd
 from numpy import nan
 from parameterized import parameterized
-from zipline._protocol import BarData, handle_non_market_minutes
 
 import zipline.testing.fixtures as zf
+from zipline._protocol import BarData, handle_non_market_minutes
 from zipline.assets import Asset, Equity
 from zipline.errors import (
     HistoryInInitialize,

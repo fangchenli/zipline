@@ -33,6 +33,8 @@ uv run --group docs sphinx-build -b html docs/source /tmp/zipline-docs   # docs
 
 Test cases are still `unittest`-style classes, some parameterized with `parameterized`. pytest collects them directly.
 
+CI runs `uv run pytest -n auto` with pytest's default warning handling, and some tests count warnings, so don't rely on `-p no:warnings` locally. Import sorting depends on files other than the one being checked, so ruff's cache can go stale: when in doubt, use `ruff check --no-cache` (CI has no cache). Zone names go through `zipline.utils.input_validation.get_timezone`, which ignores case like pytz did (zoneinfo keys are case-sensitive on Linux).
+
 ## Architecture
 
 **Simulation loop.** `TradingAlgorithm` (`zipline/algorithm.py`) holds user callbacks (`initialize`, `handle_data`, `before_trading_start`, scheduled functions), the blotter, metrics tracker, and pipeline engine. `run()` builds an `AlgorithmSimulator` (`zipline/gens/tradesimulation.py`), which iterates the Cython `MinuteSimulationClock` (`zipline/gens/sim_engine.pyx`) emitting bar/session/before-trading events. On each bar it processes open orders through the blotter (`zipline/finance/blotter/`) using slippage/commission models, updates the `Ledger`, then calls user code with a `BarData` (`zipline/_protocol.pyx`). Performance output is produced by `MetricsTracker` (`zipline/finance/metrics/`), which aggregates pluggable metric sets registered by name (`default`, `classic`, `none`).

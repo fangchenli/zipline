@@ -27,9 +27,9 @@ from numpy import (
 )
 from numpy.testing import assert_almost_equal
 from pandas import DataFrame, Timestamp
-from zipline.assets.continuous_futures import OrderedContracts, delivery_predicate
 
 import zipline.testing.fixtures as zf
+from zipline.assets.continuous_futures import OrderedContracts, delivery_predicate
 from zipline.assets.roll_finder import (
     ROLL_DAYS_FOR_CURRENT_CONTRACT,
     VolumeRollFinder,

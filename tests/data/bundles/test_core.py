@@ -5,7 +5,6 @@ import sqlalchemy as sa
 import toolz.curried.operator as op
 from parameterized import parameterized
 from toolz import valmap
-from zipline.lib.adjustment import Float64Multiply
 
 import zipline.utils.paths as pth
 from zipline.assets import ASSET_DB_VERSION
@@ -22,6 +21,7 @@ from zipline.data.bundles.core import (
     asset_db_path,
     to_bundle_ingest_dirname,
 )
+from zipline.lib.adjustment import Float64Multiply
 from zipline.pipeline.loaders.synthetic import (
     expected_bar_values_2d,
     make_bar_data,

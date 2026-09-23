@@ -12,6 +12,7 @@ from pandas import (
     Index,
     date_range,
 )
+
 from zipline.lib.adjustment import (
     ADD,
     MULTIPLY,
@@ -20,7 +21,6 @@ from zipline.lib.adjustment import (
     Float64Multiply,
     Float64Overwrite,
 )
-
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.domain import US_EQUITIES
 from zipline.pipeline.loaders.frame import DataFrameLoader

@@ -19,6 +19,9 @@ class TestingSlippage(SlippageModel):
     zipline.finance.slippage.SlippageModel
     """
 
+    # Not a test case, despite the name.
+    __test__ = False
+
     ALL = sentinel("ALL")
 
     allowed_asset_types = (Equity,)

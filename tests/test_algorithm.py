@@ -23,7 +23,8 @@ import logbook
 import numpy as np
 import pandas as pd
 import toolz
-from logbook import WARNING, TestHandler
+from logbook import WARNING
+from logbook import TestHandler as LogCatcher
 from pandas.errors import PerformanceWarning
 from parameterized import parameterized
 from testfixtures import TempDirectory
@@ -3740,7 +3741,7 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
             minute_emission=minute_emission,
         )
 
-        log_catcher = TestHandler()
+        log_catcher = LogCatcher()
         with log_catcher:
             results = algo.run()
 
@@ -3791,7 +3792,7 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
     def test_default_cancelation_policy(self):
         algo = self.prep_algo("")
 
-        log_catcher = TestHandler()
+        log_catcher = LogCatcher()
         with log_catcher:
             results = algo.run()
 
@@ -3811,7 +3812,7 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
         # in daily mode, EODCancel does nothing.
         algo = self.prep_algo("set_cancel_policy(cancel_policy.EODCancel())", "daily")
 
-        log_catcher = TestHandler()
+        log_catcher = LogCatcher()
         with log_catcher:
             results = algo.run()
 
