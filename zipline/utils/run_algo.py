@@ -1,12 +1,13 @@
-import click
 import os
 import sys
 import warnings
 
+import click
+
 try:
     from pygments import highlight
-    from pygments.lexers import PythonLexer
-    from pygments.formatters import TerminalFormatter
+    from pygments.formatters.terminal import TerminalFormatter
+    from pygments.lexers.python import PythonLexer
 
     PYGMENTS = True
 except ImportError:
@@ -14,21 +15,21 @@ except ImportError:
 import logbook
 import pandas as pd
 from toolz import concatv
-from trading_calendars import get_calendar
 
+import zipline.utils.paths as pth
+from zipline.algorithm import NoBenchmark, TradingAlgorithm
 from zipline.data import bundles
 from zipline.data.benchmarks import get_benchmark_returns_from_file
 from zipline.data.data_portal import DataPortal
+from zipline.errors import SymbolNotFound
+from zipline.extensions import load
 from zipline.finance import metrics
+from zipline.finance.blotter import Blotter
 from zipline.finance.trading import SimulationParameters
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders import USEquityPricingLoader
-
-import zipline.utils.paths as pth
-from zipline.extensions import load
-from zipline.errors import SymbolNotFound
-from zipline.algorithm import TradingAlgorithm, NoBenchmark
-from zipline.finance.blotter import Blotter
+from zipline.utils.calendar_utils import get_calendar
+from zipline.utils.date_utils import to_session_label
 
 log = logbook.Logger(__name__)
 
@@ -45,6 +46,7 @@ class _RunAlgoError(click.ClickException, ValueError):
         The message that will be shown on the command line. If not provided,
         this will be the same as ``pyfunc_msg`
     """
+
     exit_code = 1
 
     def __init__(self, pyfunc_msg, cmdline_msg=None):
@@ -58,178 +60,181 @@ class _RunAlgoError(click.ClickException, ValueError):
         return self.pyfunc_msg
 
 
-def _run(handle_data,
-         initialize,
-         before_trading_start,
-         analyze,
-         algofile,
-         algotext,
-         defines,
-         data_frequency,
-         capital_base,
-         bundle,
-         bundle_timestamp,
-         start,
-         end,
-         output,
-         trading_calendar,
-         print_algo,
-         metrics_set,
-         local_namespace,
-         environ,
-         blotter,
-         benchmark_spec):
+def _run(
+    handle_data,
+    initialize,
+    before_trading_start,
+    analyze,
+    algofile,
+    algotext,
+    defines,
+    data_frequency,
+    capital_base,
+    bundle,
+    bundle_timestamp,
+    start,
+    end,
+    output,
+    trading_calendar,
+    print_algo,
+    metrics_set,
+    local_namespace,
+    environ,
+    blotter,
+    benchmark_spec,
+):
     """Run a backtest for the given algorithm.
 
     This is shared between the cli and :func:`zipline.run_algo`.
     """
 
-    bundle_data = bundles.load(
+    # Close the bundle's database connections once the simulation is done.
+    with bundles.load(
         bundle,
         environ,
         bundle_timestamp,
-    )
+    ) as bundle_data:
+        if trading_calendar is None:
+            trading_calendar = get_calendar("XNYS")
 
-    if trading_calendar is None:
-        trading_calendar = get_calendar('XNYS')
+        # Sessions are tz-naive.
+        start = to_session_label(start)
+        end = to_session_label(end)
 
-    # date parameter validation
-    if trading_calendar.session_distance(start, end) < 1:
-        raise _RunAlgoError(
-            'There are no trading days between {} and {}'.format(
-                start.date(),
-                end.date(),
-            ),
+        # date parameter validation
+        if trading_calendar.sessions_distance(start, end) < 1:
+            raise _RunAlgoError(
+                f"There are no trading days between {start.date()} and {end.date()}",
+            )
+
+        benchmark_sid, benchmark_returns = benchmark_spec.resolve(
+            asset_finder=bundle_data.asset_finder,
+            start_date=start,
+            end_date=end,
         )
 
-    benchmark_sid, benchmark_returns = benchmark_spec.resolve(
-        asset_finder=bundle_data.asset_finder,
-        start_date=start,
-        end_date=end,
-    )
+        if algotext is not None:
+            if local_namespace:
+                from IPython import get_ipython
 
-    if algotext is not None:
-        if local_namespace:
-            ip = get_ipython()  # noqa
-            namespace = ip.user_ns
-        else:
-            namespace = {}
+                ip = get_ipython()
+                namespace = ip.user_ns
+            else:
+                namespace = {}
 
-        for assign in defines:
-            try:
-                name, value = assign.split('=', 2)
-            except ValueError:
-                raise ValueError(
-                    'invalid define %r, should be of the form name=value' %
-                    assign,
-                )
-            try:
-                # evaluate in the same namespace so names may refer to
-                # eachother
-                namespace[name] = eval(value, namespace)
-            except Exception as e:
-                raise ValueError(
-                    f'failed to execute definition for name {name!r}: {e}',
-                )
-    elif defines:
-        raise _RunAlgoError(
-            'cannot pass define without `algotext`',
-            "cannot pass '-D' / '--define' without '-t' / '--algotext'",
-        )
-    else:
-        namespace = {}
-        if algofile is not None:
-            algotext = algofile.read()
-
-    if print_algo:
-        if PYGMENTS:
-            highlight(
-                algotext,
-                PythonLexer(),
-                TerminalFormatter(),
-                outfile=sys.stdout,
+            for assign in defines:
+                try:
+                    name, value = assign.split("=", 2)
+                except ValueError as err:
+                    raise ValueError(
+                        f"invalid define {assign!r}, should be of the form name=value",
+                    ) from err
+                try:
+                    # evaluate in the same namespace so names may refer to
+                    # eachother
+                    namespace[name] = eval(value, namespace)
+                except Exception as e:
+                    raise ValueError(
+                        f"failed to execute definition for name {name!r}: {e}",
+                    ) from e
+        elif defines:
+            raise _RunAlgoError(
+                "cannot pass define without `algotext`",
+                "cannot pass '-D' / '--define' without '-t' / '--algotext'",
             )
         else:
-            click.echo(algotext)
+            namespace = {}
+            if algofile is not None:
+                algotext = algofile.read()
 
-    first_trading_day = \
-        bundle_data.equity_minute_bar_reader.first_trading_day
+        if print_algo:
+            if PYGMENTS:
+                highlight(
+                    algotext,
+                    PythonLexer(),
+                    TerminalFormatter(),
+                    outfile=sys.stdout,
+                )
+            else:
+                click.echo(algotext)
 
-    data = DataPortal(
-        bundle_data.asset_finder,
-        trading_calendar=trading_calendar,
-        first_trading_day=first_trading_day,
-        equity_minute_reader=bundle_data.equity_minute_bar_reader,
-        equity_daily_reader=bundle_data.equity_daily_bar_reader,
-        adjustment_reader=bundle_data.adjustment_reader,
-    )
+        first_trading_day = bundle_data.equity_minute_bar_reader.first_trading_day
 
-    pipeline_loader = USEquityPricingLoader.without_fx(
-        bundle_data.equity_daily_bar_reader,
-        bundle_data.adjustment_reader,
-    )
-
-    def choose_loader(column):
-        if column in USEquityPricing.columns:
-            return pipeline_loader
-        raise ValueError(
-            "No PipelineLoader registered for column %s." % column
-        )
-
-    if isinstance(metrics_set, str):
-        try:
-            metrics_set = metrics.load(metrics_set)
-        except ValueError as e:
-            raise _RunAlgoError(str(e))
-
-    if isinstance(blotter, str):
-        try:
-            blotter = load(Blotter, blotter)
-        except ValueError as e:
-            raise _RunAlgoError(str(e))
-
-    try:
-        perf = TradingAlgorithm(
-            namespace=namespace,
-            data_portal=data,
-            get_pipeline_loader=choose_loader,
+        data = DataPortal(
+            bundle_data.asset_finder,
             trading_calendar=trading_calendar,
-            sim_params=SimulationParameters(
-                start_session=start,
-                end_session=end,
-                trading_calendar=trading_calendar,
-                capital_base=capital_base,
-                data_frequency=data_frequency,
-            ),
-            metrics_set=metrics_set,
-            blotter=blotter,
-            benchmark_returns=benchmark_returns,
-            benchmark_sid=benchmark_sid,
-            **{
-                'initialize': initialize,
-                'handle_data': handle_data,
-                'before_trading_start': before_trading_start,
-                'analyze': analyze,
-            } if algotext is None else {
-                'algo_filename': getattr(algofile, 'name', '<algorithm>'),
-                'script': algotext,
-            }
-        ).run()
-    except NoBenchmark:
-        raise _RunAlgoError(
-            (
-                'No ``benchmark_spec`` was provided, and'
-                ' ``zipline.api.set_benchmark`` was not called in'
-                ' ``initialize``.'
-            ),
-            (
-                "Neither '--benchmark-symbol' nor '--benchmark-sid' was"
-                " provided, and ``zipline.api.set_benchmark`` was not called"
-                " in ``initialize``. Did you mean to pass '--no-benchmark'?"
-            ),
+            first_trading_day=first_trading_day,
+            equity_minute_reader=bundle_data.equity_minute_bar_reader,
+            equity_daily_reader=bundle_data.equity_daily_bar_reader,
+            adjustment_reader=bundle_data.adjustment_reader,
         )
 
-    if output == '-':
+        pipeline_loader = USEquityPricingLoader.without_fx(
+            bundle_data.equity_daily_bar_reader,
+            bundle_data.adjustment_reader,
+        )
+
+        def choose_loader(column):
+            if column in USEquityPricing.columns:
+                return pipeline_loader
+            raise ValueError(f"No PipelineLoader registered for column {column}.")
+
+        if isinstance(metrics_set, str):
+            try:
+                metrics_set = metrics.load(metrics_set)
+            except ValueError as e:
+                raise _RunAlgoError(str(e)) from e
+
+        if isinstance(blotter, str):
+            try:
+                blotter = load(Blotter, blotter)
+            except ValueError as e:
+                raise _RunAlgoError(str(e)) from e
+
+        try:
+            perf = TradingAlgorithm(
+                namespace=namespace,
+                data_portal=data,
+                get_pipeline_loader=choose_loader,
+                trading_calendar=trading_calendar,
+                sim_params=SimulationParameters(
+                    start_session=start,
+                    end_session=end,
+                    trading_calendar=trading_calendar,
+                    capital_base=capital_base,
+                    data_frequency=data_frequency,
+                ),
+                metrics_set=metrics_set,
+                blotter=blotter,
+                benchmark_returns=benchmark_returns,
+                benchmark_sid=benchmark_sid,
+                **{
+                    "initialize": initialize,
+                    "handle_data": handle_data,
+                    "before_trading_start": before_trading_start,
+                    "analyze": analyze,
+                }
+                if algotext is None
+                else {
+                    "algo_filename": getattr(algofile, "name", "<algorithm>"),
+                    "script": algotext,
+                },
+            ).run()
+        except NoBenchmark:
+            raise _RunAlgoError(
+                (
+                    "No ``benchmark_spec`` was provided, and"
+                    " ``zipline.api.set_benchmark`` was not called in"
+                    " ``initialize``."
+                ),
+                (
+                    "Neither '--benchmark-symbol' nor '--benchmark-sid' was"
+                    " provided, and ``zipline.api.set_benchmark`` was not called"
+                    " in ``initialize``. Did you mean to pass '--no-benchmark'?"
+                ),
+            ) from None
+
+    if output == "-":
         click.echo(str(perf))
     elif output != os.devnull:  # make the zipline magic not write any data
         perf.to_pickle(output)
@@ -273,10 +278,10 @@ def load_extensions(default, extensions, strict, environ, reload=False):
             continue
         try:
             # load all of the zipline extensionss
-            if ext.endswith('.py'):
+            if ext.endswith(".py"):
                 with open(ext) as f:
                     ns = {}
-                    exec(compile(f.read(), ext, 'exec'), ns, ns)
+                    exec(compile(f.read(), ext, "exec"), ns, ns)
             else:
                 __import__(ext)
         except Exception as e:
@@ -284,32 +289,31 @@ def load_extensions(default, extensions, strict, environ, reload=False):
                 # if `strict` we should raise the actual exception and fail
                 raise
             # without `strict` we should just log the failure
-            warnings.warn(
-                f'Failed to load extension: {ext!r}\n{e}',
-                stacklevel=2
-            )
+            warnings.warn(f"Failed to load extension: {ext!r}\n{e}", stacklevel=2)
         else:
             _loaded_extensions.add(ext)
 
 
-def run_algorithm(start,
-                  end,
-                  initialize,
-                  capital_base,
-                  handle_data=None,
-                  before_trading_start=None,
-                  analyze=None,
-                  data_frequency='daily',
-                  bundle='quantopian-quandl',
-                  bundle_timestamp=None,
-                  trading_calendar=None,
-                  metrics_set='default',
-                  benchmark_returns=None,
-                  default_extension=True,
-                  extensions=(),
-                  strict_extensions=True,
-                  environ=os.environ,
-                  blotter='default'):
+def run_algorithm(
+    start,
+    end,
+    initialize,
+    capital_base,
+    handle_data=None,
+    before_trading_start=None,
+    analyze=None,
+    data_frequency="daily",
+    bundle="quandl",
+    bundle_timestamp=None,
+    trading_calendar=None,
+    metrics_set="default",
+    benchmark_returns=None,
+    default_extension=True,
+    extensions=(),
+    strict_extensions=True,
+    environ=os.environ,
+    blotter="default",
+):
     """
     Run a trading algorithm.
 
@@ -340,11 +344,11 @@ def run_algorithm(start,
         The data frequency to run the algorithm at.
     bundle : str, optional
         The name of the data bundle to use to load the data to run the backtest
-        with. This defaults to 'quantopian-quandl'.
+        with. This defaults to 'quandl'.
     bundle_timestamp : datetime, optional
         The datetime to lookup the bundle data for. This defaults to the
         current time.
-    trading_calendar : TradingCalendar, optional
+    trading_calendar : ExchangeCalendar, optional
         The trading calendar to use for your backtest.
     metrics_set : iterable[Metric] or str, optional
         The set of metrics to compute in the simulation. If a string is passed,
@@ -431,12 +435,14 @@ class BenchmarkSpec:
         metrics will be calculated using a dummy benchmark of all-zero returns.
     """
 
-    def __init__(self,
-                 benchmark_returns,
-                 benchmark_file,
-                 benchmark_sid,
-                 benchmark_symbol,
-                 no_benchmark):
+    def __init__(
+        self,
+        benchmark_returns,
+        benchmark_file,
+        benchmark_sid,
+        benchmark_symbol,
+        no_benchmark,
+    ):
 
         self.benchmark_returns = benchmark_returns
         self.benchmark_file = benchmark_file
@@ -445,11 +451,9 @@ class BenchmarkSpec:
         self.no_benchmark = no_benchmark
 
     @classmethod
-    def from_cli_params(cls,
-                        benchmark_sid,
-                        benchmark_symbol,
-                        benchmark_file,
-                        no_benchmark):
+    def from_cli_params(
+        cls, benchmark_sid, benchmark_symbol, benchmark_file, no_benchmark
+    ):
 
         return cls(
             benchmark_returns=None,
@@ -514,9 +518,9 @@ class BenchmarkSpec:
                 benchmark_returns = None
             except SymbolNotFound:
                 raise _RunAlgoError(
-                    "Symbol %r as a benchmark not found in this bundle."
-                    % self.benchmark_symbol
-                )
+                    f"Symbol {self.benchmark_symbol!r} as a benchmark not found in "
+                    "this bundle."
+                ) from None
         elif self.no_benchmark:
             benchmark_sid = None
             benchmark_returns = self._zero_benchmark_returns(
@@ -524,17 +528,15 @@ class BenchmarkSpec:
                 end_date=end_date,
             )
         else:
-            log.warn(
-                "No benchmark configured. "
-                "Assuming algorithm calls set_benchmark."
+            log.warning(
+                "No benchmark configured. Assuming algorithm calls set_benchmark."
             )
-            log.warn(
+            log.warning(
                 "Pass --benchmark-sid, --benchmark-symbol, or"
                 " --benchmark-file to set a source of benchmark returns."
             )
-            log.warn(
-                "Pass --no-benchmark to use a dummy benchmark "
-                "of zero returns.",
+            log.warning(
+                "Pass --no-benchmark to use a dummy benchmark of zero returns.",
             )
             benchmark_sid = None
             benchmark_returns = None
@@ -544,6 +546,9 @@ class BenchmarkSpec:
     @staticmethod
     def _zero_benchmark_returns(start_date, end_date):
         return pd.Series(
-            index=pd.date_range(start_date, end_date, tz='utc'),
+            index=pd.date_range(
+                to_session_label(start_date),
+                to_session_label(end_date),
+            ),
             data=0.0,
         )

@@ -1,4 +1,5 @@
 import inspect
+from collections import namedtuple
 from math import ceil
 
 
@@ -16,9 +17,13 @@ def values_as_list(dictionary):
     return list(dictionary.values())
 
 
+# ``inspect.ArgSpec`` was removed in Python 3.11.
+ArgSpec = namedtuple("ArgSpec", "args varargs keywords defaults")
+
+
 def getargspec(f):
     full_argspec = inspect.getfullargspec(f)
-    return inspect.ArgSpec(
+    return ArgSpec(
         args=full_argspec.args,
         varargs=full_argspec.varargs,
         keywords=full_argspec.varkw,
@@ -27,6 +32,6 @@ def getargspec(f):
 
 
 __all__ = [
-    'consistent_round',
-    'values_as_list',
+    "consistent_round",
+    "values_as_list",
 ]

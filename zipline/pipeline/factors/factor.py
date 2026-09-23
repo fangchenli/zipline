@@ -1,15 +1,17 @@
 """
 factor.py
 """
-from operator import attrgetter
-from numbers import Number
-from math import ceil
-from textwrap import dedent
-
-from numpy import empty_like, inf, isnan, nan, where
-from scipy.stats import rankdata
 
 from functools import wraps
+from math import ceil
+from numbers import Number
+from operator import attrgetter
+from textwrap import dedent
+from typing import Any
+
+from numpy import asarray, empty_like, inf, isnan, nan, where
+from scipy.stats import rankdata
+
 from zipline.errors import (
     BadPercentileBounds,
     UnknownRankMethod,
@@ -25,21 +27,18 @@ from zipline.pipeline.dtypes import (
     FILTER_DTYPES,
 )
 from zipline.pipeline.expression import (
-    BadBinaryOperator,
-    COMPARISONS,
-    is_comparison,
-    MATH_BINOPS,
-    method_name_for_op,
-    NumericalExpression,
     NUMEXPR_MATH_FUNCS,
-    UNARY_OPS,
+    BadBinaryOperator,
+    NumericalExpression,
+    is_comparison,
+    method_name_for_op,
     unary_op_name,
 )
 from zipline.pipeline.filters import (
     Filter,
+    MaximumFilter,
     NumExprFilter,
     PercentileFilter,
-    MaximumFilter,
 )
 from zipline.pipeline.mixins import (
     CustomTermMixin,
@@ -69,8 +68,7 @@ from zipline.utils.numpy_utils import (
 )
 from zipline.utils.sharedoc import templated_docstring
 
-
-_RANK_METHODS = frozenset(['average', 'min', 'max', 'dense', 'ordinal'])
+_RANK_METHODS = frozenset(["average", "min", "max", "dense", "ordinal"])
 
 
 def coerce_numbers_to_my_dtype(f):
@@ -89,11 +87,18 @@ def coerce_numbers_to_my_dtype(f):
     my_factor probably has dtype float64, but 3 is an int, so we want to coerce
     to float64 before doing the comparison.
     """
+
     @wraps(f)
     def method(self, other):
         if isinstance(other, Number):
-            other = coerce_to_dtype(self.dtype, other)
+            if self.dtype.kind in "biufc":
+                other = coerce_to_dtype(self.dtype, other)
+            else:
+                # Numbers can't become e.g. datetimes. Keep the number's own
+                # numpy dtype so the operator reports the dtype mismatch.
+                other = asarray(other)[()]
         return f(self, other)
+
     return method
 
 
@@ -118,21 +123,17 @@ def binop_return_dtype(op, left, right):
     if is_comparison(op):
         if left != right:
             raise TypeError(
-                "Don't know how to compute {left} {op} {right}.\n"
+                f"Don't know how to compute {left} {op} {right}.\n"
                 "Comparisons are only supported between Factors of equal "
-                "dtypes.".format(left=left, op=op, right=right)
+                "dtypes."
             )
         return bool_dtype
 
     elif left != float64_dtype or right != float64_dtype:
         raise TypeError(
-            "Don't know how to compute {left} {op} {right}.\n"
+            f"Don't know how to compute {left.name} {op} {right.name}.\n"
             "Arithmetic operators are only supported between Factors of "
-            "dtype 'float64'.".format(
-                left=left.name,
-                op=op,
-                right=right.name,
-            )
+            "dtype 'float64'."
         )
     return float64_dtype
 
@@ -179,10 +180,10 @@ def binary_operator(op):
 
     if is_compare:
         ret_doc = BINOP_RETURN_FILTER.format(op=op)
-        rtype = 'Filter'
+        rtype = "Filter"
     else:
         ret_doc = BINOP_RETURN_FACTOR.format(op=op)
-        rtype = 'Factor'
+        rtype = "Factor"
 
     docstring = BINOP_DOCSTRING_TEMPLATE.format(
         op=op,
@@ -201,14 +202,11 @@ def binary_operator(op):
 
         if isinstance(self, NumExprFactor):
             self_expr, other_expr, new_inputs = self.build_binary_op(
-                op, other,
+                op,
+                other,
             )
             return return_type(
-                "({left}) {op} ({right})".format(
-                    left=self_expr,
-                    op=op,
-                    right=other_expr,
-                ),
+                f"({self_expr}) {op} ({other_expr})",
                 new_inputs,
                 dtype=binop_return_dtype(op, self.dtype, other.dtype),
             )
@@ -235,7 +233,7 @@ def binary_operator(op):
                 binds=(self,),
                 # .dtype access is safe here because coerce_numbers_to_my_dtype
                 # will convert any input numbers to numpy equivalents.
-                dtype=binop_return_dtype(op, self.dtype, other.dtype)
+                dtype=binop_return_dtype(op, self.dtype, other.dtype),
             )
         raise BadBinaryOperator(op, self, other)
 
@@ -256,17 +254,11 @@ def reflected_binary_operator(op):
     def reflected_binary_operator(self, other):
 
         if isinstance(self, NumericalExpression):
-            self_expr, other_expr, new_inputs = self.build_binary_op(
-                op, other
-            )
+            self_expr, other_expr, new_inputs = self.build_binary_op(op, other)
             return NumExprFactor(
-                "({left}) {op} ({right})".format(
-                    left=other_expr,
-                    right=self_expr,
-                    op=op,
-                ),
+                f"({other_expr}) {op} ({self_expr})",
                 new_inputs,
-                dtype=binop_return_dtype(op, other.dtype, self.dtype)
+                dtype=binop_return_dtype(op, other.dtype, self.dtype),
             )
 
         # Only have to handle the numeric case because in all other valid cases
@@ -278,6 +270,7 @@ def reflected_binary_operator(op):
                 dtype=binop_return_dtype(op, other.dtype, self.dtype),
             )
         raise BadBinaryOperator(op, other, self)
+
     return reflected_binary_operator
 
 
@@ -286,23 +279,19 @@ def unary_operator(op):
     Factory function for making unary operator methods for Factors.
     """
     # Only negate is currently supported.
-    valid_ops = {'-'}
+    valid_ops = {"-"}
     if op not in valid_ops:
-        raise ValueError("Invalid unary operator %s." % op)
+        raise ValueError(f"Invalid unary operator {op}.")
 
-    @with_doc("Unary Operator: '%s'" % op)
+    @with_doc(f"Unary Operator: '{op}'")
     @with_name(unary_op_name(op))
     def unary_operator(self):
         if self.dtype != float64_dtype:
             raise TypeError(
-                "Can't apply unary operator {op!r} to instance of "
-                "{typename!r} with dtype {dtypename!r}.\n"
-                "{op!r} is only supported for Factors of dtype "
-                "'float64'.".format(
-                    op=op,
-                    typename=type(self).__name__,
-                    dtypename=self.dtype.name,
-                )
+                f"Can't apply unary operator {op!r} to instance of "
+                f"{type(self).__name__!r} with dtype {self.dtype.name!r}.\n"
+                f"{op!r} is only supported for Factors of dtype "
+                "'float64'."
             )
 
         # This can't be hoisted up a scope because the types returned by
@@ -320,6 +309,7 @@ def unary_operator(op):
                 (self,),
                 dtype=float64_dtype,
             )
+
     return unary_operator
 
 
@@ -329,16 +319,16 @@ def function_application(func):
     subclasses.
     """
     if func not in NUMEXPR_MATH_FUNCS:
-        raise ValueError("Unsupported mathematical function '%s'" % func)
+        raise ValueError(f"Unsupported mathematical function '{func}'")
 
     docstring = dedent(
-        """\
-        Construct a Factor that computes ``{}()`` on each output of ``self``.
+        f"""\
+        Construct a Factor that computes ``{func}()`` on each output of ``self``.
 
         Returns
         -------
         factor : zipline.pipeline.Factor
-        """.format(func)
+        """
     )
 
     @with_doc(docstring)
@@ -356,6 +346,7 @@ def function_application(func):
                 (self,),
                 dtype=float64_dtype,
             )
+
     return mathfunc
 
 
@@ -366,7 +357,7 @@ if_not_float64_tell_caller_to_use_isnull = restrict_to_dtype(
         "{method_name}() was called on a factor of dtype {received_dtype}.\n"
         "{method_name}() is only defined for dtype {expected_dtype}."
         "To filter missing data, use isnull() or notnull()."
-    )
+    ),
 )
 
 float64_only = restrict_to_dtype(
@@ -374,7 +365,7 @@ float64_only = restrict_to_dtype(
     message_template=(
         "{method_name}() is only defined on Factors of dtype {expected_dtype},"
         " but it was called on a Factor of dtype {received_dtype}."
-    )
+    ),
 )
 
 
@@ -392,8 +383,7 @@ CORRELATION_METHOD_NOTE = dedent(
 
 
 class summary_funcs:
-    """Namespace of functions meant to be used with DailySummary.
-    """
+    """Namespace of functions meant to be used with DailySummary."""
 
     @staticmethod
     def mean(a, missing_value):
@@ -423,7 +413,7 @@ class summary_funcs:
     def notnull_count(a, missing_value):
         return (~is_missing(a, missing_value)).sum(axis=1)
 
-    names = {k for k in locals() if not k.startswith('_')}
+    names = {k for k in locals() if not k.startswith("_")}
 
 
 def summary_method(name):
@@ -487,41 +477,38 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
     on rank-order properties of results (:meth:`top`, :meth:`bottom`,
     :meth:`percentile_between`).
     """
+
     ALLOWED_DTYPES = FACTOR_DTYPES  # Used by RestrictedDTypeMixin
 
-    # Dynamically add functions for creating NumExprFactor/NumExprFilter
-    # instances.
+    # Operators build NumExprFactor/NumExprFilter instances. (``__eq__`` is not
+    # overridden because it breaks comparisons on tuples of Factors; use
+    # ``eq`` below.)
+    __add__ = binary_operator("+")
+    __sub__ = binary_operator("-")
+    __mul__ = binary_operator("*")
+    __div__ = __truediv__ = binary_operator("/")
+    __pow__ = binary_operator("**")
+    __mod__ = binary_operator("%")
+    __lt__ = binary_operator("<")
+    __le__ = binary_operator("<=")
+    __ne__ = binary_operator("!=")
+    __ge__ = binary_operator(">=")
+    __gt__ = binary_operator(">")
+
+    __radd__ = reflected_binary_operator("+")
+    __rsub__ = reflected_binary_operator("-")
+    __rmul__ = reflected_binary_operator("*")
+    __rdiv__ = __rtruediv__ = reflected_binary_operator("/")
+    __rpow__ = reflected_binary_operator("**")
+    __rmod__ = reflected_binary_operator("%")
+
+    __neg__ = unary_operator("-")
+
+    # Dynamically add the numexpr math functions (log, sqrt, ...).
     clsdict = locals()
     clsdict.update(
-        {
-            method_name_for_op(op): binary_operator(op)
-            # Don't override __eq__ because it breaks comparisons on tuples of
-            # Factors.
-            for op in MATH_BINOPS.union(COMPARISONS - {'=='})
-        }
+        {funcname: function_application(funcname) for funcname in NUMEXPR_MATH_FUNCS}
     )
-    clsdict.update(
-        {
-            method_name_for_op(op, commute=True): reflected_binary_operator(op)
-            for op in MATH_BINOPS
-        }
-    )
-    clsdict.update(
-        {
-            unary_op_name(op): unary_operator(op)
-            for op in UNARY_OPS
-        }
-    )
-
-    clsdict.update(
-        {
-            funcname: function_application(funcname)
-            for funcname in NUMEXPR_MATH_FUNCS
-        }
-    )
-
-    __truediv__ = clsdict['__div__']
-    __rtruediv__ = clsdict['__rdiv__']
 
     # Add summary functions.
     clsdict.update(
@@ -530,7 +517,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
     del clsdict  # don't pollute the class namespace with this.
 
-    eq = binary_operator('==')
+    eq = binary_operator("==")
 
     @expect_types(
         mask=(Filter, NotSpecifiedType),
@@ -728,11 +715,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             window_safe=True,
         )
 
-    def rank(self,
-             method='ordinal',
-             ascending=True,
-             mask=NotSpecified,
-             groupby=NotSpecified):
+    def rank(
+        self, method="ordinal", ascending=True, mask=NotSpecified, groupby=NotSpecified
+    ):
         """
         Construct a new Factor representing the sorted rank of each column
         within each row.
@@ -788,7 +773,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         )
 
     @expect_types(
-        target=Term, correlation_length=int, mask=(Filter, NotSpecifiedType),
+        target=Term,
+        correlation_length=int,
+        mask=(Filter, NotSpecifiedType),
     )
     @templated_docstring(CORRELATION_METHOD_NOTE=CORRELATION_METHOD_NOTE)
     def pearsonr(self, target, correlation_length, mask=NotSpecified):
@@ -846,6 +833,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         :meth:`Factor.spearmanr`
         """
         from .statistical import RollingPearson
+
         return RollingPearson(
             base_factor=self,
             target=target,
@@ -854,7 +842,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         )
 
     @expect_types(
-        target=Term, correlation_length=int, mask=(Filter, NotSpecifiedType),
+        target=Term,
+        correlation_length=int,
+        mask=(Filter, NotSpecifiedType),
     )
     @templated_docstring(CORRELATION_METHOD_NOTE=CORRELATION_METHOD_NOTE)
     def spearmanr(self, target, correlation_length, mask=NotSpecified):
@@ -911,6 +901,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         :meth:`Factor.pearsonr`
         """
         from .statistical import RollingSpearman
+
         return RollingSpearman(
             base_factor=self,
             target=target,
@@ -919,7 +910,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         )
 
     @expect_types(
-        target=Term, regression_length=int, mask=(Filter, NotSpecifiedType),
+        target=Term,
+        regression_length=int,
+        mask=(Filter, NotSpecifiedType),
     )
     @templated_docstring(CORRELATION_METHOD_NOTE=CORRELATION_METHOD_NOTE)
     def linear_regression(self, target, regression_length, mask=NotSpecified):
@@ -973,6 +966,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         :func:`scipy.stats.linregress`
         """
         from .statistical import RollingLinearRegression
+
         return RollingLinearRegression(
             dependent=self,
             independent=target,
@@ -987,11 +981,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         groupby=(Classifier, NotSpecifiedType),
     )
     @float64_only
-    def winsorize(self,
-                  min_percentile,
-                  max_percentile,
-                  mask=NotSpecified,
-                  groupby=NotSpecified):
+    def winsorize(
+        self, min_percentile, max_percentile, mask=NotSpecified, groupby=NotSpecified
+    ):
         """
         Construct a new factor that winsorizes the result of this factor.
 
@@ -1238,10 +1230,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
     def _maximum(self, mask=NotSpecified, groupby=NotSpecified):
         return MaximumFilter(self, groupby=groupby, mask=mask)
 
-    def percentile_between(self,
-                           min_percentile,
-                           max_percentile,
-                           mask=NotSpecified):
+    def percentile_between(self, min_percentile, max_percentile, mask=NotSpecified):
         """
         Construct a Filter matching values of self that fall within the range
         defined by ``min_percentile`` and ``max_percentile``.
@@ -1363,6 +1352,7 @@ class NumExprFactor(NumericalExpression, Factor):
     NumExprFactors are constructed by numerical operators like `+` and `-`.
     Users should rarely need to construct a NumExprFactor directly.
     """
+
     pass
 
 
@@ -1401,17 +1391,20 @@ class GroupedRowTransform(Factor):
     zipline.pipeline.Factor.demean
     zipline.pipeline.Factor.rank
     """
+
     window_length = 0
 
-    def __new__(cls,
-                transform,
-                transform_args,
-                factor,
-                groupby,
-                dtype,
-                missing_value,
-                mask,
-                **kwargs):
+    def __new__(
+        cls,
+        transform,
+        transform_args,
+        factor,
+        groupby,
+        dtype,
+        missing_value,
+        mask,
+        **kwargs,
+    ):
 
         if mask is NotSpecified:
             mask = factor.mask
@@ -1429,7 +1422,7 @@ class GroupedRowTransform(Factor):
             missing_value=missing_value,
             mask=mask,
             dtype=dtype,
-            **kwargs
+            **kwargs,
         )
 
     def _init(self, transform, transform_args, *args, **kwargs):
@@ -1468,7 +1461,7 @@ class GroupedRowTransform(Factor):
 
     def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
-        return type(self).__name__ + '(%r)' % self.transform_name
+        return type(self).__name__ + f"({self.transform_name!r})"
 
 
 class Rank(SingleInputMixin, Factor):
@@ -1494,6 +1487,7 @@ class Rank(SingleInputMixin, Factor):
     Most users should call Factor.rank rather than directly construct an
     instance of this class.
     """
+
     window_length = 0
     dtype = float64_dtype
     window_safe = True
@@ -1551,18 +1545,16 @@ class Rank(SingleInputMixin, Factor):
         else:
             mask_info = f", mask={self.mask.recursive_repr()}"
 
-        return "{type}({input_}, method='{method}'{mask_info})".format(
-            type=type(self).__name__,
-            input_=self.inputs[0].recursive_repr(),
-            method=self._method,
-            mask_info=mask_info,
+        return (
+            f"{type(self).__name__}({self.inputs[0].recursive_repr()}, "
+            f"method='{self._method}'{mask_info})"
         )
 
     def graph_repr(self):
         # Graphviz interprets `\l` as "divide label into lines, left-justified"
-        return "Rank:\\l  method: {!r}\\l  mask: {}\\l".format(
-            self._method,
-            type(self.mask).__name__,
+        return (
+            f"Rank:\\l  method: {self._method!r}\\l  mask: "
+            f"{type(self.mask).__name__}\\l"
         )
 
 
@@ -1709,6 +1701,7 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
     same dtype. For instance, in the example above, if alpha is a float then
     beta must also be a float.
     '''
+
     dtype = float64_dtype
 
     def _validate(self):
@@ -1719,18 +1712,18 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
                 raise UnsupportedDataType(
                     typename=type(self).__name__,
                     dtype=self.dtype,
-                    hint='Did you mean to create a CustomClassifier?',
-                )
+                    hint="Did you mean to create a CustomClassifier?",
+                ) from None
             elif self.dtype in FILTER_DTYPES:
                 raise UnsupportedDataType(
                     typename=type(self).__name__,
                     dtype=self.dtype,
-                    hint='Did you mean to create a CustomFilter?',
-                )
+                    hint="Did you mean to create a CustomFilter?",
+                ) from None
             raise
 
     def __getattribute__(self, name):
-        outputs = object.__getattribute__(self, 'outputs')
+        outputs = object.__getattribute__(self, "outputs")
         if outputs is NotSpecified:
             return super().__getattribute__(name)
         elif name in outputs:
@@ -1740,21 +1733,13 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
                 return super().__getattribute__(name)
             except AttributeError:
                 raise AttributeError(
-                    'Instance of {factor} has no output named {attr!r}. '
-                    'Possible choices are: {choices}.'.format(
-                        factor=type(self).__name__,
-                        attr=name,
-                        choices=self.outputs,
-                    )
-                )
+                    f"Instance of {type(self).__name__} has no output named {name!r}. "
+                    f"Possible choices are: {self.outputs}."
+                ) from None
 
     def __iter__(self):
         if self.outputs is NotSpecified:
-            raise ValueError(
-                '{factor} does not have multiple outputs.'.format(
-                    factor=type(self).__name__,
-                )
-            )
+            raise ValueError(f"{type(self).__name__} does not have multiple outputs.")
         return (RecarrayField(self, attr) for attr in self.outputs)
 
 
@@ -1762,6 +1747,7 @@ class RecarrayField(SingleInputMixin, Factor):
     """
     A single field from a multi-output factor.
     """
+
     def __new__(cls, factor, attribute):
         return super().__new__(
             cls,
@@ -1771,7 +1757,7 @@ class RecarrayField(SingleInputMixin, Factor):
             mask=factor.mask,
             dtype=factor.dtype,
             missing_value=factor.missing_value,
-            window_safe=factor.window_safe
+            window_safe=factor.window_safe,
         )
 
     def _init(self, attribute, *args, **kwargs):
@@ -1789,7 +1775,7 @@ class RecarrayField(SingleInputMixin, Factor):
         return windows[0][self._attribute]
 
     def graph_repr(self):
-        return "{}.{}".format(self.inputs[0].recursive_repr(), self._attribute)
+        return f"{self.inputs[0].recursive_repr()}.{self._attribute}"
 
 
 class Latest(LatestMixin, CustomFactor):
@@ -1799,6 +1785,7 @@ class Latest(LatestMixin, CustomFactor):
     The `.latest` attribute of DataSet columns returns an instance of this
     Factor.
     """
+
     window_length = 1
 
     def compute(self, today, assets, out, data):
@@ -1806,19 +1793,18 @@ class Latest(LatestMixin, CustomFactor):
 
 
 class DailySummary(SingleInputMixin, Factor):
-    """1D Factor that computes a summary statistic across all assets.
-    """
+    """1D Factor that computes a summary statistic across all assets."""
+
     ndim = 1
     window_length = 0
-    params = ('func',)
+    params: Any = ("func",)  # see Term.params
 
     def __new__(cls, func, input_, mask, dtype):
         # TODO: We should be able to support datetime64 as well, but that
         # requires extra care for handling NaT.
         if dtype != float64_dtype:
             raise AssertionError(
-                "DailySummary only supports float64 dtype, got {}"
-                .format(dtype),
+                f"DailySummary only supports float64 dtype, got {dtype}",
             )
 
         return super().__new__(
@@ -1832,7 +1818,7 @@ class DailySummary(SingleInputMixin, Factor):
         )
 
     def _compute(self, arrays, dates, assets, mask):
-        func = self.params['func']
+        func = self.params["func"]
 
         data = arrays[0]
         data[~mask] = nan
@@ -1844,7 +1830,7 @@ class DailySummary(SingleInputMixin, Factor):
     def __repr__(self):
         return "{}.{}()".format(
             self.inputs[0].recursive_repr(),
-            self.params['func'].__name__,
+            self.params["func"].__name__,
         )
 
     graph_repr = recursive_repr = __repr__

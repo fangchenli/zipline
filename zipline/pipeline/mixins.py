@@ -4,7 +4,10 @@ Mixins classes for use with Filters and Factors.
 The mixin classes inherit from Term to ensure they appear before
 Term in the MRO of any class using the mixin
 """
+
 from abc import abstractmethod
+from collections.abc import Callable
+from typing import Any
 
 from numpy import (
     array,
@@ -17,10 +20,10 @@ from numpy import (
 from pandas import NaT as pd_NaT
 
 from zipline.errors import (
-    WindowLengthNotPositive,
-    UnsupportedDataType,
-    NonExistentAssetInTimeFrame,
     NoFurtherDataError,
+    NonExistentAssetInTimeFrame,
+    UnsupportedDataType,
+    WindowLengthNotPositive,
 )
 from zipline.lib.labelarray import LabelArray, labelarray_where
 from zipline.utils.context_tricks import nop_context
@@ -28,10 +31,9 @@ from zipline.utils.input_validation import expect_dtypes, expect_types
 from zipline.utils.numpy_utils import bool_dtype
 from zipline.utils.pandas_utils import nearest_unequal_elements
 
-
 from .downsample_helpers import (
-    select_sampling_indices,
     expect_downsample_frequency,
+    select_sampling_indices,
 )
 from .sentinels import NotSpecified
 from .term import Term
@@ -41,6 +43,11 @@ class PositiveWindowLengthMixin(Term):
     """
     Validation mixin enforcing that a Term gets a positive WindowLength
     """
+
+    # Provided by ComputableTerm. (Annotation only: a class attribute here
+    # would shadow ComputableTerm's default in the MRO.)
+    window_length: Any
+
     def _validate(self):
         super()._validate()
         if not self.windowed:
@@ -51,16 +58,14 @@ class SingleInputMixin(Term):
     """
     Validation mixin enforcing that a Term gets a length-1 inputs list.
     """
+
     def _validate(self):
         super()._validate()
         num_inputs = len(self.inputs)
         if num_inputs != 1:
             raise ValueError(
-                "{typename} expects only one input, "
-                "but received {num_inputs} instead.".format(
-                    typename=type(self).__name__,
-                    num_inputs=num_inputs
-                )
+                f"{type(self).__name__} expects only one input, "
+                f"but received {num_inputs} instead."
             )
 
 
@@ -68,15 +73,16 @@ class StandardOutputs(Term):
     """
     Validation mixin enforcing that a Term cannot produce non-standard outputs.
     """
+
+    # Provided by ComputableTerm (annotation only; see PositiveWindowLengthMixin).
+    outputs: Any
+
     def _validate(self):
         super()._validate()
         if self.outputs is not NotSpecified:
             raise ValueError(
-                "{typename} does not support custom outputs,"
-                " but received custom outputs={outputs}.".format(
-                    typename=type(self).__name__,
-                    outputs=self.outputs,
-                )
+                f"{type(self).__name__} does not support custom outputs,"
+                f" but received custom outputs={self.outputs}."
             )
 
 
@@ -84,13 +90,14 @@ class RestrictedDTypeMixin(Term):
     """
     Validation mixin enforcing that a term has a specific dtype.
     """
+
     ALLOWED_DTYPES = NotSpecified
 
     def _validate(self):
         super()._validate()
         assert self.ALLOWED_DTYPES is not NotSpecified, (
             "ALLOWED_DTYPES not supplied on subclass "
-            "of RestrictedDTypeMixin: %s." % type(self).__name__
+            f"of RestrictedDTypeMixin: {type(self).__name__}."
         )
 
         if self.dtype not in self.ALLOWED_DTYPES:
@@ -98,6 +105,13 @@ class RestrictedDTypeMixin(Term):
                 typename=type(self).__name__,
                 dtype=self.dtype,
             )
+
+
+def _default_compute(self, today, assets, out, *arrays):
+    """
+    Override this method with a function that writes a value into `out`.
+    """
+    raise NotImplementedError(f"{type(self).__name__} must define a compute method")
 
 
 class CustomTermMixin(Term):
@@ -109,26 +123,30 @@ class CustomTermMixin(Term):
 
     Used by CustomFactor, CustomFilter, CustomClassifier, etc.
     """
+
+    # Provided by ComputableTerm (annotation only; see PositiveWindowLengthMixin).
+    outputs: Any
+    window_length: Any
+
     ctx = nop_context
 
-    def __new__(cls,
-                inputs=NotSpecified,
-                outputs=NotSpecified,
-                window_length=NotSpecified,
-                mask=NotSpecified,
-                dtype=NotSpecified,
-                missing_value=NotSpecified,
-                ndim=NotSpecified,
-                **kwargs):
+    def __new__(
+        cls,
+        inputs=NotSpecified,
+        outputs=NotSpecified,
+        window_length=NotSpecified,
+        mask=NotSpecified,
+        dtype=NotSpecified,
+        missing_value=NotSpecified,
+        ndim=NotSpecified,
+        **kwargs,
+    ):
 
         unexpected_keys = set(kwargs) - set(cls.params)
         if unexpected_keys:
             raise TypeError(
-                "{termname} received unexpected keyword "
-                "arguments {unexpected}".format(
-                    termname=cls.__name__,
-                    unexpected={k: kwargs[k] for k in unexpected_keys},
-                )
+                f"{cls.__name__} received unexpected keyword arguments "
+                f"{ ({k: kwargs[k] for k in unexpected_keys}) }"
             )
 
         return super().__new__(
@@ -140,18 +158,13 @@ class CustomTermMixin(Term):
             dtype=dtype,
             missing_value=missing_value,
             ndim=ndim,
-            **kwargs
+            **kwargs,
         )
 
-    def compute(self, today, assets, out, *arrays):
-        """
-        Override this method with a function that writes a value into `out`.
-        """
-        raise NotImplementedError(
-            "{name} must define a compute method".format(
-                name=type(self).__name__
-            )
-        )
+    # Subclasses define ``compute(self, today, assets, out, *inputs)`` with
+    # one parameter per input (and per param), so the signature varies by
+    # subclass; typing it as a Callable lets them override it.
+    compute: Callable[..., Any] = _default_compute
 
     def _allocate_output(self, windows, shape):
         """
@@ -193,7 +206,7 @@ class CustomTermMixin(Term):
                 inputs.append(window[:, column_mask])
         return inputs
 
-    def _compute(self, windows, dates, assets, mask):
+    def _compute(self, windows, dates, assets, mask, /):
         """
         Call the user's `compute` function on each window with a pre-built
         output array.
@@ -225,8 +238,7 @@ class CustomTermMixin(Term):
     def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
         # Graphviz interprets `\l` as "divide label into lines, left-justified"
-        return type(self).__name__ + ':\\l  window_length: %d\\l' % \
-            self.window_length
+        return type(self).__name__ + f":\\l  window_length: {self.window_length}\\l"
 
 
 class LatestMixin(SingleInputMixin):
@@ -258,6 +270,7 @@ class LatestMixin(SingleInputMixin):
     boolean columns, and the resulting object will be a
     :class:`~zipline.pipeline.CustomClassifier` for string or integer columns.
     """
+
     window_length = 1
 
     def compute(self, today, assets, out, data):
@@ -267,12 +280,8 @@ class LatestMixin(SingleInputMixin):
         super()._validate()
         if self.inputs[0].dtype != self.dtype:
             raise TypeError(
-                "{name} expected an input of dtype {expected}, "
-                "but got {actual} instead.".format(
-                    name=type(self).__name__,
-                    expected=self.dtype,
-                    actual=self.inputs[0].dtype,
-                )
+                f"{type(self).__name__} expected an input of dtype {self.dtype}, "
+                f"but got {self.inputs[0].dtype} instead."
             )
 
     def graph_repr(self):
@@ -290,18 +299,19 @@ class UniversalMixin(Term):
 
     A type may only inherit from one UniversalMixin.
     """
+
     # Memo dict mapping pairs of (mixin_type, principal_type) to subtypes.
     _UNIVERSAL_MIXIN_SUBTYPES = {}
 
     @staticmethod
     @abstractmethod
     def _universal_mixin_type():
-        raise NotImplementedError('_universal_mixin_type')
+        raise NotImplementedError("_universal_mixin_type")
 
     @staticmethod
     @abstractmethod
     def _universal_mixin_specialization_name(principal_type):
-        raise NotImplementedError('_universal_mixin_specialization_name')
+        raise NotImplementedError("_universal_mixin_specialization_name")
 
     @classmethod
     def universal_mixin_specialization(cls, principal_type):
@@ -319,7 +329,7 @@ class UniversalMixin(Term):
             new_type = type(
                 mixin._universal_mixin_specialization_name(principal_type),
                 (mixin, principal_type),
-                {'__module__': principal_type.__module__},
+                {"__module__": principal_type.__module__},
             )
             cls._UNIVERSAL_MIXIN_SUBTYPES[memo_key] = new_type
             return new_type
@@ -329,6 +339,7 @@ class AliasedMixin(SingleInputMixin, UniversalMixin):
     """
     Mixin for aliased terms.
     """
+
     def __new__(cls, term, name):
         return super().__new__(
             cls,
@@ -353,14 +364,13 @@ class AliasedMixin(SingleInputMixin, UniversalMixin):
             name,
         )
 
-    def _compute(self, inputs, dates, assets, mask):
+    def _compute(self, inputs, dates, assets, mask, /):
         return inputs[0]
 
     def __repr__(self):
-        return '{type}({inner}, name={name!r})'.format(
-            type=type(self).__name__,
-            inner=self.inputs[0].recursive_repr(),
-            name=self.name,
+        return (
+            f"{type(self).__name__}({self.inputs[0].recursive_repr()}, "
+            f"name={self.name!r})"
         )
 
     def graph_repr(self):
@@ -373,7 +383,7 @@ class AliasedMixin(SingleInputMixin, UniversalMixin):
 
     @staticmethod
     def _universal_mixin_specialization_name(principal_type):
-        return 'Aliased' + principal_type.__name__
+        return "Aliased" + principal_type.__name__
 
 
 class DownsampledMixin(StandardOutputs, UniversalMixin):
@@ -386,6 +396,7 @@ class DownsampledMixin(StandardOutputs, UniversalMixin):
 
     Downsampling is not currently supported for terms with multiple outputs.
     """
+
     # There's no reason to take a window of a downsampled term.  The whole
     # point is that you're re-using the same result multiple times.
     window_safe = False
@@ -419,11 +430,7 @@ class DownsampledMixin(StandardOutputs, UniversalMixin):
             wrapped_term,
         )
 
-    def compute_extra_rows(self,
-                           all_dates,
-                           start_date,
-                           end_date,
-                           min_extra_rows):
+    def compute_extra_rows(self, all_dates, start_date, end_date, min_extra_rows):
         """
         Ensure that min_extra_rows pushes us back to a computation date.
 
@@ -458,19 +465,15 @@ class DownsampledMixin(StandardOutputs, UniversalMixin):
         except KeyError:
             before, after = nearest_unequal_elements(all_dates, start_date)
             raise ValueError(
-                "Pipeline start_date {start_date} is not in calendar.\n"
-                "Latest date before start_date is {before}.\n"
-                "Earliest date after start_date is {after}.".format(
-                    start_date=start_date,
-                    before=before,
-                    after=after,
-                )
-            )
+                f"Pipeline start_date {start_date} is not in calendar.\n"
+                f"Latest date before start_date is {before}.\n"
+                f"Earliest date after start_date is {after}."
+            ) from None
 
         # Our possible target dates are all the dates on or before the current
         # starting position.
         # TODO: Consider bounding this below by self.window_length
-        candidates = all_dates[:current_start_pos + 1]
+        candidates = all_dates[: current_start_pos + 1]
 
         # Choose the latest date in the candidates that is the start of a new
         # period at our frequency.
@@ -483,20 +486,20 @@ class DownsampledMixin(StandardOutputs, UniversalMixin):
         # Add the difference between the new and old start dates to get the
         # number of rows for the new start_date.
         new_start_pos = all_dates.get_loc(new_start_date)
-        assert new_start_pos <= current_start_pos, \
-            "Computed negative extra rows!"
+        assert new_start_pos <= current_start_pos, "Computed negative extra rows!"
 
         return min_extra_rows + (current_start_pos - new_start_pos)
 
-    def _compute(self, inputs, dates, assets, mask):
+    def _compute(self, inputs, dates, assets, mask, /):
         """
         Compute by delegating to self._wrapped_term._compute on sample dates.
 
         On non-sample dates, forward-fill from previously-computed samples.
         """
         to_sample = dates[select_sampling_indices(dates, self._frequency)]
-        assert to_sample[0] == dates[0], \
-            "Misaligned sampling dates in %s." % type(self).__name__
+        assert to_sample[0] == dates[0], (
+            f"Misaligned sampling dates in {type(self).__name__}."
+        )
 
         real_compute = self._wrapped_term._compute
 
@@ -540,9 +543,9 @@ class DownsampledMixin(StandardOutputs, UniversalMixin):
                 results.append(
                     real_compute(
                         prepare_inputs(),
-                        dates[i:i + 1],
+                        dates[i : i + 1],
                         assets,
-                        mask[i:i + 1],
+                        mask[i : i + 1],
                     )
                 )
                 try:
@@ -562,7 +565,7 @@ class DownsampledMixin(StandardOutputs, UniversalMixin):
         except StopIteration:
             pass
         else:
-            raise AssertionError("Unconsumed sample date: %s" % next_sample)
+            raise AssertionError(f"Unconsumed sample date: {next_sample}")
 
         # Concatenate stored results.
         return vstack(results)
@@ -573,7 +576,7 @@ class DownsampledMixin(StandardOutputs, UniversalMixin):
 
     @staticmethod
     def _universal_mixin_specialization_name(principal_type):
-        return 'Downsampled' + principal_type.__name__
+        return "Downsampled" + principal_type.__name__
 
 
 class SliceMixin(UniversalMixin):
@@ -591,6 +594,7 @@ class SliceMixin(UniversalMixin):
     Users should rarely construct instances of `Slice` directly. Instead, they
     should construct instances via indexing, e.g. `MyFactor()[Asset(24)]`.
     """
+
     def __new__(cls, term, asset):
         return super().__new__(
             cls,
@@ -605,10 +609,7 @@ class SliceMixin(UniversalMixin):
         )
 
     def __repr__(self):
-        return "{parent_term}[{asset}]".format(
-            parent_term=self.inputs[0].recursive_repr(),
-            asset=self._asset,
-        )
+        return f"{self.inputs[0].recursive_repr()}[{self._asset}]"
 
     def _init(self, asset, *args, **kwargs):
         self._asset = asset
@@ -621,12 +622,14 @@ class SliceMixin(UniversalMixin):
             asset,
         )
 
-    def _compute(self, windows, dates, assets, mask):
+    def _compute(self, windows, dates, assets, mask, /):
         asset = self._asset
         asset_column = searchsorted(assets.values, asset.sid)
         if assets[asset_column] != asset.sid:
             raise NonExistentAssetInTimeFrame(
-                asset=asset, start_date=dates[0], end_date=dates[-1],
+                asset=asset,
+                start_date=dates[0],
+                end_date=dates[-1],
             )
 
         # Return a 2D array with one column rather than a 1D array of the
@@ -635,8 +638,7 @@ class SliceMixin(UniversalMixin):
 
     @property
     def asset(self):
-        """Get the asset whose data is selected by this slice.
-        """
+        """Get the asset whose data is selected by this slice."""
         return self._asset
 
     @staticmethod
@@ -645,12 +647,12 @@ class SliceMixin(UniversalMixin):
 
     @staticmethod
     def _universal_mixin_specialization_name(principal_type):
-        return principal_type.__name__ + 'Slice'
+        return principal_type.__name__ + "Slice"
 
 
 class IfElseMixin(UniversalMixin):
-    """Universal mixin for types returned by Filter.if_else.
-    """
+    """Universal mixin for types returned by Filter.if_else."""
+
     window_length = 0
 
     @expect_dtypes(condition=bool_dtype)
@@ -661,15 +663,17 @@ class IfElseMixin(UniversalMixin):
             dtype=if_true.dtype,
             ndim=if_true.ndim,
             missing_value=if_true.missing_value,
-            window_safe=all((
-                condition.window_safe,
-                if_true.window_safe,
-                if_false.window_safe,
-            )),
+            window_safe=all(
+                (
+                    condition.window_safe,
+                    if_true.window_safe,
+                    if_false.window_safe,
+                )
+            ),
             outputs=if_true.outputs,
         )
 
-    def _compute(self, inputs, assets, dates, mask):
+    def _compute(self, inputs, dates, assets, mask, /):
         if self.dtype == object:
             return labelarray_where(inputs[0], inputs[1], inputs[2])
         return where(inputs[0], inputs[1], inputs[2])
@@ -680,18 +684,18 @@ class IfElseMixin(UniversalMixin):
 
     @staticmethod
     def _universal_mixin_specialization_name(principal_type):
-        return 'IfElse' + principal_type.__name__
+        return "IfElse" + principal_type.__name__
 
 
 class ConstantMixin(StandardOutputs, UniversalMixin):
-    """Universal mixin for terms that produce a known constant value.
-    """
+    """Universal mixin for terms that produce a known constant value."""
+
     window_length = 0
     inputs = ()
-    params = ('const',)
+    params: Any = ("const",)  # see Term.params
 
-    def _compute(self, inputs, assets, dates, mask):
-        constant = self.params['const']
+    def _compute(self, inputs, dates, assets, mask, /):
+        constant = self.params["const"]
         out = full(mask.shape, constant, dtype=self.dtype)
         if self.dtype == object:
             return LabelArray(
@@ -707,4 +711,4 @@ class ConstantMixin(StandardOutputs, UniversalMixin):
 
     @staticmethod
     def _universal_mixin_specialization_name(principal_type):
-        return 'Constant' + principal_type.__name__
+        return "Constant" + principal_type.__name__

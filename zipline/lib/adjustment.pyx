@@ -5,7 +5,7 @@ cimport cython
 from pandas import isnull, Timestamp
 cimport numpy as np
 from numpy cimport float64_t, uint8_t, int64_t
-from numpy import asarray, datetime64, float64, int64, bool_, uint8
+from numpy import asarray, datetime64, float64, int64, bool_, require, uint8
 
 
 ADJUSTMENT_KIND_NAMES = {
@@ -165,6 +165,14 @@ cdef Adjustment make_adjustment_from_indices_fused(Py_ssize_t first_row,
     return type_(first_row, last_row, first_column, last_column, value)
 
 
+cdef Py_ssize_t _get_loc_filled(object index, object key, str method) except -1:
+    """``index.get_loc(key, method=method)``, which pandas removed."""
+    cdef Py_ssize_t loc = index.get_indexer([key], method=method)[0]
+    if loc == -1:
+        raise KeyError(key)
+    return loc
+
+
 cpdef make_adjustment_from_labels(DatetimeIndex_t dates_index,
                                   Int64Index_t assets_index,
                                   Timestamp_t start_date,
@@ -200,9 +208,9 @@ cpdef tuple get_adjustment_locs(DatetimeIndex_t dates_index,
 
     Example:
 
-    >>> from pandas import date_range, Int64Index, Timestamp
+    >>> from pandas import date_range, Index, Timestamp
     >>> dates = date_range('2014-01-01', '2014-01-07')
-    >>> assets = Int64Index(range(10))
+    >>> assets = Index(range(10))
     >>> get_adjustment_locs(
     ...     dates,
     ...     assets,
@@ -219,12 +227,12 @@ cpdef tuple get_adjustment_locs(DatetimeIndex_t dates_index,
         start_date_loc = 0
     else:
         # Location of earliest date on or after start_date.
-        start_date_loc = dates_index.get_loc(start_date, method='bfill')
+        start_date_loc = _get_loc_filled(dates_index, start_date, 'bfill')
 
     return (
         start_date_loc,
         # Location of latest date on or before start_date.
-        dates_index.get_loc(end_date, method='ffill'),
+        _get_loc_filled(dates_index, end_date, 'ffill'),
         assets_index.get_loc(asset_id),  # Must be exact match.
     )
 
@@ -243,9 +251,9 @@ cpdef _from_assets_and_dates(cls,
     Example
     -------
 
-    >>> from pandas import date_range, Int64Index, Timestamp
+    >>> from pandas import date_range, Index, Timestamp
     >>> dates = date_range('2014-01-01', '2014-01-07')
-    >>> assets = Int64Index(range(10))
+    >>> assets = Index(range(10))
     >>> Float64Multiply.from_assets_and_dates(
     ...     dates,
     ...     assets,
@@ -504,7 +512,10 @@ cdef class Float641DArrayOverwrite(ArrayAdjustment):
                  int64_t last_row,
                  int64_t first_col,
                  int64_t last_col,
-                 float64_t[:] values):
+                 values):
+        # Our values memoryview is writable; copy read-only inputs (e.g.
+        # arrays backed by pandas objects under copy-on-write).
+        values = require(values, dtype=float64, requirements='W')
         super(Float641DArrayOverwrite, self).__init__(
             first_row=first_row,
             last_row=last_row,
@@ -1020,3 +1031,8 @@ cdef class BooleanOverwrite(BooleanAdjustment):
             # last_row + 1 because last_row should also be affected.
             for row in range(self.first_row, self.last_row + 1):
                 data[row, col] = value
+
+
+# Cython 3 no longer exports cpdef enum members as module globals; keep
+# ``from zipline.lib.adjustment import MULTIPLY`` working.
+globals().update(AdjustmentKind.__members__)

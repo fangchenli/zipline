@@ -16,46 +16,43 @@
 # Note that part of the API is implemented in TradingAlgorithm as
 # methods (e.g. order). These are added to this namespace via the
 # decorator ``api_method`` inside of algorithm.py.
+from .finance import cancel_policy, commission, execution, slippage
 from .finance.asset_restrictions import (
+    RESTRICTION_STATES,
+    HistoricalRestrictions,
     Restriction,
     StaticRestrictions,
-    HistoricalRestrictions,
-    RESTRICTION_STATES,
 )
-from .finance import commission, execution, slippage, cancel_policy
-from .finance.cancel_policy import (
-    NeverCancel,
-    EODCancel
-)
+from .finance.cancel_policy import EODCancel, NeverCancel
 from .finance.slippage import (
-    FixedSlippage,
     FixedBasisPointsSlippage,
+    FixedSlippage,
     VolumeShareSlippage,
 )
-from .utils import math_utils, events
-from .utils.events import (
-    calendars,
-    date_rules,
-    time_rules
-)
+from .utils import events, math_utils
+from .utils.events import calendars, date_rules, time_rules
 
 __all__ = [
-    'EODCancel',
-    'FixedSlippage',
-    'FixedBasisPointsSlippage',
-    'NeverCancel',
-    'VolumeShareSlippage',
-    'Restriction',
-    'StaticRestrictions',
-    'HistoricalRestrictions',
-    'RESTRICTION_STATES',
-    'cancel_policy',
-    'commission',
-    'date_rules',
-    'events',
-    'execution',
-    'math_utils',
-    'slippage',
-    'time_rules',
-    'calendars',
+    "EODCancel",
+    "FixedSlippage",
+    "FixedBasisPointsSlippage",
+    "NeverCancel",
+    "VolumeShareSlippage",
+    "Restriction",
+    "StaticRestrictions",
+    "HistoricalRestrictions",
+    "RESTRICTION_STATES",
+    "cancel_policy",
+    "commission",
+    "date_rules",
+    "events",
+    "execution",
+    "math_utils",
+    "slippage",
+    "time_rules",
+    "calendars",
 ]
+
+# The names above are imported here; the rest of zipline.api is added by
+# ``@api_method`` when zipline.algorithm is imported.
+_STATIC_ALL = tuple(__all__)

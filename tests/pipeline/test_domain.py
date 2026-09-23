@@ -1,17 +1,17 @@
-from collections import namedtuple
 import datetime
+from collections import namedtuple
 from textwrap import dedent
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
-import pytz
 
+import zipline.testing.fixtures as zf
 from zipline.country import CountryCode
 from zipline.pipeline import Pipeline
 from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.domain import (
-    AmbiguousDomain,
     AR_EQUITIES,
     AT_EQUITIES,
     AU_EQUITIES,
@@ -26,8 +26,6 @@ from zipline.pipeline.domain import (
     CZ_EQUITIES,
     DE_EQUITIES,
     DK_EQUITIES,
-    EquityCalendarDomain,
-    EquitySessionDomain,
     ES_EQUITIES,
     FI_EQUITIES,
     FR_EQUITIES,
@@ -39,7 +37,6 @@ from zipline.pipeline.domain import (
     ID_EQUITIES,
     IE_EQUITIES,
     IN_EQUITIES,
-    infer_domain,
     IT_EQUITIES,
     JP_EQUITIES,
     KR_EQUITIES,
@@ -61,16 +58,18 @@ from zipline.pipeline.domain import (
     TW_EQUITIES,
     US_EQUITIES,
     ZA_EQUITIES,
+    AmbiguousDomain,
+    EquityCalendarDomain,
+    EquitySessionDomain,
+    infer_domain,
 )
 from zipline.pipeline.factors import CustomFactor
-import zipline.testing.fixtures as zf
 from zipline.testing.core import parameter_space, powerset
 from zipline.testing.predicates import assert_equal, assert_messages_equal
 from zipline.utils.pandas_utils import days_at_time
 
 
 class Sum(CustomFactor):
-
     def compute(self, today, assets, out, data):
         out[:] = data.sum(axis=0)
 
@@ -79,12 +78,11 @@ class Sum(CustomFactor):
         return cls(inputs=[column], window_length=window_length)
 
 
-class MixedGenericsTestCase(zf.WithSeededRandomPipelineEngine,
-                            zf.ZiplineTestCase):
-    START_DATE = pd.Timestamp('2014-01-02', tz='utc')
-    END_DATE = pd.Timestamp('2014-01-31', tz='utc')
+class MixedGenericsTestCase(zf.WithSeededRandomPipelineEngine, zf.ZiplineTestCase):
+    START_DATE = pd.Timestamp("2014-01-02")
+    END_DATE = pd.Timestamp("2014-01-31")
     ASSET_FINDER_EQUITY_SIDS = (1, 2, 3, 4, 5)
-    ASSET_FINDER_COUNTRY_CODE = 'US'
+    ASSET_FINDER_COUNTRY_CODE = "US"
 
     def test_mixed_generics(self):
         """
@@ -96,10 +94,10 @@ class MixedGenericsTestCase(zf.WithSeededRandomPipelineEngine,
         """
         USTestingDataSet = TestingDataSet.specialize(US_EQUITIES)
         base_terms = {
-            'sum3_generic': Sum.create(TestingDataSet.float_col, 3),
-            'sum3_special': Sum.create(USTestingDataSet.float_col, 3),
-            'sum10_generic': Sum.create(TestingDataSet.float_col, 10),
-            'sum10_special': Sum.create(USTestingDataSet.float_col, 10),
+            "sum3_generic": Sum.create(TestingDataSet.float_col, 3),
+            "sum3_special": Sum.create(USTestingDataSet.float_col, 3),
+            "sum10_generic": Sum.create(TestingDataSet.float_col, 10),
+            "sum10_special": Sum.create(USTestingDataSet.float_col, 10),
         }
 
         def run(ts):
@@ -118,7 +116,6 @@ class MixedGenericsTestCase(zf.WithSeededRandomPipelineEngine,
 
 
 class SpecializeTestCase(zf.ZiplineTestCase):
-
     @parameter_space(domain=BUILT_IN_DOMAINS)
     def test_specialize(self, domain):
         class MyData(DataSet):
@@ -164,8 +161,8 @@ class SpecializeTestCase(zf.ZiplineTestCase):
                 assert_equal(original.dtype, new.dtype)
                 assert_equal(original.missing_value, new.missing_value)
 
-        do_checks(MyData, ['col1', 'col2', 'col3'])
-        do_checks(MyDataSubclass, ['col1', 'col2', 'col3', 'col4'])
+        do_checks(MyData, ["col1", "col2", "col3"])
+        do_checks(MyDataSubclass, ["col1", "col2", "col3", "col4"])
 
     @parameter_space(domain=BUILT_IN_DOMAINS)
     def test_unspecialize(self, domain):
@@ -196,8 +193,8 @@ class SpecializeTestCase(zf.ZiplineTestCase):
                 # specialization.
                 self.assertIs(new.unspecialize().specialize(domain), new)
 
-        do_checks(MyData, ['col1', 'col2', 'col3'])
-        do_checks(MyDataSubclass, ['col1', 'col2', 'col3', 'col4'])
+        do_checks(MyData, ["col1", "col2", "col3"])
+        do_checks(MyDataSubclass, ["col1", "col2", "col3", "col4"])
 
     @parameter_space(domain_param=[BE_EQUITIES, CA_EQUITIES, CH_EQUITIES])
     def test_specialized_root(self, domain_param):
@@ -246,8 +243,8 @@ class SpecializeTestCase(zf.ZiplineTestCase):
                 with self.assertRaises(ValueError):
                     col.specialize(different_domain)
 
-        do_checks(MyData, ['col1'])
-        do_checks(MyDataSubclass, ['col1', 'col2'])
+        do_checks(MyData, ["col1"])
+        do_checks(MyDataSubclass, ["col1", "col2"])
 
 
 class D(DataSet):
@@ -257,7 +254,6 @@ class D(DataSet):
 
 
 class InferDomainTestCase(zf.ZiplineTestCase):
-
     def check(self, inputs, expected):
         result = infer_domain(inputs)
         self.assertIs(result, expected)
@@ -338,15 +334,19 @@ class InferDomainTestCase(zf.ZiplineTestCase):
 
 class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
     def test_generic(self):
-        sessions = pd.date_range('2014-01-01', '2014-06-01')
+        sessions = pd.date_range("2014-01-01", "2014-06-01")
         with self.assertRaises(NotImplementedError):
             GENERIC.data_query_cutoff_for_sessions(sessions)
 
-    def _test_equity_calendar_domain(self,
-                                     domain,
-                                     expected_cutoff_time,
-                                     expected_cutoff_date_offset=0):
-        sessions = pd.DatetimeIndex(domain.calendar.all_sessions[:50])
+    def _test_equity_calendar_domain(
+        self, domain, expected_cutoff_time, expected_cutoff_date_offset=0
+    ):
+        # Use recent sessions without special (late) opens or US DST changes:
+        # exchange_calendars models historical changes to opening times,
+        # which the expected default cutoff times don't account for.
+        calendar = domain.calendar
+        sessions = calendar.sessions_in_range("2024-06-01", "2024-12-31")
+        sessions = sessions[~sessions.isin(calendar.late_opens)][:50]
 
         expected = days_at_time(
             sessions,
@@ -379,7 +379,8 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
             FR_EQUITIES: datetime.time(8, 15),
             GB_EQUITIES: datetime.time(7, 15),
             GR_EQUITIES: datetime.time(9, 15),
-            HK_EQUITIES: datetime.time(9, 15),
+            # XHKG has opened at 9:30 since 2011.
+            HK_EQUITIES: datetime.time(8, 45),
             HU_EQUITIES: datetime.time(8, 15),
             ID_EQUITIES: datetime.time(8, 15),
             IE_EQUITIES: datetime.time(7, 15),
@@ -418,8 +419,8 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
         self._test_equity_calendar_domain(
             EquityCalendarDomain(
                 CountryCode.UNITED_STATES,
-                'XNYS',
-                data_query_offset=-np.timedelta64(2 * 60 + 30, 'm'),
+                "XNYS",
+                data_query_offset=-np.timedelta64(2 * 60 + 30, "m"),
             ),
             datetime.time(7, 0),
         )
@@ -428,8 +429,8 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
         self._test_equity_calendar_domain(
             EquityCalendarDomain(
                 CountryCode.UNITED_STATES,
-                'XNYS',
-                data_query_offset=-np.timedelta64(10, 'h'),
+                "XNYS",
+                data_query_offset=-np.timedelta64(10, "h"),
             ),
             datetime.time(23, 30),
             expected_cutoff_date_offset=-1,
@@ -439,8 +440,8 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
         self._test_equity_calendar_domain(
             EquityCalendarDomain(
                 CountryCode.UNITED_STATES,
-                'XNYS',
-                data_query_offset=-np.timedelta64(24 * 6 + 10, 'h'),
+                "XNYS",
+                data_query_offset=-np.timedelta64(24 * 6 + 10, "h"),
             ),
             datetime.time(23, 30),
             expected_cutoff_date_offset=-7,
@@ -454,82 +455,80 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
         self.assertGreater(
             len(invalid_sessions),
             1,
-            msg='There must be at least one invalid session.',
+            msg="There must be at least one invalid session.",
         )
 
         with self.assertRaises(ValueError) as e:
             domain.data_query_cutoff_for_sessions(sessions)
 
         expected_msg = (
-            'cannot resolve data query time for sessions that are not on the'
-            ' %s calendar:\n%s'
-        ) % (domain.calendar.name, invalid_sessions)
+            "cannot resolve data query time for sessions that are not on the"
+            f" {domain.calendar.name} calendar:\n{invalid_sessions}"
+        )
         assert_messages_equal(str(e.exception), expected_msg)
 
-    Case = namedtuple('Case', 'time date_offset expected_timedelta')
+    Case = namedtuple("Case", "time date_offset expected_timedelta")
 
-    @parameter_space(parameters=(
-        Case(
-            time=datetime.time(8, 45, tzinfo=pytz.utc),
-            date_offset=0,
-            expected_timedelta=datetime.timedelta(hours=8, minutes=45),
-        ),
-        Case(
-            time=datetime.time(5, 0, tzinfo=pytz.utc),
-            date_offset=0,
-            expected_timedelta=datetime.timedelta(hours=5),
-        ),
-        Case(
-            time=datetime.time(8, 45, tzinfo=pytz.timezone('Asia/Tokyo')),
-            date_offset=0,
-            # We should get 11:45 UTC, which is 8:45 in Tokyo time,
-            # because Tokyo is 9 hours ahead of UTC.
-            expected_timedelta=-datetime.timedelta(minutes=15)
-        ),
-        Case(
-            time=datetime.time(23, 30, tzinfo=pytz.utc),
-            date_offset=-1,
-            # 23:30 on the previous day should be equivalent to rolling back by
-            # 30 minutes.
-            expected_timedelta=-datetime.timedelta(minutes=30),
-        ),
-        Case(
-            time=datetime.time(23, 30, tzinfo=pytz.timezone('US/Eastern')),
-            date_offset=-1,
-            # 23:30 on the previous day in US/Eastern is equivalent to rolling
-            # back 24 hours (to the previous day), then rolling forward 4 or 5
-            # hours depending on daylight savings, then rolling forward 23:30,
-            # so the net is:
-            # -24 + 5 + 23:30 = 4:30 until April 4th
-            # -24 + 4 + 23:30 = 3:30 from April 4th on.
-            expected_timedelta=pd.TimedeltaIndex(
-                ['4 hours 30 minutes'] * 93 + ['3 hours 30 minutes'] * 60,
-            )
+    @parameter_space(
+        parameters=(
+            Case(
+                time=datetime.time(8, 45, tzinfo=ZoneInfo("UTC")),
+                date_offset=0,
+                expected_timedelta=datetime.timedelta(hours=8, minutes=45),
+            ),
+            Case(
+                time=datetime.time(5, 0, tzinfo=ZoneInfo("UTC")),
+                date_offset=0,
+                expected_timedelta=datetime.timedelta(hours=5),
+            ),
+            Case(
+                time=datetime.time(8, 45, tzinfo=ZoneInfo("Asia/Tokyo")),
+                date_offset=0,
+                # We should get 11:45 UTC, which is 8:45 in Tokyo time,
+                # because Tokyo is 9 hours ahead of UTC.
+                expected_timedelta=-datetime.timedelta(minutes=15),
+            ),
+            Case(
+                time=datetime.time(23, 30, tzinfo=ZoneInfo("UTC")),
+                date_offset=-1,
+                # 23:30 on the previous day should be equivalent to rolling back by
+                # 30 minutes.
+                expected_timedelta=-datetime.timedelta(minutes=30),
+            ),
+            Case(
+                time=datetime.time(23, 30, tzinfo=ZoneInfo("US/Eastern")),
+                date_offset=-1,
+                # 23:30 on the previous day in US/Eastern is equivalent to rolling
+                # back 24 hours (to the previous day), then rolling forward 4 or 5
+                # hours depending on daylight savings, then rolling forward 23:30,
+                # so the net is:
+                # -24 + 5 + 23:30 = 4:30 until April 4th
+                # -24 + 4 + 23:30 = 3:30 from April 4th on.
+                expected_timedelta=pd.TimedeltaIndex(
+                    ["4 hours 30 minutes"] * 93 + ["3 hours 30 minutes"] * 60,
+                ),
+            ),
         )
-    ))
+    )
     def test_equity_session_domain(self, parameters):
         time, date_offset, expected_timedelta = parameters
-        naive_sessions = pd.date_range('2000-01-01', '2000-06-01')
-        utc_sessions = naive_sessions.tz_localize('UTC')
+        sessions = pd.date_range("2000-01-01", "2000-06-01")
 
         domain = EquitySessionDomain(
-            utc_sessions,
+            sessions,
             CountryCode.UNITED_STATES,
             data_query_time=time,
             data_query_date_offset=date_offset,
         )
 
-        # Adding and localizing the naive_sessions here because pandas 18
-        # crashes when adding a tz-aware DatetimeIndex and a
-        # TimedeltaIndex. :sadpanda:.
-        expected = (naive_sessions + expected_timedelta).tz_localize('utc')
-        actual = domain.data_query_cutoff_for_sessions(utc_sessions)
+        # Sessions are naive; data query cutoffs are UTC points in time.
+        expected = (sessions + expected_timedelta).tz_localize("utc")
+        actual = domain.data_query_cutoff_for_sessions(sessions)
 
         assert_equal(expected, actual)
 
 
 class RollForwardTestCase(zf.ZiplineTestCase):
-
     def test_roll_forward(self):
         #     January 2017
         # Su Mo Tu We Th Fr Sa
@@ -538,71 +537,62 @@ class RollForwardTestCase(zf.ZiplineTestCase):
         # the first three days of the year are holidays on the Tokyo exchange,
         # so the first trading day should be the fourth
         self.assertEqual(
-            JP_EQUITIES.roll_forward('2017-01-01'),
-            pd.Timestamp('2017-01-04', tz='UTC'),
+            JP_EQUITIES.roll_forward("2017-01-01"),
+            pd.Timestamp("2017-01-04"),
         )
 
         # in US exchanges, the first trading day after 1/1 is the 3rd
         self.assertEqual(
-            US_EQUITIES.roll_forward('2017-01-01'),
-            pd.Timestamp('2017-01-03', tz='UTC'),
+            US_EQUITIES.roll_forward("2017-01-01"),
+            pd.Timestamp("2017-01-03"),
         )
 
         # passing a valid trading day to roll_forward should return that day
         self.assertEqual(
-            JP_EQUITIES.roll_forward('2017-01-04'),
-            pd.Timestamp('2017-01-04', tz='UTC'),
+            JP_EQUITIES.roll_forward("2017-01-04"),
+            pd.Timestamp("2017-01-04"),
         )
 
         # passing a date before the first session should return the
         # first session
-        before_first_session = \
-            JP_EQUITIES.calendar.first_session - pd.Timedelta(days=20)
+        before_first_session = JP_EQUITIES.calendar.first_session - pd.Timedelta(
+            days=20
+        )
 
         self.assertEqual(
             JP_EQUITIES.roll_forward(before_first_session),
-            JP_EQUITIES.calendar.first_session
+            JP_EQUITIES.calendar.first_session,
         )
 
         # requesting a session beyond the last session raises an ValueError
-        after_last_session = \
-            JP_EQUITIES.calendar.last_session + pd.Timedelta(days=20)
+        after_last_session = JP_EQUITIES.calendar.last_session + pd.Timedelta(days=20)
 
         with self.assertRaises(ValueError) as ve:
             JP_EQUITIES.roll_forward(after_last_session)
 
         self.assertEqual(
             str(ve.exception),
-            "Date {} was past the last session for domain "
+            f"Date {after_last_session.date()} was past the last session for domain "
             "EquityCalendarDomain('JP', 'XTKS'). The last session for "
-            "this domain is {}.".format(
-                after_last_session.date(),
-                JP_EQUITIES.calendar.last_session.date(),
-            )
+            f"this domain is {JP_EQUITIES.calendar.last_session.date()}.",
         )
 
         # test that a roll_forward works with an EquitySessionDomain,
         # not just calendar domains
         sessions = pd.DatetimeIndex(
-            ['2000-01-01',
-             '2000-02-01',
-             '2000-04-01',
-             '2000-06-01'],
-            tz='UTC'
+            ["2000-01-01", "2000-02-01", "2000-04-01", "2000-06-01"],
         )
 
-        session_domain = EquitySessionDomain(
-            sessions, CountryCode.UNITED_STATES
+        session_domain = EquitySessionDomain(sessions, CountryCode.UNITED_STATES)
+
+        self.assertEqual(
+            session_domain.roll_forward("2000-02-01"),
+            pd.Timestamp("2000-02-01"),
         )
 
         self.assertEqual(
-            session_domain.roll_forward('2000-02-01'),
-            pd.Timestamp('2000-02-01', tz='UTC'),
-        )
-
-        self.assertEqual(
-            session_domain.roll_forward('2000-02-02'),
-            pd.Timestamp('2000-04-01', tz='UTC'),
+            session_domain.roll_forward("2000-02-02"),
+            pd.Timestamp("2000-04-01"),
         )
 
 

@@ -4,18 +4,20 @@ Datasets for testing use.
 Loaders for datasets in this file can be found in
 zipline.pipeline.data.testing.
 """
-from .dataset import Column, DataSet
+
 from zipline.utils.numpy_utils import (
     bool_dtype,
     categorical_dtype,
-    float64_dtype,
     datetime64ns_dtype,
+    float64_dtype,
     int64_dtype,
 )
 
+from .dataset import Column, DataSet
+
 
 class TestingDataSet(DataSet):
-    # Tell nose this isn't a test case.
+    # Tell pytest this isn't a test case.
     __test__ = False
 
     bool_col = Column(dtype=bool_dtype, missing_value=False)
@@ -34,5 +36,5 @@ class TestingDataSet(DataSet):
     )
     categorical_default_NULL_string = Column(
         dtype=categorical_dtype,
-        missing_value='<<NULL>>',
+        missing_value="<<NULL>>",
     )

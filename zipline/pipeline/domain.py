@@ -14,26 +14,28 @@ Currently, this means that a domain defines two things:
    the future, we expect to expand this functionality to include more general
    concepts.
 """
-import datetime
-from textwrap import dedent
 
-from interface import default, implements, Interface
+import datetime
+from abc import ABC, abstractmethod
+from textwrap import dedent
+from zoneinfo import ZoneInfo
+
 import numpy as np
 import pandas as pd
-import pytz
-
-from trading_calendars import get_calendar
 
 from zipline.country import CountryCode
+from zipline.utils.calendar_utils import get_calendar
+from zipline.utils.date_utils import to_session_label, to_session_labels
 from zipline.utils.formatting import bulleted_list
 from zipline.utils.input_validation import expect_types, optional
 from zipline.utils.memoize import lazyval
 from zipline.utils.pandas_utils import days_at_time
 
 
-class IDomain(Interface):
-    """Domain interface.
-    """
+class IDomain(ABC):
+    """Domain interface."""
+
+    @abstractmethod
     def all_sessions(self):
         """
         Get all trading sessions for the calendar of this domain.
@@ -48,6 +50,7 @@ class IDomain(Interface):
         """
 
     @property
+    @abstractmethod
     def country_code(self):
         """The country code for this domain.
 
@@ -57,6 +60,7 @@ class IDomain(Interface):
             The two-character country iso3166 country code for this domain.
         """
 
+    @abstractmethod
     def data_query_cutoff_for_sessions(self, sessions):
         """Compute the data query cutoff time for the given sessions.
 
@@ -64,7 +68,7 @@ class IDomain(Interface):
         ----------
         sessions : pd.DatetimeIndex
             The sessions to get the data query cutoff times for. This index
-            will contain all midnight UTC values.
+            will contain all tz-naive midnight values.
 
         Returns
         -------
@@ -73,7 +77,6 @@ class IDomain(Interface):
             "available" on each session.
         """
 
-    @default
     def roll_forward(self, dt):
         """
         Given a date, align it to the calendar of the pipeline's domain.
@@ -86,23 +89,19 @@ class IDomain(Interface):
         -------
         pd.Timestamp
         """
-        dt = pd.Timestamp(dt, tz='UTC')
+        dt = to_session_label(dt)
 
         trading_days = self.all_sessions()
         try:
             return trading_days[trading_days.searchsorted(dt)]
         except IndexError:
             raise ValueError(
-                "Date {} was past the last session for domain {}. "
-                "The last session for this domain is {}.".format(
-                    dt.date(),
-                    self,
-                    trading_days[-1].date()
-                )
-            )
+                f"Date {dt.date()} was past the last session for domain {self}. "
+                f"The last session for this domain is {trading_days[-1].date()}."
+            ) from None
 
 
-Domain = implements(IDomain)
+Domain = IDomain
 Domain.__doc__ = """
 A domain represents a set of labels for the arrays computed by a Pipeline.
 
@@ -123,8 +122,8 @@ Domain.__qualname__ = "zipline.pipeline.domain.Domain"
 
 
 class GenericDomain(Domain):
-    """Special singleton class used to represent generic DataSets and Columns.
-    """
+    """Special singleton class used to represent generic DataSets and Columns."""
+
     def all_sessions(self):
         raise NotImplementedError("Can't get sessions for generic domain.")
 
@@ -144,9 +143,13 @@ class GenericDomain(Domain):
 GENERIC = GenericDomain()
 
 
+# Data is available 45 minutes before the open by default.
+DEFAULT_DATA_QUERY_OFFSET = -np.timedelta64(45, "m")
+
+
 class EquityCalendarDomain(Domain):
     """
-    An equity domain whose sessions are defined by a named TradingCalendar.
+    An equity domain whose sessions are defined by a named ExchangeCalendar.
 
     Parameters
     ----------
@@ -161,25 +164,28 @@ class EquityCalendarDomain(Domain):
          been available at least 45 minutes prior to market open for it to
          appear in the pipeline input for the given session.
     """
+
     @expect_types(
         country_code=str,
         calendar_name=str,
-        __funcname='EquityCountryDomain',
+        __funcname="EquityCountryDomain",
     )
-    def __init__(self,
-                 country_code,
-                 calendar_name,
-                 data_query_offset=-np.timedelta64(45, 'm')):
+    def __init__(
+        self,
+        country_code,
+        calendar_name,
+        data_query_offset=DEFAULT_DATA_QUERY_OFFSET,
+    ):
         self._country_code = country_code
         self.calendar_name = calendar_name
         self._data_query_offset = (
             # add one minute because `open_time` is actually the open minute
             # label which is one minute _after_ market open...
-            data_query_offset - np.timedelta64(1, 'm')
+            data_query_offset - np.timedelta64(1, "m")
         )
         if data_query_offset >= datetime.timedelta(0):
             raise ValueError(
-                'data must be ready before market open (offset must be < 0)',
+                "data must be ready before market open (offset must be < 0)",
             )
 
     @property
@@ -191,73 +197,68 @@ class EquityCalendarDomain(Domain):
         return get_calendar(self.calendar_name)
 
     def all_sessions(self):
-        return self.calendar.all_sessions
+        return self.calendar.sessions
 
     def data_query_cutoff_for_sessions(self, sessions):
-        opens = self.calendar.opens.loc[sessions].values
-        missing_mask = pd.isnull(opens)
+        opens = self.calendar.first_minutes.reindex(sessions)
+        missing_mask = opens.isna().to_numpy()
         if missing_mask.any():
             missing_days = sessions[missing_mask]
             raise ValueError(
-                'cannot resolve data query time for sessions that are not on'
-                ' the %s calendar:\n%s' % (
-                    self.calendar.name,
-                    missing_days,
-                ),
+                "cannot resolve data query time for sessions that are not on"
+                f" the {self.calendar.name} calendar:\n{missing_days}",
             )
 
-        return pd.DatetimeIndex(opens + self._data_query_offset, tz='UTC')
+        return pd.DatetimeIndex(opens + self._data_query_offset)
 
     def __repr__(self):
-        return "EquityCalendarDomain({!r}, {!r})".format(
-            self.country_code, self.calendar_name,
-        )
+        return f"EquityCalendarDomain({self.country_code!r}, {self.calendar_name!r})"
 
 
-AR_EQUITIES = EquityCalendarDomain(CountryCode.ARGENTINA, 'XBUE')
-AT_EQUITIES = EquityCalendarDomain(CountryCode.AUSTRIA, 'XWBO')
-AU_EQUITIES = EquityCalendarDomain(CountryCode.AUSTRALIA, 'XASX')
-BE_EQUITIES = EquityCalendarDomain(CountryCode.BELGIUM, 'XBRU')
-BR_EQUITIES = EquityCalendarDomain(CountryCode.BRAZIL, 'BVMF')
-CA_EQUITIES = EquityCalendarDomain(CountryCode.CANADA, 'XTSE')
-CH_EQUITIES = EquityCalendarDomain(CountryCode.SWITZERLAND, 'XSWX')
-CL_EQUITIES = EquityCalendarDomain(CountryCode.CHILE, 'XSGO')
-CN_EQUITIES = EquityCalendarDomain(CountryCode.CHINA, 'XSHG')
-CO_EQUITIES = EquityCalendarDomain(CountryCode.COLOMBIA, 'XBOG')
-CZ_EQUITIES = EquityCalendarDomain(CountryCode.CZECH_REPUBLIC, 'XPRA')
-DE_EQUITIES = EquityCalendarDomain(CountryCode.GERMANY, 'XFRA')
-DK_EQUITIES = EquityCalendarDomain(CountryCode.DENMARK, 'XCSE')
-ES_EQUITIES = EquityCalendarDomain(CountryCode.SPAIN, 'XMAD')
-FI_EQUITIES = EquityCalendarDomain(CountryCode.FINLAND, 'XHEL')
-FR_EQUITIES = EquityCalendarDomain(CountryCode.FRANCE, 'XPAR')
-GB_EQUITIES = EquityCalendarDomain(CountryCode.UNITED_KINGDOM, 'XLON')
-GR_EQUITIES = EquityCalendarDomain(CountryCode.GREECE, 'ASEX')
-HK_EQUITIES = EquityCalendarDomain(CountryCode.HONG_KONG, 'XHKG')
-HU_EQUITIES = EquityCalendarDomain(CountryCode.HUNGARY, 'XBUD')
-ID_EQUITIES = EquityCalendarDomain(CountryCode.INDONESIA, 'XIDX')
-IE_EQUITIES = EquityCalendarDomain(CountryCode.IRELAND, 'XDUB')
+AR_EQUITIES = EquityCalendarDomain(CountryCode.ARGENTINA, "XBUE")
+AT_EQUITIES = EquityCalendarDomain(CountryCode.AUSTRIA, "XWBO")
+AU_EQUITIES = EquityCalendarDomain(CountryCode.AUSTRALIA, "XASX")
+BE_EQUITIES = EquityCalendarDomain(CountryCode.BELGIUM, "XBRU")
+BR_EQUITIES = EquityCalendarDomain(CountryCode.BRAZIL, "BVMF")
+CA_EQUITIES = EquityCalendarDomain(CountryCode.CANADA, "XTSE")
+CH_EQUITIES = EquityCalendarDomain(CountryCode.SWITZERLAND, "XSWX")
+CL_EQUITIES = EquityCalendarDomain(CountryCode.CHILE, "XSGO")
+CN_EQUITIES = EquityCalendarDomain(CountryCode.CHINA, "XSHG")
+CO_EQUITIES = EquityCalendarDomain(CountryCode.COLOMBIA, "XBOG")
+CZ_EQUITIES = EquityCalendarDomain(CountryCode.CZECH_REPUBLIC, "XPRA")
+DE_EQUITIES = EquityCalendarDomain(CountryCode.GERMANY, "XFRA")
+DK_EQUITIES = EquityCalendarDomain(CountryCode.DENMARK, "XCSE")
+ES_EQUITIES = EquityCalendarDomain(CountryCode.SPAIN, "XMAD")
+FI_EQUITIES = EquityCalendarDomain(CountryCode.FINLAND, "XHEL")
+FR_EQUITIES = EquityCalendarDomain(CountryCode.FRANCE, "XPAR")
+GB_EQUITIES = EquityCalendarDomain(CountryCode.UNITED_KINGDOM, "XLON")
+GR_EQUITIES = EquityCalendarDomain(CountryCode.GREECE, "ASEX")
+HK_EQUITIES = EquityCalendarDomain(CountryCode.HONG_KONG, "XHKG")
+HU_EQUITIES = EquityCalendarDomain(CountryCode.HUNGARY, "XBUD")
+ID_EQUITIES = EquityCalendarDomain(CountryCode.INDONESIA, "XIDX")
+IE_EQUITIES = EquityCalendarDomain(CountryCode.IRELAND, "XDUB")
 IN_EQUITIES = EquityCalendarDomain(CountryCode.INDIA, "XBOM")
-IT_EQUITIES = EquityCalendarDomain(CountryCode.ITALY, 'XMIL')
-JP_EQUITIES = EquityCalendarDomain(CountryCode.JAPAN, 'XTKS')
-KR_EQUITIES = EquityCalendarDomain(CountryCode.SOUTH_KOREA, 'XKRX')
-MX_EQUITIES = EquityCalendarDomain(CountryCode.MEXICO, 'XMEX')
-MY_EQUITIES = EquityCalendarDomain(CountryCode.MALAYSIA, 'XKLS')
-NL_EQUITIES = EquityCalendarDomain(CountryCode.NETHERLANDS, 'XAMS')
-NO_EQUITIES = EquityCalendarDomain(CountryCode.NORWAY, 'XOSL')
-NZ_EQUITIES = EquityCalendarDomain(CountryCode.NEW_ZEALAND, 'XNZE')
-PE_EQUITIES = EquityCalendarDomain(CountryCode.PERU, 'XLIM')
-PH_EQUITIES = EquityCalendarDomain(CountryCode.PHILIPPINES, 'XPHS')
-PK_EQUITIES = EquityCalendarDomain(CountryCode.PAKISTAN, 'XKAR')
-PL_EQUITIES = EquityCalendarDomain(CountryCode.POLAND, 'XWAR')
-PT_EQUITIES = EquityCalendarDomain(CountryCode.PORTUGAL, 'XLIS')
-RU_EQUITIES = EquityCalendarDomain(CountryCode.RUSSIA, 'XMOS')
-SE_EQUITIES = EquityCalendarDomain(CountryCode.SWEDEN, 'XSTO')
-SG_EQUITIES = EquityCalendarDomain(CountryCode.SINGAPORE, 'XSES')
-TH_EQUITIES = EquityCalendarDomain(CountryCode.THAILAND, 'XBKK')
-TR_EQUITIES = EquityCalendarDomain(CountryCode.TURKEY, 'XIST')
-TW_EQUITIES = EquityCalendarDomain(CountryCode.TAIWAN, 'XTAI')
-US_EQUITIES = EquityCalendarDomain(CountryCode.UNITED_STATES, 'XNYS')
-ZA_EQUITIES = EquityCalendarDomain(CountryCode.SOUTH_AFRICA, 'XJSE')
+IT_EQUITIES = EquityCalendarDomain(CountryCode.ITALY, "XMIL")
+JP_EQUITIES = EquityCalendarDomain(CountryCode.JAPAN, "XTKS")
+KR_EQUITIES = EquityCalendarDomain(CountryCode.SOUTH_KOREA, "XKRX")
+MX_EQUITIES = EquityCalendarDomain(CountryCode.MEXICO, "XMEX")
+MY_EQUITIES = EquityCalendarDomain(CountryCode.MALAYSIA, "XKLS")
+NL_EQUITIES = EquityCalendarDomain(CountryCode.NETHERLANDS, "XAMS")
+NO_EQUITIES = EquityCalendarDomain(CountryCode.NORWAY, "XOSL")
+NZ_EQUITIES = EquityCalendarDomain(CountryCode.NEW_ZEALAND, "XNZE")
+PE_EQUITIES = EquityCalendarDomain(CountryCode.PERU, "XLIM")
+PH_EQUITIES = EquityCalendarDomain(CountryCode.PHILIPPINES, "XPHS")
+PK_EQUITIES = EquityCalendarDomain(CountryCode.PAKISTAN, "XKAR")
+PL_EQUITIES = EquityCalendarDomain(CountryCode.POLAND, "XWAR")
+PT_EQUITIES = EquityCalendarDomain(CountryCode.PORTUGAL, "XLIS")
+RU_EQUITIES = EquityCalendarDomain(CountryCode.RUSSIA, "XMOS")
+SE_EQUITIES = EquityCalendarDomain(CountryCode.SWEDEN, "XSTO")
+SG_EQUITIES = EquityCalendarDomain(CountryCode.SINGAPORE, "XSES")
+TH_EQUITIES = EquityCalendarDomain(CountryCode.THAILAND, "XBKK")
+TR_EQUITIES = EquityCalendarDomain(CountryCode.TURKEY, "XIST")
+TW_EQUITIES = EquityCalendarDomain(CountryCode.TAIWAN, "XTAI")
+US_EQUITIES = EquityCalendarDomain(CountryCode.UNITED_STATES, "XNYS")
+ZA_EQUITIES = EquityCalendarDomain(CountryCode.SOUTH_AFRICA, "XJSE")
 
 BUILT_IN_DOMAINS = [
     AR_EQUITIES,
@@ -356,6 +357,7 @@ class AmbiguousDomain(Exception):
     """
     Raised when we attempt to infer a domain from a collection of mixed terms.
     """
+
     _TEMPLATE = dedent(
         """\
         Found terms with conflicting domains:
@@ -390,23 +392,24 @@ class EquitySessionDomain(Domain):
         ``data_query_time``. This can be used to express that the cutoff time
         for a session falls on a different calendar day from the session label.
     """
+
     @expect_types(
         sessions=pd.DatetimeIndex,
         country_code=str,
         data_query_time=optional(datetime.time),
         data_query_date_offset=int,
-        __funcname='EquitySessionDomain',
+        __funcname="EquitySessionDomain",
     )
-    def __init__(self,
-                 sessions,
-                 country_code,
-                 data_query_time=None,
-                 data_query_date_offset=0):
+    def __init__(
+        self, sessions, country_code, data_query_time=None, data_query_date_offset=0
+    ):
         self._country_code = country_code
-        self._sessions = sessions
+        # Sessions are nanosecond resolution throughout zipline (as calendars
+        # are); pandas >= 3 defaults to microseconds for parsed dates.
+        self._sessions = to_session_labels(sessions).as_unit("ns")
 
         if data_query_time is None:
-            data_query_time = datetime.time(0, 0, tzinfo=pytz.timezone('UTC'))
+            data_query_time = datetime.time(0, 0, tzinfo=ZoneInfo("UTC"))
 
         if data_query_time.tzinfo is None:
             raise ValueError("data_query_time cannot be tz-naive")

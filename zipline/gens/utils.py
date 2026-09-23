@@ -14,24 +14,10 @@
 # limitations under the License.
 
 
-import pytz
 import numbers
+from datetime import datetime, timedelta
 
-from hashlib import md5
-from datetime import datetime
 from zipline.protocol import DATASOURCE_TYPE
-
-
-def hash_args(*args, **kwargs):
-    """Define a unique string for any set of representable args."""
-    arg_string = '_'.join([str(arg) for arg in args])
-    kwarg_string = '_'.join([str(key) + '=' + str(value)
-                             for key, value in kwargs.items()])
-    combined = ':'.join([arg_string, kwarg_string])
-
-    hasher = md5()
-    hasher.update(bytes(combined))
-    return hasher.hexdigest()
 
 
 def assert_datasource_protocol(event):
@@ -42,7 +28,7 @@ def assert_datasource_protocol(event):
     # Done packets have no dt.
     if not event.type == DATASOURCE_TYPE.DONE:
         assert isinstance(event.dt, datetime)
-        assert event.dt.tzinfo == pytz.utc
+        assert event.dt.utcoffset() == timedelta(0)
 
 
 def assert_trade_protocol(event):

@@ -13,21 +13,20 @@
 # limitations under the License.
 from collections import defaultdict
 
-from interface import implements
-from numpy import iinfo, uint32, multiply
+from numpy import iinfo, multiply, uint32
 
 from zipline.data.fx import ExplodingFXRateReader
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.utils.numpy_utils import repeat_first_axis
 
+from ..data.equity_pricing import EquityPricing
 from .base import PipelineLoader
 from .utils import shift_dates
-from ..data.equity_pricing import EquityPricing
 
 UINT32_MAX = iinfo(uint32).max
 
 
-class EquityPricingLoader(implements(PipelineLoader)):
+class EquityPricingLoader(PipelineLoader):
     """A PipelineLoader for loading daily OHLCV data.
 
     Parameters
@@ -40,10 +39,7 @@ class EquityPricingLoader(implements(PipelineLoader)):
        Reader providing currency conversions.
     """
 
-    def __init__(self,
-                 raw_price_reader,
-                 adjustments_reader,
-                 fx_reader):
+    def __init__(self, raw_price_reader, adjustments_reader, fx_reader):
         self.raw_price_reader = raw_price_reader
         self.adjustments_reader = adjustments_reader
         self.fx_reader = fx_reader

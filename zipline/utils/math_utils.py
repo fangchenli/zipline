@@ -12,8 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from decimal import Decimal
 import math
+from decimal import Decimal
 
 from numpy import isnan
 
@@ -50,6 +50,7 @@ def tolerant_equals(a, b, atol=10e-7, rtol=10e-7, equal_nan=False):
 try:
     # fast versions
     import bottleneck as bn
+
     nanmean = bn.nanmean
     nanstd = bn.nanstd
     nansum = bn.nansum
@@ -61,6 +62,7 @@ try:
 except ImportError:
     # slower numpy
     import numpy as np
+
     nanmean = np.nanmean
     nanstd = np.nanstd
     nansum = np.nansum
@@ -95,5 +97,7 @@ def number_of_decimal_places(n):
     >>> number_of_decimal_places('3.14')
     2
     """
-    decimal = Decimal(str(n))
-    return -decimal.as_tuple().exponent
+    exponent = Decimal(str(n)).as_tuple().exponent
+    if not isinstance(exponent, int):  # NaN or infinity
+        raise ValueError(f"{n!r} has no decimal places")
+    return -exponent

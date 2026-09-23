@@ -1,7 +1,13 @@
+from typing import TYPE_CHECKING
+
 import click
 import pandas as pd
 
 from .context_tricks import CallbackManager
+
+if TYPE_CHECKING:
+    # Only defined in pandas-stubs.
+    from pandas._libs.tslibs.timedeltas import TimeDeltaUnitChoices
 
 
 def maybe_show_progress(it, show_progress, **kwargs):
@@ -52,7 +58,7 @@ class _DatetimeParam(click.ParamType):
             return self.parser(value)
         except ValueError:
             self.fail(
-                f'{value} is not a valid {self.name.lower()}',
+                f"{value} is not a valid {self.name.lower()}",
                 param,
                 ctx,
             )
@@ -78,16 +84,20 @@ class Date(_DatetimeParam):
         The timezone to parse the string as.
         By default the timezone will be infered from the string or naiive.
     as_timestamp : bool, optional
-        If True, return the value as a pd.Timestamp object normalized to
-        midnight.
+        If True, return the value as a tz-naive pd.Timestamp object normalized
+        to midnight, i.e. a session label.
     """
+
     def __init__(self, tz=None, as_timestamp=False):
         super().__init__(tz=tz)
         self.as_timestamp = as_timestamp
 
     def parser(self, value):
         ts = super().parser(value)
-        return ts.normalize() if self.as_timestamp else ts.date()
+        if not self.as_timestamp:
+            return ts.date()
+        # Keep the calendar date as written; session labels are tz-naive.
+        return ts.tz_localize(None).normalize()
 
 
 class Time(_DatetimeParam):
@@ -99,6 +109,7 @@ class Time(_DatetimeParam):
         The timezone to parse the string as.
         By default the timezone will be infered from the string or naiive.
     """
+
     def parser(self, value):
         return super().parser(value).time()
 
@@ -111,7 +122,8 @@ class Timedelta(_DatetimeParam):
     unit : {'D', 'h', 'm', 's', 'ms', 'us', 'ns'}, optional
         Denotes the unit of the input if the input is an integer.
     """
-    def __init__(self, unit='ns'):
+
+    def __init__(self, unit: "TimeDeltaUnitChoices" = "ns"):
         self.unit = unit
 
     def parser(self, value):

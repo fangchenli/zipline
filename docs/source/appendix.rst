@@ -351,21 +351,23 @@ Asset Metadata
    :members:
 
 
+.. _trading-calendar-api:
+
 Trading Calendar API
 ~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: zipline.utils.calendars.get_calendar
+.. autofunction:: zipline.utils.calendar_utils.get_calendar
 
-.. autoclass:: zipline.utils.calendars.TradingCalendar
+.. autoclass:: zipline.utils.calendar_utils.ExchangeCalendar
    :members:
 
-.. autofunction:: zipline.utils.calendars.register_calendar
+.. autofunction:: zipline.utils.calendar_utils.register_calendar
 
-.. autofunction:: zipline.utils.calendars.register_calendar_type
+.. autofunction:: zipline.utils.calendar_utils.register_calendar_type
 
-.. autofunction:: zipline.utils.calendars.deregister_calendar
+.. autofunction:: zipline.utils.calendar_utils.deregister_calendar
 
-.. autofunction:: zipline.utils.calendars.clear_calendars
+.. autofunction:: zipline.utils.calendar_utils.clear_calendars
 
 
 Data API

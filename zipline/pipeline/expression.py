@@ -1,6 +1,7 @@
 """
 NumericalExpression term.
 """
+
 import re
 from itertools import chain
 from numbers import Number
@@ -11,28 +12,29 @@ from numpy import (
     full,
     inf,
 )
-from zipline.pipeline.term import Term, ComputableTerm
+
+from zipline.pipeline.term import ComputableTerm, Term
 from zipline.utils.numpy_utils import bool_dtype
 
 _VARIABLE_NAME_RE = re.compile("^(x_)([0-9]+)$")
 
 # Map from op symbol to equivalent Python magic method name.
 ops_to_methods = {
-    '+': '__add__',
-    '-': '__sub__',
-    '*': '__mul__',
-    '/': '__div__',
-    '%': '__mod__',
-    '**': '__pow__',
-    '&': '__and__',
-    '|': '__or__',
-    '^': '__xor__',
-    '<': '__lt__',
-    '<=': '__le__',
-    '==': '__eq__',
-    '!=': '__ne__',
-    '>=': '__ge__',
-    '>': '__gt__',
+    "+": "__add__",
+    "-": "__sub__",
+    "*": "__mul__",
+    "/": "__div__",
+    "%": "__mod__",
+    "**": "__pow__",
+    "&": "__and__",
+    "|": "__or__",
+    "^": "__xor__",
+    "<": "__lt__",
+    "<=": "__le__",
+    "==": "__eq__",
+    "!=": "__ne__",
+    ">=": "__ge__",
+    ">": "__gt__",
 }
 # Map from method name to op symbol.
 methods_to_ops = {v: k for k, v in ops_to_methods.items()}
@@ -40,52 +42,52 @@ methods_to_ops = {v: k for k, v in ops_to_methods.items()}
 # Map from op symbol to equivalent Python magic method name after flipping
 # arguments.
 ops_to_commuted_methods = {
-    '+': '__radd__',
-    '-': '__rsub__',
-    '*': '__rmul__',
-    '/': '__rdiv__',
-    '%': '__rmod__',
-    '**': '__rpow__',
-    '&': '__rand__',
-    '|': '__ror__',
-    '^': '__rxor__',
-    '<': '__gt__',
-    '<=': '__ge__',
-    '==': '__eq__',
-    '!=': '__ne__',
-    '>=': '__le__',
-    '>': '__lt__',
+    "+": "__radd__",
+    "-": "__rsub__",
+    "*": "__rmul__",
+    "/": "__rdiv__",
+    "%": "__rmod__",
+    "**": "__rpow__",
+    "&": "__rand__",
+    "|": "__ror__",
+    "^": "__rxor__",
+    "<": "__gt__",
+    "<=": "__ge__",
+    "==": "__eq__",
+    "!=": "__ne__",
+    ">=": "__le__",
+    ">": "__lt__",
 }
 unary_ops_to_methods = {
-    '-': '__neg__',
-    '~': '__invert__',
+    "-": "__neg__",
+    "~": "__invert__",
 }
 
-UNARY_OPS = {'-'}
-MATH_BINOPS = {'+', '-', '*', '/', '**', '%'}
-FILTER_BINOPS = {'&', '|'}  # NumExpr doesn't support xor.
-COMPARISONS = {'<', '<=', '!=', '>=', '>', '=='}
+UNARY_OPS = {"-"}
+MATH_BINOPS = {"+", "-", "*", "/", "**", "%"}
+FILTER_BINOPS = {"&", "|"}  # NumExpr doesn't support xor.
+COMPARISONS = {"<", "<=", "!=", ">=", ">", "=="}
 
 NUMEXPR_MATH_FUNCS = {
-    'sin',
-    'cos',
-    'tan',
-    'arcsin',
-    'arccos',
-    'arctan',
-    'sinh',
-    'cosh',
-    'tanh',
-    'arcsinh',
-    'arccosh',
-    'arctanh',
-    'log',
-    'log10',
-    'log1p',
-    'exp',
-    'expm1',
-    'sqrt',
-    'abs',
+    "sin",
+    "cos",
+    "tan",
+    "arcsin",
+    "arccos",
+    "arctan",
+    "sinh",
+    "cosh",
+    "tanh",
+    "arcsinh",
+    "arccosh",
+    "arctanh",
+    "log",
+    "log10",
+    "log1p",
+    "exp",
+    "expm1",
+    "sqrt",
+    "abs",
 }
 
 NPY_MAXARGS = 32
@@ -116,13 +118,10 @@ class BadBinaryOperator(TypeError):
     right : zipline.computable.Term
         The right hand side of the operation.
     """
+
     def __init__(self, op, left, right):
         super().__init__(
-            "Can't compute {left} {op} {right}".format(
-                op=op,
-                left=type(left).__name__,
-                right=type(right).__name__,
-            )
+            f"Can't compute {type(left).__name__} {op} {type(right).__name__}"
         )
 
 
@@ -183,15 +182,14 @@ class NumericalExpression(ComputableTerm):
     dtype : np.dtype
         The dtype for the expression.
     """
+
     window_length = 0
 
     def __new__(cls, expr, binds, dtype):
         # We always allow filters to be used in windowed computations.
         # Otherwise, an expression is window_safe if all its constituents are
         # window_safe.
-        window_safe = (
-            (dtype == bool_dtype) or all(t.window_safe for t in binds)
-        )
+        window_safe = (dtype == bool_dtype) or all(t.window_safe for t in binds)
 
         return super().__new__(
             cls,
@@ -220,20 +218,19 @@ class NumericalExpression(ComputableTerm):
         variable_names, _unused = getExprNames(self._expr, {})
         expr_indices = []
         for name in variable_names:
-            if name == 'inf':
+            if name == "inf":
                 continue
             match = _VARIABLE_NAME_RE.match(name)
             if not match:
-                raise ValueError("%r is not a valid variable name" % name)
+                raise ValueError(f"{name!r} is not a valid variable name")
             expr_indices.append(int(match.group(2)))
 
         expr_indices.sort()
         expected_indices = list(range(len(self.inputs)))
         if expr_indices != expected_indices:
             raise ValueError(
-                "Expected {} for variable indices, but got {}".format(
-                    expected_indices, expr_indices,
-                )
+                f"Expected {expected_indices} for variable indices, but got "
+                f"{expr_indices}"
             )
         super()._validate()
 
@@ -245,11 +242,8 @@ class NumericalExpression(ComputableTerm):
         # This writes directly into our output buffer.
         numexpr.evaluate(
             self._expr,
-            local_dict={
-                "x_%d" % idx: array
-                for idx, array in enumerate(arrays)
-            },
-            global_dict={'inf': inf},
+            local_dict={f"x_{idx}": array for idx, array in enumerate(arrays)},
+            global_dict={"inf": inf},
             out=out,
         )
         return out
@@ -272,10 +266,10 @@ class NumericalExpression(ComputableTerm):
         # before x_1x, which will be before x_1, so the substitution of x_1
         # will not affect x_1x, which will not affect x_1xx.
         for idx, input_ in reversed(list(enumerate(self.inputs))):
-            old_varname = "x_%d" % idx
+            old_varname = f"x_{idx}"
             # Temporarily rebind to x_temp_N so that we don't overwrite the
             # same value multiple times.
-            temp_new_varname = "x_temp_%d" % new_inputs.index(input_)
+            temp_new_varname = f"x_temp_{new_inputs.index(input_)}"
             expr = expr.replace(old_varname, temp_new_varname)
         # Clear out the temp variables now that we've finished iteration.
         return expr.replace("_temp_", "_")
@@ -303,7 +297,7 @@ class NumericalExpression(ComputableTerm):
         elif isinstance(other, Term):
             self_expr = self._expr
             new_inputs, other_idx = _ensure_element(self.inputs, other)
-            other_expr = "x_%d" % other_idx
+            other_expr = f"x_{other_idx}"
         elif isinstance(other, Number):
             self_expr = self._expr
             other_expr = str(other)
@@ -322,27 +316,18 @@ class NumericalExpression(ComputableTerm):
 
     @property
     def bindings(self):
-        return {
-            "x_%d" % i: input_
-            for i, input_ in enumerate(self.inputs)
-        }
+        return {f"x_{i}": input_ for i, input_ in enumerate(self.inputs)}
 
     def __repr__(self):
-        return "{typename}(expr='{expr}', bindings={bindings})".format(
-            typename=type(self).__name__,
-            expr=self._expr,
-            bindings=self.bindings,
-        )
+        return f"{type(self).__name__}(expr='{self._expr}', bindings={self.bindings})"
 
     def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
 
         # Replace any floating point numbers in the expression
         # with their scientific notation
-        final = re.sub(r"[-+]?\d*\.\d+",
-                       lambda x: format(float(x.group(0)), '.2E'),
-                       self._expr)
-        # Graphviz interprets `\l` as "divide label into lines, left-justified"
-        return "Expression:\\l  {}\\l".format(
-            final,
+        final = re.sub(
+            r"[-+]?\d*\.\d+", lambda x: format(float(x.group(0)), ".2E"), self._expr
         )
+        # Graphviz interprets `\l` as "divide label into lines, left-justified"
+        return f"Expression:\\l  {final}\\l"

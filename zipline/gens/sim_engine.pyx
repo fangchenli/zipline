@@ -29,6 +29,18 @@ cpdef enum:
     MINUTE_END = 3
     BEFORE_TRADING_START_BAR = 4
 
+
+def _as_nanos(dts):
+    """Convert datetime-likes to int64 nanoseconds since the epoch (UTC).
+
+    pandas may store datetimes at resolutions other than nanoseconds, so we
+    normalize the unit explicitly rather than reinterpreting raw values.
+    """
+    return np.ascontiguousarray(
+        pd.DatetimeIndex(dts).as_unit('ns').asi8, dtype=np.int64,
+    )
+
+
 cdef class MinuteSimulationClock:
     cdef bool minute_emission
     cdef np.int64_t[:] market_opens_nanos, market_closes_nanos, bts_nanos, \
@@ -43,10 +55,10 @@ cdef class MinuteSimulationClock:
                  minute_emission=False):
         self.minute_emission = minute_emission
 
-        self.market_opens_nanos = market_opens.values.astype(np.int64)
-        self.market_closes_nanos = market_closes.values.astype(np.int64)
-        self.sessions_nanos = sessions.values.astype(np.int64)
-        self.bts_nanos = before_trading_start_minutes.values.astype(np.int64)
+        self.market_opens_nanos = _as_nanos(market_opens)
+        self.market_closes_nanos = _as_nanos(market_closes)
+        self.sessions_nanos = _as_nanos(sessions)
+        self.bts_nanos = _as_nanos(before_trading_start_minutes)
 
         self.minutes_by_session = self.calc_minutes_by_session()
 
@@ -66,7 +78,7 @@ cdef class MinuteSimulationClock:
                 _nanos_in_minute
             )
             minutes_by_session[session_nano] = pd.to_datetime(
-                minutes_nanos, utc=True, box=True
+                minutes_nanos, utc=True
             )
         return minutes_by_session
 
@@ -74,7 +86,8 @@ cdef class MinuteSimulationClock:
         minute_emission = self.minute_emission
 
         for idx, session_nano in enumerate(self.sessions_nanos):
-            yield pd.Timestamp(session_nano, tz='UTC'), SESSION_START
+            # Session labels are tz-naive midnight timestamps.
+            yield pd.Timestamp(session_nano), SESSION_START
 
             bts_minute = pd.Timestamp(self.bts_nanos[idx], tz='UTC')
             regular_minutes = self.minutes_by_session[session_nano]

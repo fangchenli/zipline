@@ -1,10 +1,10 @@
 import numpy as np
 import pandas as pd
+
 from zipline.data.session_bars import SessionBarReader
 
 
 class ContinuousFutureSessionBarReader(SessionBarReader):
-
     def __init__(self, bar_reader, roll_finders):
         self._bar_reader = bar_reader
         self._roll_finders = roll_finders
@@ -33,10 +33,7 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
         for asset in assets:
             rf = self._roll_finders[asset.roll_style]
             rolls_by_asset[asset] = rf.get_rolls(
-                asset.root_symbol,
-                start_date,
-                end_date,
-                asset.offset
+                asset.root_symbol, start_date, end_date, asset.offset
             )
 
         num_sessions = len(
@@ -63,7 +60,7 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
                 start_loc = sessions.get_loc(start)
 
                 if roll_date is not None:
-                    end = roll_date - sessions.freq
+                    end = roll_date - tc.day
                     end_loc = sessions.get_loc(end)
                 else:
                     end = end_date
@@ -75,7 +72,7 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
                     start = sessions[end_loc + 1]
 
         for column in columns:
-            if column != 'volume' and column != 'sid':
+            if column != "volume" and column != "sid":
                 out = np.full(shape, np.nan)
             else:
                 out = np.zeros(shape, dtype=np.int64)
@@ -84,12 +81,13 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
                 partitions = partitions_by_asset[asset]
 
                 for sid, start, end, start_loc, end_loc in partitions:
-                    if column != 'sid':
+                    if column != "sid":
                         result = self._bar_reader.load_raw_arrays(
-                            [column], start, end, [sid])[0][:, 0]
+                            [column], start, end, [sid]
+                        )[0][:, 0]
                     else:
                         result = int(sid)
-                    out[start_loc:end_loc + 1, i] = result
+                    out[start_loc : end_loc + 1, i] = result
 
             results.append(out)
 
@@ -124,14 +122,15 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
         """
         return self._bar_reader.first_trading_day
 
-    def get_value(self, continuous_future, dt, field):
+    def get_value(self, sid, dt, field):
         """
         Retrieve the value at the given coordinates.
 
         Parameters
         ----------
-        sid : int
-            The asset identifier.
+        sid : ContinuousFuture
+            The continuous future (named ``sid`` for compatibility with
+            ``BarReader.get_value``).
         dt : pd.Timestamp
             The timestamp for the desired data point.
         field : string
@@ -149,10 +148,11 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
             If the given dt is not a valid market minute (in minute mode) or
             session (in daily mode) according to this reader's tradingcalendar.
         """
+        continuous_future = sid
         rf = self._roll_finders[continuous_future.roll_style]
-        sid = (rf.get_contract_center(continuous_future.root_symbol,
-                                      dt,
-                                      continuous_future.offset))
+        sid = rf.get_contract_center(
+            continuous_future.root_symbol, dt, continuous_future.offset
+        )
         return self._bar_reader.get_value(sid, dt, field)
 
     def get_last_traded_dt(self, asset, dt):
@@ -175,9 +175,7 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
             dt as a vantage point.
         """
         rf = self._roll_finders[asset.roll_style]
-        sid = (rf.get_contract_center(asset.root_symbol,
-                                      dt,
-                                      asset.offset))
+        sid = rf.get_contract_center(asset.root_symbol, dt, asset.offset)
         if sid is None:
             return pd.NaT
         contract = rf.asset_finder.retrieve_asset(sid)
@@ -196,7 +194,6 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
 
 
 class ContinuousFutureMinuteBarReader(SessionBarReader):
-
     def __init__(self, bar_reader, roll_finders):
         self._bar_reader = bar_reader
         self._roll_finders = roll_finders
@@ -224,17 +221,14 @@ class ContinuousFutureMinuteBarReader(SessionBarReader):
         rolls_by_asset = {}
 
         tc = self.trading_calendar
-        start_session = tc.minute_to_session_label(start_date)
-        end_session = tc.minute_to_session_label(end_date)
+        start_session = tc.minute_to_session(start_date)
+        end_session = tc.minute_to_session(end_date)
 
         for asset in assets:
             rf = self._roll_finders[asset.roll_style]
             rolls_by_asset[asset] = rf.get_rolls(
-                asset.root_symbol,
-                start_session,
-                end_session, asset.offset)
-
-        sessions = tc.sessions_in_range(start_date, end_date)
+                asset.root_symbol, start_session, end_session, asset.offset
+            )
 
         minutes = tc.minutes_in_range(start_date, end_date)
         num_minutes = len(minutes)
@@ -253,31 +247,32 @@ class ContinuousFutureMinuteBarReader(SessionBarReader):
                 sid, roll_date = roll
                 start_loc = minutes.searchsorted(start)
                 if roll_date is not None:
-                    _, end = tc.open_and_close_for_session(
-                        roll_date - sessions.freq)
+                    _, end = tc.session_first_last_minute(roll_date - tc.day)
                     end_loc = minutes.searchsorted(end)
                 else:
                     end = end_date
                     end_loc = len(minutes) - 1
                 partitions.append((sid, start, end, start_loc, end_loc))
                 if roll[-1] is not None:
-                    start, _ = tc.open_and_close_for_session(
-                        tc.minute_to_session_label(minutes[end_loc + 1]))
+                    start, _ = tc.session_first_last_minute(
+                        tc.minute_to_session(minutes[end_loc + 1])
+                    )
 
         for column in columns:
-            if column != 'volume':
+            if column != "volume":
                 out = np.full(shape, np.nan)
             else:
                 out = np.zeros(shape, dtype=np.uint32)
             for i, asset in enumerate(assets):
                 partitions = partitions_by_asset[asset]
                 for sid, start, end, start_loc, end_loc in partitions:
-                    if column != 'sid':
+                    if column != "sid":
                         result = self._bar_reader.load_raw_arrays(
-                            [column], start, end, [sid])[0][:, 0]
+                            [column], start, end, [sid]
+                        )[0][:, 0]
                     else:
                         result = int(sid)
-                    out[start_loc:end_loc + 1, i] = result
+                    out[start_loc : end_loc + 1, i] = result
             results.append(out)
         return results
 
@@ -310,14 +305,15 @@ class ContinuousFutureMinuteBarReader(SessionBarReader):
         """
         return self._bar_reader.first_trading_day
 
-    def get_value(self, continuous_future, dt, field):
+    def get_value(self, sid, dt, field):
         """
         Retrieve the value at the given coordinates.
 
         Parameters
         ----------
-        sid : int
-            The asset identifier.
+        sid : ContinuousFuture
+            The continuous future (named ``sid`` for compatibility with
+            ``BarReader.get_value``).
         dt : pd.Timestamp
             The timestamp for the desired data point.
         field : string
@@ -335,10 +331,11 @@ class ContinuousFutureMinuteBarReader(SessionBarReader):
             If the given dt is not a valid market minute (in minute mode) or
             session (in daily mode) according to this reader's tradingcalendar.
         """
+        continuous_future = sid
         rf = self._roll_finders[continuous_future.roll_style]
-        sid = (rf.get_contract_center(continuous_future.root_symbol,
-                                      dt,
-                                      continuous_future.offset))
+        sid = rf.get_contract_center(
+            continuous_future.root_symbol, dt, continuous_future.offset
+        )
         return self._bar_reader.get_value(sid, dt, field)
 
     def get_last_traded_dt(self, asset, dt):
@@ -361,9 +358,7 @@ class ContinuousFutureMinuteBarReader(SessionBarReader):
             dt as a vantage point.
         """
         rf = self._roll_finders[asset.roll_style]
-        sid = (rf.get_contract_center(asset.root_symbol,
-                                      dt,
-                                      asset.offset))
+        sid = rf.get_contract_center(asset.root_symbol, dt, asset.offset)
         if sid is None:
             return pd.NaT
         contract = rf.asset_finder.retrieve_asset(sid)

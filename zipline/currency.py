@@ -1,4 +1,5 @@
 from functools import total_ordering
+
 from iso4217 import Currency as ISO4217Currency
 
 _ALL_CURRENCIES = {}
@@ -20,6 +21,10 @@ class Currency:
     name : str
         Plain english name for the currency, e.g., 'US Dollar'.
     """
+
+    _code: str | None
+    _name: str
+
     def __new__(cls, code):
         try:
             return _ALL_CURRENCIES[code]
@@ -29,10 +34,8 @@ class Currency:
             else:
                 try:
                     name = ISO4217Currency(code).currency_name
-                except ValueError:
-                    raise ValueError(
-                        f"{code!r} is not a valid currency code."
-                    )
+                except ValueError as err:
+                    raise ValueError(f"{code!r} is not a valid currency code.") from err
 
             obj = _ALL_CURRENCIES[code] = super().__new__(cls)
             obj._code = code
@@ -60,7 +63,7 @@ class Currency:
         return self._name
 
     def __eq__(self, other):
-        if type(self) != type(other):
+        if type(self) is not type(other):
             return NotImplemented
         return self.code == other.code
 
@@ -71,7 +74,4 @@ class Currency:
         return self.code < other.code
 
     def __repr__(self):
-        return "{}({!r})".format(
-            type(self).__name__,
-            self.code
-        )
+        return f"{type(self).__name__}({self.code!r})"

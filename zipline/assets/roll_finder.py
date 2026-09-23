@@ -13,6 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from zipline.assets.assets import AssetFinder
+    from zipline.utils.calendar_utils import ExchangeCalendar
 
 # Number of days over which to compute rolls when finding the current contract
 # for a volume-rolling contract chain. For more details on why this is needed,
@@ -25,6 +30,11 @@ class RollFinder(ABC):
     Abstract base class for calculating when futures contracts are the active
     contract.
     """
+
+    # Set by subclasses.
+    trading_calendar: "ExchangeCalendar"
+    asset_finder: "AssetFinder"
+
     @abstractmethod
     def _active_contract(self, oc, front, back, dt):
         raise NotImplementedError
@@ -35,7 +45,7 @@ class RollFinder(ABC):
         on a specific date at a specific offset.
         """
         oc = self.asset_finder.get_ordered_contracts(root_symbol)
-        session = self.trading_calendar.minute_to_session_label(dt)
+        session = self.trading_calendar.minute_to_session(dt)
         front = oc.contract_before_auto_close(session.value)
         back = oc.contract_at_offset(front, 1, dt.value)
         if back is None:
@@ -90,16 +100,19 @@ class RollFinder(ABC):
         front = self._get_active_contract_at_offset(root_symbol, end, 0)
         back = oc.contract_at_offset(front, 1, end.value)
         if back is not None:
-            end_session = self.trading_calendar.minute_to_session_label(end)
+            end_session = self.trading_calendar.minute_to_session(end)
             first = self._active_contract(oc, front, back, end_session)
         else:
             first = front
         first_contract = oc.sid_to_contract[first]
         rolls = [((first_contract >> offset).contract.sid, None)]
         tc = self.trading_calendar
-        sessions = tc.sessions_in_range(tc.minute_to_session_label(start),
-                                        tc.minute_to_session_label(end))
-        freq = sessions.freq
+        sessions = tc.sessions_in_range(
+            tc.minute_to_session(start), tc.minute_to_session(end)
+        )
+        # Step by the calendar's session offset; a sliced index may not
+        # carry a freq.
+        freq = tc.day
         if first == front:
             # This is a bit tricky to grasp. Once we have the active contract
             # on the given end date, we want to start walking backwards towards
@@ -112,6 +125,11 @@ class RollFinder(ABC):
         else:
             curr = first_contract << 2
         session = sessions[-1]
+
+        # Session labels are tz-naive; ``start`` may be a tz-aware minute.
+        # Compare as instants, treating session labels as UTC midnight.
+        if start.tz is not None:
+            start = start.tz_convert("UTC").tz_localize(None)
 
         while session > start and curr is not None:
             front = curr.contract.sid
@@ -158,6 +176,7 @@ class VolumeRollFinder(RollFinder):
     The VolumeRollFinder calculates contract rolls based on when
     volume activity transfers from one contract to another.
     """
+
     GRACE_DAYS = 7
 
     def __init__(self, trading_calendar, asset_finder, session_reader):
@@ -211,8 +230,8 @@ class VolumeRollFinder(RollFinder):
         elif back_contract.start_date > prev:
             return front
 
-        front_vol = get_value(front, prev, 'volume')
-        back_vol = get_value(back, prev, 'volume')
+        front_vol = get_value(front, prev, "volume")
+        back_vol = get_value(back, prev, "volume")
         if back_vol > front_vol:
             return back
 
@@ -228,12 +247,12 @@ class VolumeRollFinder(RollFinder):
         # date, and a volume flip happened during that period, return the back
         # contract as the active one.
         sessions = tc.sessions_in_range(
-            tc.minute_to_session_label(gap_start),
-            tc.minute_to_session_label(gap_end),
+            tc.minute_to_session(gap_start),
+            tc.minute_to_session(gap_end),
         )
         for session in sessions:
-            front_vol = get_value(front, session, 'volume')
-            back_vol = get_value(back, session, 'volume')
+            front_vol = get_value(front, session, "volume")
+            back_vol = get_value(back, session, "volume")
             if back_vol > front_vol:
                 return back
         return front
@@ -263,12 +282,17 @@ class VolumeRollFinder(RollFinder):
         # contracts from being considered active once they have rolled, so
         # incorporating that logic here prevents flip-flopping.
         day = self.trading_calendar.day
+        # ``dt`` may be a UTC minute; sessions are naive (UTC midnight).
+        naive_dt = dt.tz_convert(None) if dt.tzinfo is not None else dt
         end_date = min(
-            dt + (ROLL_DAYS_FOR_CURRENT_CONTRACT * day),
+            naive_dt + (ROLL_DAYS_FOR_CURRENT_CONTRACT * day),
             self.session_reader.last_available_dt,
         )
         rolls = self.get_rolls(
-            root_symbol=root_symbol, start=dt, end=end_date, offset=offset,
+            root_symbol=root_symbol,
+            start=dt,
+            end=end_date,
+            offset=offset,
         )
         sid, acd = rolls[0]
         return self.asset_finder.retrieve_asset(sid)

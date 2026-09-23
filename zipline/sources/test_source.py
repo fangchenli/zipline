@@ -17,49 +17,41 @@
 A source to be used in testing.
 """
 
-from datetime import timedelta
 import itertools
+from datetime import timedelta
 
-from zipline.protocol import (
-    Event,
-    DATASOURCE_TYPE
-)
+from zipline.protocol import DATASOURCE_TYPE, Event
+from zipline.utils.date_utils import to_session_label
 
 
 def create_trade(sid, price, amount, datetime, source_id="test_factory"):
 
-    trade = Event()
+    return Event(
+        {
+            "source_id": source_id,
+            "type": DATASOURCE_TYPE.TRADE,
+            "sid": sid,
+            "dt": datetime,
+            "price": price,
+            "close_price": price,
+            "open_price": price,
+            "low": price * 0.95,
+            "high": price * 1.05,
+            "volume": amount,
+        }
+    )
 
-    trade.source_id = source_id
-    trade.type = DATASOURCE_TYPE.TRADE
-    trade.sid = sid
-    trade.dt = datetime
-    trade.price = price
-    trade.close_price = price
-    trade.open_price = price
-    trade.low = price * .95
-    trade.high = price * 1.05
-    trade.volume = amount
 
-    return trade
-
-
-def date_gen(start,
-             end,
-             trading_calendar,
-             delta=timedelta(minutes=1),
-             repeats=None):
+def date_gen(start, end, trading_calendar, delta=timedelta(minutes=1), repeats=None):
     """
     Utility to generate a stream of dates.
     """
-    daily_delta = not (delta.total_seconds()
-                       % timedelta(days=1).total_seconds())
+    daily_delta = not (delta.total_seconds() % timedelta(days=1).total_seconds())
     cur = start
     if daily_delta:
         # if we are producing daily timestamps, we
         # use midnight
-        cur = cur.replace(hour=0, minute=0, second=0,
-                          microsecond=0)
+        cur = cur.replace(hour=0, minute=0, second=0, microsecond=0)
 
     def advance_current(cur):
         """
@@ -67,25 +59,31 @@ def date_gen(start,
         """
         cur = cur + delta
 
-        currently_executing = \
-            (daily_delta and (cur in trading_calendar.all_sessions)) or \
-            (trading_calendar.is_open_on_minute(cur))
+        if daily_delta:
+            # Daily timestamps are midnights, possibly tz-aware; sessions are
+            # tz-naive. Roll forward to the next session, keeping the tz.
+            session = to_session_label(cur)
+            if trading_calendar.is_session(session):
+                return cur
+            next_session = trading_calendar.date_to_session(
+                session,
+                direction="next",
+            )
+            if cur.tz is not None:
+                next_session = next_session.tz_localize(cur.tz)
+            return next_session
 
-        if currently_executing:
+        if trading_calendar.is_open_on_minute(cur):
             return cur
-        else:
-            if daily_delta:
-                return trading_calendar.minute_to_session_label(cur)
-            else:
-                return trading_calendar.open_and_close_for_session(
-                    trading_calendar.minute_to_session_label(cur)
-                )[0]
+        return trading_calendar.session_first_last_minute(
+            trading_calendar.minute_to_session(cur)
+        )[0]
 
     # yield count trade events, all on trading days, and
     # during trading hours.
     while cur < end:
         if repeats:
-            for j in range(repeats):
+            for _ in range(repeats):
                 yield cur
         else:
             yield cur
@@ -107,14 +105,10 @@ class SpecificEquityTrades:
     delta  : timedelta between internal events
     filter : filter to remove the sids
     """
-    def __init__(self,
-                 trading_calendar,
-                 asset_finder,
-                 sids,
-                 start,
-                 end,
-                 delta,
-                 count=500):
+
+    def __init__(
+        self, trading_calendar, asset_finder, sids, start, end, delta, count=500
+    ):
 
         self.trading_calendar = trading_calendar
 
@@ -129,19 +123,11 @@ class SpecificEquityTrades:
     def __iter__(self):
         return self
 
-    def next(self):
-        return self.generator.next()
-
     def __next__(self):
         return next(self.generator)
 
     def rewind(self):
         self.generator = self.create_fresh_generator()
-
-    def update_source_id(self, gen):
-        for event in gen:
-            event.source_id = self.get_hash()
-            yield event
 
     def create_fresh_generator(self):
         date_generator = date_gen(
@@ -156,7 +142,8 @@ class SpecificEquityTrades:
                 price=float(i % 10) + 1.0,
                 amount=(i * 50) % 900 + 100,
                 datetime=date,
-            ) for (i, date), sid in itertools.product(
+            )
+            for (i, date), sid in itertools.product(
                 enumerate(date_generator), self.sids
             )
         )

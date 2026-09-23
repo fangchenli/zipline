@@ -1,15 +1,15 @@
-from interface import default, Interface
+from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
 
-from zipline.utils.sentinel import sentinel
 from zipline.lib._factorize import factorize_strings
+from zipline.utils.sentinel import sentinel
 
-DEFAULT_FX_RATE = sentinel('DEFAULT_FX_RATE')
+DEFAULT_FX_RATE = sentinel("DEFAULT_FX_RATE")
 
 
-class FXRateReader(Interface):
+class FXRateReader(ABC):
     """
     Interface for reading foreign exchange (fx) rates.
 
@@ -56,6 +56,7 @@ class FXRateReader(Interface):
             return np.array(out)
     """
 
+    @abstractmethod
     def get_rates(self, rate, quote, bases, dts):
         """
         Load a 2D array of fx rates.
@@ -83,7 +84,6 @@ class FXRateReader(Interface):
             The column at index j corresponds to the base currency in bases[j].
         """
 
-    @default
     def get_rate_scalar(self, rate, quote, base, dt):
         """
         Load a scalar FX rate value.
@@ -108,11 +108,10 @@ class FXRateReader(Interface):
             rate,
             quote,
             bases=np.array([base], dtype=object),
-            dts=pd.DatetimeIndex([dt], tz='UTC'),
+            dts=pd.DatetimeIndex([dt], tz="UTC"),
         )
         return rates_2d[0, 0]
 
-    @default
     def get_rates_columnar(self, rate, quote, bases, dts):
         """
         Load a 1D array of FX rates.
@@ -131,9 +130,7 @@ class FXRateReader(Interface):
             multiple times. Datetimes do not need to be sorted.
         """
         if len(bases) != len(dts):
-            raise ValueError(
-                "len(bases) ({}) != len(dts) ({})".format(len(bases), len(dts))
-            )
+            raise ValueError(f"len(bases) ({len(bases)}) != len(dts) ({len(dts)})")
 
         bases_ix, unique_bases, _ = factorize_strings(
             bases,
@@ -145,9 +142,6 @@ class FXRateReader(Interface):
         # for calling get_rates.
         unique_dts, dts_ix = np.unique(dts.values, return_inverse=True)
         rates_2d = self.get_rates(
-            rate,
-            quote,
-            unique_bases,
-            pd.DatetimeIndex(unique_dts, tz='utc')
+            rate, quote, unique_bases, pd.DatetimeIndex(unique_dts, tz="utc")
         )
         return rates_2d[dts_ix, bases_ix]

@@ -20,7 +20,7 @@ import pandas as pd
 import numpy as np
 
 from cpython cimport bool
-from collections import Iterable
+from collections.abc import Iterable
 
 from zipline.assets import (
     AssetConvertible,
@@ -58,7 +58,8 @@ cdef class check_parameters(object):
     def __call__(self, func):
         @wraps(func)
         def assert_keywords_and_call(*args, **kwargs):
-            cdef short i
+            # NOTE: don't type the loop index below; a typed ``cdef`` loop
+            # variable in this closure crashes under Cython 3.
 
             # verify all the keyword arguments
             for field in kwargs:
@@ -237,7 +238,7 @@ cdef class BarData:
         if self._daily_mode:
             # if we're in daily mode, take the given dt (which is the last
             # minute of the session) and get the session label for it.
-            dt = self.data_portal.trading_calendar.minute_to_session_label(dt)
+            dt = self.data_portal.trading_calendar.minute_to_session(dt)
 
         return dt
 
@@ -495,7 +496,7 @@ cdef class BarData:
         if self._is_restricted(asset, adjusted_dt):
             return False
 
-        session_label = self._trading_calendar.minute_to_session_label(dt)
+        session_label = self._trading_calendar.minute_to_session(dt)
 
         if not asset.is_alive_for_session(session_label):
             # asset isn't alive
@@ -511,7 +512,7 @@ cdef class BarData:
                 dt_to_use_for_exchange_check = dt
             else:
                 dt_to_use_for_exchange_check = \
-                    self._trading_calendar.next_open(dt)
+                    self._trading_calendar.next_minute(dt)
 
             if not asset.is_exchange_open(dt_to_use_for_exchange_check):
                 return False
@@ -567,7 +568,7 @@ cdef class BarData:
             })
 
     cdef bool _is_stale_for_asset(self, asset, dt, adjusted_dt, data_portal):
-        session_label = dt.normalize()
+        session_label = dt.normalize().tz_localize(None)
 
         if not asset.is_alive_for_session(session_label):
             return False
@@ -619,7 +620,7 @@ cdef class BarData:
 
         Returns
         -------
-        history : pd.Series or pd.DataFrame or pd.Panel
+        history : pd.Series or pd.DataFrame
             See notes below.
 
         Notes
@@ -642,13 +643,13 @@ cdef class BarData:
           :class:`pd.DatetimeIndex`, and its columns will be ``assets``.
 
         - If multiple assets and multiple fields are requested, the returned
-          value is a :class:`pd.Panel` with shape
-          ``(len(fields), bar_count, len(assets))``. The axes of the returned
-          panel will be:
-
-          - ``panel.items`` : ``fields``
-          - ``panel.major_axis`` : :class:`pd.DatetimeIndex` of length ``bar_count``
-          - ``panel.minor_axis`` : ``assets``
+          value is a :class:`pd.DataFrame` with shape
+          ``(bar_count, len(fields) * len(assets))``. The frame's index will be
+          a :class:`pd.DatetimeIndex`, and its columns will be a
+          :class:`pd.MultiIndex` of ``(field, asset)`` pairs, so
+          ``history[field]`` is a DataFrame with ``assets`` as columns. (This
+          replaces the ``pd.Panel`` returned by versions of zipline that
+          supported pandas < 1.0.)
 
         If the current simulation time is not a valid market time, we use the
         last market close instead.
@@ -746,11 +747,10 @@ cdef class BarData:
                     df_dict = {field: df * adjs[field]
                                for field, df in df_dict.items()}
 
-                # returned panel has:
-                # items: fields
-                # major axis: dt
-                # minor axis: assets
-                return pd.Panel(df_dict)
+                # Columns are a (field, asset) MultiIndex, so indexing the
+                # result by field gives a dt x assets frame, as the removed
+                # pd.Panel did.
+                return pd.concat(df_dict, axis=1)
 
     property current_dt:
         def __get__(self):
@@ -766,14 +766,14 @@ cdef class BarData:
 
     property current_session:
         def __get__(self):
-            return self._trading_calendar.minute_to_session_label(
+            return self._trading_calendar.minute_to_session(
                 self.simulation_dt_func(),
                 direction="next"
             )
 
     property current_session_minutes:
         def __get__(self):
-            return self._trading_calendar.minutes_for_session(
+            return self._trading_calendar.session_minutes(
                 self.current_session
             )
 

@@ -25,9 +25,10 @@ class ExchangeInfo:
         None this will be the same as the name.
     country_code : str
         The country code where the exchange is located.
-    calendar : TradingCalendar
+    calendar : ExchangeCalendar
         The trading calendar the exchange uses.
     """
+
     def __init__(self, name, canonical_name, country_code):
         self.name = name
 
@@ -38,17 +39,14 @@ class ExchangeInfo:
         self.country_code = country_code.upper()
 
     def __repr__(self):
-        return '{}({!r}, {!r}, {!r})'.format(
-            type(self).__name__,
-            self.name,
-            self.canonical_name,
-            self.country_code,
+        return (
+            f"{type(self).__name__}({self.name!r}, {self.canonical_name!r}, "
+            f"{self.country_code!r})"
         )
 
     @property
     def calendar(self):
-        """The trading calendar that this exchange uses.
-        """
+        """The trading calendar that this exchange uses."""
         return get_calendar(self.canonical_name)
 
     def __eq__(self, other):
@@ -57,7 +55,7 @@ class ExchangeInfo:
 
         return all(
             getattr(self, attr) == getattr(other, attr)
-            for attr in ('name', 'canonical_name', 'country_code')
+            for attr in ("name", "canonical_name", "country_code")
         )
 
     def __ne__(self, other):

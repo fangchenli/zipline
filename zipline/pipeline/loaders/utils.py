@@ -1,8 +1,22 @@
 import numpy as np
 import pandas as pd
+
 from zipline.errors import NoFurtherDataError
-from zipline.pipeline.common import TS_FIELD_NAME, SID_FIELD_NAME
+from zipline.pipeline.common import SID_FIELD_NAME, TS_FIELD_NAME
 from zipline.utils.numpy_utils import categorical_dtype
+
+
+def naive_utc(dts):
+    """Coerce datetimes to a tz-naive ``DatetimeIndex`` of UTC values.
+
+    Event timestamps are stored as tz-naive UTC ``datetime64`` values, while
+    data query cutoff times are tz-aware UTC. Use this before comparing the
+    two, since pandas refuses to compare naive and aware datetimes.
+    """
+    dts = pd.DatetimeIndex(dts)
+    if dts.tz is not None:
+        dts = dts.tz_convert("UTC").tz_localize(None)
+    return dts
 
 
 def is_sorted_ascending(a):
@@ -10,24 +24,17 @@ def is_sorted_ascending(a):
     return (np.fmax.accumulate(a) <= a).all()
 
 
-def validate_event_metadata(event_dates,
-                            event_timestamps,
-                            event_sids):
+def validate_event_metadata(event_dates, event_timestamps, event_sids):
     assert is_sorted_ascending(event_dates), "event dates must be sorted"
-    assert len(event_sids) == len(event_dates) == len(event_timestamps), \
-        "mismatched arrays: %d != %d != %d" % (
-            len(event_sids),
-            len(event_dates),
-            len(event_timestamps),
-        )
+    assert len(event_sids) == len(event_dates) == len(event_timestamps), (
+        f"mismatched arrays: {len(event_sids)} != {len(event_dates)}"
+        f" != {len(event_timestamps)}"
+    )
 
 
-def next_event_indexer(all_dates,
-                       data_query_cutoff,
-                       all_sids,
-                       event_dates,
-                       event_timestamps,
-                       event_sids):
+def next_event_indexer(
+    all_dates, data_query_cutoff, all_sids, event_dates, event_timestamps, event_sids
+):
     """
     Construct an index array that, when applied to an array of values, produces
     a 2D array containing the values associated with the next event for each
@@ -63,8 +70,11 @@ def next_event_indexer(all_dates,
     sid_ixs = all_sids.searchsorted(event_sids)
     # side='right' here ensures that we include the event date itself
     # if it's in all_dates.
-    dt_ixs = all_dates.searchsorted(event_dates, side='right')
-    ts_ixs = data_query_cutoff.searchsorted(event_timestamps, side='right')
+    dt_ixs = all_dates.searchsorted(naive_utc(event_dates), side="right")
+    ts_ixs = naive_utc(data_query_cutoff).searchsorted(
+        naive_utc(event_timestamps),
+        side="right",
+    )
 
     # Walk backward through the events, writing the index of the event into
     # slots ranging from the event's timestamp to its asof.  This depends for
@@ -79,11 +89,9 @@ def next_event_indexer(all_dates,
     return out
 
 
-def previous_event_indexer(data_query_cutoff_times,
-                           all_sids,
-                           event_dates,
-                           event_timestamps,
-                           event_sids):
+def previous_event_indexer(
+    data_query_cutoff_times, all_sids, event_dates, event_timestamps, event_sids
+):
     """
     Construct an index array that, when applied to an array of values, produces
     a 2D array containing the values associated with the previous event for
@@ -120,9 +128,15 @@ def previous_event_indexer(data_query_cutoff_times,
         dtype=np.int64,
     )
 
-    eff_dts = np.maximum(event_dates, event_timestamps)
+    eff_dts = np.maximum(
+        naive_utc(event_dates).values,
+        naive_utc(event_timestamps).values,
+    )
     sid_ixs = all_sids.searchsorted(event_sids)
-    dt_ixs = data_query_cutoff_times.searchsorted(eff_dts, side='right')
+    dt_ixs = naive_utc(data_query_cutoff_times).searchsorted(
+        eff_dts,
+        side="right",
+    )
 
     # Walk backwards through the events, writing the index of the event into
     # slots ranging from max(event_date, event_timestamp) to the start of the
@@ -133,17 +147,19 @@ def previous_event_indexer(data_query_cutoff_times,
     for i in range(len(event_dates) - 1, -1, -1):
         sid_ix = sid_ixs[i]
         dt_ix = dt_ixs[i]
-        out[dt_ix:last_written.get(sid_ix, None), sid_ix] = i
+        out[dt_ix : last_written.get(sid_ix, None), sid_ix] = i
         last_written[sid_ix] = dt_ix
     return out
 
 
-def last_in_date_group(df,
-                       data_query_cutoff_times,
-                       assets,
-                       reindex=True,
-                       have_sids=True,
-                       extra_groupers=None):
+def last_in_date_group(
+    df,
+    data_query_cutoff_times,
+    assets,
+    reindex=True,
+    have_sids=True,
+    extra_groupers=None,
+):
     """
     Determine the last piece of information known on each date in the date
 
@@ -157,7 +173,7 @@ def last_in_date_group(df,
         the correct last item is chosen from each group.
     data_query_cutoff_times : pd.DatetimeIndex
         The dates to use for grouping and reindexing.
-    assets : pd.Int64Index
+    assets : pd.Index[int64]
         The assets that should be included in the column multiindex.
     reindex : bool
         Whether or not the DataFrame should be reindexed against the date
@@ -176,19 +192,27 @@ def last_in_date_group(df,
         levels of a multiindex of columns.
 
     """
-    idx = [data_query_cutoff_times[data_query_cutoff_times.searchsorted(
-        df[TS_FIELD_NAME].values,
-    )]]
+    idx = [
+        data_query_cutoff_times[
+            naive_utc(data_query_cutoff_times).searchsorted(
+                naive_utc(df[TS_FIELD_NAME]),
+            )
+        ]
+    ]
     if have_sids:
         idx += [SID_FIELD_NAME]
     if extra_groupers is None:
         extra_groupers = []
     idx += extra_groupers
 
-    last_in_group = df.drop(TS_FIELD_NAME, axis=1).groupby(
-        idx,
-        sort=False,
-    ).last()
+    last_in_group = (
+        df.drop(TS_FIELD_NAME, axis=1)
+        .groupby(
+            idx,
+            sort=False,
+        )
+        .last()
+    )
 
     # For the number of things that we're grouping by (except TS), unstack
     # the df. Done this way because of an unresolved pandas bug whereby
@@ -203,7 +227,7 @@ def last_in_date_group(df,
             last_in_group = last_in_group.reindex(
                 index=data_query_cutoff_times,
                 columns=pd.MultiIndex.from_product(
-                    tuple(cols.levels[0:len(extra_groupers) + 1]) + (assets,),
+                    tuple(cols.levels[0 : len(extra_groupers) + 1]) + (assets,),
                     names=cols.names,
                 ),
             )
@@ -250,18 +274,17 @@ def ffill_across_cols(df, columns, name_map):
         # Special logic for strings since `fillna` doesn't work if the
         # missing value is `None`.
         if column.dtype == categorical_dtype:
-            df[column_name] = df[
-                column.name
-            ].where(pd.notnull(df[column_name]),
-                    column.missing_value)
+            df[column_name] = df[column.name].where(
+                pd.notnull(df[column_name]), column.missing_value
+            )
         else:
             # We need to execute `fillna` before `astype` in case the
             # column contains NaNs and needs to be cast to bool or int.
             # This is so that the NaNs are replaced first, since pandas
             # can't convert NaNs for those types.
-            df[column_name] = df[
-                column_name
-            ].fillna(column.missing_value).astype(column.dtype)
+            df[column_name] = (
+                df[column_name].fillna(column.missing_value).astype(column.dtype)
+            )
 
 
 def shift_dates(dates, start_date, end_date, shift):
@@ -299,24 +322,21 @@ def shift_dates(dates, start_date, end_date, shift):
         if start_date < dates[0]:
             raise NoFurtherDataError(
                 msg=(
-                    "Pipeline Query requested data starting on {query_start}, "
-                    "but first known date is {calendar_start}"
-                ).format(
-                    query_start=str(start_date),
-                    calendar_start=str(dates[0]),
+                    f"Pipeline Query requested data starting on {str(start_date)}, "
+                    f"but first known date is {str(dates[0])}"
                 )
-            )
+            ) from None
         else:
-            raise ValueError("Query start %s not in calendar" % start_date)
+            raise ValueError(f"Query start {start_date} not in calendar") from None
 
     # Make sure that shifting doesn't push us out of the calendar.
     if start < shift:
         raise NoFurtherDataError(
             msg=(
-                "Pipeline Query requested data from {shift}"
-                " days before {query_start}, but first known date is only "
-                "{start} days earlier."
-            ).format(shift=shift, query_start=start_date, start=start),
+                f"Pipeline Query requested data from {shift}"
+                f" days before {start_date}, but first known date is only "
+                f"{start} days earlier."
+            ),
         )
 
     try:
@@ -325,14 +345,11 @@ def shift_dates(dates, start_date, end_date, shift):
         if end_date > dates[-1]:
             raise NoFurtherDataError(
                 msg=(
-                    "Pipeline Query requesting data up to {query_end}, "
-                    "but last known date is {calendar_end}"
-                ).format(
-                    query_end=end_date,
-                    calendar_end=dates[-1],
+                    f"Pipeline Query requesting data up to {end_date}, "
+                    f"but last known date is {dates[-1]}"
                 )
-            )
+            ) from None
         else:
-            raise ValueError("Query end %s not in calendar" % end_date)
+            raise ValueError(f"Query end {end_date} not in calendar") from None
 
-    return dates[start - shift:end - shift + 1]  # +1 to be inclusive
+    return dates[start - shift : end - shift + 1]  # +1 to be inclusive

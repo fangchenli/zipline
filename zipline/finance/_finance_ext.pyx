@@ -106,8 +106,10 @@ cdef class PositionStats:
             np.array([], dtype='float64'),
             index=np.array([], dtype='int64'),
         )
-        self.underlying_value_array = self.position_exposure_array = es.values
-        self.underlying_index_array = es.index.values
+        # Fresh, writable buffers (pandas' ``.values`` may be read-only).
+        self.underlying_value_array = np.array([], dtype='float64')
+        self.position_exposure_array = self.underlying_value_array
+        self.underlying_index_array = np.array([], dtype='int64')
         return self
 
 
@@ -158,36 +160,16 @@ cpdef calculate_position_tracker_stats(positions, PositionStats stats):
             npos,
             dtype='float64',
         )
-
-        stats.position_exposure_array = position_exposure
-        # create a new series to expose the arrays
-        stats.position_exposure_series = pd.Series(
-            position_exposure,
-            index=index,
-        )
     elif len(old_index) > npos:
         # we have more space than needed, slice off the extra but leave it
         # available
         index = old_index[:npos]
         position_exposure = old_position_exposure[:npos]
-
-        stats.position_exposure_array = position_exposure
-        # create a new series with the sliced arrays
-        stats.position_exposure_series = pd.Series(
-            position_exposure,
-            index=index,
-        )
     else:
         # we have exactly the right amount of space, no slicing or allocation
         # needed
         index = old_index
         position_exposure = old_position_exposure
-
-        stats.position_exposure_array = position_exposure
-        stats.position_exposure_series = pd.Series(
-            position_exposure,
-            index=index,
-        )
 
     cdef InnerPosition position
     cdef Py_ssize_t ix = 0
@@ -224,6 +206,14 @@ cpdef calculate_position_tracker_stats(positions, PositionStats stats):
             position_exposure[ix] = exposure
 
         ix += 1
+
+    # Build the series after filling the (reused) buffers. pandas' copy-on-write
+    # means a Series can no longer be a live view of a buffer we keep mutating.
+    stats.position_exposure_array = position_exposure
+    stats.position_exposure_series = pd.Series(
+        position_exposure.copy(),
+        index=index.copy(),
+    )
 
     net_value = long_value + short_value
     gross_value = long_value - short_value

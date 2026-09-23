@@ -1,54 +1,64 @@
 import abc
-from collections import namedtuple, OrderedDict
+from collections import OrderedDict, namedtuple
 from itertools import repeat
 from textwrap import dedent
+from typing import TYPE_CHECKING, Any
 from weakref import WeakKeyDictionary
 
-from six import with_metaclass
 from toolz import first
 
 from zipline.currency import Currency
 from zipline.data.fx import DEFAULT_FX_RATE
-from zipline.pipeline.classifiers import Classifier, Latest as LatestClassifier
-from zipline.pipeline.domain import Domain, GENERIC
-from zipline.pipeline.factors import Factor, Latest as LatestFactor
-from zipline.pipeline.filters import Filter, Latest as LatestFilter
+from zipline.pipeline.classifiers import Classifier
+from zipline.pipeline.classifiers import Latest as LatestClassifier
+from zipline.pipeline.domain import GENERIC, Domain
+from zipline.pipeline.factors import Factor
+from zipline.pipeline.factors import Latest as LatestFactor
+from zipline.pipeline.filters import Filter
+from zipline.pipeline.filters import Latest as LatestFilter
 from zipline.pipeline.sentinels import NotSpecified, sentinel
 from zipline.pipeline.term import (
     AssetExists,
     LoadableTerm,
     validate_dtype,
 )
-from zipline.utils.formatting import s, plural
+from zipline.utils.formatting import plural, s
 from zipline.utils.input_validation import (
     coerce_types,
     ensure_dtype,
     expect_types,
 )
-from zipline.utils.numpy_utils import float64_dtype, NoDefaultMissingValue
+from zipline.utils.numpy_utils import NoDefaultMissingValue, float64_dtype
 from zipline.utils.preprocess import preprocess
 from zipline.utils.string_formatting import bulleted_list
 
+IsSpecialization = sentinel("IsSpecialization")
 
-IsSpecialization = sentinel('IsSpecialization')
 
-
-class Column(object):
+class Column:
     """
     An abstract column of data, not yet associated with a dataset.
     """
+
+    if TYPE_CHECKING:
+        # DataSetMeta replaces each Column in a DataSet's class body with a
+        # _BoundColumnDescr, so accessing a column on a DataSet gives a
+        # BoundColumn. (Type-checking only; Column itself isn't a descriptor.)
+        def __get__(self, instance: object, owner: type) -> "BoundColumn": ...
+
     @preprocess(dtype=ensure_dtype)
-    def __init__(self,
-                 dtype,
-                 missing_value=NotSpecified,
-                 doc=None,
-                 metadata=None,
-                 currency_aware=False):
+    def __init__(
+        self,
+        dtype,
+        missing_value=NotSpecified,
+        doc=None,
+        metadata=None,
+        currency_aware=False,
+    ):
         if currency_aware and dtype != float64_dtype:
             raise ValueError(
-                'Columns cannot be constructed with currency_aware={}, '
-                'dtype={}. Currency aware columns must have a float64 dtype.'
-                .format(currency_aware, dtype)
+                f"Columns cannot be constructed with currency_aware={currency_aware}, "
+                f"dtype={dtype}. Currency aware columns must have a float64 dtype."
             )
 
         self.dtype = dtype
@@ -71,7 +81,7 @@ class Column(object):
         )
 
 
-class _BoundColumnDescr(object):
+class _BoundColumnDescr:
     """
     Intermediate class that sits on `DataSet` objects and returns memoized
     `BoundColumn` objects when requested.
@@ -79,13 +89,8 @@ class _BoundColumnDescr(object):
     This exists so that subclasses of DataSets don't share columns with their
     parent classes.
     """
-    def __init__(self,
-                 dtype,
-                 missing_value,
-                 name,
-                 doc,
-                 metadata,
-                 currency_aware):
+
+    def __init__(self, dtype, missing_value, name, doc, metadata, currency_aware):
         # Validating and calculating default missing values here guarantees
         # that we fail quickly if the user passes an unsupporte dtype or fails
         # to provide a missing value for a dtype that requires one
@@ -93,19 +98,19 @@ class _BoundColumnDescr(object):
         # points to the name of the failing column.
         try:
             self.dtype, self.missing_value = validate_dtype(
-                termname="Column(name={name!r})".format(name=name),
+                termname=f"Column(name={name!r})",
                 dtype=dtype,
                 missing_value=missing_value,
             )
         except NoDefaultMissingValue:
             # Re-raise with a more specific message.
             raise NoDefaultMissingValue(
-                "Failed to create Column with name {name!r} and"
-                " dtype {dtype} because no missing_value was provided\n\n"
-                "Columns with dtype {dtype} require a missing_value.\n"
+                f"Failed to create Column with name {name!r} and"
+                f" dtype {dtype} because no missing_value was provided\n\n"
+                f"Columns with dtype {dtype} require a missing_value.\n"
                 "Please pass missing_value to Column() or use a different"
-                " dtype.".format(dtype=dtype, name=name)
-            )
+                " dtype."
+            ) from None
         self.name = name
         self.doc = doc
         self.metadata = metadata
@@ -160,31 +165,30 @@ class BoundColumn(LoadableTerm):
     class. Pipeline API users should never construct instances of this
     directly.
     """
+
     mask = AssetExists()
     window_safe = True
 
-    def __new__(cls,
-                dtype,
-                missing_value,
-                dataset,
-                name,
-                doc,
-                metadata,
-                currency_conversion,
-                currency_aware):
+    def __new__(
+        cls,
+        dtype,
+        missing_value,
+        dataset,
+        name,
+        doc,
+        metadata,
+        currency_conversion,
+        currency_aware,
+    ):
         if currency_aware and dtype != float64_dtype:
             raise AssertionError(
-                'The {} column on dataset {} cannot be constructed with '
-                'currency_aware={}, dtype={}. Currency aware columns must '
-                'have a float64 dtype.'.format(
-                    name,
-                    dataset,
-                    currency_aware,
-                    dtype,
-                )
+                f"The {name} column on dataset {dataset} cannot be constructed with "
+                f"currency_aware={currency_aware}, dtype={dtype}. Currency aware "
+                "columns must "
+                "have a float64 dtype."
             )
 
-        return super(BoundColumn, cls).__new__(
+        return super().__new__(
             cls,
             domain=dataset.domain,
             dtype=dtype,
@@ -198,33 +202,39 @@ class BoundColumn(LoadableTerm):
             currency_aware=currency_aware,
         )
 
-    def _init(self,
-              dataset,
-              name,
-              doc,
-              metadata,
-              currency_conversion,
-              currency_aware,
-              *args, **kwargs):
+    def _init(
+        self,
+        dataset,
+        name,
+        doc,
+        metadata,
+        currency_conversion,
+        currency_aware,
+        *args,
+        **kwargs,
+    ):
         self._dataset = dataset
         self._name = name
         self.__doc__ = doc
         self._metadata = metadata
         self._currency_conversion = currency_conversion
         self._currency_aware = currency_aware
-        return super(BoundColumn, self)._init(*args, **kwargs)
+        return super()._init(*args, **kwargs)
 
     @classmethod
-    def _static_identity(cls,
-                         dataset,
-                         name,
-                         doc,
-                         metadata,
-                         currency_conversion,
-                         currency_aware,
-                         *args, **kwargs):
+    def _static_identity(
+        cls,
+        dataset,
+        name,
+        doc,
+        metadata,
+        currency_conversion,
+        currency_aware,
+        *args,
+        **kwargs,
+    ):
         return (
-            super(BoundColumn, cls)._static_identity(*args, **kwargs),
+            super()._static_identity(*args, **kwargs),
             dataset,
             name,
             doc,
@@ -255,8 +265,7 @@ class BoundColumn(LoadableTerm):
         return type(self)(**kw)
 
     def specialize(self, domain):
-        """Specialize ``self`` to a concrete domain.
-        """
+        """Specialize ``self`` to a concrete domain."""
         if domain == self.domain:
             return self
 
@@ -290,8 +299,9 @@ class BoundColumn(LoadableTerm):
 
         if not self._currency_aware:
             raise TypeError(
-                'The .fx() method cannot be called on {} because it does not '
-                'produce currency-denominated data.'.format(self.qualname)
+                f"The .fx() method cannot be called on {self.qualname} because it does "
+                "not "
+                "produce currency-denominated data."
             )
         elif conversion is not None and conversion.currency == currency:
             return self
@@ -305,8 +315,7 @@ class BoundColumn(LoadableTerm):
 
     @property
     def currency_conversion(self):
-        """Specification for currency conversions applied for this term.
-        """
+        """Specification for currency conversions applied for this term."""
         return self._currency_conversion
 
     @property
@@ -339,12 +348,11 @@ class BoundColumn(LoadableTerm):
 
     @property
     def qualname(self):
-        """The fully-qualified name of this column.
-        """
-        out = '.'.join([self.dataset.qualname, self.name])
+        """The fully-qualified name of this column."""
+        out = ".".join([self.dataset.qualname, self.name])
         conversion = self._currency_conversion
         if conversion is not None:
-            out += '.fx({!r})'.format(conversion.currency.code)
+            out += f".fx({conversion.currency.code!r})"
         return out
 
     @property
@@ -355,7 +363,7 @@ class BoundColumn(LoadableTerm):
         elif dtype in Classifier.ALLOWED_DTYPES:
             Latest = LatestClassifier
         else:
-            assert dtype in Factor.ALLOWED_DTYPES, "Unknown dtype %s." % dtype
+            assert dtype in Factor.ALLOWED_DTYPES, f"Unknown dtype {dtype}."
             Latest = LatestFactor
 
         return Latest(
@@ -366,17 +374,14 @@ class BoundColumn(LoadableTerm):
         )
 
     def __repr__(self):
-        return "{qualname}::{dtype}".format(
-            qualname=self.qualname,
-            dtype=self.dtype.name,
-        )
+        return f"{self.qualname}::{self.dtype.name}"
 
     def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
         # Graphviz interprets `\l` as "divide label into lines, left-justified"
-        return "BoundColumn:\\l  Dataset: {}\\l  Column: {}\\l".format(
-            self.dataset.__name__,
-            self.name
+        return (
+            f"BoundColumn:\\l  Dataset: {self.dataset.__name__}\\l  Column: "
+            f"{self.name}\\l"
         )
 
     def recursive_repr(self):
@@ -391,8 +396,15 @@ class DataSetMeta(type):
     Supplies name and dataset information to Column attributes, and manages
     families of specialized dataset.
     """
+
+    # Attributes of DataSet classes, set in their class bodies or by __new__
+    # below. (Annotations only: these are per-class, not metaclass, values.)
+    domain: Domain
+    _column_names: frozenset[str]
+    _domain_specializations: WeakKeyDictionary
+
     def __new__(mcls, name, bases, dict_):
-        if len(bases) != 1:
+        if len(bases) > 1:
             # Disallowing multiple inheritance makes it easier for us to
             # determine whether a given dataset is the root for its family of
             # specializations.
@@ -401,19 +413,17 @@ class DataSetMeta(type):
         # This marker is set in the class dictionary by `specialize` below.
         is_specialization = dict_.pop(IsSpecialization, False)
 
-        newtype = super(DataSetMeta, mcls).__new__(mcls, name, bases, dict_)
+        newtype = super().__new__(mcls, name, bases, dict_)
 
         if not isinstance(newtype.domain, Domain):
             raise TypeError(
-                "Expected a Domain for {}.domain, but got {} instead.".format(
-                    newtype.__name__,
-                    type(newtype.domain),
-                )
+                f"Expected a Domain for {newtype.__name__}.domain, but got "
+                f"{type(newtype.domain)} instead."
             )
 
         # Collect all of the column names that we inherit from our parents.
         column_names = set().union(
-            *(getattr(base, '_column_names', ()) for base in bases)
+            *(getattr(base, "_column_names", ()) for base in bases)
         )
 
         # Collect any new columns from this dataset.
@@ -429,9 +439,11 @@ class DataSetMeta(type):
         if not is_specialization:
             # This is the new root of a family of specializations. Store the
             # memoized dictionary for family on this type.
-            newtype._domain_specializations = WeakKeyDictionary({
-                newtype.domain: newtype,
-            })
+            newtype._domain_specializations = WeakKeyDictionary(
+                {
+                    newtype.domain: newtype,
+                }
+            )
 
         return newtype
 
@@ -464,12 +476,8 @@ class DataSetMeta(type):
                 # of a root-specialized dataset, which we don't want to create
                 # new specializations of.
                 raise ValueError(
-                    "Can't specialize {dataset} to new domain {new}"
-                    .format(
-                        dataset=self.__name__,
-                        new=domain,
-                    )
-                )
+                    f"Can't specialize {self.__name__} to new domain {domain}"
+                ) from None
             new_type = self._create_specialization(domain)
             self._domain_specializations[domain] = new_type
             return new_type
@@ -486,7 +494,7 @@ class DataSetMeta(type):
         # Always allow specializing to a generic domain.
         if domain is GENERIC:
             return True
-        elif '_domain_specializations' in vars(self):
+        elif "_domain_specializations" in vars(self):
             # This branch is True if we're the root of a family.
             # Allow specialization if we're generic.
             return self.domain is GENERIC
@@ -504,9 +512,8 @@ class DataSetMeta(type):
         )
         if domain is not GENERIC:
             assert self.domain is GENERIC, (
-                "Can't specialize dataset with domain {} to domain {}.".format(
-                    self.domain, domain,
-                )
+                f"Can't specialize dataset with domain {self.domain} to domain "
+                f"{domain}."
             )
 
         # Create a new subclass of ``self`` with the given domain.
@@ -514,23 +521,21 @@ class DataSetMeta(type):
         # family for it.
         name = self.__name__
         bases = (self,)
-        dict_ = {'domain': domain, IsSpecialization: True}
+        dict_ = {"domain": domain, IsSpecialization: True}
         out = type(name, bases, dict_)
         out.__module__ = self.__module__
         return out
 
     @property
     def columns(self):
-        return frozenset(
-            getattr(self, colname) for colname in self._column_names
-        )
+        return frozenset(getattr(self, colname) for colname in self._column_names)
 
     @property
     def qualname(self):
         if self.domain is GENERIC:
-            specialization_key = ''
+            specialization_key = ""
         else:
-            specialization_key = '<' + self.domain.country_code + '>'
+            specialization_key = "<" + self.domain.country_code + ">"
 
         return self.__name__ + specialization_key
 
@@ -543,10 +548,10 @@ class DataSetMeta(type):
         return id(self) < id(other)
 
     def __repr__(self):
-        return '<DataSet: %r, domain=%s>' % (self.__name__, self.domain)
+        return f"<DataSet: {self.__name__!r}, domain={self.domain}>"
 
 
-class DataSet(with_metaclass(DataSetMeta, object)):
+class DataSet(metaclass=DataSetMeta):
     """
     Base class for Pipeline datasets.
 
@@ -623,6 +628,7 @@ class DataSet(with_metaclass(DataSetMeta, object)):
     numeric. Doing so enables the use of `NaN` as a natural missing value,
     which has useful propagation semantics.
     """
+
     domain = GENERIC
     ndim = 2
 
@@ -662,7 +668,7 @@ class DataSet(with_metaclass(DataSetMeta, object)):
                         max_count=10,
                     ),
                 )
-            )
+            ) from None
 
         # Resolve column descriptor into a BoundColumn.
         return maybe_column.__get__(None, cls)
@@ -686,25 +692,29 @@ class DataSetFamilyLookupError(AttributeError):
     column_name : str
         The name of the column accessed.
     """
+
     def __init__(self, family_name, column_name):
         self.family_name = family_name
         self.column_name = column_name
 
     def __str__(self):
         # NOTE: when ``aggregate`` is added, remember to update this message
-        return dedent(
-            """\
-            Attempted to access column {c} from DataSetFamily {d}:
+        header = (
+            f"Attempted to access column {self.column_name} from DataSetFamily"
+            f" {self.family_name}:"
+        )
+        return header + dedent(
+            f"""
 
             To work with dataset families, you must first select a
             slice using the ``slice`` method:
 
-                {d}.slice(...).{c}
-            """.format(c=self.column_name, d=self.family_name)
+                {self.family_name}.slice(...).{self.column_name}
+            """
         )
 
 
-class _DataSetFamilyColumn(object):
+class _DataSetFamilyColumn:
     """Descriptor used to raise a helpful error when a column is accessed on a
     DataSetFamily instead of on the result of a slice.
 
@@ -713,6 +723,7 @@ class _DataSetFamilyColumn(object):
     column_names : str
         The name of the column.
     """
+
     def __init__(self, column_name):
         self.column_name = column_name
 
@@ -724,6 +735,13 @@ class _DataSetFamilyColumn(object):
 
 
 class DataSetFamilyMeta(abc.ABCMeta):
+    # Attributes of DataSetFamily classes, set in their class bodies or by
+    # __new__ below. (Annotations only; see DataSetMeta.)
+    domain: Domain
+    extra_dims: Any
+    slice_ndim: int
+    _SliceType: type["DataSetFamilySlice"]
+    _slice_cache: dict
 
     def __new__(cls, name, bases, dict_):
         columns = {}
@@ -736,9 +754,9 @@ class DataSetFamilyMeta(abc.ABCMeta):
                 columns[k] = v
                 dict_[k] = _DataSetFamilyColumn(k)
 
-        is_abstract = dict_.pop('_abstract', False)
+        is_abstract = dict_.pop("_abstract", False)
 
-        self = super(DataSetFamilyMeta, cls).__new__(
+        self = super().__new__(
             cls,
             name,
             bases,
@@ -746,17 +764,17 @@ class DataSetFamilyMeta(abc.ABCMeta):
         )
 
         if not is_abstract:
-            self.extra_dims = extra_dims = OrderedDict([
-                (k, frozenset(v))
-                for k, v in OrderedDict(self.extra_dims).items()
-            ])
+            self.extra_dims = extra_dims = OrderedDict(
+                [(k, frozenset(v)) for k, v in OrderedDict(self.extra_dims).items()]
+            )
             if not extra_dims:
                 raise ValueError(
-                    'DataSetFamily must be defined with non-empty'
-                    ' extra_dims, or with `_abstract = True`',
+                    "DataSetFamily must be defined with non-empty"
+                    " extra_dims, or with `_abstract = True`",
                 )
 
-            class BaseSlice(self._SliceType):
+            # ty can't model a base class chosen at runtime.
+            class BaseSlice(self._SliceType):  # ty: ignore[unsupported-base]
                 dataset_family = self
 
                 ndim = self.slice_ndim
@@ -764,7 +782,7 @@ class DataSetFamilyMeta(abc.ABCMeta):
 
                 locals().update(columns)
 
-            BaseSlice.__name__ = '%sBaseSlice' % self.__name__
+            BaseSlice.__name__ = f"{self.__name__}BaseSlice"
             self._SliceType = BaseSlice
 
         # each type gets a unique cache
@@ -772,9 +790,8 @@ class DataSetFamilyMeta(abc.ABCMeta):
         return self
 
     def __repr__(self):
-        return '<DataSetFamily: %r, extra_dims=%r>' % (
-            self.__name__,
-            list(self.extra_dims),
+        return (
+            f"<DataSetFamily: {self.__name__!r}, extra_dims={list(self.extra_dims)!r}>"
         )
 
 
@@ -786,7 +803,7 @@ class DataSetFamilySlice(DataSet):
 
 # XXX: This docstring was mostly written when the abstraction here was
 # "MultiDimensionalDataSet". It probably needs some rewriting.
-class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
+class DataSetFamily(metaclass=DataSetFamilyMeta):
     """
     Base class for Pipeline dataset families.
 
@@ -849,6 +866,7 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
     This sliced dataset represents the rows from the higher dimensional dataset
     where ``(dimension_0 == 'a') & (dimension_1 == 'e')``.
     """
+
     _abstract = True  # Removed by metaclass
 
     domain = GENERIC
@@ -857,12 +875,13 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
     _SliceType = DataSetFamilySlice
 
     @type.__call__
-    class extra_dims(object):
+    class extra_dims:
         """OrderedDict[str, frozenset] of dimension name -> unique values
 
         May be defined on subclasses as an iterable of pairs: the
         metaclass converts this attribute to an OrderedDict.
         """
+
         __isabstractmethod__ = True
 
         def __get__(self, instance, owner):
@@ -875,24 +894,20 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
         if not set(kwargs) <= dimensions_set:
             extra = sorted(set(kwargs) - dimensions_set)
             raise TypeError(
-                '%s does not have the following %s: %s\n'
-                'Valid dimensions are: %s' % (
+                "{} does not have the following {}: {}\n"
+                "Valid dimensions are: {}".format(
                     cls.__name__,
-                    s('dimension', extra),
-                    ', '.join(extra),
-                    ', '.join(extra_dims),
+                    s("dimension", extra),
+                    ", ".join(extra),
+                    ", ".join(extra_dims),
                 ),
             )
 
         if len(args) > len(extra_dims):
             raise TypeError(
-                '%s has %d extra %s but %d %s given' % (
-                    cls.__name__,
-                    len(extra_dims),
-                    s('dimension', extra_dims),
-                    len(args),
-                    plural('was', 'were', args),
-                ),
+                f"{cls.__name__} has {len(extra_dims)} extra"
+                f" {s('dimension', extra_dims)} but {len(args)}"
+                f" {plural('was', 'were', args)} given"
             )
 
         missing = object()
@@ -904,10 +919,7 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
         for key, value in kwargs.items():
             if key in added:
                 raise TypeError(
-                    '%s got multiple values for dimension %r' % (
-                        cls.__name__,
-                        coords,
-                    ),
+                    f"{cls.__name__} got multiple values for dimension {coords!r}",
                 )
             coords[key] = value
             added.add(key)
@@ -916,10 +928,10 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
         if missing:
             missing = sorted(missing)
             raise TypeError(
-                'no coordinate provided to %s for the following %s: %s' % (
+                "no coordinate provided to {} for the following {}: {}".format(
                     cls.__name__,
-                    s('dimension', missing),
-                    ', '.join(missing),
+                    s("dimension", missing),
+                    ", ".join(missing),
                 ),
             )
 
@@ -928,25 +940,23 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
         for key, value in coords.items():
             if value not in cls.extra_dims[key]:
                 raise ValueError(
-                    '%r is not a value along the %s dimension of %s' % (
-                        value,
-                        key,
-                        cls.__name__,
-                    ),
+                    f"{value!r} is not a value along the {key} dimension of "
+                    f"{cls.__name__}",
                 )
 
         return coords, tuple(coords.items())
 
     @classmethod
     def _make_dataset(cls, coords):
-        """Construct a new dataset given the coordinates.
-        """
-        class Slice(cls._SliceType):
+        """Construct a new dataset given the coordinates."""
+
+        # ty can't model a base class chosen at runtime.
+        class Slice(cls._SliceType):  # ty: ignore[unsupported-base]
             extra_coords = coords
 
-        Slice.__name__ = '%s.slice(%s)' % (
+        Slice.__name__ = "{}.slice({})".format(
             cls.__name__,
-            ', '.join('%s=%r' % item for item in coords.items()),
+            ", ".join("{}={!r}".format(*item) for item in coords.items()),
         )
         return Slice
 
@@ -983,6 +993,6 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
 
 
 CurrencyConversion = namedtuple(
-    'CurrencyConversion',
-    ['currency', 'field'],
+    "CurrencyConversion",
+    ["currency", "field"],
 )

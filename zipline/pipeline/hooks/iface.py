@@ -1,6 +1,5 @@
+from abc import ABC, abstractmethod
 from contextlib import contextmanager as _contextmanager
-from interface import Interface
-
 
 # Keep track of which methods of PipelineHooks are contextmanagers. Used by
 # DelegatingHooks to properly delegate to sub-hooks.
@@ -16,7 +15,7 @@ def contextmanager(f):
     return _contextmanager(f)
 
 
-class PipelineHooks(Interface):
+class PipelineHooks(ABC):
     """
     Interface for instrumenting SimplePipelineEngine executions.
 
@@ -35,6 +34,7 @@ class PipelineHooks(Interface):
     """
 
     @contextmanager
+    @abstractmethod
     def running_pipeline(self, pipeline, start_date, end_date):
         """
         Contextmanager entered during execution of run_pipeline or
@@ -51,6 +51,7 @@ class PipelineHooks(Interface):
         """
 
     @contextmanager
+    @abstractmethod
     def computing_chunk(self, terms, start_date, end_date):
         """
         Contextmanager entered during execution of compute_chunk.
@@ -68,6 +69,7 @@ class PipelineHooks(Interface):
         """
 
     @contextmanager
+    @abstractmethod
     def loading_terms(self, terms):
         """Contextmanager entered when loading a batch of LoadableTerms.
 
@@ -78,6 +80,7 @@ class PipelineHooks(Interface):
         """
 
     @contextmanager
+    @abstractmethod
     def computing_term(self, term):
         """Contextmanager entered when computing a ComputableTerm.
 

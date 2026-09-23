@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from itertools import permutations, product, islice
+from itertools import islice, permutations, product
 from operator import (
     add,
     ge,
@@ -9,6 +9,7 @@ from operator import (
     methodcaller,
     mul,
     ne,
+    neg,
     sub,
 )
 from string import ascii_uppercase
@@ -26,16 +27,16 @@ from numpy import (
 )
 from pandas import (
     DataFrame,
+    Index,
     date_range,
-    Int64Index,
 )
 
 from zipline.pipeline import Factor, Filter
-from zipline.pipeline.factors.factor import NumExprFactor
 from zipline.pipeline.expression import (
     NUMEXPR_MATH_FUNCS,
     NumericalExpression,
 )
+from zipline.pipeline.factors.factor import NumExprFactor
 from zipline.testing import check_allclose, parameter_space
 from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
 
@@ -70,10 +71,9 @@ class DateFactor(Factor):
 
 
 class NumericalExpressionTestCase(TestCase):
-
     def setUp(self):
-        self.dates = date_range('2014-01-01', periods=5, freq='D')
-        self.assets = Int64Index(range(5))
+        self.dates = date_range("2014-01-01", periods=5, freq="D")
+        self.assets = Index(range(5), dtype="int64")
         self.f = F()
         self.g = G()
         self.h = H()
@@ -82,7 +82,7 @@ class NumericalExpressionTestCase(TestCase):
             self.f: full((5, 5), 3, float),
             self.g: full((5, 5), 2, float),
             self.h: full((5, 5), 1, float),
-            self.d: full((5, 5), 0, dtype='datetime64[ns]'),
+            self.d: full((5, 5), 0, dtype="datetime64[ns]"),
         }
         self.mask = DataFrame(True, index=self.dates, columns=self.assets)
 
@@ -143,13 +143,13 @@ class NumericalExpressionTestCase(TestCase):
         with self.assertRaises(TypeError):
             f + "2"
         with self.assertRaises(TypeError):
-            f > "2"
+            _ = f > "2"
 
         # Boolean binary operators must be between filters.
         with self.assertRaises(TypeError):
             f + (f > 2)
         with self.assertRaises(TypeError):
-            (f > f) > f
+            _ = (f > f) > f
 
     @parameter_space(num_new_inputs=[1, 4])
     def test_many_inputs(self, num_new_inputs):
@@ -168,10 +168,8 @@ class NumericalExpressionTestCase(TestCase):
         # correct order.
         ops = (add, sub)
 
-        for i, name in enumerate(
-            islice(product(ascii_uppercase, ascii_uppercase), 64)
-        ):
-            name = ''.join(name)
+        for i, name in enumerate(islice(product(ascii_uppercase, ascii_uppercase), 64)):
+            name = "".join(name)
             op = ops[i % 2]
 
             new_expr_inputs = []
@@ -231,30 +229,30 @@ class NumericalExpressionTestCase(TestCase):
     def test_combine_datetime_with_float(self):
         # Test with both float-type factors and numeric values.
         for float_value in (self.f, float64(1.0), 1.0):
-            for op, sym in ((add, '+'), (mul, '*')):
+            for op, sym in ((add, "+"), (mul, "*")):
                 with self.assertRaises(TypeError) as e:
-                    op(self.f, self.d)
+                    op(float_value, self.d)
                 message = e.exception.args[0]
                 expected = (
-                    "Don't know how to compute float64 {sym} datetime64[ns].\n"
+                    f"Don't know how to compute float64 {sym} datetime64[ns].\n"
                     "Arithmetic operators are only supported between Factors"
                     " of dtype 'float64'."
-                ).format(sym=sym)
+                )
                 self.assertEqual(message, expected)
 
                 with self.assertRaises(TypeError) as e:
-                    op(self.d, self.f)
+                    op(self.d, float_value)
                 message = e.exception.args[0]
                 expected = (
-                    "Don't know how to compute datetime64[ns] {sym} float64.\n"
+                    f"Don't know how to compute datetime64[ns] {sym} float64.\n"
                     "Arithmetic operators are only supported between Factors"
                     " of dtype 'float64'."
-                ).format(sym=sym)
+                )
                 self.assertEqual(message, expected)
 
     def test_negate_datetime(self):
         with self.assertRaises(TypeError) as e:
-            -self.d
+            _ = -self.d
 
         message = e.exception.args[0]
         expected = (
@@ -268,8 +266,8 @@ class NumericalExpressionTestCase(TestCase):
         f, g = self.f, self.g
 
         self.check_constant_output(-f, -3.0)
-        self.check_constant_output(--f, 3.0)
-        self.check_constant_output(---f, -3.0)
+        self.check_constant_output(neg(neg(f)), 3.0)
+        self.check_constant_output(neg(neg(neg(f))), -3.0)
 
         self.check_constant_output(-(f + f), -6.0)
         self.check_constant_output(-f + -f, -6.0)
@@ -310,22 +308,22 @@ class NumericalExpressionTestCase(TestCase):
 
         self.check_constant_output(f - g, 1.0)  # 3 - 2
 
-        self.check_constant_output((1 - f) - g, -4.)   # (1 - 3) - 2
-        self.check_constant_output(1 - (f - g), 0.0)   # 1 - (3 - 2)
-        self.check_constant_output((f - 1) - g, 0.0)   # (3 - 1) - 2
-        self.check_constant_output(f - (1 - g), 4.0)   # 3 - (1 - 2)
-        self.check_constant_output((f - g) - 1, 0.0)   # (3 - 2) - 1
-        self.check_constant_output(f - (g - 1), 2.0)   # 3 - (2 - 1)
+        self.check_constant_output((1 - f) - g, -4.0)  # (1 - 3) - 2
+        self.check_constant_output(1 - (f - g), 0.0)  # 1 - (3 - 2)
+        self.check_constant_output((f - 1) - g, 0.0)  # (3 - 1) - 2
+        self.check_constant_output(f - (1 - g), 4.0)  # 3 - (1 - 2)
+        self.check_constant_output((f - g) - 1, 0.0)  # (3 - 2) - 1
+        self.check_constant_output(f - (g - 1), 2.0)  # 3 - (2 - 1)
 
-        self.check_constant_output((f - f) - f, -3.)   # (3 - 3) - 3
-        self.check_constant_output(f - (f - f), 3.0)   # 3 - (3 - 3)
+        self.check_constant_output((f - f) - f, -3.0)  # (3 - 3) - 3
+        self.check_constant_output(f - (f - f), 3.0)  # 3 - (3 - 3)
 
-        self.check_constant_output((f - g) - f, -2.)   # (3 - 2) - 3
-        self.check_constant_output(f - (g - f), 4.0)   # 3 - (2 - 3)
+        self.check_constant_output((f - g) - f, -2.0)  # (3 - 2) - 3
+        self.check_constant_output(f - (g - f), 4.0)  # 3 - (2 - 3)
 
         self.check_constant_output((f - g) - (f - g), 0.0)  # (3 - 2) - (3 - 2)
         self.check_constant_output((f - g) - (g - f), 2.0)  # (3 - 2) - (2 - 3)
-        self.check_constant_output((g - f) - (f - g), -2.)  # (2 - 3) - (3 - 2)
+        self.check_constant_output((g - f) - (f - g), -2.0)  # (2 - 3) - (3 - 2)
         self.check_constant_output((g - f) - (g - f), 0.0)  # (2 - 3) - (2 - 3)
 
     def test_multiply(self):
@@ -358,10 +356,7 @@ class NumericalExpressionTestCase(TestCase):
 
         self.check_constant_output(f / g, 3.0 / 2.0)
 
-        self.check_constant_output(
-            (2 / f) / g,
-            (2 / 3.0) / 2.0
-        )
+        self.check_constant_output((2 / f) / g, (2 / 3.0) / 2.0)
         self.check_constant_output(
             2 / (f / g),
             2 / (3.0 / 2.0),
@@ -382,10 +377,7 @@ class NumericalExpressionTestCase(TestCase):
             f / (g / 2),
             3.0 / (2.0 / 2),
         )
-        self.check_constant_output(
-            (f / f) / f,
-            (3.0 / 3.0) / 3.0
-        )
+        self.check_constant_output((f / f) / f, (3.0 / 3.0) / 3.0)
         self.check_constant_output(
             f / (f / f),
             3.0 / (3.0 / 3.0),
@@ -419,20 +411,20 @@ class NumericalExpressionTestCase(TestCase):
     def test_pow(self):
         f, g = self.f, self.g
 
-        self.check_constant_output(f ** g, 3.0 ** 2)
-        self.check_constant_output(2 ** f, 2.0 ** 3)
-        self.check_constant_output(f ** 2, 3.0 ** 2)
+        self.check_constant_output(f**g, 3.0**2)
+        self.check_constant_output(2**f, 2.0**3)
+        self.check_constant_output(f**2, 3.0**2)
 
         self.check_constant_output((f + g) ** 2, (3.0 + 2.0) ** 2)
         self.check_constant_output(2 ** (f + g), 2 ** (3.0 + 2.0))
 
-        self.check_constant_output(f ** (f ** g), 3.0 ** (3.0 ** 2.0))
-        self.check_constant_output((f ** f) ** g, (3.0 ** 3.0) ** 2.0)
+        self.check_constant_output(f ** (f**g), 3.0 ** (3.0**2.0))
+        self.check_constant_output((f**f) ** g, (3.0**3.0) ** 2.0)
 
-        self.check_constant_output((f ** g) ** (f ** g), 9.0 ** 9.0)
-        self.check_constant_output((f ** g) ** (g ** f), 9.0 ** 8.0)
-        self.check_constant_output((g ** f) ** (f ** g), 8.0 ** 9.0)
-        self.check_constant_output((g ** f) ** (g ** f), 8.0 ** 8.0)
+        self.check_constant_output((f**g) ** (f**g), 9.0**9.0)
+        self.check_constant_output((f**g) ** (g**f), 9.0**8.0)
+        self.check_constant_output((g**f) ** (f**g), 8.0**9.0)
+        self.check_constant_output((g**f) ** (g**f), 8.0**8.0)
 
     def test_mod(self):
         f, g = self.f, self.g
@@ -454,8 +446,8 @@ class NumericalExpressionTestCase(TestCase):
 
         fake_raw_data = self.fake_raw_data
         alt_fake_raw_data = {
-            self.f: full((5, 5), .5),
-            self.g: full((5, 5), -.5),
+            self.f: full((5, 5), 0.5),
+            self.g: full((5, 5), -0.5),
         }
 
         for funcname in NUMEXPR_MATH_FUNCS:
@@ -464,7 +456,7 @@ class NumericalExpressionTestCase(TestCase):
 
             # These methods have domains in [0, 1], so we need alternate inputs
             # that are in the domain.
-            if funcname in ('arcsin', 'arccos', 'arctanh'):
+            if funcname in ("arcsin", "arccos", "arctanh"):
                 self.fake_raw_data = alt_fake_raw_data
             else:
                 self.fake_raw_data = fake_raw_data
@@ -478,8 +470,8 @@ class NumericalExpressionTestCase(TestCase):
             self.check_constant_output(method(f) + 1, func(f_val) + 1)
             self.check_constant_output(1 + method(f), 1 + func(f_val))
 
-            self.check_constant_output(method(f + .25), func(f_val + .25))
-            self.check_constant_output(method(.25 + f), func(.25 + f_val))
+            self.check_constant_output(method(f + 0.25), func(f_val + 0.25))
+            self.check_constant_output(method(0.25 + f), func(0.25 + f_val))
 
             self.check_constant_output(
                 method(f) + method(g),
@@ -512,7 +504,7 @@ class NumericalExpressionTestCase(TestCase):
             (f + 1, g, f_data + 1, g_data),
             (f, g + 1, f_data, g_data + 1),
             (f + 1, g + 1, f_data + 1, g_data + 1),
-            ((f + g) / 2, f ** 2, (f_data + g_data) / 2, f_data ** 2),
+            ((f + g) / 2, f**2, (f_data + g_data) / 2, f_data**2),
         ]
         for op in (gt, ge, lt, le, ne):
             for expr_lhs, expr_rhs, expected_lhs, expected_rhs in cases:
@@ -528,11 +520,13 @@ class NumericalExpressionTestCase(TestCase):
         # delegation to NumericalExpression.
         custom_filter = NonExprFilter()
         custom_filter_mask = array(
-            [[0, 1, 0, 1, 0],
-             [0, 0, 1, 0, 0],
-             [1, 0, 0, 0, 0],
-             [0, 0, 1, 1, 0],
-             [0, 0, 0, 1, 0]],
+            [
+                [0, 1, 0, 1, 0],
+                [0, 0, 1, 0, 0],
+                [1, 0, 0, 0, 0],
+                [0, 0, 1, 1, 0],
+                [0, 0, 0, 1, 0],
+            ],
             dtype=bool,
         )
 
@@ -544,7 +538,7 @@ class NumericalExpressionTestCase(TestCase):
         }
 
         # Should be True on the diagonal.
-        eye_filter = (f > g)
+        eye_filter = f > g
 
         # Should be True in the first row only.
         first_row_filter = f < h

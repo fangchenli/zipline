@@ -2,10 +2,9 @@ import numpy as np
 import pandas as pd
 from pandas import NaT
 
-from trading_calendars import TradingCalendar
-
-from zipline.data.bar_reader import OHLCV, NoDataOnDate, NoDataForSid
+from zipline.data.bar_reader import OHLCV, NoDataForSid, NoDataOnDate
 from zipline.data.session_bars import CurrencyAwareSessionBarReader
+from zipline.utils.calendar_utils import ExchangeCalendar
 from zipline.utils.input_validation import expect_types, validate_keys
 from zipline.utils.pandas_utils import check_indexes_all_same
 
@@ -19,7 +18,7 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
     frames : dict[str -> pd.DataFrame]
         Dictionary from field name ("open", "high", "low", "close", or
         "volume") to DataFrame containing data for that field.
-    calendar : str or trading_calendars.TradingCalendar
+    calendar : str or zipline.utils.calendar_utils.ExchangeCalendar
         Calendar (or name of calendar) to which data is aligned.
     currency_codes : pd.Series
         Map from sid -> listing currency for that sid.
@@ -27,17 +26,14 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
         Whether or not to verify that input data is correctly aligned to the
         given calendar. Default is True.
     """
+
     @expect_types(
         frames=dict,
-        calendar=TradingCalendar,
+        calendar=ExchangeCalendar,
         verify_indices=bool,
         currency_codes=pd.Series,
     )
-    def __init__(self,
-                 frames,
-                 calendar,
-                 currency_codes,
-                 verify_indices=True):
+    def __init__(self, frames, calendar, currency_codes, verify_indices=True):
         self._frames = frames
         self._values = {key: frame.values for key, frame in frames.items()}
         self._calendar = calendar
@@ -47,18 +43,12 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
         if verify_indices:
             verify_frames_aligned(list(frames.values()), calendar)
 
-        self._sessions = frames['close'].index
-        self._sids = frames['close'].columns
-
-    @classmethod
-    def from_panel(cls, panel, calendar, currency_codes):
-        """Helper for construction from a pandas.Panel.
-        """
-        return cls(dict(panel.iteritems()), calendar, currency_codes)
+        self._sessions = frames["close"].index
+        self._sids = frames["close"].columns
 
     @property
     def last_available_dt(self):
-        return self._calendar[-1]
+        return self._sessions[-1]
 
     @property
     def trading_calendar(self):
@@ -68,18 +58,18 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
     def sessions(self):
         return self._sessions
 
-    def load_raw_arrays(self, columns, start_dt, end_dt, assets):
-        if start_dt not in self._sessions:
-            raise NoDataOnDate(start_dt)
-        if end_dt not in self._sessions:
-            raise NoDataOnDate(end_dt)
+    def load_raw_arrays(self, columns, start_date, end_date, assets):
+        if start_date not in self._sessions:
+            raise NoDataOnDate(start_date)
+        if end_date not in self._sessions:
+            raise NoDataOnDate(end_date)
 
         asset_indexer = self._sids.get_indexer(assets)
         if -1 in asset_indexer:
             bad_assets = assets[asset_indexer == -1]
             raise NoDataForSid(bad_assets)
 
-        date_indexer = self._sessions.slice_indexer(start_dt, end_dt)
+        date_indexer = self._sessions.slice_indexer(start_date, end_date)
 
         out = []
         for c in columns:
@@ -107,7 +97,7 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
             Returns -1 if the day is within the date range, but the price is
             0.
         """
-        return self.frames[field].loc[dt, sid]
+        return self._frames[field].loc[dt, sid]
 
     def get_last_traded_dt(self, asset, dt):
         """
@@ -124,9 +114,11 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
                        NaT if no trade is found before the given dt.
         """
         try:
-            return self.frames['close'].loc[:, asset.sid].last_valid_index()
-        except IndexError:
+            closes = self._frames["close"].loc[:dt, asset.sid]
+        except KeyError:
             return NaT
+        last = closes.last_valid_index()
+        return NaT if last is None else last
 
     @property
     def first_trading_day(self):
@@ -145,7 +137,7 @@ def verify_frames_aligned(frames, calendar):
     Parameters
     ----------
     frames : list[pd.DataFrame]
-    calendar : trading_calendars.TradingCalendar
+    calendar : zipline.utils.calendar_utils.ExchangeCalendar
 
     Raises
     ------

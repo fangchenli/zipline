@@ -2,6 +2,7 @@
 A simple Pipeline algorithm that longs the top 3 stocks by RSI and shorts
 the bottom 3 each day.
 """
+
 from zipline.api import (
     attach_pipeline,
     date_rules,
@@ -19,8 +20,8 @@ def make_pipeline():
     rsi = RSI()
     return Pipeline(
         columns={
-            'longs': rsi.top(3),
-            'shorts': rsi.bottom(3),
+            "longs": rsi.top(3),
+            "shorts": rsi.bottom(3),
         },
     )
 
@@ -46,7 +47,7 @@ def rebalance(context, data):
         order_target_percent(asset, -one_third)
 
     # Remove any assets that should no longer be in our portfolio.
-    portfolio_assets = longs | shorts
+    portfolio_assets = longs.union(shorts)
     positions = context.portfolio.positions
     for asset in positions.keys() - set(portfolio_assets):
         # This will fail if the asset was removed from our portfolio because it
@@ -56,7 +57,7 @@ def rebalance(context, data):
 
 
 def initialize(context):
-    attach_pipeline(make_pipeline(), 'my_pipeline')
+    attach_pipeline(make_pipeline(), "my_pipeline")
 
     # Rebalance each day.  In daily mode, this is equivalent to putting
     # `rebalance` in our handle_data, but in minute mode, it's equivalent to
@@ -67,12 +68,12 @@ def initialize(context):
     # rebuild example data.
     # github.com/quantopian/zipline/blob/master/tests/resources/
     # rebuild_example_data#L105
-    context.set_commission(commission.PerShare(cost=.0075, min_trade_cost=1.0))
+    context.set_commission(commission.PerShare(cost=0.0075, min_trade_cost=1.0))
     context.set_slippage(slippage.VolumeShareSlippage())
 
 
 def before_trading_start(context, data):
-    context.pipeline_data = pipeline_output('my_pipeline')
+    context.pipeline_data = pipeline_output("my_pipeline")
 
 
 def _test_args():
@@ -93,7 +94,7 @@ def _test_args():
     return {
         # We run through october of 2013 because DELL is in the test data and
         # it went private on 2013-10-29.
-        'start': pd.Timestamp('2013-10-07', tz='utc'),
-        'end': pd.Timestamp('2013-11-30', tz='utc'),
-        'capital_base': 100000,
+        "start": pd.Timestamp("2013-10-07"),
+        "end": pd.Timestamp("2013-11-30"),
+        "capital_base": 100000,
     }

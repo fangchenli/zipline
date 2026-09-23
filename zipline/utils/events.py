@@ -12,46 +12,48 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import datetime
+import warnings
 from abc import ABC, abstractmethod
 from collections import namedtuple
-import warnings
-import datetime
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
-import pytz
 from toolz import curry
 
-from zipline.utils.input_validation import preprocess
+from zipline.utils.calendar_utils import (
+    execution_time_from_close,
+    execution_time_from_open,
+)
+from zipline.utils.input_validation import get_timezone, preprocess
 from zipline.utils.memoize import lazyval
 from zipline.utils.sentinel import sentinel
 
 from .context_tricks import nop_context
 
-
 __all__ = [
-    'EventManager',
-    'Event',
-    'EventRule',
-    'StatelessRule',
-    'ComposedRule',
-    'Always',
-    'Never',
-    'AfterOpen',
-    'BeforeClose',
-    'NotHalfDay',
-    'NthTradingDayOfWeek',
-    'NDaysBeforeLastTradingDayOfWeek',
-    'NthTradingDayOfMonth',
-    'NDaysBeforeLastTradingDayOfMonth',
-    'StatefulRule',
-    'OncePerDay',
-
+    "EventManager",
+    "Event",
+    "EventRule",
+    "StatelessRule",
+    "ComposedRule",
+    "Always",
+    "Never",
+    "AfterOpen",
+    "BeforeClose",
+    "NotHalfDay",
+    "NthTradingDayOfWeek",
+    "NDaysBeforeLastTradingDayOfWeek",
+    "NthTradingDayOfMonth",
+    "NDaysBeforeLastTradingDayOfMonth",
+    "StatefulRule",
+    "OncePerDay",
     # Factory API
-    'date_rules',
-    'time_rules',
-    'calendars',
-    'make_eventrule',
+    "date_rules",
+    "time_rules",
+    "calendars",
+    "make_eventrule",
 ]
 
 
@@ -65,32 +67,26 @@ def naive_to_utc(ts):
     """
     # Drop the nanoseconds field. warn=False suppresses the warning
     # that we are losing the nanoseconds; however, this is intended.
-    return pd.Timestamp(ts.to_pydatetime(warn=False), tz='UTC')
+    return pd.Timestamp(ts.to_pydatetime(warn=False), tz="UTC")
 
 
-def ensure_utc(time, tz='UTC'):
+def ensure_utc(time, tz="UTC"):
     """
     Normalize a time. If the time is tz-naive, assume it is UTC.
     """
     if not time.tzinfo:
-        time = time.replace(tzinfo=pytz.timezone(tz))
-    return time.replace(tzinfo=pytz.utc)
+        time = time.replace(tzinfo=get_timezone(tz))
+    return time.replace(tzinfo=ZoneInfo("UTC"))
 
 
-def _out_of_range_error(a, b=None, var='offset'):
+def _out_of_range_error(a, b=None, var="offset"):
     start = 0
     if b is None:
         end = a - 1
     else:
         start = a
         end = b - 1
-    return ValueError(
-        '{var} must be in between {start} and {end} inclusive'.format(
-            var=var,
-            start=start,
-            end=end,
-        )
-    )
+    return ValueError(f"{var} must be in between {start} and {end} inclusive")
 
 
 def _td_check(td):
@@ -100,8 +96,7 @@ def _td_check(td):
     if 60 <= seconds <= 43200:
         return td
     else:
-        raise ValueError('offset must be in between 1 minute and 12 hours, '
-                         'inclusive.')
+        raise ValueError("offset must be in between 1 minute and 12 hours, inclusive.")
 
 
 def _build_offset(offset, kwargs, default):
@@ -116,7 +111,7 @@ def _build_offset(offset, kwargs, default):
         else:
             return _td_check(datetime.timedelta(**kwargs))
     elif kwargs:
-        raise ValueError('Cannot pass kwargs and an offset')
+        raise ValueError("Cannot pass kwargs and an offset")
     elif isinstance(offset, datetime.timedelta):
         return _td_check(offset)
     else:
@@ -129,12 +124,12 @@ def _build_date(date, kwargs):
     """
     if date is None:
         if not kwargs:
-            raise ValueError('Must pass a date or kwargs')
+            raise ValueError("Must pass a date or kwargs")
         else:
             return datetime.date(**kwargs)
 
     elif kwargs:
-        raise ValueError('Cannot pass kwargs and a date')
+        raise ValueError("Cannot pass kwargs and a date")
     else:
         return date
 
@@ -143,14 +138,14 @@ def _build_time(time, kwargs):
     """
     Builds the time argument for event rules.
     """
-    tz = kwargs.pop('tz', 'UTC')
+    tz = kwargs.pop("tz", "UTC")
     if time:
         if kwargs:
-            raise ValueError('Cannot pass kwargs and a time')
+            raise ValueError("Cannot pass kwargs and a time")
         else:
             return ensure_utc(time, tz)
     elif not kwargs:
-        raise ValueError('Must pass a time or kwargs')
+        raise ValueError("Must pass a time or kwargs")
     else:
         return datetime.time(**kwargs)
 
@@ -168,12 +163,9 @@ def lossless_float_to_int(funcname, func, argname, arg):
     arg_as_int = int(arg)
     if arg == arg_as_int:
         warnings.warn(
-            "{f} expected an int for argument {name!r}, but got float {arg}."
-            " Coercing to int.".format(
-                f=funcname,
-                name=argname,
-                arg=arg,
-            ),
+            f"{funcname} expected an int for argument {argname!r}, but got float {arg}."
+            " Coercing to int.",
+            stacklevel=4,  # past toolz.curry and the preprocess wrapper
         )
         return arg_as_int
 
@@ -191,12 +183,11 @@ class EventManager:
         An optional callback to produce a context manager to wrap the calls
         to handle_data. This will be passed the current BarData.
     """
+
     def __init__(self, create_context=None):
         self._events = []
         self._create_context = (
-            create_context
-            if create_context is not None else
-            lambda *_: nop_context
+            create_context if create_context is not None else lambda *_: nop_context
         )
 
     def add_event(self, event, prepend=False):
@@ -218,12 +209,13 @@ class EventManager:
                 )
 
 
-class Event(namedtuple('Event', ['rule', 'callback'])):
+class Event(namedtuple("Event", ["rule", "callback"])):
     """
     An event is a pairing of an EventRule and a callable that will be invoked
     with the current algorithm context, data, and datetime only when the rule
     is triggered.
     """
+
     def __new__(cls, rule, callback=None):
         callback = callback or (lambda *args, **kwargs: None)
         return super(cls, cls).__new__(cls, rule=rule, callback=callback)
@@ -237,8 +229,8 @@ class Event(namedtuple('Event', ['rule', 'callback'])):
 
 
 class EventRule(ABC):
-    """A rule defining when a scheduled function should execute.
-    """
+    """A rule defining when a scheduled function should execute."""
+
     # Instances of EventRule are assigned a calendar instance when scheduling
     # a function.
     _cal = None
@@ -257,7 +249,7 @@ class EventRule(ABC):
         Checks if the rule should trigger with its current state.
         This method should be pure and NOT mutate any state on the object.
         """
-        raise NotImplementedError('should_trigger')
+        raise NotImplementedError("should_trigger")
 
 
 class StatelessRule(EventRule):
@@ -267,12 +259,14 @@ class StatelessRule(EventRule):
     same datetime.
     Because these are pure, they can be composed to create new rules.
     """
+
     def and_(self, rule):
         """
         Logical and of two rules, triggers only when both rules trigger.
         This follows the short circuiting rules for normal and.
         """
         return ComposedRule(self, rule, ComposedRule.lazy_and)
+
     __and__ = and_
 
 
@@ -289,10 +283,10 @@ class ComposedRule(StatelessRule):
     operators so that they will have the same short circuit logic that is
     expected.
     """
+
     def __init__(self, first, second, composer):
-        if not (isinstance(first, StatelessRule) and
-                isinstance(second, StatelessRule)):
-            raise ValueError('Only two StatelessRules can be composed')
+        if not (isinstance(first, StatelessRule) and isinstance(second, StatelessRule)):
+            raise ValueError("Only two StatelessRules can be composed")
 
         self.first = first
         self.second = second
@@ -302,11 +296,7 @@ class ComposedRule(StatelessRule):
         """
         Composes the two rules with a lazy composer.
         """
-        return self.composer(
-            self.first.should_trigger,
-            self.second.should_trigger,
-            dt
-        )
+        return self.composer(self.first.should_trigger, self.second.should_trigger, dt)
 
     @staticmethod
     def lazy_and(first_should_trigger, second_should_trigger, dt):
@@ -330,12 +320,14 @@ class Always(StatelessRule):
     """
     A rule that always triggers.
     """
+
     @staticmethod
     def always_trigger(dt):
         """
         A should_trigger implementation that will always trigger.
         """
         return True
+
     should_trigger = always_trigger
 
 
@@ -343,12 +335,14 @@ class Never(StatelessRule):
     """
     A rule that never triggers.
     """
+
     @staticmethod
     def never_trigger(dt):
         """
         A should_trigger implementation that will never trigger.
         """
         return False
+
     should_trigger = never_trigger
 
 
@@ -360,6 +354,7 @@ class AfterOpen(StatelessRule):
     >>> AfterOpen(minutes=30)  # doctest: +ELLIPSIS
     <zipline.utils.events.AfterOpen object at ...>
     """
+
     def __init__(self, offset=None, **kwargs):
         self.offset = _build_offset(
             offset,
@@ -377,15 +372,15 @@ class AfterOpen(StatelessRule):
         """
         Given a date, find that day's open and period end (open + offset).
         """
-        period_start, period_close = self.cal.open_and_close_for_session(
-            self.cal.minute_to_session_label(dt),
+        period_start, period_close = self.cal.session_first_last_minute(
+            self.cal.minute_to_session(dt),
         )
 
         # Align the market open and close times here with the execution times
         # used by the simulation clock. This ensures that scheduled functions
         # trigger at the correct times.
-        self._period_start = self.cal.execution_time_from_open(period_start)
-        self._period_close = self.cal.execution_time_from_close(period_close)
+        self._period_start = execution_time_from_open(self.cal, period_start)
+        self._period_close = execution_time_from_close(self.cal, period_close)
 
         self._period_end = self._period_start + self.offset - self._one_minute
 
@@ -399,10 +394,7 @@ class AfterOpen(StatelessRule):
         # that we will NOT correctly recognize a new date if we go backwards
         # in time(which should never happen in a simulation, or in live
         # trading)
-        if (
-            self._period_start is None or
-            self._period_close <= dt
-        ):
+        if self._period_start is None or self._period_close <= dt:
             self.calculate_dates(dt)
 
         return dt == self._period_end
@@ -416,6 +408,7 @@ class BeforeClose(StatelessRule):
     >>> BeforeClose(minutes=30)  # doctest: +ELLIPSIS
     <zipline.utils.events.BeforeClose object at ...>
     """
+
     def __init__(self, offset=None, **kwargs):
         self.offset = _build_offset(
             offset,
@@ -433,14 +426,14 @@ class BeforeClose(StatelessRule):
         """
         Given a dt, find that day's close and period start (close - offset).
         """
-        period_end = self.cal.open_and_close_for_session(
-            self.cal.minute_to_session_label(dt),
+        period_end = self.cal.session_first_last_minute(
+            self.cal.minute_to_session(dt),
         )[1]
 
         # Align the market close time here with the execution time used by the
         # simulation clock. This ensures that scheduled functions trigger at
         # the correct times.
-        self._period_end = self.cal.execution_time_from_close(period_end)
+        self._period_end = execution_time_from_close(self.cal, period_end)
 
         self._period_start = self._period_end - self.offset
         self._period_close = self._period_end
@@ -465,13 +458,13 @@ class NotHalfDay(StatelessRule):
     """
     A rule that only triggers when it is not a half day.
     """
+
     def should_trigger(self, dt):
-        return self.cal.minute_to_session_label(dt) \
-            not in self.cal.early_closes
+        return self.cal.minute_to_session(dt) not in self.cal.early_closes
 
 
 class TradingDayOfWeekRule(StatelessRule):
-    @preprocess(n=lossless_float_to_int('TradingDayOfWeekRule'))
+    @preprocess(n=lossless_float_to_int("TradingDayOfWeekRule"))
     def __init__(self, n, invert):
         if not 0 <= n < MAX_WEEK_RANGE:
             raise _out_of_range_error(MAX_WEEK_RANGE)
@@ -480,13 +473,13 @@ class TradingDayOfWeekRule(StatelessRule):
 
     def should_trigger(self, dt):
         # is this market minute's period in the list of execution periods?
-        val = self.cal.minute_to_session_label(dt, direction="none").value
+        val = self.cal.minute_to_session(dt, direction="none").value
         return val in self.execution_period_values
 
     @lazyval
     def execution_period_values(self):
         # calculate the list of periods that match the given criteria
-        sessions = self.cal.all_sessions
+        sessions = self.cal.sessions
         return set(
             pd.Series(data=sessions)
             # Group by ISO year (0) and week (1)
@@ -501,6 +494,7 @@ class NthTradingDayOfWeek(TradingDayOfWeekRule):
     A rule that triggers on the nth trading day of the week.
     This is zero-indexed, n=0 is the first trading day of the week.
     """
+
     def __init__(self, n):
         super().__init__(n, invert=False)
 
@@ -509,13 +503,13 @@ class NDaysBeforeLastTradingDayOfWeek(TradingDayOfWeekRule):
     """
     A rule that triggers n days before the last trading day of the week.
     """
+
     def __init__(self, n):
         super().__init__(n, invert=True)
 
 
 class TradingDayOfMonthRule(StatelessRule):
-
-    @preprocess(n=lossless_float_to_int('TradingDayOfMonthRule'))
+    @preprocess(n=lossless_float_to_int("TradingDayOfMonthRule"))
     def __init__(self, n, invert):
         if not 0 <= n < MAX_MONTH_RANGE:
             raise _out_of_range_error(MAX_MONTH_RANGE)
@@ -526,13 +520,13 @@ class TradingDayOfMonthRule(StatelessRule):
 
     def should_trigger(self, dt):
         # is this market minute's period in the list of execution periods?
-        value = self.cal.minute_to_session_label(dt, direction="none").value
+        value = self.cal.minute_to_session(dt, direction="none").value
         return value in self.execution_period_values
 
     @lazyval
     def execution_period_values(self):
         # calculate the list of periods that match the given criteria
-        sessions = self.cal.all_sessions
+        sessions = self.cal.sessions
         return set(
             pd.Series(data=sessions)
             .groupby([sessions.year, sessions.month])
@@ -546,6 +540,7 @@ class NthTradingDayOfMonth(TradingDayOfMonthRule):
     A rule that triggers on the nth trading day of the month.
     This is zero-indexed, n=0 is the first trading day of the month.
     """
+
     def __init__(self, n):
         super().__init__(n, invert=False)
 
@@ -554,6 +549,7 @@ class NDaysBeforeLastTradingDayOfMonth(TradingDayOfMonthRule):
     """
     A rule that triggers n days before the last trading day of the month.
     """
+
     def __init__(self, n):
         super().__init__(n, invert=True)
 
@@ -568,6 +564,7 @@ class StatefulRule(EventRule):
     on the internal state that this holds.
     StatefulRules wrap other rules as state transformers.
     """
+
     def __init__(self, rule=None):
         self.rule = rule or Always()
 
@@ -598,7 +595,7 @@ class OncePerDay(StatefulRule):
 
             # record the timestamp for the next day, so that we can use it
             # to know if we've moved to the next day
-            self.next_date = dt + pd.Timedelta(1, unit="d")
+            self.next_date = dt + pd.Timedelta(days=1)
 
         if not self.triggered and self.rule.should_trigger(dt):
             self.triggered = True
@@ -606,6 +603,7 @@ class OncePerDay(StatefulRule):
 
 
 # Factory API
+
 
 class date_rules:
     """
@@ -770,8 +768,8 @@ class time_rules:
 
 
 class calendars:
-    US_EQUITIES = sentinel('US_EQUITIES')
-    US_FUTURES = sentinel('US_FUTURES')
+    US_EQUITIES = sentinel("US_EQUITIES")
+    US_FUTURES = sentinel("US_FUTURES")
 
 
 def _invert(d):
@@ -786,14 +784,14 @@ def _check_if_not_called(v):
     try:
         name = _uncalled_rules[v]
     except KeyError:
-        if not issubclass(v, EventRule):
+        if not (isinstance(v, type) and issubclass(v, EventRule)):
             return
 
-        name = getattr(v, '__name__', None)
+        name = getattr(v, "__name__", None)
 
-    msg = f'invalid rule: {v!r}'
+    msg = f"invalid rule: {v!r}"
     if name is not None:
-        msg += ' (hint: did you mean %s())' % name
+        msg += f" (hint: did you mean {name}())"
 
     raise TypeError(msg)
 

@@ -1,19 +1,70 @@
 """
 Tools for memoization of function results.
 """
-from collections import OrderedDict, Sequence
+
+from _thread import allocate_lock
+from collections import OrderedDict
+from collections.abc import Callable, Sequence
+from functools import wraps
 from itertools import compress
 from weakref import WeakKeyDictionary, ref
-from _thread import allocate_lock
 
 from toolz.sandbox import unzip
-from trading_calendars.utils.memoize import lazyval
 
-from functools import wraps
+
+class lazyval:
+    """Decorator that marks that an attribute of an instance should not be
+    computed until needed, and that the value should be memoized.
+
+    Example
+    -------
+
+    >>> from zipline.utils.memoize import lazyval
+    >>> class C:
+    ...     def __init__(self):
+    ...         self.count = 0
+    ...     @lazyval
+    ...     def val(self):
+    ...         self.count += 1
+    ...         return "val"
+    ...
+    >>> c = C()
+    >>> c.count
+    0
+    >>> c.val, c.count
+    ('val', 1)
+    >>> c.val, c.count
+    ('val', 1)
+    >>> c.val = 'not_val'
+    Traceback (most recent call last):
+    ...
+    AttributeError: Can't set read-only attribute.
+    >>> c.val
+    'val'
+    """
+
+    def __init__(self, get):
+        self._get = get
+        self._cache = WeakKeyDictionary()
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        try:
+            return self._cache[instance]
+        except KeyError:
+            self._cache[instance] = val = self._get(instance)
+            return val
+
+    def __set__(self, instance, value):
+        raise AttributeError("Can't set read-only attribute.")
+
+    def __delitem__(self, instance):
+        del self._cache[instance]
 
 
 class classlazyval(lazyval):
-    """ Decorator that marks that an attribute of a class should not be
+    """Decorator that marks that an attribute of a class should not be
     computed until needed, and that the value should be memoized.
 
     Example
@@ -34,6 +85,7 @@ class classlazyval(lazyval):
     >>> C.val, C.count
     ('val', 1)
     """
+
     # We don't reassign the name on the class to implement the caching because
     # then we would need to use a metaclass to track the name of the
     # descriptor.
@@ -48,13 +100,14 @@ def _weak_lru_cache(maxsize=100):
     The internals of the lru_cache are encapsulated for thread safety and
     to allow the implementation to change.
     """
+
     def decorating_function(
-            user_function, tuple=tuple, sorted=sorted, len=len,
-            KeyError=KeyError):
+        user_function, tuple=tuple, sorted=sorted, len=len, KeyError=KeyError
+    ):
 
         hits, misses = [0], [0]
-        kwd_mark = (object(),)    # separates positional and keyword args
-        lock = allocate_lock()    # needed because OrderedDict isn't threadsafe
+        kwd_mark = (object(),)  # separates positional and keyword args
+        lock = allocate_lock()  # needed because OrderedDict isn't threadsafe
 
         if maxsize is None:
             cache = _WeakArgsDict()  # cache without ordering or size limit
@@ -88,14 +141,14 @@ def _weak_lru_cache(maxsize=100):
                 with lock:
                     try:
                         result = cache[key]
-                        cache_renew(key)    # record recent use of this key
+                        cache_renew(key)  # record recent use of this key
                         hits[0] += 1
                         return result
                     except KeyError:
                         pass
                 result = user_function(*args, **kwds)
                 with lock:
-                    cache[key] = result     # record recent use of this key
+                    cache[key] = result  # record recent use of this key
                     misses[0] += 1
                     if len(cache) > maxsize:
                         # purge least recently used cache entry
@@ -113,8 +166,9 @@ def _weak_lru_cache(maxsize=100):
                 cache.clear()
                 hits[0] = misses[0] = 0
 
-        wrapper.cache_info = cache_info
-        wrapper.cache_clear = cache_clear
+        # Mirror functools.lru_cache's API on the wrapper function.
+        wrapper.cache_info = cache_info  # ty: ignore[unresolved-attribute]
+        wrapper.cache_clear = cache_clear  # ty: ignore[unresolved-attribute]
         return wrapper
 
     return decorating_function
@@ -125,14 +179,18 @@ class _WeakArgs(Sequence):
     Works with _WeakArgsDict to provide a weak cache for function args.
     When any of those args are gc'd, the pair is removed from the cache.
     """
-    def __init__(self, items, dict_remove=None):
-        def remove(k, selfref=ref(self), dict_remove=dict_remove):
-            self = selfref()
-            if self is not None and dict_remove is not None:
-                dict_remove(self)
 
-        self._items, self._selectors = unzip(self._try_ref(item, remove)
-                                             for item in items)
+    def __init__(self, items, dict_remove=None):
+        selfref = ref(self)
+
+        def remove(k):
+            self_ = selfref()
+            if self_ is not None and dict_remove is not None:
+                dict_remove(self_)
+
+        self._items, self._selectors = unzip(
+            self._try_ref(item, remove) for item in items
+        )
         self._items = tuple(self._items)
         self._selectors = tuple(self._selectors)
 
@@ -151,8 +209,9 @@ class _WeakArgs(Sequence):
 
     @property
     def alive(self):
-        return all(item() is not None
-                   for item in compress(self._items, self._selectors))
+        return all(
+            item() is not None for item in compress(self._items, self._selectors)
+        )
 
     def __eq__(self, other):
         return self._items == other._items
@@ -166,6 +225,10 @@ class _WeakArgs(Sequence):
 
 
 class _WeakArgsDict(WeakKeyDictionary):
+    # WeakKeyDictionary internals that this subclass builds on.
+    data: dict
+    _remove: Callable
+
     def __delitem__(self, key):
         del self.data[_WeakArgs(key)]
 
@@ -173,7 +236,7 @@ class _WeakArgsDict(WeakKeyDictionary):
         return self.data[_WeakArgs(key)]
 
     def __repr__(self):
-        return '{}({!r})'.format(type(self).__name__, self.data)
+        return f"{type(self).__name__}({self.data!r})"
 
     def __setitem__(self, key, value):
         self.data[_WeakArgs(key, self._remove)] = value
@@ -185,11 +248,14 @@ class _WeakArgsDict(WeakKeyDictionary):
             return False
         return wr in self.data
 
-    def pop(self, key, *args):
+    def pop(self, key, *args):  # ty: ignore[invalid-method-override]
+        # Same behaviour as WeakKeyDictionary.pop(key[, default]).
         return self.data.pop(_WeakArgs(key), *args)
 
 
 class _WeakArgsOrderedDict(_WeakArgsDict):
+    data: OrderedDict
+
     def __init__(self):
         super().__init__()
         self.data = OrderedDict()
@@ -224,6 +290,7 @@ def weak_lru_cache(maxsize=100):
     See:  http://en.wikipedia.org/wiki/Cache_algorithms#Least_Recently_Used
 
     """
+
     class desc(lazyval):
         def __get__(self, instance, owner):
             if instance is None:

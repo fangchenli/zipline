@@ -18,48 +18,48 @@ from itertools import chain, zip_longest
 from zipline.errors import ZiplineError
 from zipline.utils.compat import getargspec
 
-
-Argspec = namedtuple('Argspec', ['args', 'starargs', 'kwargs'])
-
-
-def singleton(cls):
-    instances = {}
-
-    def getinstance():
-        if cls not in instances:
-            instances[cls] = cls()
-        return instances[cls]
-
-    return getinstance
+Argspec = namedtuple("Argspec", ["args", "starargs", "kwargs"])
 
 
-@singleton
-class Ignore:
+class _Singleton:
+    """Base class whose subclasses each have exactly one instance."""
+
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+
+class Ignore(_Singleton):
     def __str__(self):
-        return 'Argument.ignore'
+        return "Argument.ignore"
+
     __repr__ = __str__
 
 
-@singleton
-class NoDefault:
+class NoDefault(_Singleton):
     def __str__(self):
-        return 'Argument.no_default'
+        return "Argument.no_default"
+
     __repr__ = __str__
 
 
-@singleton
-class AnyDefault:
+class AnyDefault(_Singleton):
     def __str__(self):
-        return 'Argument.any_default'
+        return "Argument.any_default"
+
     __repr__ = __str__
 
 
-class Argument(namedtuple('Argument', ['name', 'default'])):
+class Argument(namedtuple("Argument", ["name", "default"])):
     """
     An argument to a function.
     Argument.no_default is a value representing no default to the argument.
     Argument.ignore is a value that says you should ignore the default value.
     """
+
     no_default = NoDefault()
     any_default = AnyDefault()
     ignore = Ignore()
@@ -71,26 +71,35 @@ class Argument(namedtuple('Argument', ['name', 'default'])):
         if self.has_no_default(self) or self.ignore_default(self):
             return str(self.name)
         else:
-            return '='.join([str(self.name), str(self.default)])
+            return "=".join([str(self.name), str(self.default)])
 
     def __repr__(self):
-        return 'Argument({}, {})'.format(repr(self.name), repr(self.default))
+        return f"Argument({repr(self.name)}, {repr(self.default)})"
 
     def _defaults_match(self, arg):
-        return any(map(Argument.ignore_default, [self, arg])) \
-            or (self.default is Argument.any_default and
-                arg.default is not Argument.no_default) \
-            or (arg.default is Argument.any_default and
-                self.default is not Argument.no_default) \
+        return (
+            any(map(Argument.ignore_default, [self, arg]))
+            or (
+                self.default is Argument.any_default
+                and arg.default is not Argument.no_default
+            )
+            or (
+                arg.default is Argument.any_default
+                and self.default is not Argument.no_default
+            )
             or self.default == arg.default
+        )
 
     def _names_match(self, arg):
-        return self.name == arg.name \
-            or self.name is Argument.ignore \
+        return (
+            self.name == arg.name
+            or self.name is Argument.ignore
             or arg.name is Argument.ignore
+        )
 
     def matches(self, arg):
         return self._names_match(arg) and self._defaults_match(arg)
+
     __eq__ = matches
 
     @staticmethod
@@ -105,15 +114,21 @@ class Argument(namedtuple('Argument', ['name', 'default'])):
         args, varargs, keywords, defaults = getargspec(callable_)
         defaults = list(defaults or [])
 
-        if getattr(callable_, '__self__', None) is not None:
+        if getattr(callable_, "__self__", None) is not None:
             # This is a bound method, drop the self param.
             args = args[1:]
 
         first_default = len(args) - len(defaults)
         return Argspec(
-            [Argument(arg, Argument.no_default
-                      if n < first_default else defaults[n - first_default])
-             for n, arg in enumerate(args)],
+            [
+                Argument(
+                    arg,
+                    Argument.no_default
+                    if n < first_default
+                    else defaults[n - first_default],
+                )
+                for n, arg in enumerate(args)
+            ],
             varargs,
             keywords,
         )
@@ -139,10 +154,12 @@ def _expect_extra(expected, present, exc_unexpected, exc_missing, exc_args):
         raise exc_missing(*exc_args)
 
 
-def verify_callable_argspec(callable_,
-                            expected_args=Argument.ignore,
-                            expect_starargs=Argument.ignore,
-                            expect_kwargs=Argument.ignore):
+def verify_callable_argspec(
+    callable_,
+    expected_args=Argument.ignore,
+    expect_starargs=Argument.ignore,
+    expect_kwargs=Argument.ignore,
+):
     """
     Checks the callable_ to make sure that it satisfies the given
     expectations.
@@ -166,9 +183,7 @@ def verify_callable_argspec(callable_,
     if not callable(callable_):
         raise NotCallable(callable_)
 
-    expected_arg_list = list(
-        expected_args if expected_args is not Argument.ignore else []
-    )
+    expected_arg_list = [] if isinstance(expected_args, Ignore) else list(expected_args)
 
     args, starargs, kwargs = Argument.parse_argspec(callable_)
 
@@ -205,26 +220,23 @@ def verify_callable_argspec(callable_,
             [arg for arg in expected_arg_list if arg not in args],
         )
     elif len(args) > len(expected_arg_list):
-        raise TooManyArguments(
-            callable_, args, starargs, kwargs
-        )
+        raise TooManyArguments(callable_, args, starargs, kwargs)
 
     # Empty argument that will not match with any actual arguments.
     missing_arg = Argument(object(), object())
 
-    for expected, provided in zip_longest(expected_arg_list,
-                                          args,
-                                          fillvalue=missing_arg):
+    for expected, provided in zip_longest(
+        expected_arg_list, args, fillvalue=missing_arg
+    ):
         if not expected.matches(provided):
-            raise MismatchedArguments(
-                callable_, args, starargs, kwargs
-            )
+            raise MismatchedArguments(callable_, args, starargs, kwargs)
 
 
 class BadCallable(TypeError, AssertionError, ZiplineError):
     """
     The given callable is not structured in the expected way.
     """
+
     _lambda_name = (lambda: None).__name__
 
     def __init__(self, callable_, args, starargs, kwargs):
@@ -237,21 +249,21 @@ class BadCallable(TypeError, AssertionError, ZiplineError):
 
     def format_callable(self):
         if self.callable_.__name__ == self._lambda_name:
-            fmt = '%s %s'
-            name = 'lambda'
+            fmt = "%s %s"
+            name = "lambda"
         else:
-            fmt = '%s(%s)'
+            fmt = "%s(%s)"
             name = self.callable_.__name__
 
         return fmt % (
             name,
-            ', '.join(
+            ", ".join(
                 chain(
                     (str(arg) for arg in self.args),
-                    ('*' + sa for sa in (self.starargs,) if sa is not None),
-                    ('**' + ka for ka in (self.kwargsname,) if ka is not None),
+                    ("*" + sa for sa in (self.starargs,) if sa is not None),
+                    ("**" + ka for ka in (self.kwargsname,) if ka is not None),
                 )
-            )
+            ),
         )
 
     @property
@@ -261,33 +273,34 @@ class BadCallable(TypeError, AssertionError, ZiplineError):
 
 class NoStarargs(BadCallable):
     def __str__(self):
-        return '%s does not allow for *args' % self.format_callable()
+        return f"{self.format_callable()} does not allow for *args"
 
 
 class UnexpectedStarargs(BadCallable):
     def __str__(self):
-        return '%s should not allow for *args' % self.format_callable()
+        return f"{self.format_callable()} should not allow for *args"
 
 
 class NoKwargs(BadCallable):
     def __str__(self):
-        return '%s does not allow for **kwargs' % self.format_callable()
+        return f"{self.format_callable()} does not allow for **kwargs"
 
 
 class UnexpectedKwargs(BadCallable):
     def __str__(self):
-        return '%s should not allow for **kwargs' % self.format_callable()
+        return f"{self.format_callable()} should not allow for **kwargs"
 
 
 class NotCallable(BadCallable):
     """
     The provided 'callable' is not actually a callable.
     """
+
     def __init__(self, callable_):
         self.callable_ = callable_
 
     def __str__(self):
-        return '%s is not callable' % self.format_callable()
+        return f"{self.format_callable()} is not callable"
 
     def format_callable(self):
         try:
@@ -300,18 +313,17 @@ class NotEnoughArguments(BadCallable):
     """
     The callback does not accept enough arguments.
     """
+
     def __init__(self, callable_, args, starargs, kwargs, missing_args):
-        super().__init__(
-            callable_, args, starargs, kwargs
-        )
+        super().__init__(callable_, args, starargs, kwargs)
         self.missing_args = missing_args
 
     def __str__(self):
         missing_args = list(map(str, self.missing_args))
-        return '{} is missing argument{}: {}'.format(
+        return "{} is missing argument{}: {}".format(
             self.format_callable(),
-            's' if len(missing_args) > 1 else '',
-            ', '.join(missing_args),
+            "s" if len(missing_args) > 1 else "",
+            ", ".join(missing_args),
         )
 
 
@@ -319,13 +331,15 @@ class TooManyArguments(BadCallable):
     """
     The callback cannot be called by passing the expected number of arguments.
     """
+
     def __str__(self):
-        return '%s accepts too many arguments' % self.format_callable()
+        return f"{self.format_callable()} accepts too many arguments"
 
 
 class MismatchedArguments(BadCallable):
     """
     The argument lists are of the same lengths, but not in the correct order.
     """
+
     def __str__(self):
-        return '%s accepts mismatched parameters' % self.format_callable()
+        return f"{self.format_callable()} accepts mismatched parameters"

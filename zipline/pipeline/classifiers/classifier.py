@@ -1,13 +1,14 @@
 """
 classifier.py
 """
-from functools import partial
-from numbers import Number
+
 import operator
 import re
+from numbers import Number
+from typing import Any
 
-from numpy import where, isnan, nan, zeros
 import pandas as pd
+from numpy import isnan, nan, where, zeros
 
 from zipline.errors import UnsupportedDataType
 from zipline.lib.labelarray import LabelArray
@@ -20,7 +21,7 @@ from zipline.pipeline.dtypes import (
 )
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import ComputableTerm
-from zipline.utils.input_validation import expect_types, expect_dtypes
+from zipline.utils.input_validation import expect_dtypes, expect_types
 from zipline.utils.numpy_utils import (
     categorical_dtype,
     int64_dtype,
@@ -37,13 +38,12 @@ from ..mixins import (
     StandardOutputs,
 )
 
-
 string_classifiers_only = restrict_to_dtype(
     dtype=categorical_dtype,
     message_template=(
         "{method_name}() is only defined on Classifiers producing strings"
         " but it was called on a Classifier of dtype {received_dtype}."
-    )
+    ),
 )
 
 
@@ -57,6 +57,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
     indicating that means/standard deviations should be computed on assets for
     which the classifier produced the same label.
     """
+
     # Used by RestrictedDTypeMixin
     ALLOWED_DTYPES = CLASSIFIER_DTYPES
     categories = NotSpecified
@@ -74,14 +75,11 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         # certainly not what the user wants.
         if other == self.missing_value:
             raise ValueError(
-                "Comparison against self.missing_value ({value!r}) in"
-                " {typename}.eq().\n"
+                f"Comparison against self.missing_value ({other!r}) in"
+                f" {type(self).__name__}.eq().\n"
                 "Missing values have NaN semantics, so the "
                 "requested comparison would always produce False.\n"
-                "Use the isnull() method to check for missing values.".format(
-                    value=other,
-                    typename=(type(self).__name__),
-                )
+                "Use the isnull() method to check for missing values."
             )
 
         if isinstance(other, Number) != (self.dtype == int64_dtype):
@@ -89,7 +87,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
 
         if isinstance(other, Number):
             return NumExprFilter.create(
-                "x_0 == {other}".format(other=int(other)),
+                f"x_0 == {int(other)}",
                 binds=(self,),
             )
         else:
@@ -109,25 +107,25 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
 
         if isinstance(other, Number):
             return NumExprFilter.create(
-                "((x_0 != {other}) & (x_0 != {missing}))".format(
-                    other=int(other),
-                    missing=self.missing_value,
-                ),
+                f"((x_0 != {int(other)}) & (x_0 != {self.missing_value}))",
                 binds=(self,),
             )
         else:
             # Numexpr doesn't know how to use LabelArrays.
             return ArrayPredicate(term=self, op=operator.ne, opargs=(other,))
 
-    def bad_compare(opname, other):
-        raise TypeError('cannot compare classifiers with %s' % opname)
+    # Classifiers are categorical, so ordering comparisons are meaningless.
+    def __gt__(self, other):
+        raise TypeError("cannot compare classifiers with >")
 
-    __gt__ = partial(bad_compare, '>')
-    __ge__ = partial(bad_compare, '>=')
-    __le__ = partial(bad_compare, '<=')
-    __lt__ = partial(bad_compare, '<')
+    def __ge__(self, other):
+        raise TypeError("cannot compare classifiers with >=")
 
-    del bad_compare
+    def __le__(self, other):
+        raise TypeError("cannot compare classifiers with <=")
+
+    def __lt__(self, other):
+        raise TypeError("cannot compare classifiers with <")
 
     @string_classifiers_only
     @expect_types(prefix=(bytes, str))
@@ -199,7 +197,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         )
 
     @string_classifiers_only
-    @expect_types(pattern=(bytes, str, type(re.compile(''))))
+    @expect_types(pattern=(bytes, str, type(re.compile(""))))
     def matches(self, pattern):
         """
         Construct a Filter that checks regex matches against ``pattern``.
@@ -265,23 +263,19 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         except Exception as e:
             raise TypeError(
                 "Expected `choices` to be an iterable of hashable values,"
-                " but got {} instead.\n"
-                "This caused the following error: {!r}.".format(choices, e)
-            )
+                f" but got {choices} instead.\n"
+                f"This caused the following error: {e!r}."
+            ) from e
 
         if self.missing_value in choices:
             raise ValueError(
-                "Found self.missing_value ({mv!r}) in choices supplied to"
-                " {typename}.{meth_name}().\n"
+                f"Found self.missing_value ({self.missing_value!r}) in choices "
+                "supplied to"
+                f" {type(self).__name__}.{self.element_of.__name__}().\n"
                 "Missing values have NaN semantics, so the"
                 " requested comparison would always produce False.\n"
                 "Use the isnull() method to check for missing values.\n"
-                "Received choices were {choices}.".format(
-                    mv=self.missing_value,
-                    typename=(type(self).__name__),
-                    choices=sorted(choices),
-                    meth_name=self.element_of.__name__,
-                )
+                f"Received choices were {sorted(choices)}."
             )
 
         def only_contains(type_, values):
@@ -296,11 +290,8 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
                 )
             else:
                 raise TypeError(
-                    "Found non-int in choices for {typename}.element_of.\n"
-                    "Supplied choices were {choices}.".format(
-                        typename=type(self).__name__,
-                        choices=choices,
-                    )
+                    f"Found non-int in choices for {type(self).__name__}.element_of.\n"
+                    f"Supplied choices were {choices}."
                 )
         elif self.dtype == categorical_dtype:
             if only_contains((bytes, str), choices):
@@ -311,19 +302,17 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
                 )
             else:
                 raise TypeError(
-                    "Found non-string in choices for {typename}.element_of.\n"
-                    "Supplied choices were {choices}.".format(
-                        typename=type(self).__name__,
-                        choices=choices,
-                    )
+                    "Found non-string in choices for "
+                    f"{type(self).__name__}.element_of.\n"
+                    f"Supplied choices were {choices}."
                 )
-        assert False, "Unknown dtype in Classifier.element_of %s." % self.dtype
+        raise AssertionError(f"Unknown dtype in Classifier.element_of {self.dtype}.")
 
     def postprocess(self, data):
         if self.dtype == int64_dtype:
             return data
         if not isinstance(data, LabelArray):
-            raise AssertionError("Expected a LabelArray, got %s." % type(data))
+            raise AssertionError(f"Expected a LabelArray, got {type(data)}.")
         return data.as_categorical()
 
     def to_workspace_value(self, result, assets):
@@ -337,7 +326,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             return super().to_workspace_value(result, assets)
 
         assert isinstance(result.values, pd.Categorical), (
-            'Expected a Categorical, got %r.' % type(result.values)
+            f"Expected a Categorical, got {type(result.values)!r}."
         )
         with_missing = pd.Series(
             data=pd.Categorical(
@@ -373,9 +362,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             group_labels = output_array.as_int_array()
             null_label = output_array.missing_value_code
         else:
-            raise AssertionError(
-                "Unexpected Classifier dtype: %s." % self.dtype
-            )
+            raise AssertionError(f"Unexpected Classifier dtype: {self.dtype}.")
         return group_labels, null_label
 
     def peer_count(self, mask=NotSpecified):
@@ -419,6 +406,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         """
         # Lazy import due to cyclic dependencies in factor.py, classifier.py
         from ..factors import PeerCount
+
         return PeerCount(inputs=[self], mask=mask)
 
 
@@ -426,6 +414,7 @@ class Everything(Classifier):
     """
     A trivial classifier that classifies everything the same.
     """
+
     dtype = int64_dtype
     window_length = 0
     inputs = ()
@@ -443,14 +432,15 @@ class Quantiles(SingleInputMixin, Classifier):
     """
     A classifier computing quantiles over an input.
     """
-    params = ('bins',)
+
+    params: Any = ("bins",)  # see Term.params
     dtype = int64_dtype
     window_length = 0
     missing_value = -1
 
     def _compute(self, arrays, dates, assets, mask):
         data = arrays[0]
-        bins = self.params['bins']
+        bins = self.params["bins"]
         to_bin = where(mask, data, nan)
         result = quantiles(to_bin, bins)
         # Write self.missing_value into nan locations, whether they were
@@ -460,7 +450,7 @@ class Quantiles(SingleInputMixin, Classifier):
 
     def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
-        return type(self).__name__ + '(%d)' % self.params['bins']
+        return type(self).__name__ + f"({self.params['bins']})"
 
 
 class Relabel(SingleInputMixin, Classifier):
@@ -475,8 +465,9 @@ class Relabel(SingleInputMixin, Classifier):
     relabel_func : function(LabelArray) -> LabelArray
         Function to apply to the result of `term`.
     """
+
     window_length = 0
-    params = ('relabeler',)
+    params: Any = ("relabeler",)  # see Term.params
 
     # TODO: Support relabeling for integer dtypes.
     @expect_dtypes(term=categorical_dtype)
@@ -491,7 +482,7 @@ class Relabel(SingleInputMixin, Classifier):
         )
 
     def _compute(self, arrays, dates, assets, mask):
-        relabeler = self.params['relabeler']
+        relabeler = self.params["relabeler"]
         data = arrays[0]
 
         if isinstance(data, LabelArray):
@@ -499,16 +490,14 @@ class Relabel(SingleInputMixin, Classifier):
             result[~mask] = data.missing_value
         else:
             raise NotImplementedError(
-                "Relabeling is not currently supported for "
-                "int-dtype classifiers."
+                "Relabeling is not currently supported for int-dtype classifiers."
             )
         return result
 
 
-class CustomClassifier(PositiveWindowLengthMixin,
-                       StandardOutputs,
-                       CustomTermMixin,
-                       Classifier):
+class CustomClassifier(
+    PositiveWindowLengthMixin, StandardOutputs, CustomTermMixin, Classifier
+):
     """
     Base class for user-defined Classifiers.
 
@@ -519,6 +508,7 @@ class CustomClassifier(PositiveWindowLengthMixin,
     zipline.pipeline.CustomFactor
     zipline.pipeline.CustomFilter
     """
+
     def _validate(self):
         try:
             super()._validate()
@@ -527,14 +517,14 @@ class CustomClassifier(PositiveWindowLengthMixin,
                 raise UnsupportedDataType(
                     typename=type(self).__name__,
                     dtype=self.dtype,
-                    hint='Did you mean to create a CustomFactor?',
-                )
+                    hint="Did you mean to create a CustomFactor?",
+                ) from None
             elif self.dtype in FILTER_DTYPES:
                 raise UnsupportedDataType(
                     typename=type(self).__name__,
                     dtype=self.dtype,
-                    hint='Did you mean to create a CustomFilter?',
-                )
+                    hint="Did you mean to create a CustomFilter?",
+                ) from None
             raise
 
     def _allocate_output(self, windows, shape):
@@ -562,6 +552,7 @@ class Latest(LatestMixin, CustomClassifier):
     --------
     zipline.pipeline.data.dataset.BoundColumn.latest
     """
+
     pass
 
 
@@ -569,9 +560,5 @@ class InvalidClassifierComparison(TypeError):
     def __init__(self, classifier, compval):
         super().__init__(
             "Can't compare classifier of dtype"
-            " {dtype} to value {value} of type {type}.".format(
-                dtype=classifier.dtype,
-                value=compval,
-                type=type(compval).__name__,
-            )
+            f" {classifier.dtype} to value {compval} of type {type(compval).__name__}."
         )

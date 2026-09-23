@@ -1,21 +1,17 @@
+import operator
 from abc import ABC, abstractmethod
+from collections import namedtuple
 from enum import IntEnum
 from functools import partial, reduce
-import operator
-from collections import namedtuple
 
-from numpy import vectorize
 import pandas as pd
+from numpy import vectorize
 from toolz import groupby
 
-
-from zipline.utils.numpy_utils import vectorized_is_element
 from zipline.assets import Asset
+from zipline.utils.numpy_utils import vectorized_is_element
 
-
-Restriction = namedtuple(
-    'Restriction', ['asset', 'effective_date', 'state']
-)
+Restriction = namedtuple("Restriction", ["asset", "effective_date", "state"])
 
 
 class RESTRICTION_STATES(IntEnum):
@@ -47,11 +43,10 @@ class Restrictions(ABC):
             Is the asset or assets restricted on this dt?
 
         """
-        raise NotImplementedError('is_restricted')
+        raise NotImplementedError("is_restricted")
 
     def __or__(self, other_restriction):
-        """Base implementation for combining two restrictions.
-        """
+        """Base implementation for combining two restrictions."""
         # If the right side is a _UnionRestrictions, defers to the
         # _UnionRestrictions implementation of `|`, which intelligently
         # flattens restricted lists
@@ -75,6 +70,8 @@ class _UnionRestrictions(Restrictions):
       instead use the `|` operator to combine restrictions
     """
 
+    sub_restrictions: list[Restrictions]
+
     def __new__(cls, sub_restrictions):
         # Filter out NoRestrictions and deal with resulting cases involving
         # one or zero sub_restrictions
@@ -97,8 +94,9 @@ class _UnionRestrictions(Restrictions):
         """
         # Flatten the underlying sub restrictions of _UnionRestrictions
         if isinstance(other_restriction, _UnionRestrictions):
-            new_sub_restrictions = \
+            new_sub_restrictions = (
                 self.sub_restrictions + other_restriction.sub_restrictions
+            )
         else:
             new_sub_restrictions = self.sub_restrictions + [other_restriction]
 
@@ -106,13 +104,10 @@ class _UnionRestrictions(Restrictions):
 
     def is_restricted(self, assets, dt):
         if isinstance(assets, Asset):
-            return any(
-                r.is_restricted(assets, dt) for r in self.sub_restrictions
-            )
+            return any(r.is_restricted(assets, dt) for r in self.sub_restrictions)
 
         return reduce(
-            operator.or_,
-            (r.is_restricted(assets, dt) for r in self.sub_restrictions)
+            operator.or_, (r.is_restricted(assets, dt) for r in self.sub_restrictions)
         )
 
 
@@ -120,6 +115,7 @@ class NoRestrictions(Restrictions):
     """
     A no-op restrictions that contains no restrictions.
     """
+
     def is_restricted(self, assets, dt):
         if isinstance(assets, Asset):
             return False
@@ -148,8 +144,17 @@ class StaticRestrictions(Restrictions):
             return assets in self._restricted_set
         return pd.Series(
             index=pd.Index(assets),
-            data=vectorized_is_element(assets, self._restricted_set)
+            data=vectorized_is_element(assets, self._restricted_set),
         )
+
+
+def _effective_dt(effective_date):
+    """Restrictions take effect at a point in time (UTC). A tz-naive date is
+    a session label, which takes effect at midnight UTC."""
+    effective_date = pd.Timestamp(effective_date)
+    if effective_date.tz is None:
+        return effective_date.tz_localize("UTC")
+    return effective_date
 
 
 class HistoricalRestrictions(Restrictions):
@@ -168,10 +173,12 @@ class HistoricalRestrictions(Restrictions):
         # ascending order of effective_date
         self._restrictions_by_asset = {
             asset: sorted(
-                restrictions_for_asset, key=lambda x: x.effective_date
+                ((_effective_dt(r.effective_date), r) for r in restrictions_for_asset),
+                key=lambda x: x[0],
             )
-            for asset, restrictions_for_asset
-            in groupby(lambda x: x.asset, restrictions).items()
+            for asset, restrictions_for_asset in groupby(
+                lambda x: x.asset, restrictions
+            ).items()
         }
 
     def is_restricted(self, assets, dt):
@@ -184,14 +191,13 @@ class HistoricalRestrictions(Restrictions):
 
         is_restricted = partial(self._is_restricted_for_asset, dt=dt)
         return pd.Series(
-            index=pd.Index(assets),
-            data=vectorize(is_restricted, otypes=[bool])(assets)
+            index=pd.Index(assets), data=vectorize(is_restricted, otypes=[bool])(assets)
         )
 
     def _is_restricted_for_asset(self, asset, dt):
         state = RESTRICTION_STATES.ALLOWED
-        for r in self._restrictions_by_asset.get(asset, ()):
-            if r.effective_date > dt:
+        for effective_dt, r in self._restrictions_by_asset.get(asset, ()):
+            if effective_dt > dt:
                 break
             state = r.state
         return state == RESTRICTION_STATES.FROZEN
@@ -216,5 +222,5 @@ class SecurityListRestrictions(Restrictions):
             return assets in securities_in_list
         return pd.Series(
             index=pd.Index(assets),
-            data=vectorized_is_element(assets, securities_in_list)
+            data=vectorized_is_element(assets, securities_in_list),
         )

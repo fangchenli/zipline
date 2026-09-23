@@ -30,25 +30,24 @@ Position Tracking
     +-----------------+----------------------------------------------------+
 
 """
+
 from math import copysign
-import numpy as np
+
 import logbook
+import numpy as np
 
-from zipline.assets import Future
 import zipline.protocol as zp
+from zipline.assets import Future
 
-log = logbook.Logger('Performance')
+log = logbook.Logger("Performance")
 
 
 class Position:
-    __slots__ = 'inner_position', 'protocol_position'
+    __slots__ = "inner_position", "protocol_position"
 
-    def __init__(self,
-                 asset,
-                 amount=0,
-                 cost_basis=0.0,
-                 last_sale_price=0.0,
-                 last_sale_date=None):
+    def __init__(
+        self, asset, amount=0, cost_basis=0.0, last_sale_price=0.0, last_sale_date=None
+    ):
         inner = zp.InnerPosition(
             asset=asset,
             amount=amount,
@@ -56,8 +55,8 @@ class Position:
             last_sale_price=last_sale_price,
             last_sale_date=last_sale_date,
         )
-        object.__setattr__(self, 'inner_position', inner)
-        object.__setattr__(self, 'protocol_position', zp.Position(inner))
+        object.__setattr__(self, "inner_position", inner)
+        object.__setattr__(self, "protocol_position", zp.Position(inner))
 
     def __getattr__(self, attr):
         return getattr(self.inner_position, attr)
@@ -70,9 +69,7 @@ class Position:
         Register the number of shares we held at this dividend's ex date so
         that we can pay out the correct amount on the dividend's pay date.
         """
-        return {
-            'amount': self.amount * dividend.amount
-        }
+        return {"amount": self.amount * dividend.amount}
 
     def earn_stock_dividend(self, stock_dividend):
         """
@@ -80,10 +77,8 @@ class Position:
         that we can pay out the correct amount on the dividend's pay date.
         """
         return {
-            'payment_asset': stock_dividend.payment_asset,
-            'share_count': np.floor(
-                self.amount * float(stock_dividend.ratio)
-            )
+            "payment_asset": stock_dividend.payment_asset,
+            "share_count": np.floor(self.amount * float(stock_dividend.ratio)),
         }
 
     def handle_split(self, asset, ratio):
@@ -128,8 +123,7 @@ class Position:
 
     def update(self, txn):
         if self.asset != txn.asset:
-            raise Exception('updating position with txn for a '
-                            'different asset')
+            raise Exception("updating position with txn for a different asset")
 
         total_shares = self.amount + txn.amount
 
@@ -171,7 +165,7 @@ class Position:
         """
 
         if asset != self.asset:
-            raise Exception('Updating a commission for a different asset?')
+            raise Exception("Updating a commission for a different asset?")
         if cost == 0.0:
             return
 
@@ -207,7 +201,7 @@ last_sale_price: {last_sale_price}"
             asset=self.asset,
             amount=self.amount,
             cost_basis=self.cost_basis,
-            last_sale_price=self.last_sale_price
+            last_sale_price=self.last_sale_price,
         )
 
     def to_dict(self):
@@ -216,8 +210,8 @@ last_sale_price: {last_sale_price}"
         Returns a dict object of the form:
         """
         return {
-            'sid': self.asset,
-            'amount': self.amount,
-            'cost_basis': self.cost_basis,
-            'last_sale_price': self.last_sale_price
+            "sid": self.asset,
+            "amount": self.amount,
+            "cost_basis": self.cost_basis,
+            "last_sale_price": self.last_sale_price,
         }

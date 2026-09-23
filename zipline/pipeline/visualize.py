@@ -1,16 +1,17 @@
 """
 Tools for visualizing dependencies between Terms.
 """
-from contextlib import contextmanager
+
 import errno
+from contextlib import contextmanager
 from functools import partial
 from io import BytesIO
-from subprocess import Popen, PIPE
+from subprocess import PIPE, Popen
 
 from networkx import topological_sort
 
+from zipline.pipeline import Classifier, Factor, Filter, Term
 from zipline.pipeline.data import BoundColumn
-from zipline.pipeline import Filter, Factor, Classifier, Term
 from zipline.pipeline.term import AssetExists
 
 
@@ -28,29 +29,27 @@ def delimit(delimiters, content):
     '"foo"'
     """
     if len(delimiters) != 2:
-        raise ValueError(
-            "`delimiters` must be of length 2. Got %r" % delimiters
-        )
-    return ''.join([delimiters[0], content, delimiters[1]])
+        raise ValueError(f"`delimiters` must be of length 2. Got {delimiters!r}")
+    return "".join([delimiters[0], content, delimiters[1]])
 
 
 quote = partial(delimit, '""')
-bracket = partial(delimit, '[]')
+bracket = partial(delimit, "[]")
 
 
 def begin_graph(f, name, **attrs):
-    writeln(f, "strict digraph %s {" % name)
-    writeln(f, "graph {}".format(format_attrs(attrs)))
+    writeln(f, f"strict digraph {name} {{")
+    writeln(f, f"graph {format_attrs(attrs)}")
 
 
 def begin_cluster(f, name, **attrs):
     attrs.setdefault("label", quote(name))
-    writeln(f, "subgraph cluster_%s {" % name)
-    writeln(f, "graph {}".format(format_attrs(attrs)))
+    writeln(f, f"subgraph cluster_{name} {{")
+    writeln(f, f"graph {format_attrs(attrs)}")
 
 
 def end_graph(f):
-    writeln(f, '}')
+    writeln(f, "}")
 
 
 @contextmanager
@@ -92,28 +91,26 @@ def _render(g, out, format_, include_asset_exists=False):
     include_asset_exists : bool
         Whether to filter out `AssetExists()` nodes.
     """
-    graph_attrs = {'rankdir': 'TB', 'splines': 'ortho'}
-    cluster_attrs = {'style': 'filled', 'color': 'lightgoldenrod1'}
+    graph_attrs = {"rankdir": "TB", "splines": "ortho"}
+    cluster_attrs = {"style": "filled", "color": "lightgoldenrod1"}
 
     in_nodes = g.loadable_terms
     out_nodes = list(g.outputs.values())
 
     f = BytesIO()
     with graph(f, "G", **graph_attrs):
-
         # Write outputs cluster.
-        with cluster(f, 'Output', labelloc='b', **cluster_attrs):
+        with cluster(f, "Output", labelloc="b", **cluster_attrs):
             for term in filter_nodes(include_asset_exists, out_nodes):
                 add_term_node(f, term)
 
         # Write inputs cluster.
-        with cluster(f, 'Input', **cluster_attrs):
+        with cluster(f, "Input", **cluster_attrs):
             for term in filter_nodes(include_asset_exists, in_nodes):
                 add_term_node(f, term)
 
         # Write intermediate results.
-        for term in filter_nodes(include_asset_exists,
-                                 topological_sort(g.graph)):
+        for term in filter_nodes(include_asset_exists, topological_sort(g.graph)):
             if term in in_nodes or term in out_nodes:
                 continue
             add_term_node(f, term)
@@ -124,7 +121,7 @@ def _render(g, out, format_, include_asset_exists=False):
                 continue
             add_edge(f, id(source), id(dest))
 
-    cmd = ['dot', '-T', format_]
+    cmd = ["dot", "-T", format_]
     try:
         proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     except OSError as e:
@@ -132,7 +129,7 @@ def _render(g, out, format_, include_asset_exists=False):
             raise RuntimeError(
                 "Couldn't find `dot` graph layout program. "
                 "Make sure Graphviz is installed and `dot` is on your path."
-            )
+            ) from e
         else:
             raise
 
@@ -140,22 +137,22 @@ def _render(g, out, format_, include_asset_exists=False):
     proc_stdout, proc_stderr = proc.communicate(f.read())
     if proc_stderr:
         raise RuntimeError(
-            "Error(s) while rendering graph: %s" % proc_stderr.decode('utf-8')
+            "Error(s) while rendering graph: {}".format(proc_stderr.decode("utf-8"))
         )
 
     out.write(proc_stdout)
 
 
-def display_graph(g, format='svg', include_asset_exists=False):
+def display_graph(g, format="svg", include_asset_exists=False):
     """
     Display a TermGraph interactively from within IPython.
     """
     try:
         import IPython.display as display
-    except ImportError:
-        raise NoIPython("IPython is not installed.  Can't display graph.")
+    except ImportError as err:
+        raise NoIPython("IPython is not installed.  Can't display graph.") from err
 
-    if format == 'svg':
+    if format == "svg":
         display_cls = display.SVG
     elif format in ("jpeg", "png"):
         display_cls = partial(display.Image, format=format, embed=True)
@@ -166,7 +163,7 @@ def display_graph(g, format='svg', include_asset_exists=False):
 
 
 def writeln(f, s):
-    f.write((s + '\n').encode('utf-8'))
+    f.write((s + "\n").encode("utf-8"))
 
 
 def fmt(obj):
@@ -174,7 +171,7 @@ def fmt(obj):
         r = obj.graph_repr()
     else:
         r = obj
-    return '"%s"' % r
+    return f'"{r}"'
 
 
 def add_term_node(f, term):
@@ -182,7 +179,7 @@ def add_term_node(f, term):
 
 
 def declare_node(f, name, attributes):
-    writeln(f, "{} {};".format(name, format_attrs(attributes)))
+    writeln(f, f"{name} {format_attrs(attributes)};")
 
 
 def add_edge(f, source, dest):
@@ -191,19 +188,19 @@ def add_edge(f, source, dest):
 
 def attrs_for_node(term, **overrides):
     attrs = {
-        'shape': 'box',
-        'colorscheme': 'pastel19',
-        'style': 'filled',
-        'label': fmt(term),
+        "shape": "box",
+        "colorscheme": "pastel19",
+        "style": "filled",
+        "label": fmt(term),
     }
     if isinstance(term, BoundColumn):
-        attrs['fillcolor'] = '1'
+        attrs["fillcolor"] = "1"
     if isinstance(term, Factor):
-        attrs['fillcolor'] = '2'
+        attrs["fillcolor"] = "2"
     elif isinstance(term, Filter):
-        attrs['fillcolor'] = '3'
+        attrs["fillcolor"] = "3"
     elif isinstance(term, Classifier):
-        attrs['fillcolor'] = '4'
+        attrs["fillcolor"] = "4"
 
     attrs.update(**overrides or {})
     return attrs
@@ -219,6 +216,6 @@ def format_attrs(attrs):
     '[key1=value1, key2=value2]'
     """
     if not attrs:
-        return ''
-    entries = ['='.join((key, value)) for key, value in attrs.items()]
-    return '[' + ', '.join(entries) + ']'
+        return ""
+    entries = ["=".join((key, value)) for key, value in attrs.items()]
+    return "[" + ", ".join(entries) + "]"

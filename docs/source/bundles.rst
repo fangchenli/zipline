@@ -19,23 +19,22 @@ new bundles. To see which bundles we have available, we may run the
 .. code-block:: bash
 
    $ zipline bundles
-   my-custom-bundle 2016-05-05 20:35:19.809398
-   my-custom-bundle 2016-05-05 20:34:53.654082
-   my-custom-bundle 2016-05-05 20:34:48.401767
-   quandl <no ingestions>
-   quantopian-quandl 2016-05-05 20:06:40.894956
+   csvdir <no ingestions>
+   my-custom-bundle 2024-05-05 20:35:19.809398
+   my-custom-bundle 2024-05-05 20:34:53.654082
+   my-custom-bundle 2024-05-05 20:34:48.401767
+   quandl 2024-05-05 20:06:40.894956
 
 The output here shows that there are 3 bundles available:
 
+- ``csvdir`` (provided by zipline, see :ref:`csvdir_bundle`)
 - ``my-custom-bundle`` (added by the user)
-- ``quandl`` (provided by zipline, though deprecated)
-- ``quantopian-quandl`` (provided by zipline, the default bundle)
+- ``quandl`` (provided by zipline, the default bundle)
 
 The dates and times next to the name show the times when the data for this
 bundle was ingested. We have run three different ingestions for
-``my-custom-bundle``. We have never ingested any data for the ``quandl`` bundle
-so it just shows ``<no ingestions>`` instead. Finally, there is only one
-ingestion for ``quantopian-quandl``.
+``my-custom-bundle``, and one for ``quandl``. We have never ingested any data
+for the ``csvdir`` bundle so it just shows ``<no ingestions>`` instead.
 
 .. _ingesting-data:
 
@@ -53,7 +52,7 @@ To ingest a bundle, run:
    $ zipline ingest [-b <bundle>]
 
 
-where ``<bundle>`` is the name of the bundle to ingest, defaulting to ``quantopian-quandl``.
+where ``<bundle>`` is the name of the bundle to ingest, defaulting to ``quandl``.
 
 Old Data
 ~~~~~~~~
@@ -117,22 +116,37 @@ Default Data Bundles
 Quandl WIKI Bundle
 ``````````````````
 
-By default zipline comes with the ``quantopian-quandl`` data bundle which uses quandl's `WIKI dataset <https://www.quandl.com/data/WIKI>`_.
-The quandl data bundle includes daily pricing data, splits, cash dividends, and asset metadata.
-Quantopian has ingested the data from quandl and rebundled it to make ingestion much faster.
-To ingest the ``quantopian-quandl`` data bundle, run either of the following commands:
+By default zipline comes with the ``quandl`` data bundle, which uses Quandl's
+WIKI Prices dataset, now hosted by `Nasdaq Data Link <https://data.nasdaq.com>`_.
+The quandl data bundle includes daily pricing data, splits, cash dividends, and
+asset metadata for US equities.
+
+The dataset is free, but downloading it requires an API key: create a free
+account at https://data.nasdaq.com and pass the key in the ``QUANDL_API_KEY``
+environment variable. To ingest the ``quandl`` data bundle, run either of the
+following commands:
 
 .. code-block:: bash
 
-   $ zipline ingest -b quantopian-quandl
-   $ zipline ingest
+   $ QUANDL_API_KEY=<your key> zipline ingest -b quandl
+   $ QUANDL_API_KEY=<your key> zipline ingest
 
-Either command should only take a few seconds to download the data.
+The ingestion downloads a file of roughly 450MB and processes it, so it takes
+a few minutes. ``QUANDL_DOWNLOAD_ATTEMPTS`` sets how many times to retry the
+download (default 5).
 
 .. note::
 
-   Quandl has discontinued this dataset.
-   The dataset is no longer updating, but is reasonable for trying out Zipline without setting up your own dataset.
+   The WIKI dataset stopped updating in March 2018. It is still reasonable for
+   trying out Zipline without setting up your own dataset.
+
+.. note::
+
+   Older versions of Zipline also provided a ``quantopian-quandl`` bundle,
+   which downloaded a pre-built copy of this data from a Quantopian-hosted
+   mirror. That mirror no longer exists, so the bundle has been removed.
+
+.. _new_bundle:
 
 Writing a New Bundle
 ~~~~~~~~~~~~~~~~~~~~
@@ -215,18 +229,18 @@ to signal that there is no minutely data.
 used to convert data into zipline's internal bcolz format to later be read by a
 :class:`~zipline.data.bcolz_daily_bars.BcolzDailyBarReader`. If daily data is
 provided, users should call
-:meth:`~zipline.data.minute_bars.BcolzDailyBarWriter.write` with an iterable of
-(sid dataframe) tuples. The ``show_progress`` argument should also be forwarded
+:meth:`~zipline.data.bcolz_daily_bars.BcolzDailyBarWriter.write` with an iterable of
+(sid, dataframe) tuples. The ``show_progress`` argument should also be forwarded
 to this method. If the data source does not provide daily data, then there is
 no need to call the write method. It is also acceptable to pass an empty
-iterable to :meth:`~zipline.data.minute_bars.BcolzMinuteBarWriter.write` to
+iterable to :meth:`~zipline.data.bcolz_daily_bars.BcolzDailyBarWriter.write` to
 signal that there is no daily data. If no daily data is provided but minute data
 is provided, a daily rollup will happen to service daily history requests.
 
 .. note::
 
    Like the ``minute_bar_writer``, the data passed to
-   :meth:`~zipline.data.minute_bars.BcolzMinuteBarWriter.write` may be a lazy
+   :meth:`~zipline.data.bcolz_daily_bars.BcolzDailyBarWriter.write` may be a lazy
    iterable or generator to avoid loading all of the data into memory at once.
    Unlike the ``minute_bar_writer``, a sid may only appear once in the data
    iterable.
@@ -246,20 +260,21 @@ have.
 ````````````
 
 ``calendar`` is an instance of
-:class:`zipline.utils.calendars.TradingCalendar`. The calendar is provided to
-help some bundles generate queries for the days needed.
+:class:`zipline.utils.calendar_utils.ExchangeCalendar` (see :doc:`trading-calendars`).
+The calendar is provided to help some bundles generate queries for the days
+needed.
 
 ``start_session``
 `````````````````
 
-``start_session`` is a :class:`pandas.Timestamp` object indicating the first
-day that the bundle should load data for.
+``start_session`` is a tz-naive :class:`pandas.Timestamp` session label
+indicating the first day that the bundle should load data for.
 
 ``end_session``
 ```````````````
 
-``end_session`` is a :class:`pandas.Timestamp` object indicating the last day
-that the bundle should load data for.
+``end_session`` is a tz-naive :class:`pandas.Timestamp` session label
+indicating the last day that the bundle should load data for.
 
 ``cache``
 `````````
@@ -293,16 +308,21 @@ forwarded to ``minute_bar_writer.write`` and ``daily_bar_writer.write``.
 written. ``output_dir`` will be some subdirectory of ``$ZIPLINE_ROOT`` and will
 contain the time of the start of the current ingestion. This can be used to
 directly move resources here if for some reason your ingest function can produce
-it's own outputs without the writers. For example, the ``quantopian:quandl``
-bundle uses this to directly untar the bundle into the ``output_dir``.
+its own outputs without the writers, for example by extracting a pre-built
+bundle archive into ``output_dir``. Register such a bundle with
+``create_writers=False``.
+
+.. _csvdir_bundle:
 
 Ingesting Data from .csv Files
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Zipline provides a bundle called ``csvdir``, which allows users to ingest data
-from ``.csv`` files. The format of the files should be in OHLCV format, with dates,
-dividends, and splits. A sample is provided below. There are other samples for testing
-purposes in ``zipline/tests/resources/csvdir_samples``.
+from ``.csv`` files. Put one file per asset, named ``<SYMBOL>.csv``, in a
+``daily`` (or ``minute``) subdirectory of your data directory. The format of the
+files should be in OHLCV format, with dates, dividends, and splits. A sample is
+provided below. There are other samples for testing purposes in
+``tests/resources/csvdir_samples``.
 
 .. code-block:: text
 
@@ -329,8 +349,8 @@ We'll then want to specify the start and end sessions of our bundle data:
 
 .. code-block:: python
 
-	 start_session = pd.Timestamp('2016-1-1', tz='utc')
-	 end_session = pd.Timestamp('2018-1-1', tz='utc')
+	 start_session = pd.Timestamp('2016-1-1')
+	 end_session = pd.Timestamp('2018-1-1')
 
 And then we can ``register()`` our bundle, and pass the location of the directory in which
 our ``.csv`` files exist:
@@ -364,5 +384,5 @@ To finally ingest our data, we can run:
 
 
 If you would like to use equities that are not in the NYSE calendar, or the existing zipline calendars,
-you can look at the ``Trading Calendar Tutorial`` to build a custom trading calendar that you can then pass
+you can look at :doc:`trading-calendars` to build a custom trading calendar that you can then pass
 the name of to ``register()``.

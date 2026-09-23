@@ -5,9 +5,9 @@ from zipline.utils.input_validation import (
     optional,
 )
 
-from .domain import Domain, GENERIC, infer_domain
-from .graph import ExecutionPlan, TermGraph, SCREEN_NAME
+from .domain import GENERIC, Domain, infer_domain
 from .filters import Filter
+from .graph import SCREEN_NAME, ExecutionPlan, TermGraph
 from .term import AssetExists, ComputableTerm, Term
 
 
@@ -34,13 +34,10 @@ class Pipeline:
     screen : zipline.pipeline.Filter, optional
         Initial screen.
     """
-    __slots__ = ('_columns', '_screen', '_domain', '__weakref__')
 
-    @expect_types(
-        columns=optional(dict),
-        screen=optional(Filter),
-        domain=Domain
-    )
+    __slots__ = ("_columns", "_screen", "_domain", "__weakref__")
+
+    @expect_types(columns=optional(dict), screen=optional(Filter), domain=Domain)
     def __init__(self, columns=None, screen=None, domain=GENERIC):
         if columns is None:
             columns = {}
@@ -50,10 +47,8 @@ class Pipeline:
             validate_column(column_name, term)
             if not isinstance(term, ComputableTerm):
                 raise TypeError(
-                    "Column {column_name!r} contains an invalid pipeline term "
-                    "({term}). Did you mean to append '.latest'?".format(
-                        column_name=column_name, term=term,
-                    )
+                    f"Column {column_name!r} contains an invalid pipeline term "
+                    f"({term}). Did you mean to append '.latest'?"
                 )
 
         self._columns = columns
@@ -122,8 +117,8 @@ class Pipeline:
 
         if not isinstance(term, ComputableTerm):
             raise TypeError(
-                "{term} is not a valid pipeline column. Did you mean to "
-                "append '.latest'?".format(term=term)
+                f"{term} is not a valid pipeline column. Did you mean to "
+                "append '.latest'?"
             )
 
         self._columns[name] = term
@@ -172,11 +167,7 @@ class Pipeline:
             )
         self._screen = screen
 
-    def to_execution_plan(self,
-                          domain,
-                          default_screen,
-                          start_date,
-                          end_date):
+    def to_execution_plan(self, domain, default_screen, start_date, end_date):
         """
         Compile into an ExecutionPlan.
 
@@ -202,8 +193,9 @@ class Pipeline:
         """
         if self._domain is not GENERIC and self._domain is not domain:
             raise AssertionError(
-                "Attempted to compile Pipeline with domain {} to execution "
-                "plan with different domain {}.".format(self._domain, domain)
+                f"Attempted to compile Pipeline with domain {self._domain} to "
+                "execution "
+                f"plan with different domain {domain}."
             )
 
         return ExecutionPlan(
@@ -238,8 +230,8 @@ class Pipeline:
         columns[SCREEN_NAME] = screen
         return columns
 
-    @expect_element(format=('svg', 'png', 'jpeg'))
-    def show_graph(self, format='svg'):
+    @expect_element(format=("svg", "png", "jpeg"))
+    def show_graph(self, format="svg"):
         """
         Render this Pipeline as a DAG.
 
@@ -249,16 +241,16 @@ class Pipeline:
             Image format to render with.  Default is 'svg'.
         """
         g = self.to_simple_graph(AssetExists())
-        if format == 'svg':
+        if format == "svg":
             return g.svg
-        elif format == 'png':
+        elif format == "png":
             return g.png
-        elif format == 'jpeg':
+        elif format == "jpeg":
             return g.jpeg
         else:
             # We should never get here because of the expect_element decorator
             # above.
-            raise AssertionError("Unknown graph format %r." % format)
+            raise AssertionError(f"Unknown graph format {format!r}.")
 
     @staticmethod
     @expect_types(term=Term, column_name=str)
@@ -323,7 +315,8 @@ class Pipeline:
             # Both non-generic. They have to match.
             if inferred is not self._domain:
                 raise ValueError(
-                    "Conflicting domains in Pipeline. Inferred {}, but {} was "
-                    "passed at construction.".format(inferred, self._domain)
+                    f"Conflicting domains in Pipeline. Inferred {inferred}, but "
+                    f"{self._domain} was "
+                    "passed at construction."
                 )
             return inferred

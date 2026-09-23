@@ -1,0 +1,5 @@
+# Mechanical reformatting commits, skipped by `git blame`
+# (git config blame.ignoreRevsFile .git-blame-ignore-revs).
+
+# CLN: format the codebase with ruff format
+aa768068a9ab76d483353273c8b4f80c9eb7fb3d

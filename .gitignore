@@ -78,3 +78,9 @@ TAGS
 .gdb_history
 
 *.dSYM/
+
+# uv / tooling
+.venv
+.pytest_cache
+.ruff_cache
+zipline/_version.py
