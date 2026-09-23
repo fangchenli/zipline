@@ -137,6 +137,11 @@ class ParquetDailyBarWriter:
             for year in self._year_starts
         }
 
+    @property
+    def exists(self):
+        """Whether ``rootdir`` already holds a dataset."""
+        return os.path.exists(_metadata_path(self._rootdir))
+
     def write(
         self,
         data,
@@ -165,7 +170,7 @@ class ParquetDailyBarWriter:
         currency_codes : pd.Series, optional
             Map from sid to the asset's listing currency. Defaults to USD.
         """
-        if os.path.exists(_metadata_path(self._rootdir)):
+        if self.exists:
             raise ValueError(f"{self._rootdir} already contains a dataset")
         os.makedirs(self._rootdir, exist_ok=True)
 
@@ -413,6 +418,12 @@ class ParquetDailyBarReader(CurrencyAwareSessionBarReader):
     block_cache_size : int, optional
         How many (year, field) blocks to keep in memory.
 
+    Notes
+    -----
+    The dataset is opened on first use, so a reader can be created before its
+    writer has run. Bundle ingestion relies on this to hand the reader to the
+    adjustment writer, which needs close prices to compute dividend ratios.
+
     See Also
     --------
     zipline.data.parquet_daily_bars.ParquetDailyBarWriter
@@ -420,8 +431,16 @@ class ParquetDailyBarReader(CurrencyAwareSessionBarReader):
 
     def __init__(self, rootdir, block_cache_size=DEFAULT_BLOCK_CACHE_SIZE):
         self._rootdir = rootdir
+        self._block_cache_size = block_cache_size
+        self._blocks = OrderedDict()
+        # Per-year bar layouts, shared by all fields (small: two int arrays).
+        self._layouts = {}
+
+    @cached_property
+    def _metadata(self):
+        rootdir = self._rootdir
         with open(_metadata_path(rootdir)) as f:
-            self._metadata = metadata = json.load(f)
+            metadata = json.load(f)
         if metadata.get("format") != FORMAT_NAME:
             raise ValueError(f"{rootdir} is not a Parquet daily bar dataset")
         if metadata["version"] > FORMAT_VERSION:
@@ -429,10 +448,7 @@ class ParquetDailyBarReader(CurrencyAwareSessionBarReader):
                 f"{rootdir} was written with format version {metadata['version']}"
                 f", but this version of zipline reads up to {FORMAT_VERSION}"
             )
-        self._block_cache_size = block_cache_size
-        self._blocks = OrderedDict()
-        # Per-year bar layouts, shared by all fields (small: two int arrays).
-        self._layouts = {}
+        return metadata
 
     @property
     def data_frequency(self):
@@ -444,6 +460,7 @@ class ParquetDailyBarReader(CurrencyAwareSessionBarReader):
 
     @cached_property
     def sessions(self):
+        """The sessions the dataset covers, as a DatetimeIndex."""
         return self.trading_calendar.sessions_in_range(
             pd.Timestamp(self._metadata["start_session"]),
             pd.Timestamp(self._metadata["end_session"]),
@@ -459,6 +476,7 @@ class ParquetDailyBarReader(CurrencyAwareSessionBarReader):
 
     @cached_property
     def first_trading_day(self):
+        """The first session with a bar for any asset, or None."""
         first = self._metadata["first_trading_day"]
         return None if first is None else pd.Timestamp(first)
 

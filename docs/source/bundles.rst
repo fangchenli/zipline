@@ -225,25 +225,26 @@ to signal that there is no minutely data.
 ````````````````````
 
 ``daily_bar_writer`` is an instance of
-:class:`~zipline.data.bcolz_daily_bars.BcolzDailyBarWriter`. This writer is
-used to convert data into zipline's internal bcolz format to later be read by a
-:class:`~zipline.data.bcolz_daily_bars.BcolzDailyBarReader`. If daily data is
+:class:`~zipline.data.parquet_daily_bars.ParquetDailyBarWriter`. This writer
+stores daily bars as a Parquet dataset, later read by a
+:class:`~zipline.data.parquet_daily_bars.ParquetDailyBarReader`. If daily data is
 provided, users should call
-:meth:`~zipline.data.bcolz_daily_bars.BcolzDailyBarWriter.write` with an iterable of
-(sid, dataframe) tuples. The ``show_progress`` argument should also be forwarded
-to this method. If the data source does not provide daily data, then there is
-no need to call the write method. It is also acceptable to pass an empty
-iterable to :meth:`~zipline.data.bcolz_daily_bars.BcolzDailyBarWriter.write` to
-signal that there is no daily data. If no daily data is provided but minute data
-is provided, a daily rollup will happen to service daily history requests.
+:meth:`~zipline.data.parquet_daily_bars.ParquetDailyBarWriter.write` once with an
+iterable of (sid, dataframe) tuples, where each dataframe is indexed by session
+and has ``open``, ``high``, ``low``, ``close`` and ``volume`` columns. Sessions
+missing between an asset's first and last bar are stored as missing data. The
+``show_progress`` argument should also be forwarded to this method. If the data
+source does not provide daily data, then there is no need to call the write
+method. If no daily data is provided but minute data is provided, a daily rollup
+will happen to service daily history requests.
 
 .. note::
 
    Like the ``minute_bar_writer``, the data passed to
-   :meth:`~zipline.data.bcolz_daily_bars.BcolzDailyBarWriter.write` may be a lazy
-   iterable or generator to avoid loading all of the data into memory at once.
-   Unlike the ``minute_bar_writer``, a sid may only appear once in the data
-   iterable.
+   :meth:`~zipline.data.parquet_daily_bars.ParquetDailyBarWriter.write` may be a
+   lazy iterable or generator to avoid loading all of the data into memory at
+   once. Unlike the ``minute_bar_writer``, a sid may only appear once in the
+   data iterable, and the method may only be called once.
 
 ``adjustment_writer``
 `````````````````````

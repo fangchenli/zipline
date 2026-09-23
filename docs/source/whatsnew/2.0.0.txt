@@ -73,6 +73,10 @@ API and Behaviour Changes
   ``_is_buy``.
 - ``TradingAlgorithm.portfolio`` and ``account`` raise ``AttributeError`` with a
   clear message when accessed outside of a running simulation.
+- A bundle's ingest function now receives a
+  :class:`~zipline.data.parquet_daily_bars.ParquetDailyBarWriter` as
+  ``daily_bar_writer``. Its ``write`` method may be called only once, and daily
+  bar dates must be sessions of the bundle's calendar.
 
 Enhancements
 ~~~~~~~~~~~~
@@ -83,7 +87,8 @@ Enhancements
   written as a year-partitioned Parquet dataset that pyarrow, pandas and DuckDB
   can also read directly. Compared with bcolz, pipelines over daily data run
   2-8x faster, daily backtests about 2x faster and writing is slightly faster.
-  Bundles still write bcolz for now.
+  Bundles ingest daily bars into this format; bundles ingested by earlier
+  versions, with bcolz daily bars, still load.
 
 Bug Fixes
 ~~~~~~~~~

@@ -1,4 +1,5 @@
 import os
+import shutil
 
 import pandas as pd
 import sqlalchemy as sa
@@ -10,6 +11,7 @@ import zipline.utils.paths as pth
 from zipline.assets import ASSET_DB_VERSION
 from zipline.assets.asset_writer import check_version_info
 from zipline.assets.synthetic import make_simple_equity_info
+from zipline.data.bcolz_daily_bars import BcolzDailyBarReader, BcolzDailyBarWriter
 from zipline.data.bundles import (
     UnknownBundle,
     from_bundle_ingest_dirname,
@@ -19,8 +21,11 @@ from zipline.data.bundles.core import (
     BadClean,
     _make_bundle_core,
     asset_db_path,
+    bcolz_daily_equity_relative,
+    daily_equity_path,
     to_bundle_ingest_dirname,
 )
+from zipline.data.parquet_daily_bars import ParquetDailyBarReader
 from zipline.lib.adjustment import Float64Multiply
 from zipline.pipeline.loaders.synthetic import (
     expected_bar_values_2d,
@@ -203,6 +208,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         self.add_instance_callback(bundle.close)
 
         assert_equal(set(bundle.asset_finder.sids), set(sids))
+        assert_is_instance(bundle.equity_daily_bar_reader, ParquetDailyBarReader)
 
         columns = "open", "high", "low", "close", "volume"
 
@@ -289,6 +295,95 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             },
             msg="volume",
         )
+
+    def _ingest_daily(self, write_daily=True, dividends=None):
+        """Ingest a bundle of three equities and load it.
+
+        Returns the bundle, the equities' sids and the daily bars' sessions.
+        """
+        calendar = get_calendar("XNYS")
+        sessions = calendar.sessions_in_range(self.START_DATE, self.END_DATE)
+        sids = tuple(range(3))
+        equities = make_simple_equity_info(sids, self.START_DATE, self.END_DATE)
+
+        @self.register(
+            "bundle",
+            calendar_name="NYSE",
+            start_session=self.START_DATE,
+            end_session=self.END_DATE,
+        )
+        def bundle_ingest(
+            environ,
+            asset_db_writer,
+            minute_bar_writer,
+            daily_bar_writer,
+            adjustment_writer,
+            *args,
+        ):
+            asset_db_writer.write(equities=equities)
+            if write_daily:
+                daily_bar_writer.write(make_bar_data(equities, sessions))
+            adjustment_writer.write(dividends=dividends)
+
+        self.ingest("bundle", environ=self.environ)
+        bundle = self.load("bundle", environ=self.environ)
+        self.add_instance_callback(bundle.close)
+        return bundle, sids, sessions
+
+    def test_ingest_dividend_ratios_from_daily_bars(self):
+        ex_date = pd.Timestamp("2014-01-08")
+        dividends = pd.DataFrame(
+            {
+                "sid": [0],
+                "amount": [0.5],
+                "ex_date": [ex_date],
+                "record_date": [ex_date],
+                "declared_date": [ex_date],
+                "pay_date": [ex_date],
+            }
+        )
+        bundle, _, _ = self._ingest_daily(dividends=dividends)
+
+        previous_close = bundle.equity_daily_bar_reader.get_value(
+            0, pd.Timestamp("2014-01-07"), "close"
+        )
+        assert_equal(
+            bundle.adjustment_reader.get_adjustments_for_sid("dividends", 0),
+            [[ex_date, 1.0 - 0.5 / previous_close]],
+        )
+
+    def test_ingest_without_daily_bars(self):
+        bundle, sids, sessions = self._ingest_daily(write_daily=False)
+
+        reader = bundle.equity_daily_bar_reader
+        assert_equal(reader.sessions, sessions)
+        assert_equal(reader.currency_codes(sids).tolist(), [None] * len(sids))
+
+    def test_load_bcolz_ingestion(self):
+        """Bundles ingested before daily bars moved to Parquet still load."""
+        bundle, sids, sessions = self._ingest_daily()
+        (timestr,) = ingestions_for_bundle("bundle", environ=self.environ)
+        timestr = to_bundle_ingest_dirname(timestr)
+        equities = make_simple_equity_info(sids, self.START_DATE, self.END_DATE)
+        daily_bar_data = make_bar_data(equities, sessions)
+
+        # Replace the Parquet dataset with bcolz in the old location.
+        shutil.rmtree(daily_equity_path("bundle", timestr, environ=self.environ))
+        BcolzDailyBarWriter(
+            pth.data_path(
+                bcolz_daily_equity_relative("bundle", timestr), environ=self.environ
+            ),
+            get_calendar("XNYS"),
+            sessions[0],
+            sessions[-1],
+        ).write(daily_bar_data)
+
+        bundle = self.load("bundle", environ=self.environ)
+        self.add_instance_callback(bundle.close)
+        reader = bundle.equity_daily_bar_reader
+        assert_is_instance(reader, BcolzDailyBarReader)
+        (close,) = reader.load_raw_arrays(["close"], sessions[0], sessions[-1], sids)
+        assert_equal(close, expected_bar_values_2d(sessions, sids, equities, "close"))
 
     def test_ingest_assets_versions(self):
         versions = (1, 2)
@@ -405,8 +500,8 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             @self.register(
                 "bundle",
                 calendar_name="NYSE",
-                start_session=pd.Timestamp("2014"),
-                end_session=pd.Timestamp("2014"),
+                start_session=pd.Timestamp("2014-01-02"),
+                end_session=pd.Timestamp("2014-01-02"),
             )
             def _(
                 environ,
