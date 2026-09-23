@@ -3,14 +3,14 @@ and the Pipeline loaders.
 """
 
 from .common import BundleBenchmark, random_choices
-from .data import BACKENDS, DAILY_SIDS, MINUTE_SIDS
+from .data import DAILY_BACKENDS, DAILY_SIDS, MINUTE_BACKENDS, MINUTE_SIDS
 
 FIELDS = ["open", "high", "low", "close", "volume"]
 N_LOOKUPS = 1000
 
 
 class DailyBarReader(BundleBenchmark):
-    params = (BACKENDS, [1, 100, DAILY_SIDS], [20, 252, 2500])
+    params = (DAILY_BACKENDS, [1, 100, DAILY_SIDS], [20, 252, 2500])
     param_names = ["backend", "n_sids", "n_sessions"]
 
     def setup(self, roots, backend, n_sids, n_sessions):
@@ -27,7 +27,7 @@ class DailyBarReader(BundleBenchmark):
 
 
 class DailyBarLookups(BundleBenchmark):
-    params = BACKENDS
+    params = DAILY_BACKENDS
     param_names = ["backend"]
 
     def setup(self, roots, backend):
@@ -58,7 +58,7 @@ class DailyBarLookups(BundleBenchmark):
 
 
 class MinuteBarReader(BundleBenchmark):
-    params = (BACKENDS, [1, MINUTE_SIDS], [390, 5 * 390, 20 * 390])
+    params = (MINUTE_BACKENDS, [1, MINUTE_SIDS], [390, 5 * 390, 20 * 390])
     param_names = ["backend", "n_sids", "n_minutes"]
 
     def setup(self, roots, backend, n_sids, n_minutes):
@@ -76,7 +76,7 @@ class MinuteBarReader(BundleBenchmark):
 
 
 class MinuteBarLookups(BundleBenchmark):
-    params = BACKENDS
+    params = MINUTE_BACKENDS
     param_names = ["backend"]
 
     def setup(self, roots, backend):
