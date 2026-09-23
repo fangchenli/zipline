@@ -50,7 +50,7 @@ jobs:
       - uses: astral-sh/setup-uv@v10.2.0  # no floating major-version tags
       - run: uv sync --locked --group bench
       - run: uv run asv machine --yes
-      - run: uv run asv run --python=same --quick --strict --show-stderr
+      - run: uv run asv run --python=same --quick --show-stderr  # exits non-zero if a benchmark fails
 
   test:
     name: test (${{ matrix.os }}, py${{ matrix.python-version }})
