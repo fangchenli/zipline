@@ -109,7 +109,7 @@ def ipython_only(option):
     return d
 
 
-DEFAULT_BUNDLE = "quantopian-quandl"
+DEFAULT_BUNDLE = "quandl"
 
 
 @main.command()

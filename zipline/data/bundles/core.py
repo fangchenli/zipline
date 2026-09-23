@@ -303,7 +303,7 @@ def _make_bundle_core():
         create_writers : bool, optional
             Should the ingest machinery create the writers for the ingest
             function. This can be disabled as an optimization for cases where
-            they are not needed, like the ``quantopian-quandl`` bundle.
+            they are not needed, e.g. for a bundle that downloads pre-built data.
 
         Notes
         -----

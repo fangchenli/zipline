@@ -2,7 +2,6 @@
 Module for building a complete daily dataset from Quandl's WIKI dataset.
 """
 
-import tarfile
 from io import BytesIO
 from urllib.parse import urlencode
 from zipfile import ZipFile
@@ -19,7 +18,9 @@ from . import core as bundles
 log = Logger(__name__)
 
 ONE_MEGABYTE = 1024 * 1024
-QUANDL_DATA_URL = "https://www.quandl.com/api/v3/datatables/WIKI/PRICES.csv?"
+# Quandl is now Nasdaq Data Link; the WIKI Prices dataset stopped updating in
+# March 2018 but is still available.
+QUANDL_DATA_URL = "https://data.nasdaq.com/api/v3/datatables/WIKI/PRICES.csv?"
 
 
 def format_metadata_url(api_key):
@@ -166,8 +167,8 @@ def quandl_bundle(
     """
     quandl_bundle builds a daily dataset using Quandl's WIKI Prices dataset.
 
-    For more information on Quandl's API and how to obtain an API key,
-    please visit https://docs.quandl.com/docs#section-authentication
+    The dataset ends in March 2018. To obtain an API key, create a free account
+    at https://data.nasdaq.com.
     """
     api_key = environ.get("QUANDL_API_KEY")
     if api_key is None:
@@ -267,39 +268,6 @@ def download_without_progress(url):
     resp = requests.get(url)
     resp.raise_for_status()
     return BytesIO(resp.content)
-
-
-QUANTOPIAN_QUANDL_URL = "https://s3.amazonaws.com/quantopian-public-zipline-data/quandl"
-
-
-@bundles.register("quantopian-quandl", create_writers=False)
-def quantopian_quandl_bundle(
-    environ,
-    asset_db_writer,
-    minute_bar_writer,
-    daily_bar_writer,
-    adjustment_writer,
-    calendar,
-    start_session,
-    end_session,
-    cache,
-    show_progress,
-    output_dir,
-):
-
-    if show_progress:
-        data = download_with_progress(
-            QUANTOPIAN_QUANDL_URL,
-            chunk_size=ONE_MEGABYTE,
-            label="Downloading Bundle: quantopian-quandl",
-        )
-    else:
-        data = download_without_progress(QUANTOPIAN_QUANDL_URL)
-
-    with tarfile.open("r", fileobj=data) as tar:
-        if show_progress:
-            log.info(f"Writing data to {output_dir}.")
-        tar.extractall(output_dir)
 
 
 register_calendar_alias("QUANDL", "NYSE")
