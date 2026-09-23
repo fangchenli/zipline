@@ -408,14 +408,10 @@ class AssetTestCase(TestCase):
         self.assertTrue(self.asset5 > self.asset4)
 
     def test_type_mismatch(self):
-        if sys.version_info.major < 3:
-            self.assertIsNotNone(self.asset3 < 'a')
-            self.assertIsNotNone('a' < self.asset3)
-        else:
-            with self.assertRaises(TypeError):
-                self.asset3 < 'a'
-            with self.assertRaises(TypeError):
-                'a' < self.asset3
+        with self.assertRaises(TypeError):
+            self.asset3 < 'a'
+        with self.assertRaises(TypeError):
+            'a' < self.asset3
 
 
 class TestFuture(WithAssetFinder, ZiplineTestCase):

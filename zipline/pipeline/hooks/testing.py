@@ -4,7 +4,6 @@ from functools import wraps
 
 from .iface import PipelineHooks, PIPELINE_HOOKS_CONTEXT_MANAGERS
 
-from interface import implements
 
 
 Call = namedtuple('Call', 'method_name args kwargs')
@@ -47,7 +46,7 @@ def testing_hooks_method(method_name):
         return method
 
 
-class TestingHooks(implements(PipelineHooks)):
+class TestingHooks(PipelineHooks):
     """A hooks implementation that keeps a trace of hook method calls.
     """
     def __init__(self):

@@ -1,5 +1,4 @@
 from abc import abstractmethod, abstractproperty
-from interface import implements
 
 import numpy as np
 import pandas as pd
@@ -101,7 +100,7 @@ def add_new_adjustments(adjustments_dict,
         adjustments_dict[column_name][ts] = adjustments
 
 
-class EarningsEstimatesLoader(implements(PipelineLoader)):
+class EarningsEstimatesLoader(PipelineLoader):
     """
     An abstract pipeline loader for estimates data that can load data a
     variable number of quarters forwards/backwards from calendar dates

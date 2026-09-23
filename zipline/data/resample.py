@@ -183,7 +183,7 @@ class DailyHistoryAggregator:
 
         for asset in assets:
             if not asset.is_alive_for_session(session_label):
-                opens.append(np.NaN)
+                opens.append(np.nan)
                 continue
 
             if prev_dt is None:
@@ -252,7 +252,7 @@ class DailyHistoryAggregator:
 
         for asset in assets:
             if not asset.is_alive_for_session(session_label):
-                highs.append(np.NaN)
+                highs.append(np.nan)
                 continue
 
             if prev_dt is None:
@@ -321,7 +321,7 @@ class DailyHistoryAggregator:
 
         for asset in assets:
             if not asset.is_alive_for_session(session_label):
-                lows.append(np.NaN)
+                lows.append(np.nan)
                 continue
 
             if prev_dt is None:
@@ -400,11 +400,11 @@ class DailyHistoryAggregator:
             try:
                 return window[~np.isnan(window)][-1]
             except IndexError:
-                return np.NaN
+                return np.nan
 
         for asset in assets:
             if not asset.is_alive_for_session(session_label):
-                closes.append(np.NaN)
+                closes.append(np.nan)
                 continue
 
             if prev_dt is None:

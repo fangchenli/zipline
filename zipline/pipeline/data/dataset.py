@@ -4,7 +4,6 @@ from itertools import repeat
 from textwrap import dedent
 from weakref import WeakKeyDictionary
 
-from six import with_metaclass
 from toolz import first
 
 from zipline.currency import Currency
@@ -546,7 +545,7 @@ class DataSetMeta(type):
         return '<DataSet: %r, domain=%s>' % (self.__name__, self.domain)
 
 
-class DataSet(with_metaclass(DataSetMeta, object)):
+class DataSet(metaclass=DataSetMeta):
     """
     Base class for Pipeline datasets.
 
@@ -786,7 +785,7 @@ class DataSetFamilySlice(DataSet):
 
 # XXX: This docstring was mostly written when the abstraction here was
 # "MultiDimensionalDataSet". It probably needs some rewriting.
-class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
+class DataSetFamily(metaclass=DataSetFamilyMeta):
     """
     Base class for Pipeline dataset families.
 

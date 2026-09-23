@@ -1,6 +1,5 @@
 from operator import attrgetter
 
-from six import with_metaclass
 
 
 def compose_types(a, *cs):
@@ -30,8 +29,7 @@ def compose_types(a, *cs):
        ...         return super(M, mcls).__new__(mcls, name, bases, dict_)
 
 
-       >>> from six import with_metaclass
-       >>> class C(with_metaclass(M, object)):
+       >>> class C(metaclass=M):
        ...     pass
 
 
@@ -45,7 +43,7 @@ def compose_types(a, *cs):
     .. code-block:: python
 
        >>> from abc import ABCMeta, abstractmethod
-       >>> class D(with_metaclass(compose_types(M, ABCMeta), C)):
+       >>> class D(C, metaclass=compose_types(M, ABCMeta)):
        ...     @abstractmethod
        ...     def f(self):
        ...         raise NotImplementedError('f')
@@ -82,30 +80,3 @@ def compose_types(a, *cs):
         mcls,
         {},
     )
-
-
-def with_metaclasses(metaclasses, *bases):
-    """Make a class inheriting from ``bases`` whose metaclass inherits from
-    all of ``metaclasses``.
-
-    Like :func:`six.with_metaclass`, but allows multiple metaclasses.
-
-    Parameters
-    ----------
-    metaclasses : iterable[type]
-        A tuple of types to use as metaclasses.
-    *bases : tuple[type]
-        A tuple of types to use as bases.
-
-    Returns
-    -------
-    base : type
-        A subtype of ``bases`` whose metaclass is a subtype of ``metaclasses``.
-
-    Notes
-    -----
-    The metaclasses must be written to support cooperative multiple
-    inheritance. This means that they must delegate all calls to ``super()``
-    instead of inlining their super class by name.
-    """
-    return with_metaclass(compose_types(*metaclasses), *bases)

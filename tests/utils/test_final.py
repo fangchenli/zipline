@@ -1,7 +1,6 @@
 from abc import abstractmethod, ABCMeta
 from unittest import TestCase
 
-from six import with_metaclass
 
 from zipline.utils.final import (
     FinalMeta,
@@ -13,7 +12,7 @@ from zipline.utils.metautils import compose_types
 class FinalMetaTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
-        class ClassWithFinal(with_metaclass(FinalMeta, object)):
+        class ClassWithFinal(metaclass=FinalMeta):
             a = final('ClassWithFinal: a')
             b = 'ClassWithFinal: b'
 
@@ -161,7 +160,7 @@ class FinalABCMetaTestCase(FinalMetaTestCase):
     def setUpClass(cls):
         FinalABCMeta = compose_types(FinalMeta, ABCMeta)
 
-        class ABCWithFinal(with_metaclass(FinalABCMeta, object)):
+        class ABCWithFinal(metaclass=FinalABCMeta):
             a = final('ABCWithFinal: a')
             b = 'ABCWithFinal: b'
 
@@ -217,7 +216,7 @@ class FinalABCMetaTestCase(FinalMetaTestCase):
         """
         Tests that subclasses don't destroy the __setattr__.
         """
-        class ClassWithFinal(with_metaclass(FinalMeta, object)):
+        class ClassWithFinal(metaclass=FinalMeta):
             @final
             def f(self):
                 return 'ClassWithFinal: f'
@@ -232,7 +231,7 @@ class FinalABCMetaTestCase(FinalMetaTestCase):
 
     def test_final_classmethod(self):
 
-        class ClassWithClassMethod(with_metaclass(FinalMeta, object)):
+        class ClassWithClassMethod(metaclass=FinalMeta):
             count = 0
 
             @final

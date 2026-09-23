@@ -1,13 +1,12 @@
 """
 Caching utilities for zipline
 """
-from collections import MutableMapping
+from collections.abc import MutableMapping
 import errno
 from functools import partial
 import os
 import pickle
-from distutils import dir_util
-from shutil import rmtree, move
+from shutil import copytree, move, rmtree
 from tempfile import mkdtemp, NamedTemporaryFile
 
 import pandas as pd
@@ -344,8 +343,8 @@ class working_dir:
     Notes
     -----
     The file is moved on __exit__ if there are no exceptions.
-    ``working_dir`` uses :func:`dir_util.copy_tree` to move the actual files,
-    meaning it has as strong of guarantees as :func:`dir_util.copy_tree`.
+    ``working_dir`` uses :func:`shutil.copytree` to move the actual files,
+    meaning it has as strong of guarantees as :func:`shutil.copytree`.
     """
     def __init__(self, final_path, *args, **kwargs):
         self.path = mkdtemp()
@@ -376,7 +375,7 @@ class working_dir:
     def _commit(self):
         """Sync the temporary directory to the final path.
         """
-        dir_util.copy_tree(self.path, self._final_path)
+        copytree(self.path, self._final_path, dirs_exist_ok=True)
 
     def __enter__(self):
         return self

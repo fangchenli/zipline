@@ -1,4 +1,5 @@
-from six.moves import map as imap
+import builtins
+
 from toolz import compose, identity
 
 
@@ -77,8 +78,8 @@ class SequentialPool:
     --------
     :class:`multiprocessing.Pool`
     """
-    map = staticmethod(compose(list, imap))
-    imap = imap_unordered = staticmethod(imap)
+    map = staticmethod(compose(list, builtins.map))
+    imap = imap_unordered = staticmethod(builtins.map)
 
     @staticmethod
     def apply_async(f, args=(), kwargs=None, callback=None):

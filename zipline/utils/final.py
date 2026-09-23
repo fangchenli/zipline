@@ -1,6 +1,5 @@
 from abc import ABCMeta, abstractmethod
 
-from six import with_metaclass
 
 # Consistent error to be thrown in various cases regarding overriding
 # `final` attributes.
@@ -62,14 +61,13 @@ class FinalMeta(type):
         super(FinalMeta, self).__setattr__(name, value)
 
 
-class final(with_metaclass(ABCMeta)):
+class final(metaclass=ABCMeta):
     """
     An attribute that cannot be overridden.
     This is like the final modifier in Java.
 
     Example usage:
-    >>> from six import with_metaclass
-    >>> class C(with_metaclass(FinalMeta, object)):
+    >>> class C(metaclass=FinalMeta):
     ...    @final
     ...    def f(self):
     ...        return 'value'

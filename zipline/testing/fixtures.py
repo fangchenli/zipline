@@ -8,7 +8,6 @@ from logbook import NullHandler, Logger
 import numpy as np
 import pandas as pd
 from pandas.errors import PerformanceWarning
-from six import with_metaclass
 import responses
 from toolz import flip, groupby, merge
 from trading_calendars import (
@@ -101,7 +100,7 @@ class DebugMROMeta(FinalMeta):
                 raise
 
 
-class ZiplineTestCase(with_metaclass(DebugMROMeta, TestCase)):
+class ZiplineTestCase(TestCase, metaclass=DebugMROMeta):
     """
     Shared extensions to core unittest.TestCase.
 
@@ -288,7 +287,7 @@ def alias(attr_name):
     return classproperty(flip(getattr, attr_name))
 
 
-class WithDefaultDateBounds(with_metaclass(DebugMROMeta, object)):
+class WithDefaultDateBounds(metaclass=DebugMROMeta):
     """
     ZiplineTestCase mixin which makes it possible to synchronize date bounds
     across fixtures.

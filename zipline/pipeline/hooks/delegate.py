@@ -1,4 +1,3 @@
-from interface import implements
 from contextlib import contextmanager, ExitStack
 from functools import wraps
 
@@ -31,12 +30,12 @@ def delegating_hooks_method(method_name):
         return method
 
 
-class DelegatingHooks(implements(PipelineHooks)):
+class DelegatingHooks(PipelineHooks):
     """A PipelineHooks that delegates to one or more other hooks.
 
     Parameters
     ----------
-    hooks : list[implements(PipelineHooks)]
+    hooks : list[PipelineHooks]
         Sequence of hooks to delegate to.
     """
     def __new__(cls, hooks):

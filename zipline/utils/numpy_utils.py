@@ -3,7 +3,6 @@ Utilities for working with numpy arrays.
 """
 from collections import OrderedDict
 from datetime import datetime
-from distutils.version import StrictVersion
 from warnings import (
     catch_warnings,
     filterwarnings,
@@ -28,8 +27,6 @@ from numpy import (
 from numpy.lib.stride_tricks import as_strided
 from toolz import flip
 
-numpy_version = StrictVersion(np.__version__)
-
 uint8_dtype = dtype('uint8')
 bool_dtype = dtype('bool')
 
@@ -52,11 +49,7 @@ categorical_dtype = object_dtype
 make_datetime64ns = flip(datetime64, 'ns')
 make_datetime64D = flip(datetime64, 'D')
 
-# Array compare that works across versions of numpy
-try:
-    assert_array_compare = np.testing.utils.assert_array_compare
-except AttributeError:
-    assert_array_compare = np.testing.assert_array_compare
+assert_array_compare = np.testing.assert_array_compare
 
 NaTmap = {
     dtype('datetime64[%s]' % unit): datetime64('NaT', unit)

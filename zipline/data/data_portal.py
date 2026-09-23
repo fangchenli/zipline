@@ -422,7 +422,7 @@ class DataPortal:
             return \
                 self._augmented_sources_map[field][asset].loc[day, field]
         except KeyError:
-            return np.NaN
+            return nan
 
     def _get_single_asset_value(self,
                                 session_label,
@@ -447,7 +447,7 @@ class DataPortal:
             elif field == "contract":
                 return None
             elif field != "last_traded":
-                return np.NaN
+                return nan
 
         if data_frequency == "daily":
             if field == "contract":
@@ -1104,7 +1104,7 @@ class DataPortal:
 
         if field != "volume":
             # volumes default to 0, so we don't need to put NaNs in the array
-            return_array[:] = np.NAN
+            return_array[:] = nan
 
         if bar_count != 0:
             data = self._history_loader.history(assets,

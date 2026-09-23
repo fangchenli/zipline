@@ -93,7 +93,6 @@ cache-keys = [
     { file = "zipline/**/*.pyx" },
     { file = "zipline/**/*.pxd" },
     { file = "zipline/**/*.pxi" },
-    { git = { commit = true, tags = true } },
 ]
 
 [tool.setuptools.packages.find]
