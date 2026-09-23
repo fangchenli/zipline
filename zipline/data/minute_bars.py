@@ -18,6 +18,7 @@ from glob import glob
 from os.path import join
 from textwrap import dedent
 from types import MappingProxyType
+from typing import Literal
 
 import bcolz
 import logbook
@@ -1318,9 +1319,14 @@ class H5MinuteBarUpdateWriter:
     FORMAT_VERSION = 1
 
     _COMPLEVEL = 5
-    _COMPLIB = "zlib"
+    _COMPLIB: Literal["zlib", "lzo", "bzip2", "blosc"] = "zlib"
 
-    def __init__(self, path, complevel=None, complib=None):
+    def __init__(
+        self,
+        path,
+        complevel=None,
+        complib: Literal["zlib", "lzo", "bzip2", "blosc"] | None = None,
+    ):
         self._complevel = complevel if complevel is not None else self._COMPLEVEL
         self._complib = complib if complib is not None else self._COMPLIB
         self._path = path
@@ -1338,11 +1344,9 @@ class H5MinuteBarUpdateWriter:
         """
         updates = pd.concat(dict(frames), names=["sid", "dt"])
         # HDF5 can't store tz-aware levels; minutes are stored as naive UTC.
-        dts = updates.index.levels[1]
-        if dts.tz is not None:
-            updates.index = updates.index.set_levels(
-                dts.tz_convert("UTC").tz_localize(None),
-                level="dt",
+        if updates.index.get_level_values("dt").tz is not None:
+            updates = updates.tz_convert("UTC", level="dt").tz_localize(
+                None, level="dt"
             )
         with HDFStore(
             self._path, "w", complevel=self._complevel, complib=self._complib
@@ -1363,12 +1367,8 @@ class H5MinuteBarUpdateReader(MinuteBarUpdateReader):
     """
 
     def __init__(self, path):
-        updates = pd.read_hdf(path, "updates")
-        updates.index = updates.index.set_levels(
-            updates.index.levels[1].tz_localize("UTC"),
-            level="dt",
-        )
-        self._updates = updates
+        # Minutes are stored as naive UTC (see H5MinuteBarUpdateWriter.write).
+        self._updates = pd.read_hdf(path, "updates").tz_localize("UTC", level="dt")
 
     def read(self, dts, sids):
         updates = self._updates

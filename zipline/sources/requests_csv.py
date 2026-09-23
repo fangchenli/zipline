@@ -353,7 +353,7 @@ class PandasCSV(ABC):
             # exists are replaced with NaNs.
             unique_symbols = df[self.symbol_column].unique()
             sid_series = pd.Series(
-                data=map(self._lookup_unconflicted_symbol, unique_symbols),
+                data=[self._lookup_unconflicted_symbol(s) for s in unique_symbols],
                 index=unique_symbols,
                 name="sid",
             )

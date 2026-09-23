@@ -1497,7 +1497,9 @@ class AssetFinder:
                 self._compute_asset_lifetimes(country_codes)
             )
 
-        raw_dates = as_column(pd.DatetimeIndex(dates).as_unit("ns").asi8)
+        raw_dates = as_column(
+            pd.DatetimeIndex(dates).as_unit("ns").to_numpy().view("i8")
+        )
         if include_start_date:
             mask = lifetimes.start <= raw_dates
         else:

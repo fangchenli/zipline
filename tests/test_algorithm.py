@@ -1013,7 +1013,7 @@ class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         expected_position_weights = [
             # No positions held on the first day.
-            pd.Series({}),
+            pd.Series({}, dtype="float64"),
             # Each equity's position value is its price times the number of
             # shares held. In this example, we hold a long position in 2 shares
             # of equity_1 so its weight is (95.0 * 2) = 190.0 divided by the

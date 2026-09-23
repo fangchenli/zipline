@@ -5,12 +5,14 @@ Tests for our testing utilities.
 from itertools import product
 from unittest import TestCase
 
+import pandas as pd
 from numpy import array, empty
-from zipline._protocol import BarData
 
+from zipline._protocol import BarData
 from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.finance.order import Order
 from zipline.testing import (
+    assert_timestamp_equal,
     check_arrays,
     make_alternating_boolean_array,
     make_cascading_boolean_array,
@@ -179,3 +181,21 @@ class TestPredicates(ZiplineTestCase):
 
         self.assertEqual(Bar(), instance_of(Foo))
         self.assertNotEqual(Bar(), instance_of(Foo, exact=True))
+
+
+class TestAssertTimestampEqual(TestCase):
+    def test_equal_and_nat(self):
+        ts = pd.Timestamp("2020-01-02")
+        assert_timestamp_equal(ts, pd.Timestamp("2020-01-02"))
+        assert_timestamp_equal(pd.NaT, pd.NaT)
+
+    def test_unequal(self):
+        with self.assertRaises(AssertionError) as e:
+            assert_timestamp_equal(
+                pd.Timestamp("2020-01-02"),
+                pd.Timestamp("2020-01-03"),
+                msg="context",
+            )
+        assert "context" in str(e.exception)
+        with self.assertRaises(AssertionError):
+            assert_timestamp_equal(pd.NaT, pd.NaT, compare_nat_equal=False)

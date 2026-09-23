@@ -79,8 +79,13 @@ test = [
     "testfixtures>=8",
 ]
 lint = [
+    "pandas-stubs>=3",
     "ruff>=0.15",
     "ty>=0.0.80",
+]
+docs = [
+    "sphinx>=8",
+    "sphinx-rtd-theme>=3",
 ]
 dev = [
     { include-group = "test" },

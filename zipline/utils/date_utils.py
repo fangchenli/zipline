@@ -32,8 +32,7 @@ def to_session_labels(dts):
     dts = pd.DatetimeIndex(dts)
     if dts.tz is not None:
         dts = dts.tz_convert("UTC").tz_localize(None)
-    # pandas delegates normalize to DatetimeArray, which ty can't see.
-    return dts.normalize().as_unit("ns")  # ty: ignore[unresolved-attribute]
+    return dts.normalize().as_unit("ns")
 
 
 def compute_date_range_chunks(sessions, start_date, end_date, chunksize):

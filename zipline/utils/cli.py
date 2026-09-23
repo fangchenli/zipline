@@ -1,7 +1,13 @@
+from typing import TYPE_CHECKING
+
 import click
 import pandas as pd
 
 from .context_tricks import CallbackManager
+
+if TYPE_CHECKING:
+    # Only defined in pandas-stubs.
+    from pandas._libs.tslibs.timedeltas import TimeDeltaUnitChoices
 
 
 def maybe_show_progress(it, show_progress, **kwargs):
@@ -117,7 +123,7 @@ class Timedelta(_DatetimeParam):
         Denotes the unit of the input if the input is an integer.
     """
 
-    def __init__(self, unit="ns"):
+    def __init__(self, unit: "TimeDeltaUnitChoices" = "ns"):
         self.unit = unit
 
     def parser(self, value):

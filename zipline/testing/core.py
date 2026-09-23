@@ -1000,11 +1000,14 @@ def assert_timestamp_equal(left, right, compare_nat_equal=True, msg=""):
     compare_nat_equal : bool, optional
         Whether to consider `NaT` values equal.  Defaults to True.
     msg : str, optional
-        A message to forward to `pd.util.testing.assert_equal`.
+        A message to include if the assertion fails.
     """
     if compare_nat_equal and left is pd.NaT and right is pd.NaT:
         return
-    return pd.util.testing.assert_equal(left, right, msg=msg)
+    # pandas.util.testing (and its assert_equal) no longer exists.
+    assert left == right, (
+        f"{msg}\n{left!r} != {right!r}" if msg else f"{left!r} != {right!r}"
+    )
 
 
 def powerset(values):

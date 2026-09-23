@@ -287,7 +287,7 @@ class HDF5FXRateWriter:
 
         self._log_writing(INDEX, DTS)
         # Stored as nanoseconds since the epoch, whatever the index's unit.
-        dts_ns = pd.DatetimeIndex(dts).as_unit("ns").asi8
+        dts_ns = pd.DatetimeIndex(dts).as_unit("ns").to_numpy().view("i8")
         index_group.create_dataset(DTS, data=dts_ns)
 
         self._log_writing(INDEX, CURRENCIES)
