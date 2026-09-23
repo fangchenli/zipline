@@ -15,6 +15,10 @@
 import logbook
 
 from ..ledger import Ledger
+from zipline.utils.calendar_utils import (
+    execution_time_from_close,
+    execution_time_from_open,
+)
 from zipline.utils.exploding_object import NamedExplodingObject
 
 
@@ -56,9 +60,9 @@ class MetricsTracker:
 
     @staticmethod
     def _execution_open_and_close(calendar, session):
-        open_, close = calendar.open_and_close_for_session(session)
-        execution_open = calendar.execution_time_from_open(open_)
-        execution_close = calendar.execution_time_from_close(close)
+        open_, close = calendar.session_first_last_minute(session)
+        execution_open = execution_time_from_open(calendar, open_)
+        execution_close = execution_time_from_close(calendar, close)
 
         return execution_open, execution_close
 
@@ -335,8 +339,8 @@ class MetricsTracker:
             'first open: {}\n'
             'last close: {}',
             self._session_count,
-            self._trading_calendar.session_open(self._first_session),
-            self._trading_calendar.session_close(self._last_session),
+            self._trading_calendar.session_first_minute(self._first_session),
+            self._trading_calendar.session_last_minute(self._last_session),
         )
 
         packet = {}

@@ -24,6 +24,16 @@ log = logbook.Logger('Trading')
 DEFAULT_CAPITAL_BASE = 1e5
 
 
+def _as_session_label(dt):
+    """Coerce ``dt`` to a tz-naive midnight session label.
+
+    tz-aware inputs are interpreted in UTC.
+    """
+    if dt.tz is not None:
+        dt = dt.tz_convert('UTC').tz_localize(None)
+    return dt.normalize()
+
+
 class SimulationParameters:
     def __init__(self,
                  start_session,
@@ -37,20 +47,23 @@ class SimulationParameters:
         assert type(start_session) == pd.Timestamp
         assert type(end_session) == pd.Timestamp
 
+        # chop off any minutes or hours on the given start and end dates,
+        # as we only support session labels here (and we represent session
+        # labels as tz-naive midnight timestamps).
+        start_session = _as_session_label(start_session)
+        end_session = _as_session_label(end_session)
+
         assert trading_calendar is not None, \
             "Must pass in trading calendar!"
         assert start_session <= end_session, \
             "Period start falls after period end."
-        assert start_session <= trading_calendar.last_trading_session, \
+        assert start_session <= trading_calendar.last_session, \
             "Period start falls after the last known trading day."
-        assert end_session >= trading_calendar.first_trading_session, \
+        assert end_session >= trading_calendar.first_session, \
             "Period end falls before the first known trading day."
 
-        # chop off any minutes or hours on the given start and end dates,
-        # as we only support session labels here (and we represent session
-        # labels as midnight UTC).
-        self._start_session = start_session.normalize()
-        self._end_session = end_session.normalize()
+        self._start_session = start_session
+        self._end_session = end_session
         self._capital_base = capital_base
 
         self._emission_rate = emission_rate
@@ -64,22 +77,22 @@ class SimulationParameters:
         if not trading_calendar.is_session(self._start_session):
             # if the start date is not a valid session in this calendar,
             # push it forward to the first valid session
-            self._start_session = trading_calendar.minute_to_session_label(
-                self._start_session
+            self._start_session = trading_calendar.date_to_session(
+                self._start_session, direction="next",
             )
 
         if not trading_calendar.is_session(self._end_session):
             # if the end date is not a valid session in this calendar,
             # pull it backward to the last valid session before the given
             # end date.
-            self._end_session = trading_calendar.minute_to_session_label(
-                self._end_session, direction="previous"
+            self._end_session = trading_calendar.date_to_session(
+                self._end_session, direction="previous",
             )
 
-        self._first_open = trading_calendar.open_and_close_for_session(
+        self._first_open = trading_calendar.session_first_last_minute(
             self._start_session
         )[0]
-        self._last_close = trading_calendar.open_and_close_for_session(
+        self._last_close = trading_calendar.session_first_last_minute(
             self._end_session
         )[1]
 

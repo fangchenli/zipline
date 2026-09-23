@@ -4,7 +4,6 @@ Tests for SimplePipelineEngine
 from collections import OrderedDict
 from itertools import product
 from operator import add, sub
-from unittest import skipIf
 
 from parameterized import parameterized
 import numpy as np
@@ -27,13 +26,13 @@ from pandas import (
     Categorical,
     DataFrame,
     date_range,
-    Int64Index,
+    Index,
     MultiIndex,
     Series,
     Timestamp,
 )
-from pandas.compat.chainmap import ChainMap
-from pandas.util.testing import assert_frame_equal
+from collections import ChainMap
+from pandas.testing import assert_frame_equal
 from toolz import merge
 
 from zipline.assets.synthetic import make_rotating_equity_info
@@ -89,7 +88,6 @@ from zipline.testing.core import create_simple_domain
 from zipline.testing.predicates import assert_equal
 from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import bool_dtype, datetime64ns_dtype
-from zipline.utils.pandas_utils import new_pandas, skip_pipeline_new_pandas
 
 
 class RollingSumDifference(CustomFactor):
@@ -1067,7 +1065,7 @@ class SyntheticBcolzTestCase(zf.WithAdjustmentReader,
 class ParameterizedFactorTestCase(zf.WithAssetFinder,
                                   zf.WithTradingCalendars,
                                   zf.ZiplineTestCase):
-    sids = ASSET_FINDER_EQUITY_SIDS = Int64Index([1, 2, 3])
+    sids = ASSET_FINDER_EQUITY_SIDS = Index([1, 2, 3], dtype='int64')
     START_DATE = Timestamp('2015-01-31', tz='UTC')
     END_DATE = Timestamp('2015-03-01', tz='UTC')
     ASSET_FINDER_COUNTRY_CODE = '??'
@@ -1294,7 +1292,6 @@ class StringColumnTestCase(zf.WithSeededRandomPipelineEngine,
     ASSET_FINDER_COUNTRY_CODE = 'US'
     SEEDED_RANDOM_PIPELINE_DEFAULT_DOMAIN = US_EQUITIES
 
-    @skipIf(new_pandas, skip_pipeline_new_pandas)
     def test_string_classifiers_produce_categoricals(self):
         """
         Test that string-based classifiers produce pandas categoricals as their
@@ -1524,9 +1521,7 @@ class ChunkedPipelineTestCase(zf.WithSeededRandomPipelineEngine,
             domain=US_EQUITIES,
         )
 
-        if not new_pandas:
-            # Categoricals only work on old pandas.
-            pipe.add(TestingDataSet.categorical_col.latest, 'categorical')
+        pipe.add(TestingDataSet.categorical_col.latest, 'categorical')
 
         pipeline_result = self.run_pipeline(
             pipe,
@@ -1566,9 +1561,7 @@ class ChunkedPipelineTestCase(zf.WithSeededRandomPipelineEngine,
             domain=US_EQUITIES,
         )
 
-        if not new_pandas:
-            # Categoricals only work on old pandas.
-            pipe.add(TestingDataSet.categorical_col.latest, 'categorical')
+        pipe.add(TestingDataSet.categorical_col.latest, 'categorical')
 
         self.run_chunked_pipeline(
             pipeline=pipe,

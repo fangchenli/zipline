@@ -78,8 +78,8 @@ class Date(_DatetimeParam):
         The timezone to parse the string as.
         By default the timezone will be infered from the string or naiive.
     as_timestamp : bool, optional
-        If True, return the value as a pd.Timestamp object normalized to
-        midnight.
+        If True, return the value as a tz-naive pd.Timestamp object normalized
+        to midnight, i.e. a session label.
     """
     def __init__(self, tz=None, as_timestamp=False):
         super().__init__(tz=tz)
@@ -87,7 +87,10 @@ class Date(_DatetimeParam):
 
     def parser(self, value):
         ts = super().parser(value)
-        return ts.normalize() if self.as_timestamp else ts.date()
+        if not self.as_timestamp:
+            return ts.date()
+        # Keep the calendar date as written; session labels are tz-naive.
+        return ts.tz_localize(None).normalize()
 
 
 class Time(_DatetimeParam):

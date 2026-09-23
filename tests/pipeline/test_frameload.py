@@ -7,11 +7,12 @@ from unittest.mock import patch
 from numpy import arange, ones
 from numpy.testing import assert_array_equal
 from pandas import (
+    date_range,
     DataFrame,
     DatetimeIndex,
-    Int64Index,
+    Index,
 )
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 from zipline.lib.adjustment import (
     ADD,
@@ -34,8 +35,8 @@ class DataFrameLoaderTestCase(TestCase):
         self.nsids = 5
         self.ndates = 20
 
-        self.sids = Int64Index(range(self.nsids))
-        self.dates = DatetimeIndex(
+        self.sids = Index(range(self.nsids), dtype='int64')
+        self.dates = date_range(
             start='2014-01-02',
             freq=self.trading_day,
             periods=self.ndates,

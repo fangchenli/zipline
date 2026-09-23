@@ -27,9 +27,9 @@ from testfixtures import TempDirectory
 
 import numpy as np
 import pandas as pd
-import pytz
+from zoneinfo import ZoneInfo
 from pandas.errors import PerformanceWarning
-from trading_calendars import get_calendar, register_calendar
+from zipline.utils.calendar_utils import get_calendar, register_calendar
 
 import zipline.api
 from zipline.api import FixedSlippage
@@ -115,7 +115,10 @@ from zipline.test_algorithms import (
     empty_positions,
     no_handle_data,
 )
-from zipline.testing.predicates import assert_equal
+from zipline.testing.predicates import (
+    assert_dict_contains_subset,
+    assert_equal,
+)
 from zipline.utils.api_support import ZiplineAPI
 from zipline.utils.context_tricks import CallbackManager, nop_context
 from zipline.utils.events import (
@@ -299,13 +302,13 @@ def handle_data(context, data):
     def test_datetime_bad_params(self):
         algo_text = """
 from zipline.api import get_datetime
-from pytz import timezone
+from zoneinfo import ZoneInfo
 
 def initialize(context):
     pass
 
 def handle_data(context, data):
-    get_datetime(timezone)
+    get_datetime(ZoneInfo)
 """
         algo = self.make_algo(script=algo_text)
         with self.assertRaises(TypeError):
@@ -460,21 +463,21 @@ def log_nyse_close(context, data):
 
         for minute in algo.nyse_opens:
             # each minute should be a nyse session open
-            session_label = nyse.minute_to_session_label(minute)
-            session_open = nyse.session_open(session_label)
+            session_label = nyse.minute_to_session(minute)
+            session_open = nyse.session_first_minute(session_label)
             self.assertEqual(session_open, minute)
 
         for minute in algo.nyse_closes:
             # each minute should be a minute before a nyse session close
-            session_label = nyse.minute_to_session_label(minute)
-            session_close = nyse.session_close(session_label)
+            session_label = nyse.minute_to_session(minute)
+            session_close = nyse.session_last_minute(session_label)
             self.assertEqual(session_close - timedelta(minutes=1), minute)
 
         # Test that passing an invalid calendar parameter raises an error.
         erroring_algotext = dedent(
             """
             from zipline.api import schedule_function
-            from trading_calendars import get_calendar
+            from zipline.utils.calendar_utils import get_calendar
 
             def initialize(context):
                 schedule_function(func=my_func, calendar=get_calendar('XNYS'))
@@ -495,18 +498,17 @@ def log_nyse_close(context, data):
             algo.run()
 
     def test_schedule_function(self):
-        us_eastern = pytz.timezone('US/Eastern')
+        us_eastern = ZoneInfo('US/Eastern')
 
         def incrementer(algo, data):
             algo.func_called += 1
-            curdt = algo.get_datetime().tz_convert(pytz.utc)
+            curdt = algo.get_datetime().tz_convert(ZoneInfo("UTC"))
             self.assertEqual(
                 curdt,
-                us_eastern.localize(
-                    datetime.datetime.combine(
-                        curdt.date(),
-                        datetime.time(9, 31)
-                    ),
+                datetime.datetime.combine(
+                    curdt.date(),
+                    datetime.time(9, 31),
+                    tzinfo=us_eastern,
                 ),
             )
 
@@ -855,7 +857,7 @@ class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
         trading_calendar = cls.trading_calendars[Future]
 
         sids = cls.asset_finder.futures_sids
-        minutes = trading_calendar.minutes_for_sessions_in_range(
+        minutes = trading_calendar.sessions_minutes(
             cls.future_minute_bar_days[0],
             cls.future_minute_bar_days[-1],
         )
@@ -3527,7 +3529,7 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
     @classmethod
     def make_equity_minute_bar_data(cls):
         asset_minutes = \
-            cls.trading_calendar.minutes_for_sessions_in_range(
+            cls.trading_calendar.sessions_minutes(
                 cls.START_DATE,
                 cls.END_DATE,
             )
@@ -3882,10 +3884,10 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
         self.assertEqual(len(initial_fills), len(assets))
 
         last_minute_of_session = \
-            self.trading_calendar.session_close(self.test_days[1])
+            self.trading_calendar.session_last_minute(self.test_days[1])
 
         for asset, txn in zip(assets, initial_fills):
-            self.assertDictContainsSubset(
+            assert_dict_contains_subset(
                 {
                     'amount': order_size,
                     'commission': None,
@@ -3911,7 +3913,7 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
             {
                 'amount': -order_size,
                 'commission': None,
-                'dt': self.trading_calendar.session_close(
+                'dt': self.trading_calendar.session_last_minute(
                     assets[0].auto_close_date,
                 ),
                 'price': fp0,
@@ -3928,7 +3930,7 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
             {
                 'amount': -order_size,
                 'commission': None,
-                'dt': self.trading_calendar.session_close(
+                'dt': self.trading_calendar.session_last_minute(
                     assets[1].auto_close_date,
                 ),
                 'price': fp1,
@@ -3956,10 +3958,10 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
                 context.portfolio.cash == context.portfolio.starting_cash
             )
 
-            today_session = self.trading_calendar.minute_to_session_label(
+            today_session = self.trading_calendar.minute_to_session(
                 context.get_datetime()
             )
-            day_after_auto_close = self.trading_calendar.next_session_label(
+            day_after_auto_close = self.trading_calendar.next_session(
                 first_asset_auto_close_date,
             )
 
@@ -3994,9 +3996,9 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
         assert len(original_open_orders) == 1
 
         last_close_for_asset = \
-            algo.trading_calendar.session_close(first_asset_end_date)
+            algo.trading_calendar.session_last_minute(first_asset_end_date)
 
-        self.assertDictContainsSubset(
+        assert_dict_contains_subset(
             {
                 'amount': 10,
                 'commission': 0.0,
@@ -4011,12 +4013,12 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         orders_after_auto_close = orders_for_date(first_asset_auto_close_date)
         assert len(orders_after_auto_close) == 1
-        self.assertDictContainsSubset(
+        assert_dict_contains_subset(
             {
                 'amount': 10,
                 'commission': 0.0,
                 'created': last_close_for_asset,
-                'dt': algo.trading_calendar.session_close(
+                'dt': algo.trading_calendar.session_last_minute(
                     first_asset_auto_close_date,
                 ),
                 'sid': assets[0],
@@ -4056,7 +4058,7 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo,
         cls.test_days = cls.trading_calendar.sessions_in_range(
             cls.START_DATE, cls.END_DATE,
         )
-        cls.test_minutes = cls.trading_calendar.minutes_for_sessions_in_range(
+        cls.test_minutes = cls.trading_calendar.sessions_minutes(
             cls.START_DATE, cls.END_DATE,
         )
         cls.first_asset_expiration = cls.test_days[2]
@@ -4099,7 +4101,7 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo,
 
     def final_minute_price(self, asset):
         return self.minute_data[asset.sid].loc[
-            self.trading_calendar.session_close(asset.end_date)
+            self.trading_calendar.session_last_minute(asset.end_date)
         ].close
 
     def default_initialize(self):
@@ -4212,7 +4214,7 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo,
         initial_fills = transactions.iloc[0]
         self.assertEqual(len(initial_fills), len(assets))
         for asset, txn in zip(assets, initial_fills):
-            self.assertDictContainsSubset(
+            assert_dict_contains_subset(
                 {
                     'amount': order_size,
                     'commission': None,
@@ -4238,7 +4240,7 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo,
             {
                 'amount': -order_size,
                 'commission': None,
-                'dt': algo.trading_calendar.session_close(
+                'dt': algo.trading_calendar.session_last_minute(
                     assets[0].auto_close_date,
                 ),
                 'price': fp0,
@@ -4255,7 +4257,7 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo,
             {
                 'amount': -order_size,
                 'commission': None,
-                'dt': algo.trading_calendar.session_close(
+                'dt': algo.trading_calendar.session_last_minute(
                     assets[1].auto_close_date,
                 ),
                 'price': fp1,

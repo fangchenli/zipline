@@ -93,6 +93,23 @@ _DEF_M_HIST_PREFETCH = DEFAULT_MINUTE_HISTORY_PREFETCH
 _DEF_D_HIST_PREFETCH = DEFAULT_DAILY_HISTORY_PREFETCH
 
 
+def _as_naive_utc(ts):
+    """Drop the UTC timezone from ``ts`` (a Timestamp or DatetimeIndex).
+
+    Session labels (asset lifetimes, adjustment dates) are tz-naive midnight
+    timestamps. Converting minutes to naive UTC wall time lets them be
+    compared against session labels as if the labels were midnight UTC.
+    """
+    if ts.tz is not None:
+        return ts.tz_convert(None)
+    return ts
+
+
+def _session_label(ts):
+    """Truncate a (possibly tz-aware UTC) timestamp to a naive date."""
+    return _as_naive_utc(ts).normalize()
+
+
 class DataPortal:
     """Interface to all of the data that a zipline simulation needs.
 
@@ -104,7 +121,7 @@ class DataPortal:
     ----------
     asset_finder : zipline.assets.assets.AssetFinder
         The AssetFinder instance used to resolve assets.
-    trading_calendar: zipline.utils.calendar.exchange_calendar.TradingCalendar
+    trading_calendar: zipline.utils.calendar_utils.ExchangeCalendar
         The calendar instance used to provide minute->session information.
     first_trading_day : pd.Timestamp
         The first trading day for the simulation.
@@ -256,7 +273,7 @@ class DataPortal:
         }
 
         self._daily_aggregator = DailyHistoryAggregator(
-            self.trading_calendar.schedule.market_open,
+            self.trading_calendar.first_minutes,
             _dispatch_minute_reader,
             self.trading_calendar
         )
@@ -281,7 +298,7 @@ class DataPortal:
 
         # Get the first trading minute
         self._first_trading_minute, _ = (
-            self.trading_calendar.open_and_close_for_session(
+            self.trading_calendar.session_first_last_minute(
                 self._first_trading_day
             )
             if self._first_trading_day is not None else (None, None)
@@ -289,7 +306,7 @@ class DataPortal:
 
         # Store the locs of the first day and first minute
         self._first_trading_day_loc = (
-            self.trading_calendar.all_sessions.get_loc(self._first_trading_day)
+            self.trading_calendar.sessions.get_loc(self._first_trading_day)
             if self._first_trading_day is not None else None
         )
 
@@ -327,8 +344,8 @@ class DataPortal:
         if source_df is None:
             return
 
-        # Normalize all the dates in the df
-        source_df.index = source_df.index.normalize()
+        # Normalize all the dates in the df to (tz-naive) session labels.
+        source_df.index = _session_label(source_df.index)
 
         # source_df's sid column can either consist of assets we know about
         # (such as sid(24)) or of assets we don't know about (such as
@@ -356,7 +373,7 @@ class DataPortal:
         # Break the source_df up into one dataframe per sid.  This lets
         # us (more easily) calculate accurate start/end dates for each sid,
         # de-dup data, and expand the data to fit the backtest start/end date.
-        grouped_by_sid = source_df.groupby(["sid"])
+        grouped_by_sid = source_df.groupby("sid")
         group_names = grouped_by_sid.groups.keys()
         group_dict = {}
         for group_name in group_names:
@@ -365,7 +382,7 @@ class DataPortal:
         # This will be the dataframe which we query to get fetcher assets at
         # any given time. Get's overwritten every time there's a new fetcher
         # call
-        extra_source_df = pd.DataFrame()
+        extra_source_frames = []
 
         for identifier, df in group_dict.items():
             # Since we know this df only contains a single sid, we can safely
@@ -385,9 +402,12 @@ class DataPortal:
 
             # Append to extra_source_df the reindexed dataframe for the single
             # sid
-            extra_source_df = extra_source_df.append(df)
+            extra_source_frames.append(df)
 
-        self._extra_source_df = extra_source_df
+        self._extra_source_df = (
+            pd.concat(extra_source_frames)
+            if extra_source_frames else pd.DataFrame()
+        )
 
     def _get_pricing_reader(self, data_frequency):
         return self._pricing_readers[data_frequency]
@@ -416,7 +436,7 @@ class DataPortal:
                     (isinstance(asset, (Asset, ContinuousFuture))))
 
     def _get_fetcher_value(self, asset, field, dt):
-        day = dt.normalize()
+        day = _session_label(dt)
 
         try:
             return \
@@ -437,7 +457,7 @@ class DataPortal:
         if field not in BASE_FIELDS:
             raise KeyError("Invalid column: " + str(field))
 
-        if dt < asset.start_date or \
+        if _as_naive_utc(dt) < asset.start_date or \
                 (data_frequency == "daily" and
                     session_label > asset.end_date) or \
                 (data_frequency == "minute" and
@@ -509,7 +529,7 @@ class DataPortal:
                     .format(type(assets))
                 )
 
-        session_label = self.trading_calendar.minute_to_session_label(dt)
+        session_label = self.trading_calendar.minute_to_session(dt)
 
         if assets_is_scalar:
             return self._get_single_asset_value(
@@ -561,7 +581,7 @@ class DataPortal:
             'last_traded' the value will be a Timestamp.
         """
         return self._get_single_asset_value(
-            self.trading_calendar.minute_to_session_label(dt),
+            self.trading_calendar.minute_to_session(dt),
             asset,
             field,
             dt,
@@ -592,6 +612,10 @@ class DataPortal:
         """
         if isinstance(assets, Asset):
             assets = [assets]
+
+        # Adjustment dates are naive session labels.
+        dt = _as_naive_utc(dt)
+        perspective_dt = _as_naive_utc(perspective_dt)
 
         adjustment_ratios_per_asset = []
 
@@ -767,7 +791,7 @@ class DataPortal:
 
     @remember_last
     def _get_days_for_window(self, end_date, bar_count):
-        tds = self.trading_calendar.all_sessions
+        tds = self.trading_calendar.sessions
         end_loc = tds.get_loc(end_date)
         start_loc = end_loc - bar_count + 1
         if start_loc < self._first_trading_day_loc:
@@ -790,7 +814,7 @@ class DataPortal:
         Internal method that returns a dataframe containing history bars
         of daily frequency for the given sids.
         """
-        session = self.trading_calendar.minute_to_session_label(end_dt)
+        session = self.trading_calendar.minute_to_session(end_dt)
         days_for_window = self._get_days_for_window(session, bar_count)
 
         if len(assets) == 0:
@@ -861,14 +885,14 @@ class DataPortal:
         cal = self.trading_calendar
 
         first_trading_minute_loc = (
-            cal.all_minutes.get_loc(
+            cal.minutes.get_loc(
                 self._first_trading_minute
             )
             if self._first_trading_minute is not None else None
         )
 
-        suggested_start_day = cal.minute_to_session_label(
-            cal.all_minutes[
+        suggested_start_day = cal.minute_to_session(
+            cal.minutes[
                 first_trading_minute_loc + bar_count
             ] + cal.day
         )
@@ -890,7 +914,7 @@ class DataPortal:
             minutes_for_window = self.trading_calendar.minutes_window(
                 end_dt, -bar_count
             )
-        except KeyError:
+        except (KeyError, ValueError):
             self._handle_minute_history_out_of_bounds(bar_count)
 
         if minutes_for_window[0] < self._first_trading_minute:
@@ -1016,14 +1040,14 @@ class DataPortal:
                 initial_values,
                 dtype=np.float64
             )
-            df.fillna(method='ffill', inplace=True)
+            df.ffill(inplace=True)
 
             # forward-filling will incorrectly produce values after the end of
             # an asset's lifetime, so write NaNs back over the asset's
             # end_date.
-            normed_index = df.index.normalize()
+            normed_index = _session_label(df.index)
             for asset in df.columns:
-                if history_end >= asset.end_date:
+                if _as_naive_utc(history_end) >= asset.end_date:
                     # if the window extends past the asset's end date, set
                     # all post-end-date values to NaN in that asset's series
                     df.loc[normed_index > asset.end_date, asset] = nan
@@ -1161,7 +1185,7 @@ class DataPortal:
             Assets for which we want splits.
         dt : pd.Timestamp
             The date for which we are checking for splits. Note: this is
-            expected to be midnight UTC.
+            expected to be a (tz-naive) session label.
 
         Returns
         -------
@@ -1251,7 +1275,7 @@ class DataPortal:
         if self._extra_source_df is None:
             return []
 
-        day = dt.normalize()
+        day = _session_label(dt)
 
         if day in self._extra_source_df.index:
             assets = self._extra_source_df.loc[day]['sid']
@@ -1284,7 +1308,7 @@ class DataPortal:
 
         cal = self.trading_calendar
 
-        ending_session = cal.minute_to_session_label(
+        ending_session = cal.minute_to_session(
             ending_minute,
             direction="none",  # It's an error to pass a non-trading minute.
         )
@@ -1294,27 +1318,22 @@ class DataPortal:
         # minute and the start of the session). We add one so that we include
         # the ending minute in the total.
         ending_session_minute_count = timedelta_to_integral_minutes(
-            ending_minute - cal.open_and_close_for_session(ending_session)[0]
+            ending_minute - cal.session_first_last_minute(ending_session)[0]
         ) + 1
 
         if days_count == 1:
             # We just need sessions for the active day.
             return ending_session_minute_count
 
-        # XXX: We're subtracting 2 here to account for two offsets:
-        # 1. We only want ``days_count - 1`` sessions, since we've already
-        #    accounted for the ending session above.
-        # 2. The API of ``sessions_window`` is to return one more session than
-        #    the requested number.  I don't think any consumers actually want
-        #    that behavior, but it's the tested and documented behavior right
-        #    now, so we have to request one less session than we actually want.
+        # We only want ``days_count - 1`` sessions, since we've already
+        # accounted for the ending session above.
         completed_sessions = cal.sessions_window(
-            cal.previous_session_label(ending_session),
-            2 - days_count,
+            cal.previous_session(ending_session),
+            1 - days_count,
         )
 
         completed_sessions_minute_count = (
-            self.trading_calendar.minutes_count_for_sessions_in_range(
+            self.trading_calendar.sessions_minutes_count(
                 completed_sessions[0],
                 completed_sessions[-1]
             )
@@ -1398,7 +1417,7 @@ class DataPortal:
             is the next upcoming contract and so on.
         """
         rf = self._roll_finders[continuous_future.roll_style]
-        session = self.trading_calendar.minute_to_session_label(dt)
+        session = self.trading_calendar.minute_to_session(dt)
         contract_center = rf.get_contract_center(
             continuous_future.root_symbol, session,
             continuous_future.offset)

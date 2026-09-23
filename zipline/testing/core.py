@@ -18,13 +18,12 @@ from functools import wraps
 
 from logbook import TestHandler
 from unittest.mock import patch
-from nose.tools import nottest
 from numpy.testing import assert_allclose, assert_array_equal
 import pandas as pd
 from sqlalchemy import create_engine
 from testfixtures import TempDirectory
 from toolz import concat, curry
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 from zipline.assets import AssetFinder, AssetDBWriter
 from zipline.assets.synthetic import make_simple_equity_info
@@ -317,8 +316,12 @@ def make_trade_data_for_asset_info(dates,
     for j, sid in enumerate(sids):
         start_date, end_date = asset_info.loc[sid, ['start_date', 'end_date']]
         # Normalize here so the we still generate non-NaN values on the minutes
-        # for an asset's last trading day.
-        for i, date in enumerate(dates.normalize()):
+        # for an asset's last trading day. Asset lifetimes are session labels,
+        # so compare against tz-naive dates.
+        session_labels = dates.normalize()
+        if session_labels.tz is not None:
+            session_labels = session_labels.tz_localize(None)
+        for i, date in enumerate(session_labels):
             if not (start_date <= date <= end_date):
                 prices[i, j] = 0
                 volumes[i, j] = 0
@@ -419,10 +422,10 @@ class ExplodingObject:
 
 
 def write_minute_data(trading_calendar, tempdir, minutes, sids):
-    first_session = trading_calendar.minute_to_session_label(
+    first_session = trading_calendar.minute_to_session(
         minutes[0], direction="none"
     )
-    last_session = trading_calendar.minute_to_session_label(
+    last_session = trading_calendar.minute_to_session(
         minutes[-1], direction="none"
     )
 
@@ -529,7 +532,7 @@ def create_minute_df_for_asset(trading_calendar,
                                start_val=1,
                                minute_blacklist=None):
 
-    asset_minutes = trading_calendar.minutes_for_sessions_in_range(
+    asset_minutes = trading_calendar.sessions_minutes(
         start_dt, end_dt
     )
     minutes_count = len(asset_minutes)
@@ -587,13 +590,8 @@ def create_daily_df_for_asset(trading_calendar, start_day, end_day,
 
     if interval > 1:
         # only keep every 'interval' rows
-        for idx, _ in enumerate(days_arr):
-            if (idx + 1) % interval != 0:
-                df["open"].iloc[idx] = 0
-                df["high"].iloc[idx] = 0
-                df["low"].iloc[idx] = 0
-                df["close"].iloc[idx] = 0
-                df["volume"].iloc[idx] = 0
+        drop = (np.arange(len(days_arr)) + 1) % interval != 0
+        df.loc[drop, ["open", "high", "low", "close", "volume"]] = 0
 
     return df
 
@@ -711,8 +709,12 @@ class FakeDataPortal(DataPortal):
 
     def get_history_window(self, assets, end_dt, bar_count, frequency, field,
                            data_frequency, ffill=True):
-        end_idx = self.trading_calendar.all_sessions.searchsorted(end_dt)
-        days = self.trading_calendar.all_sessions[
+        # Sessions are tz-naive; compare using end_dt's UTC wall time.
+        end_dt = pd.Timestamp(end_dt)
+        if end_dt.tz is not None:
+            end_dt = end_dt.tz_convert(None)
+        end_idx = self.trading_calendar.sessions.searchsorted(end_dt)
+        days = self.trading_calendar.sessions[
             (end_idx - bar_count + 1):(end_idx + 1)
         ]
 
@@ -724,7 +726,7 @@ class FakeDataPortal(DataPortal):
 
         if frequency == "1m" and not df.empty:
             df = df.reindex(
-                self.trading_calendar.minutes_for_sessions_in_range(
+                self.trading_calendar.sessions_minutes(
                     df.index[0],
                     df.index[-1],
                 ),
@@ -884,7 +886,6 @@ class SubTestFailures(AssertionError):
         )
 
 
-@nottest
 def subtest(iterator, *_names):
     """
     Construct a subtest in a unittest.
@@ -1046,13 +1047,13 @@ def gen_calendars(start, stop, critical_dates):
     """
     Generate calendars to use as inputs.
     """
-    all_dates = pd.date_range(start, stop, tz='utc')
+    all_dates = pd.date_range(start, stop)
     for to_drop in map(list, powerset(critical_dates)):
         # Have to yield tuples.
         yield (all_dates.drop(to_drop),)
 
     # Also test with the trading calendar.
-    trading_days = get_calendar("NYSE").all_days
+    trading_days = get_calendar("NYSE").sessions
     yield (trading_days[trading_days.slice_indexer(start, stop)],)
 
 
@@ -1223,7 +1224,7 @@ def create_empty_dividends_frame():
                 ('sid', 'int32'),
             ],
         ),
-        index=pd.DatetimeIndex([], tz='UTC'),
+        index=pd.DatetimeIndex([]),
     )
 
 
@@ -1323,7 +1324,6 @@ def permute_rows(seed, array):
     return np.apply_along_axis(rand.permutation, 1, array)
 
 
-@nottest
 def make_test_handler(testcase, *args, **kwargs):
     """
     Returns a TestHandler which will be used by the given testcase. This
@@ -1367,9 +1367,12 @@ zipline_git_root = abspath(
 )
 
 
-@nottest
 def test_resource_path(*path_parts):
     return os.path.join(zipline_git_root, 'tests', 'resources', *path_parts)
+
+
+# Not a test, despite the name; keep pytest from collecting it.
+test_resource_path.__test__ = False
 
 
 @contextmanager
@@ -1455,7 +1458,7 @@ class tmp_bcolz_equity_minute_bar_reader(_TmpBarReader):
 
     Parameters
     ----------
-    cal : TradingCalendar
+    cal : ExchangeCalendar
         The trading calendar for which we're writing data.
     days : pd.DatetimeIndex
         The days to write for.
@@ -1478,7 +1481,7 @@ class tmp_bcolz_equity_daily_bar_reader(_TmpBarReader):
 
     Parameters
     ----------
-    cal : TradingCalendar
+    cal : ExchangeCalendar
         The trading calendar for which we're writing data.
     days : pd.DatetimeIndex
         The days to write for.

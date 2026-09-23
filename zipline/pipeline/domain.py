@@ -20,11 +20,12 @@ from textwrap import dedent
 from abc import ABC, abstractmethod
 import numpy as np
 import pandas as pd
-import pytz
+from zoneinfo import ZoneInfo
 
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 from zipline.country import CountryCode
+from zipline.utils.date_utils import to_session_label, to_session_labels
 from zipline.utils.formatting import bulleted_list
 from zipline.utils.input_validation import expect_types, optional
 from zipline.utils.memoize import lazyval
@@ -67,7 +68,7 @@ class IDomain(ABC):
         ----------
         sessions : pd.DatetimeIndex
             The sessions to get the data query cutoff times for. This index
-            will contain all midnight UTC values.
+            will contain all tz-naive midnight values.
 
         Returns
         -------
@@ -88,7 +89,7 @@ class IDomain(ABC):
         -------
         pd.Timestamp
         """
-        dt = pd.Timestamp(dt, tz='UTC')
+        dt = to_session_label(dt)
 
         trading_days = self.all_sessions()
         try:
@@ -148,7 +149,7 @@ GENERIC = GenericDomain()
 
 class EquityCalendarDomain(Domain):
     """
-    An equity domain whose sessions are defined by a named TradingCalendar.
+    An equity domain whose sessions are defined by a named ExchangeCalendar.
 
     Parameters
     ----------
@@ -193,11 +194,11 @@ class EquityCalendarDomain(Domain):
         return get_calendar(self.calendar_name)
 
     def all_sessions(self):
-        return self.calendar.all_sessions
+        return self.calendar.sessions
 
     def data_query_cutoff_for_sessions(self, sessions):
-        opens = self.calendar.opens.loc[sessions].values
-        missing_mask = pd.isnull(opens)
+        opens = self.calendar.first_minutes.reindex(sessions)
+        missing_mask = opens.isna().to_numpy()
         if missing_mask.any():
             missing_days = sessions[missing_mask]
             raise ValueError(
@@ -208,7 +209,7 @@ class EquityCalendarDomain(Domain):
                 ),
             )
 
-        return pd.DatetimeIndex(opens + self._data_query_offset, tz='UTC')
+        return pd.DatetimeIndex(opens + self._data_query_offset)
 
     def __repr__(self):
         return "EquityCalendarDomain({!r}, {!r})".format(
@@ -405,10 +406,10 @@ class EquitySessionDomain(Domain):
                  data_query_time=None,
                  data_query_date_offset=0):
         self._country_code = country_code
-        self._sessions = sessions
+        self._sessions = to_session_labels(sessions)
 
         if data_query_time is None:
-            data_query_time = datetime.time(0, 0, tzinfo=pytz.timezone('UTC'))
+            data_query_time = datetime.time(0, 0, tzinfo=ZoneInfo('UTC'))
 
         if data_query_time.tzinfo is None:
             raise ValueError("data_query_time cannot be tz-naive")

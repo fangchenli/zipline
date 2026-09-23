@@ -200,9 +200,9 @@ cpdef tuple get_adjustment_locs(DatetimeIndex_t dates_index,
 
     Example:
 
-    >>> from pandas import date_range, Int64Index, Timestamp
+    >>> from pandas import date_range, Index, Timestamp
     >>> dates = date_range('2014-01-01', '2014-01-07')
-    >>> assets = Int64Index(range(10))
+    >>> assets = Index(range(10))
     >>> get_adjustment_locs(
     ...     dates,
     ...     assets,
@@ -243,9 +243,9 @@ cpdef _from_assets_and_dates(cls,
     Example
     -------
 
-    >>> from pandas import date_range, Int64Index, Timestamp
+    >>> from pandas import date_range, Index, Timestamp
     >>> dates = date_range('2014-01-01', '2014-01-07')
-    >>> assets = Int64Index(range(10))
+    >>> assets = Index(range(10))
     >>> Float64Multiply.from_assets_and_dates(
     ...     dates,
     ...     assets,
@@ -1020,3 +1020,8 @@ cdef class BooleanOverwrite(BooleanAdjustment):
             # last_row + 1 because last_row should also be affected.
             for row in range(self.first_row, self.last_row + 1):
                 data[row, col] = value
+
+
+# Cython 3 no longer exports cpdef enum members as module globals; keep
+# ``from zipline.lib.adjustment import MULTIPLY`` working.
+globals().update(AdjustmentKind.__members__)

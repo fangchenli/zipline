@@ -2,11 +2,10 @@
 Tests BoundColumn attributes and methods.
 """
 import operator
-from unittest import skipIf
 
 from parameterized import parameterized
 from pandas import Timestamp, DataFrame
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal
 
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Pipeline
@@ -20,8 +19,7 @@ from zipline.testing.fixtures import (
     ZiplineTestCase
 )
 from zipline.utils.numpy_utils import datetime64ns_dtype
-from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning, \
-    new_pandas, skip_pipeline_new_pandas
+from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning
 
 
 class LatestTestCase(WithSeededRandomPipelineEngine,
@@ -66,7 +64,6 @@ class LatestTestCase(WithSeededRandomPipelineEngine,
             columns=self.assets,
         )
 
-    @skipIf(new_pandas, skip_pipeline_new_pandas)
     def test_latest(self):
         columns = TDS.columns
         pipe = Pipeline(

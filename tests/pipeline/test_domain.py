@@ -4,7 +4,7 @@ from textwrap import dedent
 
 import numpy as np
 import pandas as pd
-import pytz
+from zoneinfo import ZoneInfo
 
 from zipline.country import CountryCode
 from zipline.pipeline import Pipeline
@@ -346,7 +346,7 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
                                      domain,
                                      expected_cutoff_time,
                                      expected_cutoff_date_offset=0):
-        sessions = pd.DatetimeIndex(domain.calendar.all_sessions[:50])
+        sessions = pd.DatetimeIndex(domain.calendar.sessions[:50])
 
         expected = days_at_time(
             sessions,
@@ -470,31 +470,31 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
 
     @parameter_space(parameters=(
         Case(
-            time=datetime.time(8, 45, tzinfo=pytz.utc),
+            time=datetime.time(8, 45, tzinfo=ZoneInfo("UTC")),
             date_offset=0,
             expected_timedelta=datetime.timedelta(hours=8, minutes=45),
         ),
         Case(
-            time=datetime.time(5, 0, tzinfo=pytz.utc),
+            time=datetime.time(5, 0, tzinfo=ZoneInfo("UTC")),
             date_offset=0,
             expected_timedelta=datetime.timedelta(hours=5),
         ),
         Case(
-            time=datetime.time(8, 45, tzinfo=pytz.timezone('Asia/Tokyo')),
+            time=datetime.time(8, 45, tzinfo=ZoneInfo('Asia/Tokyo')),
             date_offset=0,
             # We should get 11:45 UTC, which is 8:45 in Tokyo time,
             # because Tokyo is 9 hours ahead of UTC.
             expected_timedelta=-datetime.timedelta(minutes=15)
         ),
         Case(
-            time=datetime.time(23, 30, tzinfo=pytz.utc),
+            time=datetime.time(23, 30, tzinfo=ZoneInfo("UTC")),
             date_offset=-1,
             # 23:30 on the previous day should be equivalent to rolling back by
             # 30 minutes.
             expected_timedelta=-datetime.timedelta(minutes=30),
         ),
         Case(
-            time=datetime.time(23, 30, tzinfo=pytz.timezone('US/Eastern')),
+            time=datetime.time(23, 30, tzinfo=ZoneInfo('US/Eastern')),
             date_offset=-1,
             # 23:30 on the previous day in US/Eastern is equivalent to rolling
             # back 24 hours (to the previous day), then rolling forward 4 or 5

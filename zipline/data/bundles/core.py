@@ -9,7 +9,7 @@ from types import MappingProxyType
 import click
 from logbook import Logger
 import pandas as pd
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 from toolz import curry, complement, take
 
 from ..adjustments import SQLiteAdjustmentReader, SQLiteAdjustmentWriter
@@ -248,7 +248,7 @@ def _make_bundle_core():
                   The daily bar writer to write into.
               adjustment_writer : SQLiteAdjustmentWriter
                   The adjustment db writer to write into.
-              calendar : trading_calendars.TradingCalendar
+              calendar : zipline.utils.calendar_utils.ExchangeCalendar
                   The trading calendar to ingest for.
               start_session : pd.Timestamp
                   The first session of data to ingest.

@@ -368,7 +368,7 @@ def _split_symbol_mappings(df, exchanges):
 
 
 def _dt_to_epoch_ns(dt_series):
-    """Convert a timeseries into an Int64Index of nanoseconds since the epoch.
+    """Convert a timeseries into an array of nanoseconds since the epoch.
 
     Parameters
     ----------
@@ -377,15 +377,13 @@ def _dt_to_epoch_ns(dt_series):
 
     Returns
     -------
-    idx : pd.Int64Index
-        The index converted to nanoseconds since the epoch.
+    idx : np.ndarray[int64]
+        The values converted to nanoseconds since the epoch.
     """
-    index = pd.to_datetime(dt_series.values)
-    if index.tzinfo is None:
-        index = index.tz_localize('UTC')
-    else:
-        index = index.tz_convert('UTC')
-    return index.view(np.int64)
+    # Naive values are interpreted as UTC. Always store nanoseconds, whatever
+    # resolution pandas inferred.
+    index = pd.to_datetime(dt_series.values, utc=True)
+    return index.as_unit('ns').asi8
 
 
 def check_version_info(conn, version_table, expected_version):

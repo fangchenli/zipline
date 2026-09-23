@@ -25,7 +25,7 @@ class ExchangeInfo:
         None this will be the same as the name.
     country_code : str
         The country code where the exchange is located.
-    calendar : TradingCalendar
+    calendar : ExchangeCalendar
         The trading calendar the exchange uses.
     """
     def __init__(self, name, canonical_name, country_code):

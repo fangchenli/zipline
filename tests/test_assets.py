@@ -332,14 +332,14 @@ class AssetTestCase(TestCase):
             exchange_info=ExchangeInfo('bar', 'bar', '??'),
         )
 
-        self.assertEquals({5061: 'foo'}[the_asset], 'foo')
-        self.assertEquals(the_asset, 5061)
-        self.assertEquals(5061, the_asset)
+        self.assertEqual({5061: 'foo'}[the_asset], 'foo')
+        self.assertEqual(the_asset, 5061)
+        self.assertEqual(5061, the_asset)
 
-        self.assertEquals(the_asset, the_asset)
-        self.assertEquals(int(the_asset), 5061)
+        self.assertEqual(the_asset, the_asset)
+        self.assertEqual(int(the_asset), 5061)
 
-        self.assertEquals(str(the_asset), 'Asset(5061)')
+        self.assertEqual(str(the_asset), 'Asset(5061)')
 
     def test_to_and_from_dict(self):
         asset_from_dict = Asset.from_dict(self.asset.to_dict())
@@ -1128,10 +1128,10 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
                             expected_no_start_raw[i, j] = True
 
             for country_codes in powerset(exchanges.country_code.unique()):
-                expected_sids = pd.Int64Index(sorted(concat(
+                expected_sids = pd.Index(sorted(concat(
                     sids_by_country[country_code]
                     for country_code in country_codes
-                )))
+                )), dtype='int64')
                 permuted_sids = [
                     sid for sid in sorted(expected_sids, key=permute_sid)
                 ]
@@ -1142,7 +1142,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
                         tile_count,
                     ),
                     index=dates,
-                    columns=pd.Int64Index(permuted_sids),
+                    columns=pd.Index(permuted_sids, dtype='int64'),
                 )
                 result = finder.lifetimes(
                     dates,
@@ -1159,7 +1159,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
                         tile_count,
                     ),
                     index=dates,
-                    columns=pd.Int64Index(permuted_sids),
+                    columns=pd.Index(permuted_sids, dtype='int64'),
                 )
                 result = finder.lifetimes(
                     dates,

@@ -102,7 +102,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         )
 
         cls.trading_minutes = pd.Index(
-            cls.trading_calendar.minutes_for_sessions_in_range(
+            cls.trading_calendar.sessions_minutes(
                 cls.START_DATE,
                 cls.END_DATE,
             ),
@@ -1342,7 +1342,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         )
 
         cls.equity_minutes = pd.Index(
-            cls.trading_calendars[Equity].minutes_for_sessions_in_range(
+            cls.trading_calendars[Equity].sessions_minutes(
                 cls.START_DATE,
                 cls.END_DATE,
             ),
@@ -1461,7 +1461,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
                     l,
                     c,
                     cls.asset_daily_volume,
-                    trading_minutes=len(calendar.minutes_for_session(session)),
+                    trading_minutes=len(calendar.session_minutes(session)),
                     random_state=random_state,
                 )
                 for o, h, l, c, session in zip(
@@ -1474,7 +1474,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             ],
             ignore_index=True,
         )
-        data.index = calendar.minutes_for_sessions_in_range(
+        data.index = calendar.sessions_minutes(
             cls.START_DATE,
             cls.END_DATE,
         )
@@ -2265,7 +2265,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         )
 
         all_minutes = (
-            self.trading_calendars[Future].minutes_for_sessions_in_range(
+            self.trading_calendars[Future].sessions_minutes(
                 self.START_DATE,
                 self.END_DATE,
             )

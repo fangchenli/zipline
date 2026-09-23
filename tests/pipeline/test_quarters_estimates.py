@@ -2,7 +2,6 @@ from datetime import timedelta
 from functools import partial
 
 import itertools
-from nose.tools import assert_true
 from parameterized import parameterized
 import numpy as np
 from numpy.testing import assert_array_equal, assert_almost_equal
@@ -585,7 +584,7 @@ class WithEstimatesTimeZero(WithEstimates):
             # Separate assertion for all-null DataFrame to avoid setting
             # column dtypes on `all_expected`.
             if sid == max(self.ASSET_FINDER_EQUITY_SIDS):
-                assert_true(sid_estimates.isnull().all().all())
+                assert sid_estimates.isnull().all().all()
             else:
                 ts_sorted_estimates = self.events[
                     self.events[SID_FIELD_NAME] == sid

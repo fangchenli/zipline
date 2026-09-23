@@ -24,6 +24,7 @@ from zipline.protocol import (
     Event,
     DATASOURCE_TYPE
 )
+from zipline.utils.date_utils import to_session_label
 
 
 def create_trade(sid, price, amount, datetime, source_id="test_factory"):
@@ -67,19 +68,24 @@ def date_gen(start,
         """
         cur = cur + delta
 
-        currently_executing = \
-            (daily_delta and (cur in trading_calendar.all_sessions)) or \
-            (trading_calendar.is_open_on_minute(cur))
+        if daily_delta:
+            # Daily timestamps are midnights, possibly tz-aware; sessions are
+            # tz-naive. Roll forward to the next session, keeping the tz.
+            session = to_session_label(cur)
+            if trading_calendar.is_session(session):
+                return cur
+            next_session = trading_calendar.date_to_session(
+                session, direction="next",
+            )
+            if cur.tz is not None:
+                next_session = next_session.tz_localize(cur.tz)
+            return next_session
 
-        if currently_executing:
+        if trading_calendar.is_open_on_minute(cur):
             return cur
-        else:
-            if daily_delta:
-                return trading_calendar.minute_to_session_label(cur)
-            else:
-                return trading_calendar.open_and_close_for_session(
-                    trading_calendar.minute_to_session_label(cur)
-                )[0]
+        return trading_calendar.session_first_last_minute(
+            trading_calendar.minute_to_session(cur)
+        )[0]
 
     # yield count trade events, all on trading days, and
     # during trading hours.

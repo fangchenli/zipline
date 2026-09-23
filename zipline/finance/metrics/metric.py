@@ -208,15 +208,15 @@ class BenchmarkReturnsAndVolatility:
                 'does not exist in daily emission rate',
             )
         else:
-            open_ = trading_calendar.session_open(sessions[0])
-            close = trading_calendar.session_close(sessions[-1])
+            open_ = trading_calendar.session_first_minute(sessions[0])
+            close = trading_calendar.session_last_minute(sessions[-1])
             returns = benchmark_source.get_range(open_, close)
             self._minute_cumulative_returns = (
                 (1 + returns).cumprod() - 1
             )
             self._minute_annual_volatility = pd.Series(
                 minute_annual_volatility(
-                    returns.index.normalize().view('int64'),
+                    returns.index.normalize().as_unit('ns').asi8,
                     returns.values,
                     daily_returns_array,
                 ),
@@ -677,7 +677,6 @@ class _ClassicRiskMetrics:
         if months.size < months_per:
             return
 
-        end_date = end_date.tz_convert(None)
         for period_timestamp in months:
             period = period_timestamp.to_period(freq='%dM' % months_per)
             if period.end_time > end_date:
@@ -696,6 +695,7 @@ class _ClassicRiskMetrics:
                     algorithm_returns,
                     benchmark_returns,
                     algorithm_leverages):
+        # Returns are indexed by (tz-naive) session labels.
         start_session = algorithm_returns.index[0]
         end_session = algorithm_returns.index[-1]
 
@@ -704,14 +704,13 @@ class _ClassicRiskMetrics:
             start=start_session,
             # Ensure we have at least one month
             end=end - datetime.timedelta(days=1),
-            freq='M',
-            tz='utc',
+            freq='ME',
         )
 
         periods_in_range = partial(
             cls._periods_in_range,
             months=months,
-            end_session=end_session.tz_convert(None),
+            end_session=end_session,
             end_date=end,
             algorithm_returns=algorithm_returns,
             benchmark_returns=benchmark_returns,

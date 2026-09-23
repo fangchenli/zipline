@@ -11,7 +11,6 @@ from numpy import (
     full,
     isnan,
     log,
-    NINF,
     sqrt,
     sum as np_sum,
     unique,

@@ -2,8 +2,8 @@
 Tests for slicing pipeline terms.
 """
 from numpy import where
-from pandas import Int64Index, Timestamp
-from pandas.util.testing import assert_frame_equal
+from pandas import Index, Timestamp
+from pandas.testing import assert_frame_equal
 
 from zipline.assets import Asset, ExchangeInfo
 from zipline.errors import (
@@ -38,7 +38,7 @@ from zipline.utils.numpy_utils import datetime64ns_dtype
 
 
 class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
-    sids = ASSET_FINDER_EQUITY_SIDS = Int64Index([1, 2, 3])
+    sids = ASSET_FINDER_EQUITY_SIDS = Index([1, 2, 3], dtype='int64')
     START_DATE = Timestamp('2015-01-31', tz='UTC')
     END_DATE = Timestamp('2015-03-01', tz='UTC')
     ASSET_FINDER_COUNTRY_CODE = 'US'

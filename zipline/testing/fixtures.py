@@ -10,7 +10,7 @@ import pandas as pd
 from pandas.errors import PerformanceWarning
 import responses
 from toolz import flip, groupby, merge
-from trading_calendars import (
+from zipline.utils.calendar_utils import (
     get_calendar,
     register_calendar_alias,
 )
@@ -287,7 +287,7 @@ def alias(attr_name):
     return classproperty(flip(getattr, attr_name))
 
 
-class WithDefaultDateBounds(metaclass=DebugMROMeta):
+class WithDefaultDateBounds(object, metaclass=DebugMROMeta):  # noqa: UP004
     """
     ZiplineTestCase mixin which makes it possible to synchronize date bounds
     across fixtures.
@@ -302,8 +302,8 @@ class WithDefaultDateBounds(metaclass=DebugMROMeta):
         The date bounds to be used for fixtures that want to have consistent
         dates.
     """
-    START_DATE = pd.Timestamp('2006-01-03', tz='utc')
-    END_DATE = pd.Timestamp('2006-12-29', tz='utc')
+    START_DATE = pd.Timestamp('2006-01-03')
+    END_DATE = pd.Timestamp('2006-12-29')
 
 
 class WithLogger(object):
@@ -868,15 +868,15 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
         if trading_calendar.is_session(cls.EQUITY_DAILY_BAR_START_DATE):
             first_session = cls.EQUITY_DAILY_BAR_START_DATE
         else:
-            first_session = trading_calendar.minute_to_session_label(
-                pd.Timestamp(cls.EQUITY_DAILY_BAR_START_DATE)
+            first_session = trading_calendar.date_to_session(
+                cls.EQUITY_DAILY_BAR_START_DATE, direction="next",
             )
 
         if cls.EQUITY_DAILY_BAR_LOOKBACK_DAYS > 0:
-            first_session = trading_calendar.sessions_window(
+            first_session = trading_calendar.session_offset(
                 first_session,
-                -1 * cls.EQUITY_DAILY_BAR_LOOKBACK_DAYS
-            )[0]
+                -cls.EQUITY_DAILY_BAR_LOOKBACK_DAYS,
+            )
 
         days = trading_calendar.sessions_in_range(
             first_session,
@@ -959,20 +959,20 @@ class WithFutureDailyBarData(WithAssetFinder, WithTradingCalendars):
         super(WithFutureDailyBarData, cls).init_class_fixtures()
         trading_calendar = cls.trading_calendars[Future]
         if cls.FUTURE_DAILY_BAR_USE_FULL_CALENDAR:
-            days = trading_calendar.all_sessions
+            days = trading_calendar.sessions
         else:
             if trading_calendar.is_session(cls.FUTURE_DAILY_BAR_START_DATE):
                 first_session = cls.FUTURE_DAILY_BAR_START_DATE
             else:
-                first_session = trading_calendar.minute_to_session_label(
-                    pd.Timestamp(cls.FUTURE_DAILY_BAR_START_DATE)
+                first_session = trading_calendar.date_to_session(
+                    cls.FUTURE_DAILY_BAR_START_DATE, direction="next",
                 )
 
             if cls.FUTURE_DAILY_BAR_LOOKBACK_DAYS > 0:
-                first_session = trading_calendar.sessions_window(
+                first_session = trading_calendar.session_offset(
                     first_session,
-                    -1 * cls.FUTURE_DAILY_BAR_LOOKBACK_DAYS
-                )[0]
+                    -cls.FUTURE_DAILY_BAR_LOOKBACK_DAYS,
+                )
 
             days = trading_calendar.sessions_in_range(
                 first_session,
@@ -1182,13 +1182,13 @@ def _trading_days_for_minute_bars(calendar,
                                   start_date,
                                   end_date,
                                   lookback_days):
-    first_session = calendar.minute_to_session_label(start_date)
+    first_session = calendar.date_to_session(start_date, direction="next")
 
     if lookback_days > 0:
-        first_session = calendar.sessions_window(
+        first_session = calendar.session_offset(
             first_session,
-            -1 * lookback_days
-        )[0]
+            -lookback_days,
+        )
 
     return calendar.sessions_in_range(first_session, end_date)
 
@@ -1349,7 +1349,7 @@ class WithEquityMinuteBarData(WithAssetFinder, WithTradingCalendars):
     def make_equity_minute_bar_data(cls):
         trading_calendar = cls.trading_calendars[Equity]
         return create_minute_bar_data(
-            trading_calendar.minutes_for_sessions_in_range(
+            trading_calendar.sessions_minutes(
                 cls.equity_minute_bar_days[0],
                 cls.equity_minute_bar_days[-1],
             ),
@@ -1409,7 +1409,7 @@ class WithFutureMinuteBarData(WithAssetFinder, WithTradingCalendars):
     def make_future_minute_bar_data(cls):
         trading_calendar = get_calendar('us_futures')
         return create_minute_bar_data(
-            trading_calendar.minutes_for_sessions_in_range(
+            trading_calendar.sessions_minutes(
                 cls.future_minute_bar_days[0],
                 cls.future_minute_bar_days[-1],
             ),
@@ -1562,7 +1562,7 @@ class WithConstantEquityMinuteBarData(WithEquityMinuteBarData):
         trading_calendar = cls.trading_calendars[Equity]
 
         sids = cls.asset_finder.equities_sids
-        minutes = trading_calendar.minutes_for_sessions_in_range(
+        minutes = trading_calendar.sessions_minutes(
             cls.equity_minute_bar_days[0],
             cls.equity_minute_bar_days[-1],
         )
@@ -1593,7 +1593,7 @@ class WithConstantFutureMinuteBarData(WithFutureMinuteBarData):
         trading_calendar = cls.trading_calendars[Future]
 
         sids = cls.asset_finder.futures_sids
-        minutes = trading_calendar.minutes_for_sessions_in_range(
+        minutes = trading_calendar.sessions_minutes(
             cls.future_minute_bar_days[0],
             cls.future_minute_bar_days[-1],
         )
@@ -1982,8 +1982,8 @@ class WithMakeAlgo(WithBenchmarkReturns,
     """
     ZiplineTestCase mixin that provides a ``make_algo`` method.
     """
-    START_DATE = pd.Timestamp('2014-12-29', tz='UTC')
-    END_DATE = pd.Timestamp('2015-1-05', tz='UTC')
+    START_DATE = pd.Timestamp('2014-12-29')
+    END_DATE = pd.Timestamp('2015-1-05')
     SIM_PARAMS_DATA_FREQUENCY = 'minute'
     DEFAULT_ALGORITHM_CLASS = TradingAlgorithm
 
@@ -2111,10 +2111,12 @@ class WithFXRates(object):
         super(WithFXRates, cls).init_class_fixtures()
 
         cal = get_calendar(cls.FX_RATES_CALENDAR)
+        # FX rates are keyed by the (UTC) point in time at which they become
+        # known, not by session label, so localize the sessions to UTC.
         cls.fx_rates_sessions = cal.sessions_in_range(
             cls.FX_RATES_START_DATE,
             cls.FX_RATES_END_DATE,
-        )
+        ).tz_localize('UTC')
 
         cls.fx_rates = cls.make_fx_rates(
             cls.FX_RATES_RATE_NAMES,

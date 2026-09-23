@@ -77,7 +77,10 @@ from .domain import Domain, GENERIC
 from .graph import maybe_specialize
 from .hooks import DelegatingHooks
 from .term import AssetExists, InputDates, LoadableTerm
-from zipline.utils.date_utils import compute_date_range_chunks
+from zipline.utils.date_utils import (
+    compute_date_range_chunks,
+    to_session_label,
+)
 
 
 class PipelineEngine(ABC):
@@ -213,7 +216,7 @@ def default_populate_initial_workspace(initial_workspace,
     dates : pd.DatetimeIndex
         All of the dates being requested in this pipeline run including
         the extra dates for look back windows.
-    assets : pd.Int64Index
+    assets : pd.Index[int64]
         All of the assets that exist for the window being computed.
 
     Returns
@@ -328,6 +331,8 @@ class SimplePipelineEngine(PipelineEngine):
         --------
         :meth:`zipline.pipeline.engine.PipelineEngine.run_pipeline`
         """
+        start_date = to_session_label(start_date)
+        end_date = to_session_label(end_date)
         domain = self.resolve_domain(pipeline)
         ranges = compute_date_range_chunks(
             domain.all_sessions(),
@@ -380,6 +385,8 @@ class SimplePipelineEngine(PipelineEngine):
             A screen of ``None`` indicates that a row should be returned for
             each asset that existed each day.
         """
+        start_date = to_session_label(start_date)
+        end_date = to_session_label(end_date)
         hooks = self._resolve_hooks(hooks)
         with hooks.running_pipeline(pipeline, start_date, end_date):
             return self._run_pipeline_impl(
@@ -600,7 +607,7 @@ class SimplePipelineEngine(PipelineEngine):
             Dependency graph of the terms to be executed.
         dates : pd.DatetimeIndex
             Row labels for our root mask.
-        sids : pd.Int64Index
+        sids : pd.Index[int64]
             Column labels for our root mask.
         workspace : dict
             Map from term -> output.

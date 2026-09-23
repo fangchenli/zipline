@@ -334,6 +334,9 @@ class AssetDateBounds(TradingControl):
             return
 
         normalized_algo_dt = pd.Timestamp(algo_datetime).normalize()
+        if normalized_algo_dt.tz is not None:
+            # Asset lifetime dates are tz-naive session labels.
+            normalized_algo_dt = normalized_algo_dt.tz_localize(None)
 
         # Fail if the algo is before this Asset's start_date
         if asset.start_date:

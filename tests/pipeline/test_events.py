@@ -3,11 +3,10 @@ Tests for setting up an EventsLoader and a BlazeEventsLoader.
 """
 from datetime import time
 from itertools import product
-from unittest import skipIf
 
 import numpy as np
 import pandas as pd
-import pytz
+from zoneinfo import ZoneInfo
 
 from zipline.pipeline import Pipeline, SimplePipelineEngine
 from zipline.pipeline.common import (
@@ -34,7 +33,6 @@ from zipline.utils.numpy_utils import (
     float64_dtype,
     int64_dtype,
 )
-from zipline.utils.pandas_utils import new_pandas, skip_pipeline_new_pandas
 
 
 class EventDataSet(DataSet):
@@ -170,7 +168,7 @@ class EventIndexerTestCase(ZiplineTestCase):
         domain = EquitySessionDomain(
             all_dates,
             'US',
-            time(8, 45, tzinfo=pytz.timezone('US/Eastern')),
+            time(8, 45, tzinfo=ZoneInfo('US/Eastern')),
         )
 
         indexer = previous_event_indexer(
@@ -234,7 +232,7 @@ class EventIndexerTestCase(ZiplineTestCase):
         domain = EquitySessionDomain(
             all_dates,
             'US',
-            time(8, 45, tzinfo=pytz.timezone('US/Eastern')),
+            time(8, 45, tzinfo=ZoneInfo('US/Eastern')),
         )
 
         indexer = next_event_indexer(
@@ -308,7 +306,6 @@ class EventsLoaderEmptyTestCase(WithAssetFinder,
                 frame[c.name] = frame[c.name].astype('category')
         return frame
 
-    @skipIf(new_pandas, skip_pipeline_new_pandas)
     def test_load_empty(self):
         """
         For the case where raw data is empty, make sure we have a result for
@@ -422,7 +419,6 @@ class EventsLoaderTestCase(WithAssetFinder,
         # This method exists to be overridden by BlazeEventsLoaderTestCase
         return EventsLoader(events, next_value_columns, previous_value_columns)
 
-    @skipIf(new_pandas, skip_pipeline_new_pandas)
     def test_load_with_trading_calendar(self):
         results = self.engine.run_pipeline(
             Pipeline({c.name: c.latest for c in EventDataSet_US.columns}),
@@ -446,7 +442,6 @@ class EventsLoaderTestCase(WithAssetFinder,
             else:
                 raise AssertionError("Unexpected column %s." % c)
 
-    @skipIf(new_pandas, skip_pipeline_new_pandas)
     def test_load_properly_forward_fills(self):
 
         # Cut the dates in half so we need to forward fill some data which

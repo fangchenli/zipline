@@ -4,7 +4,7 @@ from os import listdir
 import os.path
 
 import pandas as pd
-import pytz
+from zoneinfo import ZoneInfo
 import zipline
 
 from zipline.errors import SymbolNotFound
@@ -142,12 +142,12 @@ def load_from_directory(list_name):
     dir_path = os.path.join(SECURITY_LISTS_DIR, list_name)
     for kd_name in listdir(dir_path):
         kd = datetime.strptime(kd_name, DATE_FORMAT).replace(
-            tzinfo=pytz.utc)
+            tzinfo=ZoneInfo("UTC"))
         data[kd] = {}
         kd_path = os.path.join(dir_path, kd_name)
         for ld_name in listdir(kd_path):
             ld = datetime.strptime(ld_name, DATE_FORMAT).replace(
-                tzinfo=pytz.utc)
+                tzinfo=ZoneInfo("UTC"))
             data[kd][ld] = {}
             ld_path = os.path.join(kd_path, ld_name)
             for fname in listdir(ld_path):

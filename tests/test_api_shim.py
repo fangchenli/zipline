@@ -201,10 +201,10 @@ class TestAPIShim(WithCreateBarData,
         similar)  and the new data API(data.current(sid(N), field) and
         similar) hit the same code paths on the DataPortal.
         """
-        test_start_minute = self.trading_calendar.minutes_for_session(
+        test_start_minute = self.trading_calendar.session_minutes(
             self.sim_params.sessions[0]
         )[1]
-        test_end_minute = self.trading_calendar.minutes_for_session(
+        test_end_minute = self.trading_calendar.session_minutes(
             self.sim_params.sessions[0]
         )[-1]
         bar_data = self.create_bardata(

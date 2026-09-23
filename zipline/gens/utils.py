@@ -14,11 +14,10 @@
 # limitations under the License.
 
 
-import pytz
 import numbers
 
 from hashlib import md5
-from datetime import datetime
+from datetime import datetime, timedelta
 from zipline.protocol import DATASOURCE_TYPE
 
 
@@ -42,7 +41,7 @@ def assert_datasource_protocol(event):
     # Done packets have no dt.
     if not event.type == DATASOURCE_TYPE.DONE:
         assert isinstance(event.dt, datetime)
-        assert event.dt.tzinfo == pytz.utc
+        assert event.dt.utcoffset() == timedelta(0)
 
 
 def assert_trade_protocol(event):

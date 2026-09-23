@@ -73,7 +73,7 @@ The algorithm must expose methods:
 """
 import numpy as np
 
-from nose.tools import assert_raises
+from zipline.testing.predicates import assert_raises
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.api import (

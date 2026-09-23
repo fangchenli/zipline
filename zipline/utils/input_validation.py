@@ -17,7 +17,7 @@ from operator import attrgetter
 
 from numpy import dtype
 import pandas as pd
-from pytz import timezone
+from zoneinfo import ZoneInfo
 from toolz import valmap, complement, compose
 import toolz.curried.operator as op
 
@@ -165,7 +165,7 @@ def ensure_timezone(func, argname, arg):
     if isinstance(arg, tzinfo):
         return arg
     if isinstance(arg, str):
-        return timezone(arg)
+        return ZoneInfo(arg)
 
     raise TypeError(
         "{func}() couldn't convert argument "

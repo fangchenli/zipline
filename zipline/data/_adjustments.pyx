@@ -25,7 +25,6 @@ from numpy import (
     zeros,
 )
 from numpy cimport float64_t, int64_t, ndarray
-from pandas import Timestamp
 
 ctypedef object Timestamp_t
 ctypedef object DatetimeIndex_t
@@ -35,7 +34,6 @@ from zipline.lib.adjustment import Float64Multiply
 from zipline.assets.asset_writer import (
     SQLITE_MAX_VARIABLE_NUMBER as SQLITE_MAX_IN_STATEMENT,
 )
-from zipline.utils.pandas_utils import timedelta_to_integral_seconds
 
 
 _SID_QUERY_TEMPLATE = """
@@ -52,8 +50,6 @@ SELECT sid, ratio, effective_date
 FROM {0}
 WHERE sid IN ({1}) AND effective_date >= {2} AND effective_date <= {3}
 """
-
-EPOCH = Timestamp(0, tz='UTC')
 
 cdef set _get_sids_from_table(object db,
                               str tablename,
@@ -217,8 +213,10 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,
         should_include_mergers = False
         should_include_dividends = False
 
-    cdef int start_date = timedelta_to_integral_seconds(dates[0] - EPOCH)
-    cdef int end_date = timedelta_to_integral_seconds(dates[-1] - EPOCH)
+    # Seconds since the epoch. ``Timestamp.value`` is UTC-based whether or
+    # not ``dates`` is tz-aware.
+    cdef int start_date = dates[0].value // 1_000_000_000
+    cdef int end_date = dates[-1].value // 1_000_000_000
     cdef:
         set split_sids
         set merger_sids

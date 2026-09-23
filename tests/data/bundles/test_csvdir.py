@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 from zipline.data.bundles import ingest, load, bundles
 from zipline.testing import test_resource_path
@@ -107,7 +107,7 @@ class CSVDIRBundleTestCase(ZiplineTestCase):
             assert_equal(equity.start_date, self.asset_start, msg=equity)
             assert_equal(equity.end_date, self.asset_end, msg=equity)
 
-        sessions = self.calendar.all_sessions
+        sessions = self.calendar.sessions
         actual = bundle.equity_daily_bar_reader.load_raw_arrays(
             self.columns,
             sessions[sessions.get_loc(self.asset_start, 'bfill')],

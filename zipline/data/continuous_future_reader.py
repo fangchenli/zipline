@@ -63,7 +63,7 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
                 start_loc = sessions.get_loc(start)
 
                 if roll_date is not None:
-                    end = roll_date - sessions.freq
+                    end = roll_date - tc.day
                     end_loc = sessions.get_loc(end)
                 else:
                     end = end_date
@@ -224,8 +224,8 @@ class ContinuousFutureMinuteBarReader(SessionBarReader):
         rolls_by_asset = {}
 
         tc = self.trading_calendar
-        start_session = tc.minute_to_session_label(start_date)
-        end_session = tc.minute_to_session_label(end_date)
+        start_session = tc.minute_to_session(start_date)
+        end_session = tc.minute_to_session(end_date)
 
         for asset in assets:
             rf = self._roll_finders[asset.roll_style]
@@ -233,8 +233,6 @@ class ContinuousFutureMinuteBarReader(SessionBarReader):
                 asset.root_symbol,
                 start_session,
                 end_session, asset.offset)
-
-        sessions = tc.sessions_in_range(start_date, end_date)
 
         minutes = tc.minutes_in_range(start_date, end_date)
         num_minutes = len(minutes)
@@ -253,16 +251,16 @@ class ContinuousFutureMinuteBarReader(SessionBarReader):
                 sid, roll_date = roll
                 start_loc = minutes.searchsorted(start)
                 if roll_date is not None:
-                    _, end = tc.open_and_close_for_session(
-                        roll_date - sessions.freq)
+                    _, end = tc.session_first_last_minute(
+                        roll_date - tc.day)
                     end_loc = minutes.searchsorted(end)
                 else:
                     end = end_date
                     end_loc = len(minutes) - 1
                 partitions.append((sid, start, end, start_loc, end_loc))
                 if roll[-1] is not None:
-                    start, _ = tc.open_and_close_for_session(
-                        tc.minute_to_session_label(minutes[end_loc + 1]))
+                    start, _ = tc.session_first_last_minute(
+                        tc.minute_to_session(minutes[end_loc + 1]))
 
         for column in columns:
             if column != 'volume':

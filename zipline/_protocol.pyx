@@ -20,7 +20,7 @@ import pandas as pd
 import numpy as np
 
 from cpython cimport bool
-from collections import Iterable
+from collections.abc import Iterable
 
 from zipline.assets import (
     AssetConvertible,
@@ -237,7 +237,7 @@ cdef class BarData:
         if self._daily_mode:
             # if we're in daily mode, take the given dt (which is the last
             # minute of the session) and get the session label for it.
-            dt = self.data_portal.trading_calendar.minute_to_session_label(dt)
+            dt = self.data_portal.trading_calendar.minute_to_session(dt)
 
         return dt
 
@@ -495,7 +495,7 @@ cdef class BarData:
         if self._is_restricted(asset, adjusted_dt):
             return False
 
-        session_label = self._trading_calendar.minute_to_session_label(dt)
+        session_label = self._trading_calendar.minute_to_session(dt)
 
         if not asset.is_alive_for_session(session_label):
             # asset isn't alive
@@ -511,7 +511,7 @@ cdef class BarData:
                 dt_to_use_for_exchange_check = dt
             else:
                 dt_to_use_for_exchange_check = \
-                    self._trading_calendar.next_open(dt)
+                    self._trading_calendar.next_minute(dt)
 
             if not asset.is_exchange_open(dt_to_use_for_exchange_check):
                 return False
@@ -567,7 +567,7 @@ cdef class BarData:
             })
 
     cdef bool _is_stale_for_asset(self, asset, dt, adjusted_dt, data_portal):
-        session_label = dt.normalize()
+        session_label = dt.normalize().tz_localize(None)
 
         if not asset.is_alive_for_session(session_label):
             return False
@@ -766,14 +766,14 @@ cdef class BarData:
 
     property current_session:
         def __get__(self):
-            return self._trading_calendar.minute_to_session_label(
+            return self._trading_calendar.minute_to_session(
                 self.simulation_dt_func(),
                 direction="next"
             )
 
     property current_session_minutes:
         def __get__(self):
-            return self._trading_calendar.minutes_for_session(
+            return self._trading_calendar.session_minutes(
                 self.current_session
             )
 

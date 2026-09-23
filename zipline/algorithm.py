@@ -16,18 +16,22 @@ from collections import namedtuple
 from collections.abc import Iterable
 from copy import copy
 import warnings
-from datetime import tzinfo, time
+from datetime import time, timedelta, tzinfo
 from contextlib import ExitStack
 
 import logbook
-import pytz
 import pandas as pd
 import numpy as np
 
 from itertools import chain, repeat
+from zoneinfo import ZoneInfo
 
-from trading_calendars.utils.pandas_utils import days_at_time
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import (
+    days_at_time,
+    execution_time_from_close,
+    execution_time_from_open,
+    get_calendar,
+)
 
 from zipline._protocol import handle_non_market_minutes
 from zipline.errors import (
@@ -485,13 +489,12 @@ class TradingAlgorithm:
         """
         If the clock property is not set, then create one based on frequency.
         """
-        trading_o_and_c = self.trading_calendar.schedule.loc[
-            self.sim_params.sessions]
-        market_closes = trading_o_and_c['market_close']
+        sessions = self.sim_params.sessions
+        market_closes = self.trading_calendar.last_minutes.loc[sessions]
         minutely_emission = False
 
         if self.sim_params.data_frequency == 'minute':
-            market_opens = trading_o_and_c['market_open']
+            market_opens = self.trading_calendar.first_minutes.loc[sessions]
             minutely_emission = self.sim_params.emission_rate == "minute"
 
             # The calendar's execution times are the minutes over which we
@@ -501,15 +504,18 @@ class TradingAlgorithm:
             # a subset of the full 24 hour calendar, so the execution times
             # dictate a market open time of 6:31am US/Eastern and a close of
             # 5:00pm US/Eastern.
-            execution_opens = \
-                self.trading_calendar.execution_time_from_open(market_opens)
-            execution_closes = \
-                self.trading_calendar.execution_time_from_close(market_closes)
+            execution_opens = execution_time_from_open(
+                self.trading_calendar, market_opens,
+            )
+            execution_closes = execution_time_from_close(
+                self.trading_calendar, market_closes,
+            )
         else:
             # in daily mode, we want to have one bar per session, timestamped
             # as the last minute of the session.
-            execution_closes = \
-                self.trading_calendar.execution_time_from_close(market_closes)
+            execution_closes = execution_time_from_close(
+                self.trading_calendar, market_closes,
+            )
             execution_opens = execution_closes
 
         # FIXME generalize these values
@@ -566,7 +572,7 @@ class TradingAlgorithm:
         self.metrics_tracker = metrics_tracker = self._create_metrics_tracker()
 
         # Set the dt initially to the period start by forcing it to change.
-        self.on_dt_changed(self.sim_params.start_session)
+        self.on_dt_changed(self.sim_params.start_session.tz_localize('UTC'))
 
         if not self.initialized:
             self.initialize(**self.initialize_kwargs)
@@ -787,7 +793,7 @@ class TradingAlgorithm:
                   post_func=None,
                   date_column='date',
                   date_format=None,
-                  timezone=pytz.utc.zone,
+                  timezone='UTC',
                   symbol=None,
                   mask=True,
                   symbol_column=None,
@@ -1157,7 +1163,7 @@ class TradingAlgorithm:
         # Make sure the asset exists, and that there is a last price for it.
         # FIXME: we should use BarData's can_trade logic here, but I haven't
         # yet found a good way to do that.
-        normalized_date = self.datetime.normalize()
+        normalized_date = self.datetime.normalize().tz_localize(None)
 
         if normalized_date < asset.start_date:
             raise CannotOrderDelistedAsset(
@@ -1201,7 +1207,7 @@ class TradingAlgorithm:
             )
 
         if asset.auto_close_date:
-            day = self.get_datetime().normalize()
+            day = self.get_datetime().normalize().tz_localize(None)
 
             if day > min(asset.end_date, asset.auto_close_date):
                 # If we are after the asset's end date or auto close date, warn
@@ -1465,7 +1471,7 @@ class TradingAlgorithm:
         self.blotter.set_date(dt)
 
     @api_method
-    @preprocess(tz=coerce_string(pytz.timezone))
+    @preprocess(tz=coerce_string(ZoneInfo))
     @expect_types(tz=optional(tzinfo))
     def get_datetime(self, tz=None):
         """
@@ -1482,7 +1488,9 @@ class TradingAlgorithm:
             The current simulation datetime converted to ``tz``.
         """
         dt = self.datetime
-        assert dt.tzinfo == pytz.utc, "Algorithm should have a utc datetime"
+        assert (
+            dt.tzinfo is not None and dt.utcoffset() == timedelta(0)
+        ), "Algorithm should have a utc datetime"
         if tz is not None:
             dt = dt.astimezone(tz)
         return dt
@@ -1606,10 +1614,14 @@ class TradingAlgorithm:
             The new symbol lookup date.
         """
         try:
-            self._symbol_lookup_date = pd.Timestamp(dt, tz='UTC')
+            dt = pd.Timestamp(dt)
         except ValueError:
             raise UnsupportedDatetimeFormat(input=dt,
                                             method='set_symbol_lookup_date')
+        # Symbol lookup dates are dates, stored tz-naive like session labels.
+        if dt.tz is not None:
+            dt = dt.tz_convert('UTC').tz_localize(None)
+        self._symbol_lookup_date = dt
 
     # Remain backwards compatibility
     @property
@@ -2074,7 +2086,9 @@ class TradingAlgorithm:
         grace_period : pd.Timedelta
             The offset from the start date used to enforce a minimum leverage.
         """
-        deadline = self.sim_params.start_session + grace_period
+        deadline = (
+            self.sim_params.start_session.tz_localize('UTC') + grace_period
+        )
         control = MinLeverage(min_leverage, deadline)
         self.register_account_control(control)
 
@@ -2319,7 +2333,7 @@ class TradingAlgorithm:
         """
         Internal implementation of `pipeline_output`.
         """
-        today = self.get_datetime().normalize()
+        today = self.get_datetime().normalize().tz_localize(None)
         try:
             data = self._pipeline_cache.get(name, today)
         except KeyError:
@@ -2355,7 +2369,7 @@ class TradingAlgorithm:
         --------
         PipelineEngine.run_pipeline
         """
-        sessions = self.trading_calendar.all_sessions
+        sessions = self.trading_calendar.sessions
 
         # Load data starting from the previous trading day...
         start_date_loc = sessions.get_loc(start_session)

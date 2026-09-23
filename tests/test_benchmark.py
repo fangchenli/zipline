@@ -15,7 +15,7 @@
 import logbook
 import numpy as np
 import pandas as pd
-from pandas.util.testing import assert_series_equal
+from pandas.testing import assert_series_equal
 
 from zipline.data.data_portal import DataPortal
 from zipline.errors import (
@@ -176,14 +176,14 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
     def test_asset_IPOed_same_day(self):
         # gotta get some minute data up in here.
         # add sid 4 for a couple of days
-        minutes = self.trading_calendar.minutes_for_sessions_in_range(
+        minutes = self.trading_calendar.sessions_minutes(
             self.sim_params.sessions[0],
             self.sim_params.sessions[5]
         )
 
         tmp_reader = tmp_bcolz_equity_minute_bar_reader(
             self.trading_calendar,
-            self.trading_calendar.all_sessions,
+            self.trading_calendar.sessions,
             create_minute_bar_data(minutes, [2]),
         )
         with tmp_reader as reader:
@@ -205,7 +205,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
             days_to_use = self.sim_params.sessions
 
             # first value should be 0.0, coming from daily data
-            self.assertAlmostEquals(0.0, source.get_value(days_to_use[0]))
+            self.assertAlmostEqual(0.0, source.get_value(days_to_use[0]))
 
             manually_calculated = data_portal.get_history_window(
                 [2], days_to_use[-1],

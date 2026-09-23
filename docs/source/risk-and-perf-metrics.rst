@@ -111,7 +111,7 @@ metrics should be reported. ``emission_rate`` will be either ``minute`` or
 called at all.
 
 ``trading_calendar`` is an instance of
-:class:`~zipline.utils.calendars.TradingCalendar` which is the trading calendar
+:class:`~zipline.utils.calendars.ExchangeCalendar` which is the trading calendar
 being used by the simulation.
 
 ``sessions`` is a :class:`pandas.DatetimeIndex` which is holds the session
@@ -146,7 +146,7 @@ final portfolio values.
 metric into.
 
 ``trading_calendar`` is an instance of
-:class:`~zipline.utils.calendars.TradingCalendar` which is the trading calendar
+:class:`~zipline.utils.calendars.ExchangeCalendar` which is the trading calendar
 being used by the simulation.
 
 ``sessions`` is a :class:`pandas.DatetimeIndex` which is holds the session

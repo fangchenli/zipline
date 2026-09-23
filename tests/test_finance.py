@@ -19,10 +19,9 @@ Tests for the zipline.finance package
 from datetime import datetime, timedelta
 import os
 
-from nose.tools import timed
 import numpy as np
 import pandas as pd
-import pytz
+from zoneinfo import ZoneInfo
 from testfixtures import TempDirectory
 
 from zipline.finance.blotter.simulation_blotter import SimulationBlotter
@@ -42,7 +41,6 @@ from zipline.testing import write_bcolz_minute_data
 import zipline.testing.fixtures as zf
 import zipline.utils.factory as factory
 
-DEFAULT_TIMEOUT = 15  # seconds
 EXTENDED_TIMEOUT = 90
 
 _multiprocess_can_split_ = False
@@ -62,7 +60,6 @@ class FinanceTestCase(zf.WithAssetFinder,
     # TODO: write tests for short sales
     # TODO: write a test to do massive buying or shorting.
 
-    @timed(DEFAULT_TIMEOUT)
     def test_partially_filled_orders(self):
 
         # create a scenario where order size and trade size are equal
@@ -99,7 +96,6 @@ class FinanceTestCase(zf.WithAssetFinder,
 
         self.transaction_sim(**params2)
 
-    @timed(DEFAULT_TIMEOUT)
     def test_collapsing_orders(self):
         # create a scenario where order.amount <<< trade.volume
         # to test that several orders can be covered properly by one trade,
@@ -142,7 +138,6 @@ class FinanceTestCase(zf.WithAssetFinder,
         }
         self.transaction_sim(**params3)
 
-    @timed(DEFAULT_TIMEOUT)
     def test_alternating_long_short(self):
         # create a scenario where we alternate buys and sells
         params1 = {
@@ -209,10 +204,10 @@ class FinanceTestCase(zf.WithAssetFinder,
                 write_bcolz_minute_data(
                     self.trading_calendar,
                     self.trading_calendar.sessions_in_range(
-                        self.trading_calendar.minute_to_session_label(
+                        self.trading_calendar.minute_to_session(
                             minutes[0]
                         ),
-                        self.trading_calendar.minute_to_session_label(
+                        self.trading_calendar.minute_to_session(
                             minutes[-1]
                         )
                     ),
@@ -414,7 +409,6 @@ class SimParamsTestCase(zf.WithTradingCalendars, zf.ZiplineTestCase):
         self.assertTrue(sp.last_close.month == 12)
         self.assertTrue(sp.last_close.day == 31)
 
-    @timed(DEFAULT_TIMEOUT)
     def test_sim_params_days_in_period(self):
 
         #     January 2008
@@ -433,19 +427,19 @@ class SimParamsTestCase(zf.WithTradingCalendars, zf.ZiplineTestCase):
         )
 
         expected_trading_days = (
-            datetime(2007, 12, 31, tzinfo=pytz.utc),
+            datetime(2007, 12, 31, tzinfo=ZoneInfo("UTC")),
             # Skip new years
             # holidays taken from: http://www.nyse.com/press/1191407641943.html
-            datetime(2008, 1, 2, tzinfo=pytz.utc),
-            datetime(2008, 1, 3, tzinfo=pytz.utc),
-            datetime(2008, 1, 4, tzinfo=pytz.utc),
+            datetime(2008, 1, 2, tzinfo=ZoneInfo("UTC")),
+            datetime(2008, 1, 3, tzinfo=ZoneInfo("UTC")),
+            datetime(2008, 1, 4, tzinfo=ZoneInfo("UTC")),
             # Skip Saturday
             # Skip Sunday
-            datetime(2008, 1, 7, tzinfo=pytz.utc)
+            datetime(2008, 1, 7, tzinfo=ZoneInfo("UTC"))
         )
 
         num_expected_trading_days = 5
-        self.assertEquals(
+        self.assertEqual(
             num_expected_trading_days,
             len(params.sessions)
         )

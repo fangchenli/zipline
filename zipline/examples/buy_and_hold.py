@@ -44,6 +44,6 @@ def _test_args():
     import pandas as pd
 
     return {
-        'start': pd.Timestamp('2008', tz='utc'),
-        'end': pd.Timestamp('2013', tz='utc'),
+        'start': pd.Timestamp('2008'),
+        'end': pd.Timestamp('2013'),
     }

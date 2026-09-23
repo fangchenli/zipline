@@ -5,40 +5,12 @@ from functools import partial
 from itertools import zip_longest
 import re
 from types import MappingProxyType
+import unittest
 
-from nose.tools import (  # noqa
-    assert_almost_equal,
-    assert_almost_equals,
-    assert_dict_contains_subset,
-    assert_false,
-    assert_greater,
-    assert_greater_equal,
-    assert_in,
-    assert_is,
-    assert_is_instance,
-    assert_is_none,
-    assert_is_not,
-    assert_is_not_none,
-    assert_less,
-    assert_less_equal,
-    assert_multi_line_equal,
-    assert_not_almost_equal,
-    assert_not_almost_equals,
-    assert_not_equal,
-    assert_not_equals,
-    assert_not_in,
-    assert_not_is_instance,
-    assert_raises,
-    assert_raises_regexp,
-    assert_regexp_matches,
-    assert_true,
-    assert_tuple_equal,
-)
 import numpy as np
 import pandas as pd
-from pandas.util.testing import (
+from pandas.testing import (
     assert_frame_equal,
-    assert_panel_equal,
     assert_series_equal,
     assert_index_equal,
 )
@@ -134,6 +106,48 @@ class instance_of:
             ),
             ', exact=True' if self.exact else ''
         )
+
+
+# unittest-style assertion functions, in the spirit of the removed
+# ``nose.tools``: each is a bound method of a throwaway TestCase.
+class _Asserter(unittest.TestCase):
+    maxDiff = None
+
+    def _nop(self):
+        pass
+
+
+_asserter = _Asserter('_nop')
+
+assert_almost_equal = assert_almost_equals = _asserter.assertAlmostEqual
+assert_false = _asserter.assertFalse
+assert_greater = _asserter.assertGreater
+assert_greater_equal = _asserter.assertGreaterEqual
+assert_in = _asserter.assertIn
+assert_is = _asserter.assertIs
+assert_is_instance = _asserter.assertIsInstance
+assert_is_none = _asserter.assertIsNone
+assert_is_not = _asserter.assertIsNot
+assert_is_not_none = _asserter.assertIsNotNone
+assert_less = _asserter.assertLess
+assert_less_equal = _asserter.assertLessEqual
+assert_multi_line_equal = _asserter.assertMultiLineEqual
+assert_not_almost_equal = assert_not_almost_equals = (
+    _asserter.assertNotAlmostEqual
+)
+assert_not_equal = assert_not_equals = _asserter.assertNotEqual
+assert_not_in = _asserter.assertNotIn
+assert_not_is_instance = _asserter.assertNotIsInstance
+assert_raises = _asserter.assertRaises
+assert_raises_regex = assert_raises_regexp = _asserter.assertRaisesRegex
+assert_regex = assert_regexp_matches = _asserter.assertRegex
+assert_true = _asserter.assertTrue
+assert_tuple_equal = _asserter.assertTupleEqual
+
+
+def assert_dict_contains_subset(subset, dictionary, msg=None):
+    """Assert that every key/value pair in ``subset`` is in ``dictionary``."""
+    _asserter.assertEqual(dictionary, {**dictionary, **subset}, msg)
 
 
 def keywords(func):
@@ -658,10 +672,6 @@ assert_frame_equal = _register_assert_equal_wrapper(
     pd.DataFrame,
     assert_frame_equal,
 )
-assert_panel_equal = _register_assert_equal_wrapper(
-    pd.Panel,
-    assert_panel_equal,
-)
 assert_series_equal = _register_assert_equal_wrapper(
     pd.Series,
     assert_series_equal,
@@ -832,13 +842,3 @@ def index_of_first_difference(left, right):
     except StopIteration:
         raise ValueError("Left was equal to right!")
 
-
-try:
-    # pull the dshape cases in
-    from datashape.util.testing import assert_dshape_equal
-except ImportError:
-    pass
-else:
-    assert_equal.funcs.update(
-        dissoc(assert_dshape_equal.funcs, (object, object)),
-    )

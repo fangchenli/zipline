@@ -246,7 +246,7 @@ have.
 ````````````
 
 ``calendar`` is an instance of
-:class:`zipline.utils.calendars.TradingCalendar`. The calendar is provided to
+:class:`zipline.utils.calendars.ExchangeCalendar`. The calendar is provided to
 help some bundles generate queries for the days needed.
 
 ``start_session``

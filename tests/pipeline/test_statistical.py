@@ -12,10 +12,10 @@ from numpy import (
 from pandas import (
     DataFrame,
     date_range,
-    Int64Index,
+    Index,
     Timestamp,
 )
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal
 from scipy.stats import linregress, pearsonr, spearmanr
 
 from empyrical.stats import beta_aligned as empyrical_beta
@@ -61,7 +61,7 @@ from zipline.utils.numpy_utils import (
 class StatisticalBuiltInsTestCase(zf.WithAssetFinder,
                                   zf.WithTradingCalendars,
                                   zf.ZiplineTestCase):
-    sids = ASSET_FINDER_EQUITY_SIDS = Int64Index([1, 2, 3])
+    sids = ASSET_FINDER_EQUITY_SIDS = Index([1, 2, 3], dtype='int64')
     START_DATE = Timestamp('2015-01-31', tz='UTC')
     END_DATE = Timestamp('2015-03-01', tz='UTC')
     ASSET_FINDER_EQUITY_SYMBOLS = ('A', 'B', 'C')
@@ -445,7 +445,7 @@ class StatisticalBuiltInsTestCase(zf.WithAssetFinder,
             " .*Asset for argument 'target',"
             " but got str instead."
         )
-        self.assertRegexpMatches(result, expected)
+        self.assertRegex(result, expected)
 
         with self.assertRaises(ValueError) as e:
             SimpleBeta(
@@ -506,7 +506,7 @@ class StatisticalBuiltInsTestCase(zf.WithAssetFinder,
 
 class StatisticalMethodsTestCase(zf.WithSeededRandomPipelineEngine,
                                  zf.ZiplineTestCase):
-    sids = ASSET_FINDER_EQUITY_SIDS = Int64Index([1, 2, 3])
+    sids = ASSET_FINDER_EQUITY_SIDS = Index([1, 2, 3], dtype='int64')
     START_DATE = Timestamp('2015-01-31', tz='UTC')
     END_DATE = Timestamp('2015-03-01', tz='UTC')
     ASSET_FINDER_COUNTRY_CODE = 'US'

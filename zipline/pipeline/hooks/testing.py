@@ -59,6 +59,5 @@ class TestingHooks(PipelineHooks):
     # input hooks.
     locals().update({
         name: testing_hooks_method(name)
-        # TODO: Expose this publicly on interface.
-        for name in PipelineHooks._signatures
+        for name in sorted(PipelineHooks.__abstractmethods__)
     })

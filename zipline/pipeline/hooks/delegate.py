@@ -56,8 +56,7 @@ class DelegatingHooks(PipelineHooks):
     # input hooks.
     locals().update({
         name: delegating_hooks_method(name)
-        # TODO: Expose this publicly on interface.
-        for name in PipelineHooks._signatures
+        for name in sorted(PipelineHooks.__abstractmethods__)
     })
 
 

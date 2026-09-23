@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from pandas import NaT
 
-from trading_calendars import TradingCalendar
+from zipline.utils.calendar_utils import ExchangeCalendar
 
 from zipline.data.bar_reader import OHLCV, NoDataOnDate, NoDataForSid
 from zipline.data.session_bars import CurrencyAwareSessionBarReader
@@ -19,7 +19,7 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
     frames : dict[str -> pd.DataFrame]
         Dictionary from field name ("open", "high", "low", "close", or
         "volume") to DataFrame containing data for that field.
-    calendar : str or trading_calendars.TradingCalendar
+    calendar : str or zipline.utils.calendar_utils.ExchangeCalendar
         Calendar (or name of calendar) to which data is aligned.
     currency_codes : pd.Series
         Map from sid -> listing currency for that sid.
@@ -29,7 +29,7 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
     """
     @expect_types(
         frames=dict,
-        calendar=TradingCalendar,
+        calendar=ExchangeCalendar,
         verify_indices=bool,
         currency_codes=pd.Series,
     )
@@ -58,7 +58,7 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
 
     @property
     def last_available_dt(self):
-        return self._calendar[-1]
+        return self._sessions[-1]
 
     @property
     def trading_calendar(self):
@@ -145,7 +145,7 @@ def verify_frames_aligned(frames, calendar):
     Parameters
     ----------
     frames : list[pd.DataFrame]
-    calendar : trading_calendars.TradingCalendar
+    calendar : zipline.utils.calendar_utils.ExchangeCalendar
 
     Raises
     ------

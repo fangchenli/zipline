@@ -356,7 +356,7 @@ Trading Calendar API
 
 .. autofunction:: zipline.utils.calendars.get_calendar
 
-.. autoclass:: zipline.utils.calendars.TradingCalendar
+.. autoclass:: zipline.utils.calendars.ExchangeCalendar
    :members:
 
 .. autofunction:: zipline.utils.calendars.register_calendar

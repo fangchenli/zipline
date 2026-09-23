@@ -87,7 +87,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
 
     def test_calculate_dividend_ratio(self):
         first_date_ix = 200
-        dates = self.trading_calendar.all_sessions[
+        dates = self.trading_calendar.sessions[
             first_date_ix:first_date_ix + 3
         ]
 
@@ -150,7 +150,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
         # they appear unchanged in the dividends payouts
         ix = first_date_ix
         for col in 'declared_date', 'record_date', 'pay_date':
-            extra_dates = self.trading_calendar.all_sessions[
+            extra_dates = self.trading_calendar.sessions[
                 ix:ix + len(dividends)
             ]
             ix += len(dividends)
@@ -208,7 +208,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
 
     def _test_identity(self, name):
         sids = np.arange(5)
-        dates = self.trading_calendar.all_sessions.tz_convert(None)
+        dates = self.trading_calendar.sessions.tz_convert(None)
 
         def T(n):
             return dates[n]
@@ -239,7 +239,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
 
     def test_stock_dividends(self):
         sids = np.arange(5)
-        dates = self.trading_calendar.all_sessions.tz_convert(None)
+        dates = self.trading_calendar.sessions.tz_convert(None)
 
         def T(n):
             return dates[n]
@@ -277,7 +277,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
         """Test that dataframe dtypes are preserved for empty tables.
         """
         sids = np.arange(5)
-        dates = self.trading_calendar.all_sessions.tz_convert(None)
+        dates = self.trading_calendar.sessions.tz_convert(None)
 
         if convert_dates:
             date_dtype = np.dtype('M8[ns]')

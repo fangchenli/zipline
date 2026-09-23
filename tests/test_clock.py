@@ -1,8 +1,8 @@
 from datetime import time
 from unittest import TestCase
 import pandas as pd
-from trading_calendars import get_calendar
-from trading_calendars.utils.pandas_utils import days_at_time
+from zipline.utils.calendar_utils import get_calendar
+from zipline.utils.calendar_utils import days_at_time
 
 from zipline.gens.sim_engine import (
     MinuteSimulationClock,
@@ -40,7 +40,7 @@ class TestClock(TestCase):
         all_events = list(clock)
 
         def _check_session_bts_first(session_label, events, bts_dt):
-            minutes = self.nyse_calendar.minutes_for_session(session_label)
+            minutes = self.nyse_calendar.session_minutes(session_label)
 
             self.assertEqual(393, len(events))
 
@@ -100,7 +100,7 @@ class TestClock(TestCase):
 
     def verify_bts_during_session(self, bts_time, bts_session_times, bts_idx):
         def _check_session_bts_during(session_label, events, bts_dt):
-            minutes = self.nyse_calendar.minutes_for_session(session_label)
+            minutes = self.nyse_calendar.session_minutes(session_label)
 
             self.assertEqual(393, len(events))
 
@@ -163,7 +163,7 @@ class TestClock(TestCase):
         # 390 BARs, and then SESSION_END
 
         def _check_session_bts_after(session_label, events):
-            minutes = self.nyse_calendar.minutes_for_session(session_label)
+            minutes = self.nyse_calendar.session_minutes(session_label)
 
             self.assertEqual(392, len(events))
             self.assertEqual(events[0], (session_label, SESSION_START))

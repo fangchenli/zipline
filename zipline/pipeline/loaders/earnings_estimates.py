@@ -21,6 +21,7 @@ from zipline.pipeline.common import (
     TS_FIELD_NAME,
 )
 from zipline.pipeline.loaders.base import PipelineLoader
+from zipline.utils.date_utils import to_session_label
 from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
 from zipline.pipeline.loaders.utils import (
     ffill_across_cols,
@@ -273,7 +274,7 @@ class EarningsEstimatesLoader(PipelineLoader):
         # The split-asof date is after the date index.
         if split_adjusted_asof_idx == len(dates):
             split_adjusted_asof_idx = len(dates) - 1
-        elif self._split_adjusted_asof < dates[0].tz_localize(None):
+        elif self._split_adjusted_asof < dates[0]:
             split_adjusted_asof_idx = -1
         return split_adjusted_asof_idx
 
@@ -450,7 +451,7 @@ class EarningsEstimatesLoader(PipelineLoader):
             of estimates for a particular sid for a particular quarter.
         dates : pd.DatetimeIndex
             The calendar dates for which estimates data is requested.
-        assets : pd.Int64Index
+        assets : pd.Index[int64]
             An index of all the assets from the raw data.
         columns : list of BoundColumn
             The columns for which adjustments need to be calculated.
@@ -881,7 +882,7 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
                                              split_adjusted_column_names)
         self._split_adjustments = split_adjustments_loader
         self._split_adjusted_column_names = split_adjusted_column_names
-        self._split_adjusted_asof = split_adjusted_asof
+        self._split_adjusted_asof = to_session_label(split_adjusted_asof)
         self._split_adjustment_dict = {}
         super().__init__(
             estimates,
@@ -1236,6 +1237,11 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
         adjustments = self._split_adjustments.get_adjustments_for_sid(
             'splits', sid
         )
+        # Adjustment dates are session labels; coerce them to tz-naive to
+        # compare against ``dates``.
+        adjustments = [
+            (to_session_label(adj[0]), adj[1]) for adj in adjustments
+        ]
         sorted(adjustments, key=lambda adj: adj[0])
         # Get rid of any adjustments that happen outside of our date index.
         adjustments = list(filter(lambda x: dates[0] <= x[0] <= dates[-1],

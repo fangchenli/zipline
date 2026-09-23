@@ -141,19 +141,21 @@ class AlgorithmSimulator:
             for new_order in new_orders:
                 metrics_tracker.process_order(new_order)
 
-        def once_a_day(midnight_dt, current_data=self.current_data,
+        def once_a_day(session_label, current_data=self.current_data,
                        data_portal=self.data_portal):
             # process any capital changes that came overnight
             yield from algo.calculate_capital_changes(
-                    midnight_dt, emission_rate=emission_rate,
+                    session_label, emission_rate=emission_rate,
                     is_interday=True)
 
-            # set all the timestamps
+            # set all the timestamps. The session label is tz-naive, but the
+            # simulation clock is always a UTC point in time.
+            midnight_dt = session_label.tz_localize('UTC')
             self.simulation_dt = midnight_dt
             algo.on_dt_changed(midnight_dt)
 
             metrics_tracker.handle_market_open(
-                midnight_dt,
+                session_label,
                 algo.data_portal,
             )
 
@@ -165,7 +167,7 @@ class AlgorithmSimulator:
 
             if assets_we_care_about:
                 splits = data_portal.get_splits(assets_we_care_about,
-                                                midnight_dt)
+                                                session_label)
                 if splits:
                     algo.blotter.process_splits(splits)
                     metrics_tracker.handle_splits(splits)
@@ -246,9 +248,13 @@ class AlgorithmSimulator:
         """
         algo = self.algo
 
+        # ``dt`` is the last minute of the session (UTC); auto close dates are
+        # tz-naive session labels.
+        session_label = dt.normalize().tz_localize(None)
+
         def past_auto_close_date(asset):
             acd = asset.auto_close_date
-            return acd is not None and acd <= dt
+            return acd is not None and acd <= session_label
 
         # Remove positions in any sids that have reached their auto_close date.
         assets_to_clear = \

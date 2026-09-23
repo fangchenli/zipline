@@ -9,7 +9,7 @@ from logbook import Logger
 import numpy
 import pandas as pd
 from pandas import read_csv
-import pytz
+from zoneinfo import ZoneInfo
 import requests
 
 from zipline.errors import (
@@ -223,7 +223,7 @@ class PandasCSV(ABC):
             format_str = None
 
         tz_str = str(tz)
-        if tz_str == pytz.utc.zone:
+        if tz_str == ZoneInfo("UTC").zone:
             parsed = pd.to_datetime(
                 date_str_series.values,
                 format=format_str,
@@ -347,7 +347,7 @@ class PandasCSV(ABC):
                         row[self.symbol_column],
                         # Replacing tzinfo here is necessary because of the
                         # timezone metadata bug described below.
-                        row['dt'].replace(tzinfo=pytz.utc),
+                        row['dt'].replace(tzinfo=ZoneInfo("UTC")),
                         country_code=self.country_code,
 
                         # It's possible that no asset comes back here if our
@@ -359,7 +359,7 @@ class PandasCSV(ABC):
                     asset = numpy.nan
 
                 # Assign the resolved asset to the cell
-                df.ix[row_idx, 'sid'] = asset
+                df.loc[row_idx, 'sid'] = asset
 
             # Filter out rows containing symbols that we failed to find.
             length_before_drop = len(df)

@@ -29,7 +29,7 @@ class AssetDispatchBarReader(ABC):
 
     Parameters
     ----------
-    - trading_calendar : zipline.utils.trading_calendar.TradingCalendar
+    - trading_calendar : zipline.utils.calendar_utils.ExchangeCalendar
     - asset_finder : zipline.assets.AssetFinder
     - readers : dict
         A dict mapping Asset type to the corresponding

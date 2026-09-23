@@ -21,8 +21,8 @@ from numpy import nan
 from numpy.testing import assert_almost_equal
 import pandas as pd
 from toolz import concat
-from trading_calendars import get_calendar
-from trading_calendars.utils.pandas_utils import days_at_time
+from zipline.utils.calendar_utils import get_calendar
+from zipline.utils.calendar_utils import days_at_time
 
 from zipline._protocol import handle_non_market_minutes
 
@@ -207,7 +207,7 @@ class TestMinuteBarData(WithCreateBarData,
         cls.ASSETS = [cls.ASSET1, cls.ASSET2]
 
     def test_current_session(self):
-        regular_minutes = self.trading_calendar.minutes_for_sessions_in_range(
+        regular_minutes = self.trading_calendar.sessions_minutes(
             self.equity_minute_bar_days[0],
             self.equity_minute_bar_days[-1]
         )
@@ -230,12 +230,12 @@ class TestMinuteBarData(WithCreateBarData,
             bar_data = self.create_bardata(lambda: minute)
 
             self.assertEqual(
-                self.trading_calendar.minute_to_session_label(minute),
+                self.trading_calendar.minute_to_session(minute),
                 bar_data.current_session
             )
 
     def test_current_session_minutes(self):
-        first_day_minutes = self.trading_calendar.minutes_for_session(
+        first_day_minutes = self.trading_calendar.session_minutes(
             self.equity_minute_bar_days[0]
         )
 
@@ -248,8 +248,8 @@ class TestMinuteBarData(WithCreateBarData,
 
     def test_minute_before_assets_trading(self):
         # grab minutes that include the day before the asset start
-        minutes = self.trading_calendar.minutes_for_session(
-            self.trading_calendar.previous_session_label(
+        minutes = self.trading_calendar.session_minutes(
+            self.trading_calendar.previous_session(
                 self.equity_minute_bar_days[0]
             )
         )
@@ -279,7 +279,7 @@ class TestMinuteBarData(WithCreateBarData,
                         self.assertTrue(asset_value is pd.NaT)
 
     def test_regular_minute(self):
-        minutes = self.trading_calendar.minutes_for_session(
+        minutes = self.trading_calendar.session_minutes(
             self.equity_minute_bar_days[0]
         )
 
@@ -375,7 +375,7 @@ class TestMinuteBarData(WithCreateBarData,
                             )
 
     def test_minute_of_last_day(self):
-        minutes = self.trading_calendar.minutes_for_session(
+        minutes = self.trading_calendar.session_minutes(
             self.equity_daily_bar_days[-1],
         )
 
@@ -389,13 +389,13 @@ class TestMinuteBarData(WithCreateBarData,
             self.assertTrue(bar_data.can_trade(self.ASSET2))
 
     def test_minute_after_assets_stopped(self):
-        minutes = self.trading_calendar.minutes_for_session(
-            self.trading_calendar.next_session_label(
+        minutes = self.trading_calendar.session_minutes(
+            self.trading_calendar.next_session(
                 self.equity_minute_bar_days[-1]
             )
         )
 
-        last_trading_minute = self.trading_calendar.minutes_for_session(
+        last_trading_minute = self.trading_calendar.session_minutes(
             self.equity_minute_bar_days[-1]
         )[-1]
 
@@ -439,7 +439,7 @@ class TestMinuteBarData(WithCreateBarData,
         )
 
         # ... but that's it's not applied when using spot value
-        minutes = self.trading_calendar.minutes_for_sessions_in_range(
+        minutes = self.trading_calendar.sessions_minutes(
             self.equity_minute_bar_days[0],
             self.equity_minute_bar_days[1]
         )
@@ -456,10 +456,10 @@ class TestMinuteBarData(WithCreateBarData,
     def test_get_value_is_adjusted_if_needed(self):
         # on cls.days[1], the first 9 minutes of ILLIQUID_SPLIT_ASSET are
         # missing. let's get them.
-        day0_minutes = self.trading_calendar.minutes_for_session(
+        day0_minutes = self.trading_calendar.session_minutes(
             self.equity_minute_bar_days[0]
         )
-        day1_minutes = self.trading_calendar.minutes_for_session(
+        day1_minutes = self.trading_calendar.session_minutes(
             self.equity_minute_bar_days[1]
         )
 
@@ -559,10 +559,10 @@ class TestMinuteBarData(WithCreateBarData,
         # verify that can_trade returns False for the session before the
         # asset's first session
         session_before_asset1_start = \
-            self.trading_calendar.previous_session_label(
+            self.trading_calendar.previous_session(
                 self.ASSET1.start_date
             )
-        minutes_for_session = self.trading_calendar.minutes_for_session(
+        minutes_for_session = self.trading_calendar.session_minutes(
             session_before_asset1_start
         )
 
@@ -580,7 +580,7 @@ class TestMinuteBarData(WithCreateBarData,
             self.assertFalse(bar_data.can_trade(self.ASSET1))
 
         # after asset lifetime
-        session_after_asset1_end = self.trading_calendar.next_session_label(
+        session_after_asset1_end = self.trading_calendar.next_session(
             self.ASSET1.end_date
         )
         bts_after_asset1_end = session_after_asset1_end.replace(
@@ -588,7 +588,7 @@ class TestMinuteBarData(WithCreateBarData,
         ).tz_convert(None).tz_localize("US/Eastern")
 
         minutes_to_check = chain(
-            self.trading_calendar.minutes_for_session(
+            self.trading_calendar.session_minutes(
                 session_after_asset1_end
             ),
             [bts_after_asset1_end]
@@ -606,7 +606,7 @@ class TestMinuteBarData(WithCreateBarData,
         # outside the asset's calendar (assuming the asset is alive and
         # there is a last price), because the asset is alive on the
         # next market minute.
-        minutes = self.trading_calendar.minutes_for_sessions_in_range(
+        minutes = self.trading_calendar.sessions_minutes(
             self.ASSET1.start_date,
             self.ASSET1.end_date
         )
@@ -625,7 +625,7 @@ class TestMinuteBarData(WithCreateBarData,
         # for all minutes afterwards.
 
         minutes_in_session = \
-            self.trading_calendar.minutes_for_session(self.ASSET1.start_date)
+            self.trading_calendar.session_minutes(self.ASSET1.start_date)
 
         for minute in minutes_in_session[0:49]:
             bar_data = self.create_bardata(
@@ -995,7 +995,7 @@ class TestDailyBarData(WithCreateBarData,
         cls.ASSETS = [cls.ASSET1, cls.ASSET2]
 
     def get_last_minute_of_session(self, session_label):
-        return self.trading_calendar.open_and_close_for_session(
+        return self.trading_calendar.session_first_last_minute(
             session_label
         )[1]
 
@@ -1015,7 +1015,7 @@ class TestDailyBarData(WithCreateBarData,
     def test_day_before_assets_trading(self):
         # use the day before self.bcolz_daily_bar_days[0]
         minute = self.get_last_minute_of_session(
-            self.trading_calendar.previous_session_label(
+            self.trading_calendar.previous_session(
                 self.equity_daily_bar_days[0]
             )
         )

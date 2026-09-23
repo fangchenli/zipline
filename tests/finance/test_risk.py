@@ -44,7 +44,7 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
     def init_instance_fixtures(self):
         super().init_instance_fixtures()
         self.start_session = pd.Timestamp("2006-01-01", tz='UTC')
-        self.end_session = self.trading_calendar.minute_to_session_label(
+        self.end_session = self.trading_calendar.minute_to_session(
             pd.Timestamp("2006-12-31", tz='UTC'),
             direction="previous"
         )
@@ -185,11 +185,11 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
             )
 
     def test_benchmarkrange(self):
-        start_session = self.trading_calendar.minute_to_session_label(
+        start_session = self.trading_calendar.minute_to_session(
             pd.Timestamp("2008-01-01", tz='UTC')
         )
 
-        end_session = self.trading_calendar.minute_to_session_label(
+        end_session = self.trading_calendar.minute_to_session(
             pd.Timestamp("2010-01-01", tz='UTC'), direction="previous"
         )
 
@@ -211,7 +211,7 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
 
     def test_partial_month(self):
 
-        start_session = self.trading_calendar.minute_to_session_label(
+        start_session = self.trading_calendar.minute_to_session(
             pd.Timestamp("1993-02-01", tz='UTC')
         )
 

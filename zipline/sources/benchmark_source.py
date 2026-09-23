@@ -20,6 +20,7 @@ from zipline.errors import (
     BenchmarkAssetNotAvailableTooEarly,
     BenchmarkAssetNotAvailableTooLate
 )
+from zipline.utils.date_utils import to_session_labels
 
 
 class BenchmarkSource:
@@ -47,6 +48,10 @@ class BenchmarkSource:
                  data_portal
               )
         elif benchmark_returns is not None:
+            # Benchmark returns are labelled by session, which is tz-naive.
+            benchmark_returns = benchmark_returns.set_axis(
+                to_session_labels(benchmark_returns.index),
+            )
             self._daily_returns = daily_series = benchmark_returns.reindex(
                 sessions,
             ).fillna(0)
@@ -54,14 +59,17 @@ class BenchmarkSource:
             if self.emission_rate == "minute":
                 # we need to take the env's benchmark returns, which are daily,
                 # and resample them to minute
-                minutes = trading_calendar.minutes_for_sessions_in_range(
+                minutes = trading_calendar.sessions_minutes(
                     sessions[0],
                     sessions[-1]
                 )
 
-                minute_series = daily_series.reindex(
+                # Each minute takes the return of the session it belongs to.
+                minute_series = pd.Series(
+                    daily_series.reindex(
+                        trading_calendar.minutes_to_sessions(minutes),
+                    ).to_numpy(),
                     index=minutes,
-                    method="ffill"
                 )
 
                 self._precalculated_series = minute_series
@@ -182,13 +190,10 @@ class BenchmarkSource:
     def downsample_minute_return_series(cls,
                                         trading_calendar,
                                         minutely_returns):
-        sessions = trading_calendar.minute_index_to_session_labels(
+        sessions = trading_calendar.minutes_to_sessions(
             minutely_returns.index,
         )
-        closes = trading_calendar.session_closes_in_range(
-            sessions[0],
-            sessions[-1],
-        )
+        closes = trading_calendar.last_minutes.loc[sessions[0]:sessions[-1]]
         daily_returns = minutely_returns[closes].pct_change()
         daily_returns.index = closes.index
         return daily_returns.iloc[1:]
@@ -206,7 +211,7 @@ class BenchmarkSource:
         ----------
         asset:  Asset to use
 
-        trading_calendar: TradingCalendar
+        trading_calendar: ExchangeCalendar
 
         trading_days: pd.DateTimeIndex
 
@@ -234,7 +239,7 @@ class BenchmarkSource:
             the partial daily returns for each minute
         """
         if self.emission_rate == "minute":
-            minutes = trading_calendar.minutes_for_sessions_in_range(
+            minutes = trading_calendar.sessions_minutes(
                 self.sessions[0], self.sessions[-1]
             )
             benchmark_series = data_portal.get_history_window(

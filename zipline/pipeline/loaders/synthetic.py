@@ -22,6 +22,7 @@ from zipline.data.adjustments import (
     SQLiteAdjustmentWriter,
 )
 from zipline.data.bcolz_daily_bars import US_EQUITY_PRICING_BCOLZ_COLUMNS
+from zipline.utils.date_utils import to_session_label
 
 from zipline.utils.numpy_utils import (
     bool_dtype,
@@ -54,7 +55,7 @@ class PrecomputedLoader(PipelineLoader):
         coerce to a DatetimeIndex.
     sids : iterable[int-like]
         Column labels for input data.  Can be anything that pd.DataFrame will
-        coerce to an Int64Index.
+        coerce to an int64 Index.
 
     Notes
     -----
@@ -203,23 +204,15 @@ class SeededRandomLoader(PrecomputedLoader):
 
 OHLCV = ('open', 'high', 'low', 'close', 'volume')
 OHLC = ('open', 'high', 'low', 'close')
-PSEUDO_EPOCH = Timestamp('2000-01-01', tz='UTC')
+PSEUDO_EPOCH = Timestamp('2000-01-01')
 
 
 def asset_start(asset_info, asset):
-    ret = asset_info.loc[asset]['start_date']
-    if ret.tz is None:
-        ret = ret.tz_localize('UTC')
-    assert ret.tzname() == 'UTC', "Unexpected non-UTC timestamp"
-    return ret
+    return to_session_label(asset_info.loc[asset]['start_date'])
 
 
 def asset_end(asset_info, asset):
-    ret = asset_info.loc[asset]['end_date']
-    if ret.tz is None:
-        ret = ret.tz_localize('UTC')
-    assert ret.tzname() == 'UTC', "Unexpected non-UTC timestamp"
-    return ret
+    return to_session_label(asset_info.loc[asset]['end_date'])
 
 
 def make_bar_data(asset_info, calendar, holes=None):
@@ -323,7 +316,7 @@ def expected_bar_value(asset_id, date, colname):
     """
     from_asset = asset_id * 100000
     from_colname = OHLCV.index(colname) * 1000
-    from_date = (date - PSEUDO_EPOCH).days
+    from_date = (to_session_label(date) - PSEUDO_EPOCH).days
     return from_asset + from_colname + from_date
 
 

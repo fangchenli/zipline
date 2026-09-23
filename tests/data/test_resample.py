@@ -604,9 +604,9 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
         calendar = self.trading_calendar
         for sid in self.ASSET_FINDER_FUTURE_SIDS:
             case_frame = FUTURE_CASES[sid]
-            first = calendar.minute_to_session_label(
+            first = calendar.minute_to_session(
                 case_frame.index[0])
-            last = calendar.minute_to_session_label(
+            last = calendar.minute_to_session(
                 case_frame.index[-1])
             result = self.session_bar_reader.load_raw_arrays(
                 OHLCV, first, last, [sid])
@@ -659,7 +659,7 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
         )
 
         self.assertEqual(
-            self.trading_calendar.previous_session_label(self.END_DATE),
+            self.trading_calendar.previous_session(self.END_DATE),
             self.session_bar_reader.get_last_traded_dt(future, self.END_DATE)
         )
 
@@ -682,7 +682,7 @@ class TestReindexMinuteBars(WithBcolzEquityMinuteBarReader,
             self.START_DATE,
             self.END_DATE,
         )
-        m_open, m_close = self.trading_calendar.open_and_close_for_session(
+        m_open, m_close = self.trading_calendar.session_first_last_minute(
             self.START_DATE)
         outer_minutes = self.trading_calendar.minutes_in_range(m_open, m_close)
         result = reindex_reader.load_raw_arrays(

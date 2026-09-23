@@ -31,7 +31,7 @@ from pandas import (
     Timestamp,
 )
 from toolz import compose
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 from zipline.data.session_bars import CurrencyAwareSessionBarReader
 from zipline.data.bar_reader import (
@@ -125,9 +125,9 @@ class BcolzDailyBarWriter:
     calendar : zipline.utils.calendar.trading_calendar
         Calendar to use to compute asset calendar offsets.
     start_session: pd.Timestamp
-        Midnight UTC session label.
+        Midnight (tz-naive) session label.
     end_session: pd.Timestamp
-        Midnight UTC session label.
+        Midnight (tz-naive) session label.
 
     See Also
     --------
@@ -295,8 +295,8 @@ class BcolzDailyBarWriter:
             total_rows += nrows
 
             table_day_to_session = compose(
-                self._calendar.minute_to_session_label,
-                partial(Timestamp, unit='s', tz='UTC'),
+                partial(self._calendar.date_to_session, direction='next'),
+                partial(Timestamp, unit='s'),
             )
             asset_first_day = table_day_to_session(table['day'][0])
             asset_last_day = table_day_to_session(table['day'][-1])
@@ -314,16 +314,10 @@ class BcolzDailyBarWriter:
                     asset_last_day.date(),
                     len(asset_sessions),
                     asset_sessions.difference(
-                        to_datetime(
-                            np.array(table['day']),
-                            unit='s',
-                            utc=True,
-                        )
+                        to_datetime(np.array(table['day']), unit='s')
                     ).tolist(),
                     to_datetime(
-                        np.array(table['day']),
-                        unit='s',
-                        utc=True,
+                        np.array(table['day']), unit='s',
                     ).difference(asset_sessions).tolist(),
                 )
             )
@@ -464,14 +458,14 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
     def sessions(self):
         if 'calendar' in self._table.attrs.attrs:
             # backwards compatibility with old formats, will remove
-            return DatetimeIndex(self._table.attrs['calendar'], tz='UTC')
+            return DatetimeIndex(self._table.attrs['calendar'])
         else:
             cal = get_calendar(self._table.attrs['calendar_name'])
             start_session_ns = self._table.attrs['start_session_ns']
-            start_session = Timestamp(start_session_ns, tz='UTC')
+            start_session = Timestamp(start_session_ns)
 
             end_session_ns = self._table.attrs['end_session_ns']
-            end_session = Timestamp(end_session_ns, tz='UTC')
+            end_session = Timestamp(end_session_ns)
 
             sessions = cal.sessions_in_range(start_session, end_session)
 
@@ -504,7 +498,6 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
             return Timestamp(
                 self._table.attrs['first_trading_day'],
                 unit='s',
-                tz='UTC'
             )
         except KeyError:
             return None

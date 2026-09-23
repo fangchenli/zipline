@@ -20,7 +20,7 @@ import warnings
 
 from parameterized import parameterized
 import pandas as pd
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 import zipline.utils.events
 from zipline.utils.events import (
@@ -199,7 +199,7 @@ def minutes_for_days(cal, ordered_days=False):
         # optimization in AfterOpen and BeforeClose, we rely on the fact that
         # the clock only ever moves forward in a simulation. For those cases,
         # we guarantee that the list of trading days we test is ordered.
-        ordered_session_list = random.sample(list(cal.all_sessions), 500)
+        ordered_session_list = random.sample(list(cal.sessions), 500)
         ordered_session_list.sort()
 
         def session_picker(day):
@@ -208,9 +208,9 @@ def minutes_for_days(cal, ordered_days=False):
         # Other than AfterOpen and BeforeClose, we don't rely on the the nature
         # of the clock, so we don't care.
         def session_picker(day):
-            return random.choice(cal.all_sessions[:-1])
+            return random.choice(cal.sessions[:-1])
 
-    return [cal.minutes_for_session(session_picker(cnt))
+    return [cal.session_minutes(session_picker(cnt))
             for cnt in range(500)]
 
 
@@ -280,7 +280,7 @@ class StatelessRulesTests(RuleTestCase):
             pd.Timestamp('2014-10-31', tz='UTC'),
         )
 
-        cls.sept_week = cls.cal.minutes_for_sessions_in_range(
+        cls.sept_week = cls.cal.sessions_minutes(
             pd.Timestamp("2014-09-22", tz='UTC'),
             pd.Timestamp("2014-09-26", tz='UTC')
         )
@@ -338,11 +338,11 @@ class StatelessRulesTests(RuleTestCase):
         rule.cal = self.cal
 
         if self.HALF_SESSION:
-            for minute in self.cal.minutes_for_session(self.HALF_SESSION):
+            for minute in self.cal.session_minutes(self.HALF_SESSION):
                 self.assertFalse(rule.should_trigger(minute))
 
         if self.FULL_SESSION:
-            for minute in self.cal.minutes_for_session(self.FULL_SESSION):
+            for minute in self.cal.session_minutes(self.FULL_SESSION):
                 self.assertTrue(rule.should_trigger(minute))
 
     def test_NthTradingDayOfWeek_day_zero(self):
@@ -352,8 +352,8 @@ class StatelessRulesTests(RuleTestCase):
         """
         rule = NthTradingDayOfWeek(0)
         rule.cal = self.cal
-        first_open = self.cal.open_and_close_for_session(
-            self.cal.all_sessions[0]
+        first_open = self.cal.session_first_last_minute(
+            self.cal.sessions[0]
         )
         self.assertTrue(first_open)
 
@@ -362,10 +362,10 @@ class StatelessRulesTests(RuleTestCase):
             rule = NthTradingDayOfWeek(n)
             rule.cal = self.cal
             should_trigger = rule.should_trigger
-            prev_period = self.cal.minute_to_session_label(self.sept_week[0])
+            prev_period = self.cal.minute_to_session(self.sept_week[0])
             n_tdays = 0
             for minute in self.sept_week:
-                period = self.cal.minute_to_session_label(minute)
+                period = self.cal.minute_to_session(minute)
 
                 if prev_period < period:
                     n_tdays += 1
@@ -384,14 +384,14 @@ class StatelessRulesTests(RuleTestCase):
             for minute in self.sept_week:
                 if should_trigger(minute):
                     n_tdays = 0
-                    session = self.cal.minute_to_session_label(
+                    session = self.cal.minute_to_session(
                         minute,
                         direction="none"
                     )
-                    next_session = self.cal.next_session_label(session)
+                    next_session = self.cal.next_session(session)
                     while next_session.dayofweek > session.dayofweek:
                         session = next_session
-                        next_session = self.cal.next_session_label(session)
+                        next_session = self.cal.next_session(session)
                         n_tdays += 1
 
                     self.assertEqual(n_tdays, n)
@@ -404,7 +404,7 @@ class StatelessRulesTests(RuleTestCase):
             for sessions_list in (self.sept_sessions, self.oct_sessions):
                 for n_tdays, session in enumerate(sessions_list):
                     # just check the first 10 minutes of each session
-                    for m in self.cal.minutes_for_session(session)[0:10]:
+                    for m in self.cal.session_minutes(session)[0:10]:
                         if should_trigger(m):
                             self.assertEqual(n_tdays, n)
                         else:
@@ -417,7 +417,7 @@ class StatelessRulesTests(RuleTestCase):
             should_trigger = rule.should_trigger
             sessions = reversed(self.oct_sessions)
             for n_days_before, session in enumerate(sessions):
-                for m in self.cal.minutes_for_session(session)[0:10]:
+                for m in self.cal.session_minutes(session)[0:10]:
                     if should_trigger(m):
                         self.assertEqual(n_days_before, n)
                     else:

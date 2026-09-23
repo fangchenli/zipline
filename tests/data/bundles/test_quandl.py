@@ -70,7 +70,7 @@ class QuandlBundleTestCase(WithResponses,
 
         # the first index our written data will appear in the files on disk
         start_idx = (
-            self.calendar.all_sessions.get_loc(self.start_date, 'ffill') + 1
+            self.calendar.sessions.get_loc(self.start_date, 'ffill') + 1
         )
 
         # convert an index into the raw dataframe into an index into the
@@ -203,7 +203,7 @@ class QuandlBundleTestCase(WithResponses,
         sids = 0, 1, 2, 3
         assert_equal(set(bundle.asset_finder.sids), set(sids))
 
-        sessions = self.calendar.all_sessions
+        sessions = self.calendar.sessions
         actual = bundle.equity_daily_bar_reader.load_raw_arrays(
             self.columns,
             sessions[sessions.get_loc(self.start_date, 'bfill')],

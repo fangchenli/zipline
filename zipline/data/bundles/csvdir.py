@@ -7,7 +7,7 @@ import sys
 from logbook import Logger, StreamHandler
 from numpy import empty
 from pandas import DataFrame, read_csv, Index, Timedelta, NaT
-from trading_calendars import register_calendar_alias
+from zipline.utils.calendar_utils import register_calendar_alias
 
 from zipline.utils.cli import maybe_show_progress
 
@@ -183,7 +183,6 @@ def _pricing_iter(csvdir, symbols, metadata, divs_splits, show_progress):
 
             dfr = read_csv(os.path.join(csvdir, fname),
                            parse_dates=[0],
-                           infer_datetime_format=True,
                            index_col=0).sort_index()
 
             start_date = dfr.index[0]

@@ -545,7 +545,8 @@ class DataSetMeta(type):
         return '<DataSet: %r, domain=%s>' % (self.__name__, self.domain)
 
 
-class DataSet(metaclass=DataSetMeta):
+# DataSetMeta requires exactly one explicit base.
+class DataSet(object, metaclass=DataSetMeta):  # noqa: UP004
     """
     Base class for Pipeline datasets.
 

@@ -23,7 +23,7 @@ from math import sqrt
 from parameterized import parameterized
 import numpy as np
 import pandas as pd
-import pytz
+from zoneinfo import ZoneInfo
 
 from zipline.assets import Equity, Future
 from zipline.data.data_portal import DataPortal
@@ -70,7 +70,7 @@ class SlippageTestCase(WithCreateBarData,
     ASSET_FINDER_EQUITY_SIDS = (133,)
     ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp('2006-01-05', tz='utc')
     ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp('2006-01-07', tz='utc')
-    minutes = pd.DatetimeIndex(
+    minutes = pd.date_range(
         start=START_DATE,
         end=END_DATE - pd.Timedelta('1 minute'),
         freq='1min'
@@ -164,7 +164,7 @@ class SlippageTestCase(WithCreateBarData,
         # long, does not trade
         open_orders = [
             Order(**{
-                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=ZoneInfo("UTC")),
                 'amount': 100,
                 'filled': 0,
                 'asset': self.ASSET133,
@@ -181,12 +181,12 @@ class SlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 0)
+        self.assertEqual(len(orders_txns), 0)
 
         # long, does not trade - impacted price worse than limit price
         open_orders = [
             Order(**{
-                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=ZoneInfo("UTC")),
                 'amount': 100,
                 'filled': 0,
                 'asset': self.ASSET133,
@@ -203,12 +203,12 @@ class SlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 0)
+        self.assertEqual(len(orders_txns), 0)
 
         # long, does trade
         open_orders = [
             Order(**{
-                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=ZoneInfo("UTC")),
                 'amount': 100,
                 'filled': 0,
                 'asset': self.ASSET133,
@@ -225,13 +225,13 @@ class SlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 1)
+        self.assertEqual(len(orders_txns), 1)
         txn = orders_txns[0][1]
 
         expected_txn = {
             'price': float(3.50021875),
             'dt': datetime.datetime(
-                2006, 1, 5, 14, 34, tzinfo=pytz.utc),
+                2006, 1, 5, 14, 34, tzinfo=ZoneInfo("UTC")),
             # we ordered 100 shares, but default volume slippage only allows
             # for 2.5% of the volume.  2.5% * 2000 = 50 shares
             'amount': int(50),
@@ -242,12 +242,12 @@ class SlippageTestCase(WithCreateBarData,
         self.assertIsNotNone(txn)
 
         for key, value in expected_txn.items():
-            self.assertEquals(value, txn[key])
+            self.assertEqual(value, txn[key])
 
         # short, does not trade
         open_orders = [
             Order(**{
-                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=ZoneInfo("UTC")),
                 'amount': -100,
                 'filled': 0,
                 'asset': self.ASSET133,
@@ -264,12 +264,12 @@ class SlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 0)
+        self.assertEqual(len(orders_txns), 0)
 
         # short, does not trade - impacted price worse than limit price
         open_orders = [
             Order(**{
-                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=ZoneInfo("UTC")),
                 'amount': -100,
                 'filled': 0,
                 'asset': self.ASSET133,
@@ -286,12 +286,12 @@ class SlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 0)
+        self.assertEqual(len(orders_txns), 0)
 
         # short, does trade
         open_orders = [
             Order(**{
-                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=ZoneInfo("UTC")),
                 'amount': -100,
                 'filled': 0,
                 'asset': self.ASSET133,
@@ -308,13 +308,13 @@ class SlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 1)
+        self.assertEqual(len(orders_txns), 1)
         _, txn = orders_txns[0]
 
         expected_txn = {
             'price': float(3.49978125),
             'dt': datetime.datetime(
-                2006, 1, 5, 14, 32, tzinfo=pytz.utc),
+                2006, 1, 5, 14, 32, tzinfo=ZoneInfo("UTC")),
             'amount': int(-50),
             'asset': self.ASSET133,
         }
@@ -322,7 +322,7 @@ class SlippageTestCase(WithCreateBarData,
         self.assertIsNotNone(txn)
 
         for key, value in expected_txn.items():
-            self.assertEquals(value, txn[key])
+            self.assertEqual(value, txn[key])
 
     def test_orders_stop_limit(self):
         slippage_model = VolumeShareSlippage()
@@ -331,7 +331,7 @@ class SlippageTestCase(WithCreateBarData,
         # long, does not trade
         open_orders = [
             Order(**{
-                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=ZoneInfo("UTC")),
                 'amount': 100,
                 'filled': 0,
                 'asset': self.ASSET133,
@@ -349,7 +349,7 @@ class SlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 0)
+        self.assertEqual(len(orders_txns), 0)
 
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.minutes[3],
@@ -361,12 +361,12 @@ class SlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 0)
+        self.assertEqual(len(orders_txns), 0)
 
         # long, does not trade - impacted price worse than limit price
         open_orders = [
             Order(**{
-                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=ZoneInfo("UTC")),
                 'amount': 100,
                 'filled': 0,
                 'asset': self.ASSET133,
@@ -384,7 +384,7 @@ class SlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 0)
+        self.assertEqual(len(orders_txns), 0)
 
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.minutes[3],
@@ -396,12 +396,12 @@ class SlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 0)
+        self.assertEqual(len(orders_txns), 0)
 
         # long, does trade
         open_orders = [
             Order(**{
-                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=ZoneInfo("UTC")),
                 'amount': 100,
                 'filled': 0,
                 'asset': self.ASSET133,
@@ -419,7 +419,7 @@ class SlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 0)
+        self.assertEqual(len(orders_txns), 0)
 
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.minutes[3],
@@ -431,25 +431,25 @@ class SlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 1)
+        self.assertEqual(len(orders_txns), 1)
         _, txn = orders_txns[0]
 
         expected_txn = {
             'price': float(3.50021875),
             'dt': datetime.datetime(
-                2006, 1, 5, 14, 34, tzinfo=pytz.utc),
+                2006, 1, 5, 14, 34, tzinfo=ZoneInfo("UTC")),
             'amount': int(50),
             'asset': self.ASSET133
         }
 
         for key, value in expected_txn.items():
-            self.assertEquals(value, txn[key])
+            self.assertEqual(value, txn[key])
 
         # short, does not trade
 
         open_orders = [
             Order(**{
-                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=ZoneInfo("UTC")),
                 'amount': -100,
                 'filled': 0,
                 'asset': self.ASSET133,
@@ -467,7 +467,7 @@ class SlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 0)
+        self.assertEqual(len(orders_txns), 0)
 
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.minutes[1],
@@ -479,12 +479,12 @@ class SlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 0)
+        self.assertEqual(len(orders_txns), 0)
 
         # short, does not trade - impacted price worse than limit price
         open_orders = [
             Order(**{
-                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=ZoneInfo("UTC")),
                 'amount': -100,
                 'filled': 0,
                 'asset': self.ASSET133,
@@ -502,7 +502,7 @@ class SlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 0)
+        self.assertEqual(len(orders_txns), 0)
 
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.minutes[1],
@@ -514,12 +514,12 @@ class SlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 0)
+        self.assertEqual(len(orders_txns), 0)
 
         # short, does trade
         open_orders = [
             Order(**{
-                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=ZoneInfo("UTC")),
                 'amount': -100,
                 'filled': 0,
                 'asset': self.ASSET133,
@@ -537,7 +537,7 @@ class SlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 0)
+        self.assertEqual(len(orders_txns), 0)
 
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.minutes[1],
@@ -549,18 +549,18 @@ class SlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 1)
+        self.assertEqual(len(orders_txns), 1)
         _, txn = orders_txns[0]
 
         expected_txn = {
             'price': float(3.49978125),
-            'dt': datetime.datetime(2006, 1, 5, 14, 32, tzinfo=pytz.utc),
+            'dt': datetime.datetime(2006, 1, 5, 14, 32, tzinfo=ZoneInfo("UTC")),
             'amount': int(-50),
             'asset': self.ASSET133,
         }
 
         for key, value in expected_txn.items():
-            self.assertEquals(value, txn[key])
+            self.assertEqual(value, txn[key])
 
 
 class VolumeShareSlippageTestCase(WithCreateBarData,
@@ -577,7 +577,7 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
     ASSET_FINDER_EQUITY_SIDS = (133,)
     ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp('2006-01-05', tz='utc')
     ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp('2006-01-07', tz='utc')
-    minutes = pd.DatetimeIndex(
+    minutes = pd.date_range(
         start=START_DATE,
         end=END_DATE - pd.Timedelta('1 minute'),
         freq='1min'
@@ -637,7 +637,7 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
 
         open_orders = [
             Order(
-                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=ZoneInfo("UTC")),
                 amount=100,
                 filled=0,
                 asset=self.ASSET133
@@ -654,12 +654,12 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 1)
+        self.assertEqual(len(orders_txns), 1)
         _, txn = orders_txns[0]
 
         expected_txn = {
             'price': float(3.0001875),
-            'dt': datetime.datetime(2006, 1, 5, 14, 31, tzinfo=pytz.utc),
+            'dt': datetime.datetime(2006, 1, 5, 14, 31, tzinfo=ZoneInfo("UTC")),
             'amount': int(5),
             'asset': self.ASSET133,
             'type': DATASOURCE_TYPE.TRANSACTION,
@@ -670,11 +670,11 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
 
         # TODO: Make expected_txn an Transaction object and ensure there
         # is a __eq__ for that class.
-        self.assertEquals(expected_txn, txn.__dict__)
+        self.assertEqual(expected_txn, txn.__dict__)
 
         open_orders = [
             Order(
-                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=ZoneInfo("UTC")),
                 amount=100,
                 filled=0,
                 asset=self.ASSET133
@@ -693,14 +693,14 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 0)
+        self.assertEqual(len(orders_txns), 0)
 
     def test_volume_share_slippage_with_future(self):
         slippage_model = VolumeShareSlippage(volume_limit=1, price_impact=0.3)
 
         open_orders = [
             Order(
-                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=ZoneInfo("UTC")),
                 amount=10,
                 filled=0,
                 asset=self.ASSET1000,
@@ -715,7 +715,7 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
             slippage_model.simulate(bar_data, self.ASSET1000, open_orders)
         )
 
-        self.assertEquals(len(orders_txns), 1)
+        self.assertEqual(len(orders_txns), 1)
         _, txn = orders_txns[0]
 
         # We expect to fill the order for all 10 contracts. The volume for the
@@ -726,7 +726,7 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
         #     5.0 + (5.0 * (0.1 ** 2) * 0.3) = 5.015
         expected_txn = {
             'price': 5.015,
-            'dt': datetime.datetime(2006, 1, 5, 14, 31, tzinfo=pytz.utc),
+            'dt': datetime.datetime(2006, 1, 5, 14, 31, tzinfo=ZoneInfo("UTC")),
             'amount': 10,
             'asset': self.ASSET1000,
             'type': DATASOURCE_TYPE.TRANSACTION,
@@ -734,7 +734,7 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
         }
 
         self.assertIsNotNone(txn)
-        self.assertEquals(expected_txn, txn.__dict__)
+        self.assertEqual(expected_txn, txn.__dict__)
 
 
 class VolatilityVolumeShareTestCase(WithCreateBarData,
@@ -893,7 +893,7 @@ class MarketImpactTestCase(WithCreateBarData, ZiplineTestCase):
     def make_equity_minute_bar_data(cls):
         trading_calendar = cls.trading_calendars[Equity]
         return create_minute_bar_data(
-            trading_calendar.minutes_for_sessions_in_range(
+            trading_calendar.sessions_minutes(
                 cls.equity_minute_bar_days[0],
                 cls.equity_minute_bar_days[-1],
             ),
@@ -902,7 +902,7 @@ class MarketImpactTestCase(WithCreateBarData, ZiplineTestCase):
 
     def test_window_data(self):
         session = pd.Timestamp('2006-03-01')
-        minute = self.trading_calendar.minutes_for_session(session)[1]
+        minute = self.trading_calendar.session_minutes(session)[1]
         data = self.create_bardata(simulation_dt_func=lambda: minute)
         asset = self.asset_finder.retrieve_asset(1)
 
@@ -951,7 +951,7 @@ class OrdersStopTestCase(WithSimParams,
     SIM_PARAMS_DATA_FREQUENCY = 'minute'
     SIM_PARAMS_EMISSION_RATE = 'daily'
     ASSET_FINDER_EQUITY_SIDS = (133,)
-    minutes = pd.DatetimeIndex(
+    minutes = pd.date_range(
         start=START_DATE,
         end=END_DATE - pd.Timedelta('1 minute'),
         freq='1min'
@@ -1141,7 +1141,7 @@ class OrdersStopTestCase(WithSimParams,
                 self.assertIsNotNone(txn)
 
                 for key, value in expected['transaction'].items():
-                    self.assertEquals(value, txn[key])
+                    self.assertEqual(value, txn[key])
 
 
 class FixedBasisPointsSlippageTestCase(WithCreateBarData,
@@ -1203,7 +1203,7 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
 
         open_orders = [
             Order(
-                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=ZoneInfo("UTC")),
                 amount=order_amount,
                 filled=0,
                 asset=self.ASSET133
@@ -1220,12 +1220,12 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 1)
+        self.assertEqual(len(orders_txns), 1)
         _, txn = orders_txns[0]
 
         expected_txn = {
             'price': expected_price,
-            'dt': datetime.datetime(2006, 1, 5, 14, 31, tzinfo=pytz.utc),
+            'dt': datetime.datetime(2006, 1, 5, 14, 31, tzinfo=ZoneInfo("UTC")),
             'amount': expected_amount,
             'asset': self.ASSET133,
             'type': DATASOURCE_TYPE.TRANSACTION,
@@ -1233,7 +1233,7 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         }
 
         self.assertIsNotNone(txn)
-        self.assertEquals(expected_txn, txn.__dict__)
+        self.assertEqual(expected_txn, txn.__dict__)
 
     @parameterized.expand([
         # Volume limit for the bar is 20. We've ordered 10 total shares.
@@ -1254,7 +1254,7 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
 
         open_orders = [
             Order(
-                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=ZoneInfo("UTC")),
                 amount=order_amount,
                 filled=0,
                 asset=self.ASSET133
@@ -1272,12 +1272,12 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
             open_orders,
         ))
 
-        self.assertEquals(len(orders_txns), 2)
+        self.assertEqual(len(orders_txns), 2)
 
         _, first_txn = orders_txns[0]
         _, second_txn = orders_txns[1]
-        self.assertEquals(first_txn['amount'], first_order_fill_amount)
-        self.assertEquals(second_txn['amount'], second_order_fill_amount)
+        self.assertEqual(first_txn['amount'], first_order_fill_amount)
+        self.assertEqual(second_txn['amount'], second_order_fill_amount)
 
     def test_broken_constructions(self):
         with self.assertRaises(ValueError) as e:
@@ -1307,7 +1307,7 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         # will order zero shares so there should not be a transaction for it.
         open_orders = [
             Order(
-                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=ZoneInfo("UTC")),
                 amount=20,
                 filled=0,
                 asset=self.ASSET133
@@ -1329,7 +1329,7 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         # ordering zero shares should result in zero transactions
         open_orders = [
             Order(
-                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=ZoneInfo("UTC")),
                 amount=0,
                 filled=0,
                 asset=self.ASSET133

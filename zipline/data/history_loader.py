@@ -92,12 +92,16 @@ class HistoryCompatibleUSEquityAdjustmentReader:
         sid = int(asset)
         start = dts[0].normalize()
         end = dts[-1].normalize()
+        # Adjustment dates are tz-naive session labels. When ``dts`` are
+        # (UTC) minutes, compare against midnight UTC of the session so that
+        # the adjustment applies from the session's first minute.
+        tz = dts.tz
         adjs = {}
         if field != 'volume':
             mergers = self._adjustments_reader.get_adjustments_for_sid(
                 'mergers', sid)
             for m in mergers:
-                dt = m[0]
+                dt = m[0] if tz is None else m[0].tz_localize(tz)
                 if start < dt <= end:
                     end_loc = dts.searchsorted(dt)
                     adj_loc = end_loc
@@ -113,7 +117,7 @@ class HistoryCompatibleUSEquityAdjustmentReader:
             divs = self._adjustments_reader.get_adjustments_for_sid(
                 'dividends', sid)
             for d in divs:
-                dt = d[0]
+                dt = d[0] if tz is None else d[0].tz_localize(tz)
                 if start < dt <= end:
                     end_loc = dts.searchsorted(dt)
                     adj_loc = end_loc
@@ -129,7 +133,7 @@ class HistoryCompatibleUSEquityAdjustmentReader:
         splits = self._adjustments_reader.get_adjustments_for_sid(
             'splits', sid)
         for s in splits:
-            dt = s[0]
+            dt = s[0] if tz is None else s[0].tz_localize(tz)
             if start < dt <= end:
                 if field == 'volume':
                     ratio = 1.0 / s[1]
@@ -220,10 +224,10 @@ class ContinuousFutureAdjustmentReader:
         for front, back in sliding_window(2, rolls):
             front_sid, roll_dt = front
             back_sid = back[0]
-            dt = tc.previous_session_label(roll_dt)
+            dt = tc.previous_session(roll_dt)
             if self._frequency == 'minute':
-                dt = tc.open_and_close_for_session(dt)[1]
-                roll_dt = tc.open_and_close_for_session(roll_dt)[0]
+                dt = tc.session_first_last_minute(dt)[1]
+                roll_dt = tc.session_first_last_minute(roll_dt)[0]
             partitions.append((front_sid,
                                back_sid,
                                dt,
@@ -297,7 +301,7 @@ class HistoryLoader(ABC):
 
     Parameters
     ----------
-    trading_calendar: TradingCalendar
+    trading_calendar: ExchangeCalendar
         Contains the grouping logic needed to assign minutes to periods.
     reader : DailyBarReader, MinuteBarReader
         Reader for pricing bars.
@@ -580,8 +584,11 @@ class MinuteHistoryLoader(HistoryLoader):
 
     @lazyval
     def _calendar(self):
-        mm = self.trading_calendar.all_minutes
-        start = mm.searchsorted(self._reader.first_trading_day)
+        mm = self.trading_calendar.minutes
+        first_trading_day = self._reader.first_trading_day
+        if first_trading_day.tzinfo is None:
+            first_trading_day = first_trading_day.tz_localize('UTC')
+        start = mm.searchsorted(first_trading_day)
         end = mm.searchsorted(self._reader.last_available_dt, side='right')
         return mm[start:end]
 

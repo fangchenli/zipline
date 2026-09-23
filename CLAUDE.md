@@ -17,8 +17,6 @@ uv run python -c "import zipline"
 
 The project is installed in editable mode, but the Cython extensions are compiled at install time. `[tool.uv].cache-keys` in `pyproject.toml` makes `uv sync`/`uv run` rebuild them automatically when any `.pyx`/`.pxd`/`.pxi` changes. New extensions must be added to `ext_modules` in `setup.py`, which only holds the extension list. All metadata is in `pyproject.toml`, and the version comes from git tags via setuptools-scm, which writes the ignored `zipline/_version.py`.
 
-The optional `talib` extra needs the TA-Lib C library installed on the system first (`brew install ta-lib`).
-
 Lint, types and tests:
 
 ```bash

@@ -87,7 +87,7 @@ _asset_str_fields = frozenset({
     'exchange',
 })
 
-# A set of fields that need to be converted to timestamps in UTC
+# A set of fields that need to be converted to (tz-naive) date timestamps
 _asset_timestamp_fields = frozenset({
     'start_date',
     'end_date',
@@ -98,6 +98,16 @@ _asset_timestamp_fields = frozenset({
 })
 
 OwnershipPeriod = namedtuple('OwnershipPeriod', 'start end sid value')
+
+
+def _as_naive_date(dt):
+    """Coerce a lookup date to the tz-naive representation used for asset
+    ownership periods. tz-aware inputs are interpreted in UTC.
+    """
+    dt = pd.Timestamp(dt)
+    if dt.tz is not None:
+        dt = dt.tz_convert('UTC').tz_localize(None)
+    return dt
 
 
 def merge_ownership_periods(mappings):
@@ -125,7 +135,7 @@ def merge_ownership_periods(mappings):
                     # concat with a fake ownership object to make the last
                     # end date be max timestamp
                     [OwnershipPeriod(
-                        pd.Timestamp.max.tz_localize('utc'),
+                        pd.Timestamp.max,
                         None,
                         None,
                         None,
@@ -145,8 +155,8 @@ def _build_ownership_map_from_rows(rows, key_from_row, value_from_row):
             [],
         ).append(
             OwnershipPeriod(
-                pd.Timestamp(row.start_date, unit='ns', tz='utc'),
-                pd.Timestamp(row.end_date, unit='ns', tz='utc'),
+                pd.Timestamp(row.start_date, unit='ns'),
+                pd.Timestamp(row.end_date, unit='ns'),
                 row.sid,
                 value_from_row(row),
             ),
@@ -217,7 +227,7 @@ def _convert_asset_timestamp_fields(dict_):
     Takes in a dict of Asset init args and converts dates to pd.Timestamps
     """
     for key in _asset_timestamp_fields & dict_.keys():
-        value = pd.Timestamp(dict_[key], tz='UTC')
+        value = _as_naive_date(dict_[key])
         dict_[key] = None if isnull(value) else value
     return dict_
 
@@ -838,6 +848,7 @@ class AssetFinder:
 
         options = []
         country_codes = []
+        as_of_date = _as_naive_date(as_of_date)
         for start, end, sid, _ in owners:
             if start <= as_of_date < end:
                 # find the equity that owned it on the given asof date
@@ -902,6 +913,7 @@ class AssetFinder:
             )
 
         options = {}
+        as_of_date = _as_naive_date(as_of_date)
         for start, end, sid, sym in owners:
             if start <= as_of_date < end:
                 # see which fuzzy symbols were owned on the asof date.
@@ -1133,6 +1145,7 @@ class AssetFinder:
             # without the date
             return self.retrieve_asset(owners[0].sid)
 
+        as_of_date = _as_naive_date(as_of_date)
         for start, end, sid, _ in owners:
             if start <= as_of_date < end:
                 # find the equity that owned it on the given asof date
@@ -1187,6 +1200,7 @@ class AssetFinder:
             # without the date
             return periods[0].value
 
+        as_of_date = _as_naive_date(as_of_date)
         for start, end, _, value in periods:
             if start <= as_of_date < end:
                 return value
@@ -1463,7 +1477,7 @@ class AssetFinder:
         Returns
         -------
         lifetimes : pd.DataFrame
-            A frame of dtype bool with `dates` as index and an Int64Index of
+            A frame of dtype bool with `dates` as index and an int64 Index of
             assets as columns.  The value at `lifetimes.loc[date, asset]` will
             be True iff `asset` existed on `date`.  If `include_start_date` is
             False, then lifetimes.loc[date, asset] will be false when date ==
@@ -1489,7 +1503,7 @@ class AssetFinder:
                 self._compute_asset_lifetimes(country_codes)
             )
 
-        raw_dates = as_column(dates.asi8)
+        raw_dates = as_column(pd.DatetimeIndex(dates).as_unit('ns').asi8)
         if include_start_date:
             mask = lifetimes.start <= raw_dates
         else:

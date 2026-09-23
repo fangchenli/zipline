@@ -34,7 +34,7 @@ from functools import partial
 from numpy import array, empty, iinfo
 from numpy cimport int64_t
 from pandas import Timestamp
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 import warnings
 
 
@@ -249,7 +249,7 @@ cdef class ContinuousFuture:
         Parameters
         ----------
         session_label: pd.Timestamp
-            The desired session label to check. (midnight UTC)
+            The desired session label to check (tz-naive midnight).
 
         Returns
         -------
@@ -423,8 +423,8 @@ cdef class OrderedContracts(object):
 
     property start_date:
         def __get__(self):
-            return Timestamp(self._start_date, tz='UTC')
+            return Timestamp(self._start_date)
 
     property end_date:
         def __get__(self):
-            return Timestamp(self._end_date, tz='UTC')
+            return Timestamp(self._end_date)

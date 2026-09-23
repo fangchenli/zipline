@@ -2,11 +2,9 @@ from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import (
     assert_equal,
     assert_is,
-    assert_is_instance,
     assert_is_subclass,
-    assert_true,
 )
-from zipline.utils.metautils import compose_types, with_metaclasses
+from zipline.utils.metautils import compose_types
 
 
 class C:
@@ -54,38 +52,3 @@ class ComposeTypesTestCase(ZiplineTestCase):
 
         assert_equal(composed().delegate(), ('C.delegate', 'D.delegate'))
 
-
-class M(type):
-    def __new__(mcls, name, bases, dict_):
-        dict_['M'] = True
-        return super().__new__(mcls, name, bases, dict_)
-
-
-class N(type):
-    def __new__(mcls, name, bases, dict_):
-        dict_['N'] = True
-        return super().__new__(mcls, name, bases, dict_)
-
-
-class WithMetaclassesTestCase(ZiplineTestCase):
-    def test_with_metaclasses_no_subclasses(self):
-        class E(with_metaclasses((M, N))):
-            pass
-
-        assert_true(E.M)
-        assert_true(E.N)
-
-        assert_is_instance(E, M)
-        assert_is_instance(E, N)
-
-    def test_with_metaclasses_with_subclasses(self):
-        class E(with_metaclasses((M, N), C, D)):
-            pass
-
-        assert_true(E.M)
-        assert_true(E.N)
-
-        assert_is_instance(E, M)
-        assert_is_instance(E, N)
-        assert_is_subclass(E, C)
-        assert_is_subclass(E, D)

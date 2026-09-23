@@ -14,7 +14,8 @@ except ImportError:
 import logbook
 import pandas as pd
 from toolz import concatv
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
+from zipline.utils.date_utils import to_session_label
 
 from zipline.data import bundles
 from zipline.data.benchmarks import get_benchmark_returns_from_file
@@ -93,8 +94,12 @@ def _run(handle_data,
     if trading_calendar is None:
         trading_calendar = get_calendar('XNYS')
 
+    # Sessions are tz-naive.
+    start = to_session_label(start)
+    end = to_session_label(end)
+
     # date parameter validation
-    if trading_calendar.session_distance(start, end) < 1:
+    if trading_calendar.sessions_distance(start, end) < 1:
         raise _RunAlgoError(
             'There are no trading days between {} and {}'.format(
                 start.date(),
@@ -344,7 +349,7 @@ def run_algorithm(start,
     bundle_timestamp : datetime, optional
         The datetime to lookup the bundle data for. This defaults to the
         current time.
-    trading_calendar : TradingCalendar, optional
+    trading_calendar : ExchangeCalendar, optional
         The trading calendar to use for your backtest.
     metrics_set : iterable[Metric] or str, optional
         The set of metrics to compute in the simulation. If a string is passed,
@@ -544,6 +549,9 @@ class BenchmarkSpec:
     @staticmethod
     def _zero_benchmark_returns(start_date, end_date):
         return pd.Series(
-            index=pd.date_range(start_date, end_date, tz='utc'),
+            index=pd.date_range(
+                to_session_label(start_date),
+                to_session_label(end_date),
+            ),
             data=0.0,
         )

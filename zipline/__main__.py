@@ -7,7 +7,7 @@ import pandas as pd
 
 import zipline
 from zipline.data import bundles as bundles_module
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 from functools import wraps
 from zipline.utils.cli import Date, Timestamp
 from zipline.utils.run_algo import _run, BenchmarkSpec, load_extensions
@@ -196,13 +196,13 @@ DEFAULT_BUNDLE = 'quantopian-quandl'
 @click.option(
     '-s',
     '--start',
-    type=Date(tz='utc', as_timestamp=True),
+    type=Date(as_timestamp=True),
     help='The start date of the simulation.',
 )
 @click.option(
     '-e',
     '--end',
-    type=Date(tz='utc', as_timestamp=True),
+    type=Date(as_timestamp=True),
     help='The end date of the simulation.',
 )
 @click.option(

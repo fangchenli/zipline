@@ -10,7 +10,7 @@ from click import progressbar
 from logbook import Logger
 import pandas as pd
 import requests
-from trading_calendars import register_calendar_alias
+from zipline.utils.calendar_utils import register_calendar_alias
 
 from . import core as bundles
 import numpy as np
@@ -68,7 +68,6 @@ def load_data_table(file,
             'ex-dividend': 'ex_dividend',
         },
         inplace=True,
-        copy=False,
     )
     return data_table
 
@@ -143,7 +142,6 @@ def parse_splits(data, show_progress):
             'date': 'effective_date',
         },
         inplace=True,
-        copy=False,
     )
     return data
 
@@ -159,7 +157,6 @@ def parse_dividends(data, show_progress):
             'date': 'ex_date',
         },
         inplace=True,
-        copy=False,
     )
     return data
 
@@ -172,7 +169,7 @@ def parse_pricing_and_vol(data,
             symbol,
             level=1
         ).reindex(
-            sessions.tz_localize(None)
+            sessions
         ).fillna(0.0)
         yield asset_id, asset_data
 

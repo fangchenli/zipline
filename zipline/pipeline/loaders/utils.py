@@ -5,6 +5,19 @@ from zipline.pipeline.common import TS_FIELD_NAME, SID_FIELD_NAME
 from zipline.utils.numpy_utils import categorical_dtype
 
 
+def naive_utc(dts):
+    """Coerce datetimes to a tz-naive ``DatetimeIndex`` of UTC values.
+
+    Event timestamps are stored as tz-naive UTC ``datetime64`` values, while
+    data query cutoff times are tz-aware UTC. Use this before comparing the
+    two, since pandas refuses to compare naive and aware datetimes.
+    """
+    dts = pd.DatetimeIndex(dts)
+    if dts.tz is not None:
+        dts = dts.tz_convert('UTC').tz_localize(None)
+    return dts
+
+
 def is_sorted_ascending(a):
     """Check if a numpy array is sorted."""
     return (np.fmax.accumulate(a) <= a).all()
@@ -63,8 +76,11 @@ def next_event_indexer(all_dates,
     sid_ixs = all_sids.searchsorted(event_sids)
     # side='right' here ensures that we include the event date itself
     # if it's in all_dates.
-    dt_ixs = all_dates.searchsorted(event_dates, side='right')
-    ts_ixs = data_query_cutoff.searchsorted(event_timestamps, side='right')
+    dt_ixs = all_dates.searchsorted(naive_utc(event_dates), side='right')
+    ts_ixs = naive_utc(data_query_cutoff).searchsorted(
+        naive_utc(event_timestamps),
+        side='right',
+    )
 
     # Walk backward through the events, writing the index of the event into
     # slots ranging from the event's timestamp to its asof.  This depends for
@@ -120,9 +136,15 @@ def previous_event_indexer(data_query_cutoff_times,
         dtype=np.int64,
     )
 
-    eff_dts = np.maximum(event_dates, event_timestamps)
+    eff_dts = np.maximum(
+        naive_utc(event_dates).values,
+        naive_utc(event_timestamps).values,
+    )
     sid_ixs = all_sids.searchsorted(event_sids)
-    dt_ixs = data_query_cutoff_times.searchsorted(eff_dts, side='right')
+    dt_ixs = naive_utc(data_query_cutoff_times).searchsorted(
+        eff_dts,
+        side='right',
+    )
 
     # Walk backwards through the events, writing the index of the event into
     # slots ranging from max(event_date, event_timestamp) to the start of the
@@ -157,7 +179,7 @@ def last_in_date_group(df,
         the correct last item is chosen from each group.
     data_query_cutoff_times : pd.DatetimeIndex
         The dates to use for grouping and reindexing.
-    assets : pd.Int64Index
+    assets : pd.Index[int64]
         The assets that should be included in the column multiindex.
     reindex : bool
         Whether or not the DataFrame should be reindexed against the date
@@ -176,9 +198,11 @@ def last_in_date_group(df,
         levels of a multiindex of columns.
 
     """
-    idx = [data_query_cutoff_times[data_query_cutoff_times.searchsorted(
-        df[TS_FIELD_NAME].values,
-    )]]
+    idx = [data_query_cutoff_times[
+        naive_utc(data_query_cutoff_times).searchsorted(
+            naive_utc(df[TS_FIELD_NAME]),
+        )
+    ]]
     if have_sids:
         idx += [SID_FIELD_NAME]
     if extra_groupers is None:

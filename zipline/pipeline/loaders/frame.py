@@ -11,10 +11,10 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Index,
-    Int64Index,
 )
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.adjustment import make_adjustment_from_labels
+from zipline.utils.date_utils import to_session_labels
 from zipline.utils.numpy_utils import as_column
 from .base import PipelineLoader
 
@@ -41,7 +41,7 @@ class DataFrameLoader(PipelineLoader):
         The column whose data is loadable by this loader.
     baseline : pandas.DataFrame
         A DataFrame with index of type DatetimeIndex and columns of type
-        Int64Index.  Dates should be labelled with the first date on which a
+        int64 Index.  Dates should be labelled with the first date on which a
         value would be **available** to an algorithm.  This means that OHLCV
         data should generally be shifted back by a trading day before being
         supplied to this class.
@@ -61,7 +61,8 @@ class DataFrameLoader(PipelineLoader):
     def __init__(self, column, baseline, adjustments=None):
         self.column = column
         self.baseline = baseline.values.astype(self.column.dtype)
-        self.dates = baseline.index
+        # Row labels are sessions, which are tz-naive.
+        self.dates = to_session_labels(baseline.index)
         self.assets = baseline.columns
 
         if adjustments is None:
@@ -72,12 +73,16 @@ class DataFrameLoader(PipelineLoader):
         else:
             # Ensure that columns are in the correct order.
             adjustments = adjustments.reindex(ADJUSTMENT_COLUMNS, axis=1)
+            for date_col in ('start_date', 'end_date', 'apply_date'):
+                adjustments[date_col] = to_session_labels(
+                    adjustments[date_col],
+                ).values
             adjustments.sort_values(['apply_date', 'sid'], inplace=True)
 
         self.adjustments = adjustments
         self.adjustment_apply_dates = DatetimeIndex(adjustments.apply_date)
         self.adjustment_end_dates = DatetimeIndex(adjustments.end_date)
-        self.adjustment_sids = Int64Index(adjustments.sid)
+        self.adjustment_sids = Index(adjustments.sid, dtype='int64')
 
     def format_adjustments(self, dates, assets):
         """
@@ -134,7 +139,9 @@ class DataFrameLoader(PipelineLoader):
             apply_date, sid, value, kind, start_date, end_date = row
             if apply_date != previous_apply_date:
                 # Get the next apply date if no exact match.
-                row_loc = dates.get_loc(apply_date, method='bfill')
+                row_loc = dates.get_indexer([apply_date], method='bfill')[0]
+                if row_loc == -1:
+                    raise KeyError(apply_date)
                 current_date_adjustments = out[row_loc] = []
                 previous_apply_date = apply_date
 

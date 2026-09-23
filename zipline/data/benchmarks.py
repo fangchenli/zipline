@@ -39,7 +39,11 @@ def get_benchmark_returns_from_file(filelike):
         filelike,
         index_col=['date'],
         parse_dates=['date'],
-    ).tz_localize('utc')
+    )
+    # Returns are labelled by (tz-naive) session. Older files carry a UTC
+    # offset on each date; drop it.
+    if df.index.tz is not None:
+        df.index = df.index.tz_convert(None)
 
     if 'return' not in df.columns:
         raise ValueError("The column 'return' not found in the "

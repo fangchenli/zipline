@@ -1,4 +1,35 @@
+import pandas as pd
 from toolz import partition_all
+
+
+def make_utc_aware(dti):
+    """Return ``dti`` localized to UTC if it is tz-naive, otherwise
+    converted to UTC.
+    """
+    if dti.tz is None:
+        return dti.tz_localize('UTC')
+    return dti.tz_convert('UTC')
+
+
+def to_session_label(dt):
+    """Coerce a date-like value to a session label: a tz-naive midnight
+    ``pd.Timestamp``.
+
+    tz-aware values are converted to UTC before the timezone is dropped, so
+    a UTC minute maps to its UTC calendar date.
+    """
+    dt = pd.Timestamp(dt)
+    if dt.tz is not None:
+        dt = dt.tz_convert('UTC').tz_localize(None)
+    return dt.normalize()
+
+
+def to_session_labels(dts):
+    """Vectorized :func:`to_session_label` for a ``pd.DatetimeIndex``."""
+    dts = pd.DatetimeIndex(dts)
+    if dts.tz is not None:
+        dts = dts.tz_convert('UTC').tz_localize(None)
+    return dts.normalize()
 
 
 def compute_date_range_chunks(sessions, start_date, end_date, chunksize):

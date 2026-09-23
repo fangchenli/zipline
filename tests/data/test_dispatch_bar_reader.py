@@ -53,7 +53,7 @@ class AssetDispatchSessionBarTestCase(WithBcolzEquityDailyBarReader,
     @classmethod
     def make_future_minute_bar_data(cls):
         m_opens = [
-            cls.trading_calendar.open_and_close_for_session(session)[0]
+            cls.trading_calendar.session_first_last_minute(session)[0]
             for session in cls.trading_sessions['us_futures']]
         yield 10001, DataFrame({
             'open': [10000.5, 10001.5, nan],
@@ -181,7 +181,7 @@ class AssetDispatchMinuteBarTestCase(WithBcolzEquityMinuteBarReader,
 
     @classmethod
     def make_equity_minute_bar_data(cls):
-        minutes = cls.trading_calendars[Equity].minutes_for_session(
+        minutes = cls.trading_calendars[Equity].session_minutes(
             cls.START_DATE)
         yield 1, DataFrame({
             'open': [100.5, 101.5],
@@ -207,9 +207,9 @@ class AssetDispatchMinuteBarTestCase(WithBcolzEquityMinuteBarReader,
 
     @classmethod
     def make_future_minute_bar_data(cls):
-        e_m = cls.trading_calendars[Equity].minutes_for_session(
+        e_m = cls.trading_calendars[Equity].session_minutes(
             cls.START_DATE)
-        f_m = cls.trading_calendar.minutes_for_session(
+        f_m = cls.trading_calendar.session_minutes(
             cls.START_DATE)
         # Equity market open occurs at loc 930 in Future minutes.
         minutes = [f_m[0], e_m[0], e_m[1]]
@@ -271,7 +271,7 @@ class AssetDispatchMinuteBarTestCase(WithBcolzEquityMinuteBarReader,
         )
 
     def test_load_raw_arrays_at_future_session_open(self):
-        f_minutes = self.trading_calendar.minutes_for_session(self.START_DATE)
+        f_minutes = self.trading_calendar.session_minutes(self.START_DATE)
 
         results = self.dispatch_reader.load_raw_arrays(
             ['open', 'close'],
@@ -301,7 +301,7 @@ class AssetDispatchMinuteBarTestCase(WithBcolzEquityMinuteBarReader,
             ['open'], f_minutes[0], f_minutes[2], [2, 10003, 1, 10001])
 
     def test_load_raw_arrays_at_equity_session_open(self):
-        e_minutes = self.trading_calendars[Equity].minutes_for_session(
+        e_minutes = self.trading_calendars[Equity].session_minutes(
             self.START_DATE)
 
         results = self.dispatch_reader.load_raw_arrays(

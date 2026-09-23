@@ -207,7 +207,7 @@ class ContinuousFuturesTestCase(zf.WithCreateBarData,
         tc = cls.trading_calendar
         start = pd.Timestamp('2016-01-26', tz='UTC')
         end = pd.Timestamp('2016-04-29', tz='UTC')
-        dts = tc.minutes_for_sessions_in_range(start, end)
+        dts = tc.sessions_minutes(start, end)
         sessions = tc.sessions_in_range(start, end)
         # Generate values in the XXY.YYY space, with XX representing the
         # session and Y.YYY representing the minute within the session.
@@ -265,7 +265,7 @@ class ContinuousFuturesTestCase(zf.WithCreateBarData,
             df += i * 10000
             if i in sid_to_vol_stop_session:
                 vol_stop_session = sid_to_vol_stop_session[i]
-                m_open = tc.open_and_close_for_session(vol_stop_session)[0]
+                m_open = tc.session_first_last_minute(vol_stop_session)[0]
                 loc = dts.searchsorted(m_open)
                 # Add a little bit of noise to roll. So that predicates that
                 # check for exactly 0 do not work, since there may be
@@ -275,7 +275,7 @@ class ContinuousFuturesTestCase(zf.WithCreateBarData,
             j = i - 1
             if j in sid_to_vol_stop_session:
                 non_primary_end = sid_to_vol_stop_session[j]
-                m_close = tc.open_and_close_for_session(non_primary_end)[1]
+                m_close = tc.session_first_last_minute(non_primary_end)[1]
                 if m_close > dts[0]:
                     loc = dts.get_loc(m_close)
                     # Add some volume before a roll, since a contract may be
@@ -1718,15 +1718,15 @@ class OrderedContractsTestCase(zf.WithAssetFinder, zf.ZiplineTestCase):
 
         oc = OrderedContracts('FO', contracts)
 
-        self.assertEquals(1,
+        self.assertEqual(1,
                           oc.contract_at_offset(1, 0, start_dates[-1].value),
                           "Offset of 0 should return provided sid")
 
-        self.assertEquals(2,
+        self.assertEqual(2,
                           oc.contract_at_offset(1, 1, start_dates[-1].value),
                           "Offset of 1 should return next sid in chain.")
 
-        self.assertEquals(None,
+        self.assertEqual(None,
                           oc.contract_at_offset(4, 1, start_dates[-1].value),
                           "Offset at end of chain should not crash.")
 
@@ -1741,52 +1741,52 @@ class OrderedContractsTestCase(zf.WithAssetFinder, zf.ZiplineTestCase):
         # a contract should be added per day, until all defined contracts
         # are returned.
         chain = oc.active_chain(1, pd.Timestamp('2014-12-31', tz='UTC').value)
-        self.assertEquals([], list(chain),
+        self.assertEqual([], list(chain),
                           "On session before first start date, no contracts "
                           "in chain should be active.")
         chain = oc.active_chain(1, pd.Timestamp('2015-01-01', tz='UTC').value)
-        self.assertEquals([1], list(chain),
+        self.assertEqual([1], list(chain),
                           "[1] should be the active chain on 01-01, since all "
                           "other start dates occur after 01-01.")
 
         chain = oc.active_chain(1, pd.Timestamp('2015-01-02', tz='UTC').value)
-        self.assertEquals([1, 2], list(chain),
+        self.assertEqual([1, 2], list(chain),
                           "[1, 2] should be the active contracts on 01-02.")
 
         chain = oc.active_chain(1, pd.Timestamp('2015-01-03', tz='UTC').value)
-        self.assertEquals([1, 2, 3], list(chain),
+        self.assertEqual([1, 2, 3], list(chain),
                           "[1, 2, 3] should be the active contracts on 01-03.")
 
         chain = oc.active_chain(1, pd.Timestamp('2015-01-04', tz='UTC').value)
-        self.assertEquals(4, len(chain),
+        self.assertEqual(4, len(chain),
                           "[1, 2, 3, 4] should be the active contracts on "
                           "01-04, this is all defined contracts in the test "
                           "case.")
 
         chain = oc.active_chain(1, pd.Timestamp('2015-01-05', tz='UTC').value)
-        self.assertEquals(4, len(chain),
+        self.assertEqual(4, len(chain),
                           "[1, 2, 3, 4] should be the active contracts on "
                           "01-05. This tests the case where all start dates "
                           "are before the query date.")
 
         # Test querying each sid at a time when all should be alive.
         chain = oc.active_chain(2, pd.Timestamp('2015-01-05', tz='UTC').value)
-        self.assertEquals([2, 3, 4], list(chain))
+        self.assertEqual([2, 3, 4], list(chain))
 
         chain = oc.active_chain(3, pd.Timestamp('2015-01-05', tz='UTC').value)
-        self.assertEquals([3, 4], list(chain))
+        self.assertEqual([3, 4], list(chain))
 
         chain = oc.active_chain(4, pd.Timestamp('2015-01-05', tz='UTC').value)
-        self.assertEquals([4], list(chain))
+        self.assertEqual([4], list(chain))
 
         # Test defined contract to check edge conditions.
         chain = oc.active_chain(4, pd.Timestamp('2015-01-03', tz='UTC').value)
-        self.assertEquals([], list(chain),
+        self.assertEqual([], list(chain),
                           "No contracts should be active, since 01-03 is "
                           "before 4's start date.")
 
         chain = oc.active_chain(4, pd.Timestamp('2015-01-04', tz='UTC').value)
-        self.assertEquals([4], list(chain),
+        self.assertEqual([4], list(chain),
                           "[4] should be active beginning at its start date.")
 
     def test_delivery_predicate(self):
@@ -1801,7 +1801,7 @@ class OrderedContractsTestCase(zf.WithAssetFinder, zf.ZiplineTestCase):
         # a contract should be added per day, until all defined contracts
         # are returned.
         chain = oc.active_chain(5, pd.Timestamp('2015-01-05', tz='UTC').value)
-        self.assertEquals(
+        self.assertEqual(
             [5, 7], list(chain),
             "Contract BAG16 (sid=6) should be ommitted from chain, since "
             "it does not satisfy the roll predicate.")

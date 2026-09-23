@@ -7,7 +7,7 @@ from unittest import TestCase
 
 from parameterized import parameterized
 from numpy import arange, array, dtype
-import pytz
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from zipline.utils.preprocess import call, preprocess
 from zipline.utils.input_validation import (
@@ -399,15 +399,15 @@ class PreprocessTestCase(TestCase):
 
         # test coercing from string
         for tz in valid:
-            self.assertEqual(f(tz), pytz.timezone(tz))
+            self.assertEqual(f(tz), ZoneInfo(tz))
 
         # test pass through of tzinfo objects
-        for tz in map(pytz.timezone, valid):
+        for tz in map(ZoneInfo, valid):
             self.assertEqual(f(tz), tz)
 
         # test invalid timezone strings
         for tz in invalid:
-            self.assertRaises(pytz.UnknownTimeZoneError, f, tz)
+            self.assertRaises(ZoneInfoNotFoundError, f, tz)
 
     def test_optionally(self):
         error = TypeError('arg must be int')

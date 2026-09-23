@@ -27,7 +27,7 @@ from pandas import (
     Series,
     Timestamp,
 )
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 from zipline.api import (
     attach_pipeline,
@@ -706,7 +706,7 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
         # For ensuring we call before_trading_start.
         count = [0]
 
-        current_day = self.trading_calendar.next_session_label(
+        current_day = self.trading_calendar.next_session(
             self.pipeline_loader.raw_price_reader.last_available_dt,
         )
 
