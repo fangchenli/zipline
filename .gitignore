@@ -84,3 +84,4 @@ TAGS
 .pytest_cache
 .ruff_cache
 zipline/_version.py
+.asv

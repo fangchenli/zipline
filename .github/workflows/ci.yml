@@ -16,8 +16,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.2.0  # no floating major-version tags
       # The locked ruff version, without building the package.
-      - run: uv run --locked --only-group lint ruff check zipline tests scripts
-      - run: uv run --locked --only-group lint ruff format --check zipline tests scripts
+      - run: uv run --locked --only-group lint ruff check zipline tests scripts benchmarks
+      - run: uv run --locked --only-group lint ruff format --check zipline tests scripts benchmarks
 
   types:
     runs-on: ubuntu-latest
@@ -38,6 +38,19 @@ jobs:
       - uses: astral-sh/setup-uv@v10.2.0  # no floating major-version tags
       - run: uv sync --locked --group docs
       - run: uv run --group docs sphinx-build -b html docs/source docs/build/html
+
+  benchmarks:
+    # Checks that the asv benchmarks still run; CI runners are too noisy for
+    # timings. Compare performance locally with `asv continuous`.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v10.2.0  # no floating major-version tags
+      - run: uv sync --locked --group bench
+      - run: uv run asv machine --yes
+      - run: uv run asv run --python=same --quick --show-stderr  # exits non-zero if a benchmark fails
 
   test:
     name: test (${{ matrix.os }}, py${{ matrix.python-version }})
