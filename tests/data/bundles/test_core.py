@@ -184,6 +184,7 @@ class BundleCoreTestCase(WithInstanceTmpDir,
 
         self.ingest('bundle', environ=self.environ)
         bundle = self.load('bundle', environ=self.environ)
+        self.add_instance_callback(bundle.close)
 
         assert_equal(set(bundle.asset_finder.sids), set(sids))
 
@@ -332,6 +333,7 @@ class BundleCoreTestCase(WithInstanceTmpDir,
             metadata.reflect(eng)
             version_table = metadata.tables['version_info']
             check_version_info(eng, version_table, version)
+            eng.dispose()
 
     @parameterized.expand([('clean',), ('load',)])
     def test_bundle_doesnt_exist(self, fnname):

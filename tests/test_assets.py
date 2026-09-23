@@ -2414,9 +2414,12 @@ class TestWrite(WithInstanceTmpDir, ZiplineTestCase):
             'assets.db',
         )
         self.writer = AssetDBWriter(path)
+        self.add_instance_callback(self.writer.engine.dispose)
 
     def new_asset_finder(self):
-        return AssetFinder(self.assets_db_path)
+        finder = AssetFinder(self.assets_db_path)
+        self.add_instance_callback(finder.engine.dispose)
+        return finder
 
     def test_write_multiple_exchanges(self):
         # Incrementing by two so that start and end dates for each

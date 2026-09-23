@@ -391,7 +391,7 @@ class DataSetMeta(type):
     families of specialized dataset.
     """
     def __new__(mcls, name, bases, dict_):
-        if len(bases) != 1:
+        if len(bases) > 1:
             # Disallowing multiple inheritance makes it easier for us to
             # determine whether a given dataset is the root for its family of
             # specializations.
@@ -545,8 +545,7 @@ class DataSetMeta(type):
         return '<DataSet: %r, domain=%s>' % (self.__name__, self.domain)
 
 
-# DataSetMeta requires exactly one explicit base.
-class DataSet(object, metaclass=DataSetMeta):  # noqa: UP004
+class DataSet(metaclass=DataSetMeta):
     """
     Base class for Pipeline datasets.
 

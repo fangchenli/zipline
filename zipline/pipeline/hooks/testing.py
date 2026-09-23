@@ -29,24 +29,20 @@ def testing_hooks_method(method_name):
     """
     if method_name in PIPELINE_HOOKS_CONTEXT_MANAGERS:
         # Generate a method that enters the context of all sub-hooks.
-        @wraps(getattr(PipelineHooks, method_name))
+        @wraps(getattr(PipelineHooks, method_name), updated=())
         @contextmanager
         def ctx(self, *args, **kwargs):
             call = Call(method_name, args, kwargs)
             self.trace.append(ContextCall('enter', call))
             yield
             self.trace.append(ContextCall('exit', call))
-        # ``wraps`` copied ``__isabstractmethod__`` from the interface.
-        ctx.__isabstractmethod__ = False
         return ctx
 
     else:
         # Generate a method that calls methods of all sub-hooks.
-        @wraps(getattr(PipelineHooks, method_name))
+        @wraps(getattr(PipelineHooks, method_name), updated=())
         def method(self, *args, **kwargs):
             self.trace.append(Call(method_name, args, kwargs))
-        # ``wraps`` copied ``__isabstractmethod__`` from the interface.
-        method.__isabstractmethod__ = False
         return method
 
 

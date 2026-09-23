@@ -201,6 +201,7 @@ class QuandlBundleTestCase(WithResponses,
             ingest('quandl', environ=environ)
 
         bundle = load('quandl', environ=environ)
+        self.add_instance_callback(bundle.close)
         sids = 0, 1, 2, 3
         assert_equal(set(bundle.asset_finder.sids), set(sids))
 

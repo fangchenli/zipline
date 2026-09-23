@@ -287,7 +287,7 @@ def alias(attr_name):
     return classproperty(flip(getattr, attr_name))
 
 
-class WithDefaultDateBounds(object, metaclass=DebugMROMeta):  # noqa: UP004
+class WithDefaultDateBounds(metaclass=DebugMROMeta):
     """
     ZiplineTestCase mixin which makes it possible to synchronize date bounds
     across fixtures.
@@ -1702,7 +1702,7 @@ class WithAdjustmentReader(WithBcolzEquityDailyBarReader):
     def init_class_fixtures(cls):
         super(WithAdjustmentReader, cls).init_class_fixtures()
         conn = sqlite3.connect(cls.make_adjustment_db_conn_str())
-        # Silence numpy DeprecationWarnings which cause nosetest to fail
+        # Silence numpy DeprecationWarnings raised while writing.
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
 
@@ -1713,6 +1713,7 @@ class WithAdjustmentReader(WithBcolzEquityDailyBarReader):
                 stock_dividends=cls.make_stock_dividends_data(),
             )
         cls.adjustment_reader = SQLiteAdjustmentReader(conn)
+        cls.add_class_callback(cls.adjustment_reader.close)
 
 
 class WithUSEquityPricingPipelineEngine(WithAdjustmentReader,
@@ -1734,7 +1735,9 @@ class WithUSEquityPricingPipelineEngine(WithAdjustmentReader,
 
         loader = USEquityPricingLoader.without_fx(
             cls.bcolz_equity_daily_bar_reader,
-            SQLiteAdjustmentReader(cls.adjustments_db_path),
+            cls.enter_class_context(
+                SQLiteAdjustmentReader(cls.adjustments_db_path),
+            ),
         )
 
         def get_loader(column):

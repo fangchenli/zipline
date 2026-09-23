@@ -1,5 +1,4 @@
 from datetime import timedelta
-from functools import partial
 
 import itertools
 from parameterized import parameterized
@@ -85,10 +84,10 @@ def QuartersEstimatesNoNumQuartersAttr(num_qtr):
     return QtrEstimates
 
 
-def create_expected_df_for_factor_compute(start_date,
-                                          sids,
-                                          tuples,
-                                          end_date):
+def make_expected_df_for_factor_compute(start_date,
+                                        sids,
+                                        tuples,
+                                        end_date):
     """
     Given a list of tuples of new data we get for each sid on each critical
     date (when information changes), create a DataFrame that fills that
@@ -184,9 +183,10 @@ class WithEstimates(WithTradingSessions, WithAdjustmentReader):
         cls.columns = cls.make_columns()
         # Some tests require `WithAdjustmentReader` to be set up by the time we
         # make the loader.
-        cls.loader = cls.make_loader(cls.events, {column.name: val for
-                                                  column, val in
-                                                  cls.columns.items()})
+        cls.loader = cls.make_loader(
+            cls.events,
+            {column.name: val for column, val in cls.columns.items()},
+        )
 
 
 class WithOneDayPipeline(WithEstimates):
@@ -1081,12 +1081,16 @@ class WithEstimateWindows(WithEstimates):
     @classmethod
     def init_class_fixtures(cls):
         super().init_class_fixtures()
-        cls.create_expected_df_for_factor_compute = partial(
-            create_expected_df_for_factor_compute,
-            cls.window_test_start_date,
-            cls.get_sids()
-        )
         cls.timelines = cls.make_expected_timelines()
+
+    @classmethod
+    def create_expected_df_for_factor_compute(cls, tuples, end_date):
+        return make_expected_df_for_factor_compute(
+            cls.window_test_start_date,
+            cls.get_sids(),
+            tuples,
+            end_date,
+        )
 
     @parameterized.expand(window_test_cases)
     def test_estimate_windows_at_quarter_boundaries(self,
@@ -2302,10 +2306,28 @@ class WithAdjustmentBoundaries(WithEstimates):
                           sid_3_splits,
                           sid_4_splits])
 
+    # The loader class under test; set by subclasses.
+    loader_type = None
+
+    @classmethod
+    def make_loader(cls, events, columns):
+        # Each test builds its own loader for a split-adjusted-asof date; see
+        # make_split_adjusted_loader.
+        return None
+
+    def make_split_adjusted_loader(self, split_adjusted_asof):
+        return self.loader_type(
+            self.events,
+            {column.name: val for column, val in self.columns.items()},
+            split_adjustments_loader=self.adjustment_reader,
+            split_adjusted_column_names=['estimate'],
+            split_adjusted_asof=split_adjusted_asof,
+        )
+
     @parameterized.expand(split_adjusted_asof_dates)
     def test_boundaries(self, split_date):
         dataset = QuartersEstimates(1)
-        loader = self.loader(split_adjusted_asof=split_date)
+        loader = self.make_split_adjusted_loader(split_date)
         engine = engine = self.make_engine(loader)
         result = engine.run_pipeline(
             Pipeline({'estimate': dataset.estimate.latest}),
@@ -2323,13 +2345,7 @@ class WithAdjustmentBoundaries(WithEstimates):
 
 class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries,
                                        ZiplineTestCase):
-    @classmethod
-    def make_loader(cls, events, columns):
-        return partial(PreviousSplitAdjustedEarningsEstimatesLoader,
-                       events,
-                       columns,
-                       split_adjustments_loader=cls.adjustment_reader,
-                       split_adjusted_column_names=['estimate'])
+    loader_type = PreviousSplitAdjustedEarningsEstimatesLoader
 
     @classmethod
     def make_expected_out(cls):
@@ -2447,13 +2463,7 @@ class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries,
 
 class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries,
                                    ZiplineTestCase):
-    @classmethod
-    def make_loader(cls, events, columns):
-        return partial(NextSplitAdjustedEarningsEstimatesLoader,
-                       events,
-                       columns,
-                       split_adjustments_loader=cls.adjustment_reader,
-                       split_adjusted_column_names=['estimate'])
+    loader_type = NextSplitAdjustedEarningsEstimatesLoader
 
     @classmethod
     def make_expected_out(cls):

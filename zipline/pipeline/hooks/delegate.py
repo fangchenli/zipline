@@ -7,10 +7,14 @@ from .no import NoHooks
 
 def delegating_hooks_method(method_name):
     """Factory function for making DelegatingHooks methods.
+
+    The generated methods take their name and docstring from the
+    ``PipelineHooks`` interface, but not its ``__dict__``, which would mark them
+    abstract (``wraps(..., updated=())``).
     """
     if method_name in PIPELINE_HOOKS_CONTEXT_MANAGERS:
         # Generate a contextmanager that enters the context of all child hooks.
-        @wraps(getattr(PipelineHooks, method_name))
+        @wraps(getattr(PipelineHooks, method_name), updated=())
         @contextmanager
         def ctx(self, *args, **kwargs):
             with ExitStack() as stack:
@@ -18,19 +22,15 @@ def delegating_hooks_method(method_name):
                     sub_ctx = getattr(hook, method_name)(*args, **kwargs)
                     stack.enter_context(sub_ctx)
                 yield stack
-        # ``wraps`` copied ``__isabstractmethod__`` from the interface.
-        ctx.__isabstractmethod__ = False
         return ctx
     else:
         # Generate a method that calls methods of all child hooks.
-        @wraps(getattr(PipelineHooks, method_name))
+        @wraps(getattr(PipelineHooks, method_name), updated=())
         def method(self, *args, **kwargs):
             for hook in self._hooks:
                 sub_method = getattr(hook, method_name)
                 sub_method(*args, **kwargs)
 
-        # ``wraps`` copied ``__isabstractmethod__`` from the interface.
-        method.__isabstractmethod__ = False
         return method
 
 

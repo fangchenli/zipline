@@ -462,11 +462,17 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             c.element_of([{'a': 1}])
 
         errmsg = str(e.exception)
+        # The wording of the underlying TypeError varies across Python
+        # versions, so take it from Python itself.
+        try:
+            {{'a': 1}}
+        except TypeError as exc:
+            hash_error = exc
         expected = (
             "Expected `choices` to be an iterable of hashable values,"
             " but got [{'a': 1}] instead.\n"
             "This caused the following error: "
-            "TypeError(\"unhashable type: 'dict'\")."
+            "%r." % (hash_error,)
         )
         self.assertEqual(errmsg, expected)
 

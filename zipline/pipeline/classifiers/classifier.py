@@ -1,7 +1,6 @@
 """
 classifier.py
 """
-from functools import partial
 from numbers import Number
 import operator
 import re
@@ -119,15 +118,18 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             # Numexpr doesn't know how to use LabelArrays.
             return ArrayPredicate(term=self, op=operator.ne, opargs=(other,))
 
-    def bad_compare(opname, other):
-        raise TypeError('cannot compare classifiers with %s' % opname)
+    # Classifiers are categorical, so ordering comparisons are meaningless.
+    def __gt__(self, other):
+        raise TypeError('cannot compare classifiers with >')
 
-    __gt__ = partial(bad_compare, '>')
-    __ge__ = partial(bad_compare, '>=')
-    __le__ = partial(bad_compare, '<=')
-    __lt__ = partial(bad_compare, '<')
+    def __ge__(self, other):
+        raise TypeError('cannot compare classifiers with >=')
 
-    del bad_compare
+    def __le__(self, other):
+        raise TypeError('cannot compare classifiers with <=')
+
+    def __lt__(self, other):
+        raise TypeError('cannot compare classifiers with <')
 
     @string_classifiers_only
     @expect_types(prefix=(bytes, str))

@@ -12,7 +12,7 @@ from zipline.utils.metautils import compose_types
 class FinalMetaTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
-        class ClassWithFinal(object, metaclass=FinalMeta):  # noqa: UP004
+        class ClassWithFinal(metaclass=FinalMeta):
             a = final('ClassWithFinal: a')
             b = 'ClassWithFinal: b'
 
@@ -160,7 +160,7 @@ class FinalABCMetaTestCase(FinalMetaTestCase):
     def setUpClass(cls):
         FinalABCMeta = compose_types(FinalMeta, ABCMeta)
 
-        class ABCWithFinal(object, metaclass=FinalABCMeta):  # noqa: UP004
+        class ABCWithFinal(metaclass=FinalABCMeta):
             a = final('ABCWithFinal: a')
             b = 'ABCWithFinal: b'
 
@@ -216,7 +216,7 @@ class FinalABCMetaTestCase(FinalMetaTestCase):
         """
         Tests that subclasses don't destroy the __setattr__.
         """
-        class ClassWithFinal(object, metaclass=FinalMeta):  # noqa: UP004
+        class ClassWithFinal(metaclass=FinalMeta):
             @final
             def f(self):
                 return 'ClassWithFinal: f'
@@ -231,7 +231,7 @@ class FinalABCMetaTestCase(FinalMetaTestCase):
 
     def test_final_classmethod(self):
 
-        class ClassWithClassMethod(object, metaclass=FinalMeta):  # noqa: UP004
+        class ClassWithClassMethod(metaclass=FinalMeta):
             count = 0
 
             @final

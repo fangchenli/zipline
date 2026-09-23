@@ -141,11 +141,27 @@ RegisteredBundle = namedtuple(
      'create_writers']
 )
 
-BundleData = namedtuple(
+class BundleData(namedtuple(
     'BundleData',
     'asset_finder equity_minute_bar_reader equity_daily_bar_reader '
     'adjustment_reader',
-)
+)):
+    """The readers for an ingested bundle.
+
+    Call :meth:`close` (or use the bundle as a context manager) to release the
+    database connections held by the asset finder and adjustment reader.
+    """
+    __slots__ = ()
+
+    def close(self):
+        self.asset_finder.engine.dispose()
+        self.adjustment_reader.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        self.close()
 
 BundleCore = namedtuple(
     'BundleCore',
