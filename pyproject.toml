@@ -47,6 +47,7 @@ dependencies = [
     "numexpr>=2.10",
     "numpy>=2.0",
     "pandas>=3.0",
+    "pyarrow>=21",
     "python-dateutil>=2.9",
     # Undeclared runtime dependency of empyrical-reloaded; pandas 3 no
     # longer pulls it in.

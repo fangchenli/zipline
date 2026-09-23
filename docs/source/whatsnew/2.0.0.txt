@@ -74,6 +74,17 @@ API and Behaviour Changes
 - ``TradingAlgorithm.portfolio`` and ``account`` raise ``AttributeError`` with a
   clear message when accessed outside of a running simulation.
 
+Enhancements
+~~~~~~~~~~~~
+
+- New Parquet storage format for daily bars,
+  :class:`~zipline.data.parquet_daily_bars.ParquetDailyBarWriter` and
+  :class:`~zipline.data.parquet_daily_bars.ParquetDailyBarReader`. Bars are
+  written as a year-partitioned Parquet dataset that pyarrow, pandas and DuckDB
+  can also read directly. Compared with bcolz, pipelines over daily data run
+  2-8x faster, daily backtests about 2x faster and writing is slightly faster.
+  Bundles still write bcolz for now.
+
 Bug Fixes
 ~~~~~~~~~
 

@@ -3,7 +3,9 @@
 Everything the benchmarks need goes through this module: generating
 deterministic prices, writing them in a storage format ("backend"), and
 opening readers over the result. Supporting a new storage format means adding
-a backend here; the benchmarks are parameterized over ``BACKENDS``.
+a backend here; the benchmarks are parameterized over ``DAILY_BACKENDS`` and
+``MINUTE_BACKENDS``. A bundle for a backend without minute support stores its
+minute bars with bcolz.
 """
 
 import os
@@ -22,9 +24,15 @@ from zipline.data.minute_bars import (
     BcolzMinuteBarReader,
     BcolzMinuteBarWriter,
 )
+from zipline.data.parquet_daily_bars import (
+    ParquetDailyBarReader,
+    ParquetDailyBarWriter,
+)
 from zipline.utils.calendar_utils import get_calendar
 
-BACKENDS = ["bcolz"]
+DAILY_BACKENDS = ["bcolz", "parquet"]
+MINUTE_BACKENDS = ["bcolz"]
+BACKENDS = sorted(set(DAILY_BACKENDS) | set(MINUTE_BACKENDS))
 
 CALENDAR = "XNYS"
 SEED = 1234
@@ -147,12 +155,12 @@ class Bundle:
     def daily_reader(self):
         if self.backend == "bcolz":
             return BcolzDailyBarReader(self.daily_path)
+        if self.backend == "parquet":
+            return ParquetDailyBarReader(self.daily_path)
         raise ValueError(self.backend)
 
     def minute_reader(self):
-        if self.backend == "bcolz":
-            return BcolzMinuteBarReader(self.minute_path)
-        raise ValueError(self.backend)
+        return BcolzMinuteBarReader(self.minute_path)
 
     def adjustment_reader(self):
         return SQLiteAdjustmentReader(self.adjustments_path)
@@ -172,6 +180,8 @@ class Bundle:
 def write_daily(backend, path, calendar, frames, start, end):
     if backend == "bcolz":
         BcolzDailyBarWriter(path, calendar, start, end).write(frames)
+    elif backend == "parquet":
+        ParquetDailyBarWriter(path, calendar, start, end).write(frames)
     else:
         raise ValueError(backend)
 
@@ -218,7 +228,7 @@ def build_bundle(root, backend):
         DAILY_END,
     )
     write_minute(
-        backend,
+        backend if backend in MINUTE_BACKENDS else "bcolz",
         bundle.minute_path,
         calendar,
         minute_frames(calendar, minute_sids, MINUTE_START, MINUTE_END),

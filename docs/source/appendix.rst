@@ -381,6 +381,9 @@ Writers
 .. autoclass:: zipline.data.bcolz_daily_bars.BcolzDailyBarWriter
    :members:
 
+.. autoclass:: zipline.data.parquet_daily_bars.ParquetDailyBarWriter
+   :members:
+
 .. autoclass:: zipline.data.adjustments.SQLiteAdjustmentWriter
    :members:
 
@@ -393,6 +396,9 @@ Readers
    :members:
 
 .. autoclass:: zipline.data.bcolz_daily_bars.BcolzDailyBarReader
+   :members:
+
+.. autoclass:: zipline.data.parquet_daily_bars.ParquetDailyBarReader
    :members:
 
 .. autoclass:: zipline.data.adjustments.SQLiteAdjustmentReader

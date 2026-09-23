@@ -64,6 +64,10 @@ from ..data.minute_bars import (
     BcolzMinuteBarReader,
     BcolzMinuteBarWriter,
 )
+from ..data.parquet_daily_bars import (
+    ParquetDailyBarReader,
+    ParquetDailyBarWriter,
+)
 from ..data.resample import (
     MinuteResampleSessionBarReader,
     minute_frame_to_session_frame,
@@ -1108,6 +1112,54 @@ class WithBcolzEquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
             )
         else:
             cls.bcolz_equity_daily_bar_reader = BcolzDailyBarReader(t)
+
+
+class WithParquetEquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
+    """
+    ZiplineTestCase mixin providing cls.parquet_daily_bar_path and
+    cls.parquet_equity_daily_bar_reader class level fixtures.
+
+    After init_class_fixtures has been called:
+    - `cls.parquet_daily_bar_path` is the dataset's root directory, a
+      subdirectory PARQUET_DAILY_BAR_PATH of the shared temp directory.
+    - `cls.parquet_equity_daily_bar_reader` reads the data returned from
+      `cls.make_equity_daily_bar_data`, with the listing currencies from
+      `cls.make_equity_daily_bar_currency_codes`.
+
+    Attributes
+    ----------
+    PARQUET_DAILY_BAR_PATH : str
+        The path inside the tmpdir where the dataset will be written.
+    INVALID_DATA_BEHAVIOR : {'warn', 'raise', 'ignore'}
+        What the writer does with negative or infinite values.
+    """
+
+    PARQUET_DAILY_BAR_PATH = "daily_equity_pricing.parquet"
+    INVALID_DATA_BEHAVIOR = "warn"
+
+    @classproperty
+    def PARQUET_DAILY_BAR_COUNTRY_CODE(cls):
+        return cls.EQUITY_DAILY_BAR_COUNTRY_CODES[0]
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super().init_class_fixtures()
+
+        cls.parquet_daily_bar_path = path = cls.tmpdir.getpath(
+            cls.PARQUET_DAILY_BAR_PATH
+        )
+        days = cls.equity_daily_bar_days
+        country_code = cls.PARQUET_DAILY_BAR_COUNTRY_CODE
+        sids = cls.asset_finder.equities_sids_for_country_code(country_code)
+
+        ParquetDailyBarWriter(
+            path, cls.trading_calendars[Equity], days[0], days[-1]
+        ).write(
+            cls.make_equity_daily_bar_data(country_code=country_code, sids=sids),
+            invalid_data_behavior=cls.INVALID_DATA_BEHAVIOR,
+            currency_codes=cls.make_equity_daily_bar_currency_codes(country_code, sids),
+        )
+        cls.parquet_equity_daily_bar_reader = ParquetDailyBarReader(path)
 
 
 class WithBcolzFutureDailyBarReader(WithFutureDailyBarData, WithTmpDir):

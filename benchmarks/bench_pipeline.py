@@ -11,7 +11,7 @@ from zipline.pipeline.factors import (
 from zipline.pipeline.loaders import EquityPricingLoader
 
 from .common import BundleBenchmark
-from .data import BACKENDS
+from .data import DAILY_BACKENDS
 
 
 def make_pipeline():
@@ -31,7 +31,7 @@ def make_pipeline():
 
 
 class RunPipeline(BundleBenchmark):
-    params = (BACKENDS, [21, 252])
+    params = (DAILY_BACKENDS, [21, 252])
     param_names = ["backend", "n_sessions"]
 
     def setup(self, roots, backend, n_sessions):

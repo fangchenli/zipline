@@ -3,7 +3,7 @@ algorithm, including adjustments and the history window caches.
 """
 
 from .common import BundleBenchmark
-from .data import BACKENDS
+from .data import DAILY_BACKENDS, MINUTE_BACKENDS
 
 # Consecutive bars requested one after another, as a running algorithm does,
 # so the sliding-window caches are exercised.
@@ -11,7 +11,7 @@ N_STEPS = 50
 
 
 class DailyHistory(BundleBenchmark):
-    params = (BACKENDS, [1, 100], [20, 252])
+    params = (DAILY_BACKENDS, [1, 100], [20, 252])
     param_names = ["backend", "n_assets", "bar_count"]
 
     def setup(self, roots, backend, n_assets, bar_count):
@@ -30,7 +30,7 @@ class DailyHistory(BundleBenchmark):
 
 
 class MinuteHistory(BundleBenchmark):
-    params = (BACKENDS, [1, 50], [30, 390])
+    params = (MINUTE_BACKENDS, [1, 50], [30, 390])
     param_names = ["backend", "n_assets", "bar_count"]
 
     def setup(self, roots, backend, n_assets, bar_count):

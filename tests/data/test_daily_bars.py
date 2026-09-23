@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import json
 import re
 from itertools import cycle, islice
 from sys import maxsize
@@ -25,6 +26,7 @@ from numpy import (
 )
 from pandas import (
     DataFrame,
+    DatetimeIndex,
     NaT,
     Series,
     Timestamp,
@@ -48,6 +50,11 @@ from zipline.data.hdf5_daily_bars import (
     VOLUME,
     coerce_to_uint32,
 )
+from zipline.data.parquet_daily_bars import (
+    FORMAT_VERSION,
+    ParquetDailyBarReader,
+    ParquetDailyBarWriter,
+)
 from zipline.pipeline.loaders.synthetic import (
     OHLCV,
     asset_end,
@@ -62,6 +69,7 @@ from zipline.testing.fixtures import (
     WithBcolzEquityDailyBarReader,
     WithEquityDailyBarData,
     WithHDF5EquityMultiCountryDailyBarReader,
+    WithParquetEquityDailyBarReader,
     WithSeededRandomState,
     WithTmpDir,
     WithTradingCalendars,
@@ -698,6 +706,138 @@ class BcolzDailyBarWriterMissingDataTestCase(
         )
         with self.assertRaisesRegex(AssertionError, expected_msg):
             writer.write(bar_data)
+
+
+class ParquetDailyBarTestCase(WithParquetEquityDailyBarReader, _DailyBarsTestCase):
+    EQUITY_DAILY_BAR_COUNTRY_CODES = ["US"]
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super().init_class_fixtures()
+        cls.daily_bar_reader = cls.parquet_equity_daily_bar_reader
+
+    def test_accepts_assets(self):
+        # The DataPortal passes Asset objects rather than integer sids.
+        assets = self.asset_finder.retrieve_all(self.assets)
+        sessions = self.trading_days_between(TEST_QUERY_START, TEST_QUERY_STOP)
+        by_asset = self.daily_bar_reader.load_raw_arrays(
+            ["close"], sessions[0], sessions[-1], assets
+        )
+        by_sid = self.daily_bar_reader.load_raw_arrays(
+            ["close"], sessions[0], sessions[-1], self.assets
+        )
+        assert_equal(by_asset, by_sid)
+        asset, sid = assets[0], self.assets[0]
+        day = self.dates_for_asset(sid)[0]
+        assert_equal(
+            self.daily_bar_reader.get_value(asset, day, "close"),
+            self.daily_bar_reader.get_value(sid, day, "close"),
+        )
+        assert_equal(
+            self.daily_bar_reader.currency_codes(assets),
+            self.daily_bar_reader.currency_codes(self.assets),
+        )
+
+    def test_small_block_cache(self):
+        # Reads must not depend on which blocks happen to be cached.
+        reader = ParquetDailyBarReader(self.parquet_daily_bar_path, block_cache_size=1)
+        expected = self.daily_bar_reader.load_raw_arrays(
+            list(OHLCV), TEST_QUERY_START, TEST_QUERY_STOP, self.assets
+        )
+        for _ in range(2):
+            actual = reader.load_raw_arrays(
+                list(OHLCV), TEST_QUERY_START, TEST_QUERY_STOP, self.assets
+            )
+            for a, e in zip(actual, expected):
+                assert_equal(a, e)
+
+
+class ParquetDailyBarWriterTestCase(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
+    START = Timestamp("2015-12-28")
+    END = Timestamp("2016-01-08")
+
+    def init_instance_fixtures(self):
+        super().init_instance_fixtures()
+        self.sessions = self.trading_calendar.sessions_in_range(self.START, self.END)
+        self.path = self.tmpdir.getpath(f"parquet-{id(self)}")
+
+    def frame(self, sessions, close=10.0, volume=100):
+        return DataFrame(
+            {
+                "open": close,
+                "high": close,
+                "low": close,
+                "close": close,
+                "volume": volume,
+            },
+            index=sessions,
+        )
+
+    def write(self, data, **kwargs):
+        ParquetDailyBarWriter(
+            self.path, self.trading_calendar, self.START, self.END
+        ).write(data, **kwargs)
+        return ParquetDailyBarReader(self.path)
+
+    def test_gaps_are_missing_data(self):
+        # Sessions between an asset's first and last bar that have no data are
+        # stored as missing, across a year boundary.
+        with_gap = self.frame(self.sessions.delete([2, 4]))
+        reader = self.write([(1, with_gap)])
+        close, volume = reader.load_raw_arrays(
+            ["close", "volume"], self.sessions[0], self.sessions[-1], [1]
+        )
+        expected_close = np.full(len(self.sessions), 10.0)
+        expected_close[[2, 4]] = np.nan
+        expected_volume = np.full(len(self.sessions), 100.0)
+        expected_volume[[2, 4]] = 0
+        assert_equal(close[:, 0], expected_close)
+        assert_equal(volume[:, 0], expected_volume)
+        assert_equal(reader.get_value(1, self.sessions[2], "close"), np.nan)
+        assert_equal(reader.get_last_traded_dt(1, self.sessions[4]), self.sessions[3])
+
+    def test_zero_price_is_missing(self):
+        frame = self.frame(self.sessions)
+        frame.iloc[1, frame.columns.get_loc("close")] = 0.0
+        reader = self.write([(1, frame)])
+        assert_equal(reader.get_value(1, self.sessions[1], "close"), np.nan)
+
+    def test_volume_beyond_uint32(self):
+        # bcolz stored volume as uint32; the Parquet format doesn't overflow.
+        big = 10_000_000_000
+        reader = self.write([(1, self.frame(self.sessions, volume=big))])
+        assert_equal(reader.get_value(1, self.sessions[0], "volume"), float(big))
+
+    def test_invalid_data(self):
+        frame = self.frame(self.sessions)
+        frame.iloc[0, frame.columns.get_loc("open")] = -1.0
+        with self.assertRaises(ValueError):
+            self.write([(1, frame)], invalid_data_behavior="raise")
+
+    def test_rejects_non_sessions(self):
+        frame = self.frame(DatetimeIndex([Timestamp("2016-01-02")]))  # Saturday
+        with self.assertRaisesRegex(ValueError, "not sessions"):
+            self.write([(1, frame)])
+
+    def test_rejects_unknown_asset(self):
+        with self.assertRaisesRegex(ValueError, "unknown asset id 2"):
+            self.write([(2, self.frame(self.sessions))], assets={1})
+
+    def test_refuses_to_overwrite(self):
+        self.write([(1, self.frame(self.sessions))])
+        with self.assertRaisesRegex(ValueError, "already contains a dataset"):
+            self.write([(1, self.frame(self.sessions))])
+
+    def test_newer_format_version(self):
+        self.write([(1, self.frame(self.sessions))])
+        metadata_path = f"{self.path}/metadata.json"
+        with open(metadata_path) as f:
+            metadata = json.load(f)
+        metadata["version"] = FORMAT_VERSION + 1
+        with open(metadata_path, "w") as f:
+            json.dump(metadata, f)
+        with self.assertRaisesRegex(ValueError, "format version"):
+            ParquetDailyBarReader(self.path)
 
 
 class _HDF5DailyBarTestCase(

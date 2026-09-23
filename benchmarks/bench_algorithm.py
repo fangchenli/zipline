@@ -15,7 +15,7 @@ from zipline.api import (
 from zipline.finance.trading import SimulationParameters
 
 from .common import BundleBenchmark
-from .data import BACKENDS, DAILY_SIDS, MINUTE_SIDS
+from .data import DAILY_BACKENDS, DAILY_SIDS, MINUTE_BACKENDS, MINUTE_SIDS
 
 
 def run(bundle, start, end, data_frequency, initialize, handle_data=None):
@@ -58,7 +58,7 @@ def momentum_rebalance(context, data):
 
 
 class DailyBacktest(BundleBenchmark):
-    params = (BACKENDS, [100, DAILY_SIDS])
+    params = (DAILY_BACKENDS, [100, DAILY_SIDS])
     param_names = ["backend", "n_assets"]
     # A single backtest takes seconds; a few repeats are enough.
     repeat = 3
@@ -81,7 +81,7 @@ class DailyBacktest(BundleBenchmark):
 
 
 class MinuteBacktest(BundleBenchmark):
-    params = (BACKENDS, [10, MINUTE_SIDS])
+    params = (MINUTE_BACKENDS, [10, MINUTE_SIDS])
     param_names = ["backend", "n_assets"]
     repeat = 3
     number = 1
