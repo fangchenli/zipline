@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 
 from zipline import __version__ as version
 
@@ -20,9 +20,11 @@ extensions = [
 ]
 
 
+# Issue and commit references in the release notes up to 1.4.1 point to the
+# original Quantopian repository.
 extlinks = {
-    'issue': ('https://github.com/quantopian/zipline/issues/%s', '#'),
-    'commit': ('https://github.com/quantopian/zipline/commit/%s', ''),
+    'issue': ('https://github.com/quantopian/zipline/issues/%s', '#%s'),
+    'commit': ('https://github.com/quantopian/zipline/commit/%s', '%s'),
 }
 
 # -- Docstrings ---------------------------------------------------------------
@@ -41,7 +43,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Zipline'
-copyright = '2020, Quantopian Inc.'
+copyright = '2020, Quantopian Inc.; 2026, Zipline contributors'
 
 # The full version, including alpha/beta/rc tags, but excluding the commit hash
 version = release = version.split('+', 1)[0]
@@ -50,16 +52,7 @@ version = release = version.split('+', 1)[0]
 # directories to ignore when looking for source files.
 exclude_patterns = []
 
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
-if not on_rtd:  # only import and set the theme if we're building docs locally
-    try:
-        import sphinx_rtd_theme
-    except ImportError:
-        html_theme = 'default'
-        html_theme_path = []
-    else:
-        html_theme = 'sphinx_rtd_theme'
-        html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+html_theme = 'sphinx_rtd_theme'
 
 # The name of the Pygments (syntax highlighting) style to use.
 highlight_language = 'python'
@@ -87,7 +80,7 @@ html_show_copyright = True
 htmlhelp_basename = 'ziplinedoc'
 
 intersphinx_mapping = {
-    'https://docs.python.org/dev/': None,
+    'python': ('https://docs.python.org/3/', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),

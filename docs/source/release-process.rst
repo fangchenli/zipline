@@ -31,45 +31,36 @@ To build and view the docs locally, run:
 
 .. code-block:: bash
 
-   $ cd docs
-   $ make html
-   $ {BROWSER} build/html/index.html
+   $ uv run --group docs sphinx-build -b html docs/source docs/build/html
+   $ {BROWSER} docs/build/html/index.html
 
 Updating the Python stub files
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-PyCharm and other linters and type checkers can use `Python stub files
-<https://www.python.org/dev/peps/pep-0484/#stub-files>`__ for type hinting. For
-example, we generate stub files for the :mod:`~zipline.api` namespace, since that
-namespace is populated at import time by decorators on TradingAlgorithm
-methods. Those functions are therefore hidden from static analysis tools, but
-we can generate static files to make them available. Under **Python 3**, run
-the following to generate any stub files:
+Type checkers and editors use `Python stub files
+<https://peps.python.org/pep-0484/#stub-files>`__ for type hinting. The
+:mod:`~zipline.api` namespace is populated at import time by decorators on
+``TradingAlgorithm`` methods, so its functions are hidden from static analysis
+tools; ``zipline/api.pyi`` makes them visible. Make sure it is up to date:
 
 .. code-block:: bash
 
-   $ python etc/gen_type_stubs.py
+   $ uv run python scripts/gen_api_stub.py
+   $ uv run ruff check --fix zipline/api.pyi && uv run ruff format zipline/api.pyi
 
-.. note::
-
-   In order to make stub consumers aware of the classes referred to in the
-   stub, the stub file should import those classes.  However, since
-   ``... import *`` and ``... import ... as ...`` in a stub file will export
-   those imports, we import the names explicitly.  For the stub for
-   ``zipline.api``, this is done in a header string in the
-   ``gen_type_stubs.py`` script mentioned above.  If new classes are added as
-   parameters or return types of ``zipline.api`` functions, then new imports
-   should be added to that header.
+The Cython extensions' ``.pyi`` stubs are maintained by hand; check that they
+match any Python-visible API changes in the ``.pyx`` files since the last
+release.
 
 Updating the ``__version__``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We use `versioneer <https://github.com/warner/python-versioneer>`__ to
-manage the ``__version__`` and ``setup.py`` version. This means that we pull
-this information from our version control's tags to ensure that they stay in
-sync and to have very fine grained version strings for development installs.
+We use `setuptools-scm <https://setuptools-scm.readthedocs.io>`__ to manage
+the package version, which it derives from git tags. This keeps the version
+and the tags in sync, and gives development installs fine grained version
+strings.
 
-To upgrade the version use the git tag command like:
+To create a release version, tag the release commit:
 
 .. code-block:: bash
 
@@ -77,11 +68,11 @@ To upgrade the version use the git tag command like:
    $ git push && git push --tags
 
 
-This will push the the code and the tag information.
+This will push the code and the tag information.
 
-Next, click the "Draft a new release" button on the `zipline releases page
-<https://github.com/quantopian/zipline/releases>`__.  For the new release,
-choose the tag you just pushed, and publish the release.
+Next, draft a new release on the `zipline releases page
+<https://github.com/fangchenli/zipline/releases>`__, choose the tag you just
+pushed, and publish the release.
 
 Uploading PyPI packages
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -93,13 +84,13 @@ To build the ``sdist`` (source distribution) run:
 
 .. code-block:: bash
 
-   $ python setup.py sdist
+   $ uv build --sdist
 
 
-from the zipline root. This will create a gzipped tarball that includes all the
-python, cython, and miscellaneous files needed to install zipline. To test that
-the source dist worked correctly, ``cd`` into an empty directory, create a new
-virtualenv and then run:
+from the zipline root. This will create a gzipped tarball in ``dist/`` that
+includes all the python, cython, and miscellaneous files needed to install
+zipline. To test that the source dist worked correctly, ``cd`` into an empty
+directory, create a new virtual environment and then run:
 
 
 .. code-block:: bash
@@ -112,36 +103,19 @@ This should print the version we are expecting to release.
 .. note::
 
    It is very important to both ``cd`` into a clean directory and make a clean
-   virtualenv. Changing directories ensures that we have included all the needed
-   files in the manifest. Using a clean virtualenv ensures that we have listed
-   all the required packages.
+   virtual environment. Changing directories ensures that we have included all
+   the needed files in the sdist. Using a clean environment ensures that we
+   have listed all the required packages.
 
 Now that we have tested the package locally, it should be tested using the test
-PyPI server.
+PyPI server:
 
 .. code-block:: bash
 
-   $ pip install twine
-   $ twine upload --repository-url https://test.pypi.org/legacy/ dist/zipline-<version-number>.tar.gz
+   $ uv publish --publish-url https://test.pypi.org/legacy/ dist/zipline-<version-number>.tar.gz
 
-Twine will prompt you for a username and password, which you should have access
-to if you're authorized to push Zipline releases.
-
-.. note::
-
-   If the package version has been taken: locally update your setup.py to
-   override the version with a new number. Do not use the next version, just
-   append a ``.<nano>`` section to the current version. PyPI prevents the same
-   package version from appearing twice, so we need to work around this when
-   debugging packaging problems on the test server.
-
-   .. warning::
-
-      Do not commit the temporary version change.
-
-
-This will upload zipline to the pypi test server. To test installing from pypi,
-create a new virtualenv, ``cd`` into a clean directory and then run:
+This will upload zipline to the PyPI test server. To test installing from it,
+create a new virtual environment, ``cd`` into a clean directory and then run:
 
 .. code-block:: bash
 
@@ -156,34 +130,28 @@ Now that we have tested locally and on PyPI test, it is time to upload to PyPI:
 
 .. code-block:: bash
 
-   $ twine upload dist/zipline-<version-number>.tar.gz
+   $ uv publish dist/zipline-<version-number>.tar.gz
 
 ``bdist``
 ^^^^^^^^^
 
-Because zipline now supports multiple versions of numpy, we're not building
-binary wheels, since they are not tagged with the version of numpy with which
-they were compiled.
+Extensions built against numpy 2 work with any numpy 2.x release, so binary
+wheels can be built with ``uv build --wheel``. Wheels are specific to a
+platform and Python version; publishing them for every supported combination
+is best done from CI (for example with ``cibuildwheel``).
 
 Documentation
 ~~~~~~~~~~~~~
 
-To update `zipline.io <https://www.zipline.io>`__, checkout the
-latest master and run:
+To publish the documentation to the ``gh-pages`` branch, check out the latest
+master and run:
 
-.. code-block:: python
+.. code-block:: bash
 
-    python <zipline_root>/docs/deploy.py
+    $ uv run --group docs python docs/deploy.py
 
 This will build the documentation, checkout a fresh copy of the ``gh-pages``
 git branch, and copy the built docs into the zipline root.
-
-.. note::
-
-   The docs should always be built with **Python 3**. Many of our api functions
-   are wrapped by preprocessing functions which accept \*args and \**kwargs. In
-   Python 3, sphinx will respect the ``__wrapped__`` attribute and display the
-   correct arguments.
 
 Now, using our browser of choice, view the ``index.html`` page and verify that
 the docs look correct.
@@ -193,42 +161,8 @@ Once we are happy, push the updated docs to the GitHub ``gh-pages`` branch.
 .. code-block:: bash
 
    $ git add .
-   $ git commit -m "DOC: update zipline.io"
+   $ git commit -m "DOC: update the documentation"
    $ git push origin gh-pages
-
-`zipline.io <https://www.zipline.io>`__ will update in a few moments.
-
-Uploading conda packages
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-`Travis <https://travis-ci.org/quantopian/zipline>`__ and
-`AppVeyor <https://ci.appveyor.com/project/quantopian/zipline/branch/master>`__
-build zipline conda packages for us (for Linux/OSX and Windows respectively).
-Once they have built and uploaded to anaconda.org the zipline packages for the
-release commit to master, we should move those packages from the "ci" label to
-the "main" label. We should also do this for any packages we uploaded for
-zipline's dependencies. You can do this from the
-`anaconda.org web interface <https://anaconda.org/Quantopian/repo>`__.
-This is also a good time to remove all the old "ci" packages from anaconda.
-
-To build the conda packages for zipline locally, run:
-
-.. code-block:: bash
-
-   $ python etc/conda_build_matrix.py
-
-If all of the builds succeed, then this will not print anything and exit with
-``EXIT_SUCCESS``. If there are build issues, we must address them and decide
-what to do.
-
-Once all of the builds in the matrix pass, we can upload them to anaconda with:
-
-.. code-block:: bash
-
-   $ python etc/conda_build_matrix.py --upload
-
-If you would like to test this command by uploading to a different user, this
-may be specified with the ``--user`` flag.
 
 Next Commit
 ~~~~~~~~~~~

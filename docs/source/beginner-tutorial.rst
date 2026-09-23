@@ -7,7 +7,7 @@ Basics
 Zipline is an open-source algorithmic trading simulator written in
 Python.
 
-The source can be found at: https://github.com/quantopian/zipline
+The source can be found at: https://github.com/fangchenli/zipline
 
 Some benefits include:
 
@@ -16,18 +16,16 @@ Some benefits include:
    bias.
 -  Batteries included: Common transforms (moving average) as well as
    common risk calculations (Sharpe).
--  Developed and continuously updated by
-   `Quantopian <https://www.quantopian.com>`__ which provides an
-   easy-to-use web-interface to Zipline, 10 years of minute-resolution
-   historical US stock data, and live-trading capabilities. This
-   tutorial is directed at users wishing to use Zipline without using
-   Quantopian. If you instead want to get started on Quantopian, see
-   `here <https://www.quantopian.com/faq#get-started>`__.
+-  PyData integration: data comes in and results go out as pandas
+   DataFrames.
+
+Zipline was originally developed by Quantopian, which used it to power its
+hosted research and backtesting platform until the company shut down in
+2020.
 
 This tutorial assumes that you have zipline correctly installed, see the
-`installation
-instructions <https://github.com/quantopian/zipline#installation>`__ if
-you haven't set up zipline yet.
+:doc:`installation instructions <install>` if you haven't set up zipline
+yet.
 
 Every ``zipline`` algorithm consists of two functions you have to
 define:
@@ -45,8 +43,7 @@ After the algorithm has been initialized, ``zipline`` calls the
 the same ``context`` variable and an event-frame called ``data``
 containing the current trading bar with open, high, low, and close
 (OHLC) prices as well as volume for each stock in your universe. For
-more information on these functions, see the `relevant part of the
-Quantopian docs <https://www.quantopian.com/help#api-toplevel>`__.
+more information on these functions, see the :doc:`API reference <appendix>`.
 
 My First Algorithm
 ~~~~~~~~~~~~~~~~~~
@@ -54,10 +51,10 @@ My First Algorithm
 Let's take a look at a very simple algorithm from the ``examples``
 directory, ``buyapple.py``:
 
-.. code-block:: python
+.. code-block:: text
 
-   from zipline.examples import buyapple
-   buyapple??
+   In [1]: from zipline.examples import buyapple
+   In [2]: buyapple??
 
 
 .. code-block:: python
@@ -80,8 +77,7 @@ use. All functions commonly used in your algorithm can be found in
 arguments: a security object, and a number specifying how many stocks you would
 like to order (if negative, :func:`~zipline.api.order()` will sell/short
 stocks). In this case we want to order 10 shares of Apple at each iteration. For
-more documentation on ``order()``, see the `Quantopian docs
-<https://www.quantopian.com/help#api-order>`__.
+more documentation on ``order()``, see its :func:`API reference <zipline.api.order>`.
 
 Finally, the :func:`~zipline.api.record` function allows you to save the value
 of a variable at each iteration. You provide it with a name for the variable
@@ -90,7 +86,7 @@ finished running you will have access to each variable value you tracked
 with :func:`~zipline.api.record` under the name you provided (we will see this
 further below). You also see how we can access the current price data of the
 AAPL stock in the ``data`` event frame (for more information see
-`here <https://www.quantopian.com/help#api-event-properties>`__).
+:class:`~zipline.protocol.BarData`).
 
 Running the Algorithm
 ~~~~~~~~~~~~~~~~~~~~~
@@ -108,7 +104,9 @@ If you haven't ingested the data, then run:
    $ zipline ingest [-b <bundle>]
 
 where ``<bundle>`` is the name of the bundle to ingest, defaulting to
-``quantopian-quandl``.
+``quandl``. The ``quandl`` bundle needs a free API key from
+https://data.nasdaq.com in the ``QUANDL_API_KEY`` environment variable; see
+:ref:`quandl-data-bundle`.
 
 
 you can check out the :ref:`ingesting data <ingesting-data>` section for
@@ -127,63 +125,60 @@ on OSX):
 
 .. parsed-literal::
 
-  Usage: zipline run [OPTIONS]
+   Usage: zipline run [OPTIONS]
 
-  Run a backtest for the given algorithm.
+     Run a backtest for the given algorithm.
 
-  Options:
-   -f, --algofile FILENAME         The file that contains the algorithm to run.
-   -t, --algotext TEXT             The algorithm script to run.
-   -D, --define TEXT               Define a name to be bound in the namespace
-                                   before executing the algotext. For example
-                                   '-Dname=value'. The value may be any python
-                                   expression. These are evaluated in order so
-                                   they may refer to previously defined names.
-   --data-frequency [daily|minute]
-                                   The data frequency of the simulation.
-                                   [default: daily]
-   --capital-base FLOAT            The starting capital for the simulation.
-                                   [default: 10000000.0]
-   -b, --bundle BUNDLE-NAME        The data bundle to use for the simulation.
-                                   [default: quandl]
-   --bundle-timestamp TIMESTAMP    The date to lookup data on or before.
-                                   [default: <current-time>]
-   -s, --start DATE                The start date of the simulation.
-   -e, --end DATE                  The end date of the simulation.
-   -o, --output FILENAME           The location to write the perf data. If this
-                                   is '-' the perf will be written to stdout.
-                                   [default: -]
-   --trading-calendar TRADING-CALENDAR
-                                   The calendar you want to use e.g. LSE. NYSE
-                                   is the default.
-   --print-algo / --no-print-algo  Print the algorithm to stdout.
-   --benchmark-file                The csv file that contains the benchmark
-                                   returns (date, returns columns)
-   --benchmark-symbol              The instrument's symbol to be used as
-                                   a benchmark.
-                                   (should exist in the ingested bundle)
-   --benchmark-sid                 The sid of the instrument to be used as a
-                                   benchmark.
-                                   (should exist in the ingested bundle)
-   --no-benchmark                  This flag is used to set the benchmark to
-                                   zero. Alpha, beta and benchmark metrics
-                                   are not calculated
-   --help                          Show this message and exit.
+   Options:
+     -f, --algofile FILENAME         The file that contains the algorithm to run.
+     -t, --algotext TEXT             The algorithm script to run.
+     -D, --define TEXT               Define a name to be bound in the namespace
+                                     before executing the algotext. For example
+                                     '-Dname=value'. The value may be any python
+                                     expression. These are evaluated in order so
+                                     they may refer to previously defined names.
+     --data-frequency [minute|daily]
+                                     The data frequency of the simulation.
+                                     [default: daily]
+     --capital-base FLOAT            The starting capital for the simulation.
+                                     [default: 10000000.0]
+     -b, --bundle BUNDLE-NAME        The data bundle to use for the simulation.
+                                     [default: quandl]
+     --bundle-timestamp TIMESTAMP    The date to lookup data on or before.
+                                     [default: <current-time>]
+     -bf, --benchmark-file FILE      The csv file that contains the benchmark
+                                     returns
+     --benchmark-symbol TEXT         The symbol of the instrument to be used as a
+                                     benchmark (should exist in the ingested
+                                     bundle)
+     --benchmark-sid INTEGER         The sid of the instrument to be used as a
+                                     benchmark (should exist in the ingested
+                                     bundle)
+     --no-benchmark                  If passed, use a benchmark of zero returns.
+     -s, --start DATE                The start date of the simulation.
+     -e, --end DATE                  The end date of the simulation.
+     -o, --output FILENAME           The location to write the perf data. If this
+                                     is '-' the perf will be written to stdout.
+                                     [default: -]
+     --trading-calendar TRADING-CALENDAR
+                                     The calendar you want to use e.g. XLON. XNYS
+                                     is the default.
+     --print-algo / --no-print-algo  Print the algorithm to stdout.
+     --metrics-set TEXT              The metrics set to use. New metrics sets may
+                                     be registered in your extension.py.
+     --blotter TEXT                  The blotter to use.  [default: default]
+     --help                          Show this message and exit.
 
 As you can see there are a couple of flags that specify where to find your
 algorithm (``-f``) as well as parameters specifying which data to use,
 defaulting to ``quandl``. There are also arguments for
-the date range to run the algorithm over (``--start`` and ``--end``).To use a
+the date range to run the algorithm over (``--start`` and ``--end``). To use a
 benchmark, you need to choose one of the benchmark options listed before. You can
 always use the option (``--no-benchmark``) that uses zero returns as a benchmark (
 alpha, beta and benchmark metrics are not calculated in this case).
 Finally, you'll want to save the performance metrics of your algorithm so that you can
 analyze how it performed. This is done via the ``--output`` flag and will cause
 it to write the performance ``DataFrame`` in the pickle Python file format.
-Note that you can also define a configuration file with these parameters that
-you can then conveniently pass to the ``-c`` option so that you don't have to
-supply the command line args all the time (see the .conf files in the examples
-directory).
 
 Thus, to execute our algorithm from above and save the results to
 ``buyapple_out.pickle``, we call ``zipline run`` as follows:
@@ -211,8 +206,8 @@ this stock, the order is executed after adding the commission and
 applying the slippage model which models the influence of your order on
 the stock price, so your algorithm will be charged more than just the
 stock price \* 10. (Note, that you can also change the commission and
-slippage model that ``zipline`` uses, see the `Quantopian
-docs <https://www.quantopian.com/help#ide-slippage>`__ for more
+slippage model that ``zipline`` uses, see
+:func:`~zipline.api.set_slippage` and :func:`~zipline.api.set_commission` for more
 information).
 
 Let's take a quick look at the performance ``DataFrame``. For this, we
@@ -552,7 +547,7 @@ magic.
 
    def handle_data(context, data):
        order(symbol('AAPL'), 10)
-       record(AAPL=data[symbol('AAPL')].price)
+       record(AAPL=data.current(symbol('AAPL'), 'price'))
 
 Note that we did not have to specify an input file as above since the
 magic will use the contents of the cell and look for your algorithm
@@ -844,8 +839,8 @@ we need a new concept: History
 data for you. The first argument is the number of bars you want to
 collect, the second argument is the unit (either ``'1d'`` or ``'1m'``,
 but note that you need to have minute-level data for using ``1m``). For
-a more detailed description of ``history()``'s features, see the
-`Quantopian docs <https://www.quantopian.com/help#ide-history>`__.
+a more detailed description of ``history()``'s features, see
+:meth:`~zipline.protocol.BarData.history`.
 Let's look at the strategy which should make this clear:
 
 .. code-block:: python
@@ -897,13 +892,13 @@ Let's look at the strategy which should make this clear:
        perf['AAPL'].plot(ax=ax2)
        perf[['short_mavg', 'long_mavg']].plot(ax=ax2)
 
-       perf_trans = perf.ix[[t != [] for t in perf.transactions]]
-       buys = perf_trans.ix[[t[0]['amount'] > 0 for t in perf_trans.transactions]]
-       sells = perf_trans.ix[
+       perf_trans = perf.loc[[t != [] for t in perf.transactions]]
+       buys = perf_trans.loc[[t[0]['amount'] > 0 for t in perf_trans.transactions]]
+       sells = perf_trans.loc[
            [t[0]['amount'] < 0 for t in perf_trans.transactions]]
-       ax2.plot(buys.index, perf.short_mavg.ix[buys.index],
+       ax2.plot(buys.index, perf.short_mavg.loc[buys.index],
                 '^', markersize=10, color='m')
-       ax2.plot(sells.index, perf.short_mavg.ix[sells.index],
+       ax2.plot(sells.index, perf.short_mavg.loc[sells.index],
                 'v', markersize=10, color='k')
        ax2.set_ylabel('price in $')
        plt.legend(loc=0)
@@ -912,8 +907,7 @@ Let's look at the strategy which should make this clear:
 .. image:: tutorial_files/tutorial_22_1.png
 
 Here we are explicitly defining an ``analyze()`` function that gets
-automatically called once the backtest is done (this is not possible on
-Quantopian currently).
+automatically called once the backtest is done.
 
 Although it might not be directly apparent, the power of ``history()``
 (pun intended) can not be under-estimated as most algorithms make use of
@@ -927,9 +921,7 @@ the ``scikit-learn`` functions require ``numpy.ndarray``\ s rather than
 
 We also used the ``order_target()`` function above. This and other
 functions like it can make order management and portfolio rebalancing
-much easier. See the `Quantopian documentation on order
-functions <https://www.quantopian.com/help#api-order-methods>`__ for
-more details.
+much easier. See the :doc:`API reference <appendix>` for more details.
 
 Conclusions
 ~~~~~~~~~~~
@@ -937,12 +929,8 @@ Conclusions
 We hope that this tutorial gave you a little insight into the
 architecture, API, and features of ``zipline``. For next steps, check
 out some of the
-`examples <https://github.com/quantopian/zipline/tree/master/zipline/examples>`__.
+`examples <https://github.com/fangchenli/zipline/tree/master/zipline/examples>`__.
 
-Feel free to ask questions on `our mailing
-list <https://groups.google.com/forum/#!forum/zipline>`__, report
-problems on our `GitHub issue
-tracker <https://github.com/quantopian/zipline/issues?state=open>`__,
-`get
-involved <https://github.com/quantopian/zipline/wiki/Contribution-Requests>`__,
-and `checkout Quantopian <https://quantopian.com>`__.
+Feel free to report problems on our `GitHub issue
+tracker <https://github.com/fangchenli/zipline/issues>`__, and see the
+:doc:`development-guidelines` if you'd like to get involved.

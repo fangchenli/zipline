@@ -28,6 +28,7 @@ uv run pytest tests/test_algorithm.py
 uv run pytest "tests/test_algorithm.py::TestMiscellaneousAPI::test_zipline_api_resolves_dynamically"
 uv run pytest -n auto                            # parallel (pytest-xdist, one worker per test class)
 uv run pytest --doctest-modules zipline          # doctests, run separately from the suite
+uv run --group docs sphinx-build -b html docs/source /tmp/zipline-docs   # docs
 ```
 
 Test cases are still `unittest`-style classes, some parameterized with `parameterized`. pytest collects them directly.

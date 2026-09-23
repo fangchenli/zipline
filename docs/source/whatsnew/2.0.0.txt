@@ -1,0 +1,124 @@
+Development
+-----------
+
+:Release: 2.0.0
+:Date: TBD
+
+.. warning::
+   This release is still under active development.  All changes listed are
+   subject to change at any time.
+
+This release revives Zipline on a modern stack. Zipline 1.4.1 supported
+Python 3.6 with pandas 0.22; this release supports Python 3.12, 3.13 and 3.14
+with pandas 3, numpy 2, Cython 3 and SQLAlchemy 2. Several behaviours change
+as a result; see :ref:`api-changes-2.0.0` before upgrading.
+
+Highlights
+~~~~~~~~~~
+
+- Supports Python 3.12, 3.13 and 3.14, and drops support for older versions.
+- Supports pandas 3, numpy 2, Cython 3 and SQLAlchemy 2.
+- Trading calendars now come from
+  `exchange_calendars <https://github.com/gerrymanoim/exchange_calendars>`__,
+  which replaces the unmaintained ``trading_calendars``.
+- Session labels are timezone-naive dates. Minutes and other points in time
+  remain timezone-aware UTC timestamps.
+- Zipline ships type information: ``.pyi`` stubs for its Cython extensions and
+  a generated stub for :mod:`zipline.api`.
+
+.. _api-changes-2.0.0:
+
+API and Behaviour Changes
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Session labels are tz-naive midnight timestamps, e.g.
+  ``pd.Timestamp("2016-01-04")`` rather than
+  ``pd.Timestamp("2016-01-04", tz="UTC")``. This applies to
+  ``SimulationParameters`` start and end sessions, calendar sessions, asset
+  lifetime dates (``start_date``, ``end_date``, ``auto_close_date`` and so on),
+  daily bar indexes, adjustment dates and pipeline output dates.
+  ``run_algorithm``, ``run_pipeline`` and the command line interface still
+  accept tz-aware dates and convert them.
+- Calendars come from ``exchange_calendars`` through
+  :func:`zipline.utils.calendar_utils.get_calendar`, which is also exported as
+  ``zipline.get_calendar``. It builds calendars with ``side="right"`` (the NYSE
+  trades 9:31 to 16:00) and history back to 1990. Some calendar methods have
+  new names; in particular, the first trading minute of a session is
+  ``session_first_minute`` / ``first_minutes``, while ``session_open`` /
+  ``opens`` are the opening bell.
+- ``data.history()`` with several assets *and* several fields returns a
+  DataFrame with ``(field, asset)`` MultiIndex columns instead of the removed
+  ``pandas.Panel``. ``history(...)[field]`` still gives a dates x assets frame.
+- The ``quantopian-quandl`` bundle is removed because the Quantopian-hosted
+  mirror it downloaded from no longer exists. ``quandl``, which downloads the
+  WIKI Prices dataset from Nasdaq Data Link (formerly Quandl), is now the
+  default bundle. It requires a free API key in ``QUANDL_API_KEY``, and the
+  dataset ends in March 2018.
+- ``BundleData`` (returned by ``zipline.data.bundles.load``) has a ``close()``
+  method and is a context manager, releasing its database connections.
+  ``run_algorithm`` closes the bundle it loads.
+- Pipeline output columns are sorted by name. Categorical pipeline outputs
+  whose missing value is ``None`` now show missing values as NaN.
+- Multiple-output custom factors used directly as pipeline columns produce
+  object columns of tuples instead of numpy records.
+- ``zipline.utils.cache.dataframe_cache`` only supports pickle serialization,
+  since pandas removed msgpack support.
+- The HDF5 minute bar update files written by ``H5MinuteBarUpdateWriter`` use
+  format version 1, a frame indexed by ``(sid, dt)``, replacing the
+  ``pandas.Panel`` based version 0.
+- ``InMemoryDailyBarReader.from_panel`` is removed; pass a dict of frames
+  keyed by field to the constructor instead.
+- The execution styles' ``get_limit_price`` and ``get_stop_price`` take an
+  ``is_buy`` argument on every style; some styles previously called it
+  ``_is_buy``.
+- ``TradingAlgorithm.portfolio`` and ``account`` raise ``AttributeError`` with a
+  clear message when accessed outside of a running simulation.
+
+Bug Fixes
+~~~~~~~~~
+
+- ``InMemoryDailyBarReader.get_value`` and ``get_last_traded_dt`` used a
+  misnamed attribute and always raised; ``get_last_traded_dt`` also looked
+  ahead past the requested date.
+- Combining a datetime ``Factor`` with a numeric scalar raises the intended
+  ``TypeError`` instead of a numpy ``ValueError``.
+- ``fetch_csv`` raised ``AttributeError`` on CSV parse errors, and a fetched
+  CSV with unknown sids raised an opaque ``TypeError``; the latter now raises
+  ``SidsNotFound``.
+- ``EyeLoader`` could not be constructed.
+- ``RestrictedListOrder`` crashed on assets with NaT start or end dates.
+- ``AssetDBWriter.write_direct`` crashed when given equities without
+  exchanges; it now raises a ``ValueError``.
+- Stock dividend payouts are read by column name, so they no longer depend on
+  the column order in the adjustments database.
+- ``run_algorithm`` and bundle ingestion no longer leak SQLite connections.
+
+Maintenance and Refactorings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Replaced unmaintained dependencies: ``trading_calendars`` with
+  ``exchange_calendars``, ``empyrical`` with ``empyrical-reloaded``, ``bcolz``
+  with ``bcolz-zipline``, ``python-interface`` with :mod:`abc`, ``pytz`` with
+  :mod:`zoneinfo` in Zipline itself, and ``nose`` with ``pytest``. Removed
+  ``six``, ``distutils`` and Python 2 compatibility code.
+- Removed ``pandas.Panel`` and other APIs removed from pandas, numpy and Python.
+- Ported the asset database to SQLAlchemy 2.
+- Removed the unused ``zipline.utils.tradingcalendar`` and
+  ``zipline.utils.data`` modules.
+
+Build
+~~~~~
+
+- The project is built with ``pyproject.toml`` and managed with
+  `uv <https://docs.astral.sh/uv/>`__. setuptools-scm replaces versioneer.
+- Dropped the conda recipes, Travis, AppVeyor and Docker files.
+- Continuous integration on GitHub Actions runs the tests on Linux and macOS
+  with Python 3.12, 3.13 and 3.14, the doctests, ruff and ty.
+- The optional ``talib`` extra uses the ``ta-lib`` package, which ships wheels
+  that include the TA-Lib C library.
+
+Documentation
+~~~~~~~~~~~~~
+
+- Updated the installation, development, trading calendar, data bundle,
+  tutorial and release documentation for this release.
