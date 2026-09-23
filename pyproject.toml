@@ -1,9 +1,128 @@
 [build-system]
 requires = [
-    "setuptools", 
-    "wheel",
-    "python_version==3.6",
-    "cython==0.29.21",
-    "numpy"
+    "setuptools>=77",
+    "setuptools-scm>=8",
+    "cython>=3.1",
+    "numpy>=2.0",
 ]
-build_backend = "setuptools.build_meta"
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zipline"
+description = "A backtester for financial algorithms."
+readme = "README.rst"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Quantopian Inc.", email = "opensource@quantopian.com" }]
+requires-python = ">=3.12"
+dynamic = ["version"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Natural Language :: English",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: System :: Distributed Computing",
+]
+dependencies = [
+    "alembic>=1.13",
+    "bcolz-zipline>=1.13",
+    "bottleneck>=1.4",
+    "click>=8.1",
+    "empyrical-reloaded>=0.5.12",
+    "exchange-calendars>=4.13",
+    "h5py>=3.12",
+    "intervaltree>=3.1",
+    "iso3166>=2.1",
+    "iso4217>=1.12",
+    "logbook>=1.8",
+    "lru-dict>=1.3",
+    "multipledispatch>=1.0",
+    "networkx>=3.4",
+    "numexpr>=2.10",
+    "numpy>=2.0",
+    "pandas>=3.0",
+    "python-dateutil>=2.9",
+    "requests>=2.32",
+    "scipy>=1.14",
+    "sqlalchemy>=2.0",
+    "tables>=3.10",
+    "toolz>=1.0",
+]
+
+[project.optional-dependencies]
+talib = ["ta-lib>=0.6"]
+
+[project.urls]
+Source = "https://github.com/fangchenli/zipline"
+
+[project.scripts]
+zipline = "zipline.__main__:main"
+
+[dependency-groups]
+test = [
+    "matplotlib>=3.9",
+    "parameterized>=0.9",
+    "pytest>=8.3",
+    "pytest-cov>=6",
+    "pytest-xdist>=3.6",
+    "responses>=0.25",
+    "testfixtures>=8",
+]
+lint = [
+    "ruff>=0.15",
+    "ty>=0.0.80",
+]
+dev = [
+    { include-group = "test" },
+    { include-group = "lint" },
+]
+
+[tool.uv]
+default-groups = ["dev"]
+# Rebuild the Cython extensions whenever their sources change.
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "setup.py" },
+    { file = "zipline/**/*.pyx" },
+    { file = "zipline/**/*.pxd" },
+    { file = "zipline/**/*.pxi" },
+    { git = { commit = true, tags = true } },
+]
+
+[tool.setuptools.packages.find]
+include = ["zipline", "zipline.*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.pyi", "*.pxd", "*.pxi"]
+
+[tool.setuptools_scm]
+version_file = "zipline/_version.py"
+fallback_version = "2.0.0.dev0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers"]
+
+[tool.coverage.run]
+source = ["zipline"]
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "raise NotImplementedError"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+extend-exclude = ["docs"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.ty.environment]
+python-version = "3.12"
