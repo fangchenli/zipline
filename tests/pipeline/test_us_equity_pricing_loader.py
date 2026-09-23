@@ -343,13 +343,13 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
 
         output = {}
         if should_include_price_adjustments:
-            output["price_adjustments"] = price_adjustments
+            output["price"] = price_adjustments
         if should_include_volume_adjustments:
-            output["volume_adjustments"] = volume_adjustments
+            output["volume"] = volume_adjustments
 
         return output
 
-    @parameterized(
+    @parameterized.expand(
         [
             ([SPLITS, MERGERS, DIVIDENDS_EXPECTED], "all"),
             ([SPLITS, MERGERS, DIVIDENDS_EXPECTED], "price"),
@@ -403,15 +403,24 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
                     self.assertEqual(adj.last_col, expected.last_col)
                     assert_allclose(adj.value, expected.value)
 
-    @parameterized([(True,), (False,)])
+    @parameterized.expand([(True,), (False,)])
     def test_load_adjustments_to_df(self, convert_dts):
         reader = self.adjustment_reader
         adjustment_dfs = reader.unpack_db_to_component_dfs(convert_dates=convert_dts)
 
+        # The writer can't compute a ratio for a dividend whose ex_date is the
+        # first session of the pricing data (there is no previous close), so
+        # it drops those. (This test never ran before the move to pytest, so
+        # the expectation had not caught up with that.)
+        first_session = str_to_seconds(str(self.START_DATE.date()))
+        dividends_expected = DIVIDENDS_EXPECTED[
+            DIVIDENDS_EXPECTED.effective_date > first_session
+        ].reset_index(drop=True)
+
         name_and_raw = (
             ("splits", SPLITS),
             ("mergers", MERGERS),
-            ("dividends", DIVIDENDS_EXPECTED),
+            ("dividends", dividends_expected),
         )
 
         def create_expected_table(df, name):
@@ -419,15 +428,21 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
 
             if convert_dts:
                 for colname in reader._datetime_int_cols[name]:
-                    expected_df[colname] = expected_df[colname].astype("datetime64[s]")
+                    expected_df[colname] = (
+                        expected_df[colname]
+                        .astype("datetime64[s]")
+                        .astype("datetime64[ns]")
+                    )
 
             return expected_df
 
         def create_expected_div_table(df, name):
             expected_df = df.copy()
 
-            if not convert_dts:
-                for colname in reader._datetime_int_cols[name]:
+            for colname in reader._datetime_int_cols[name]:
+                if convert_dts:
+                    expected_df[colname] = expected_df[colname].astype("datetime64[ns]")
+                else:
                     expected_df[colname] = (
                         expected_df[colname].astype("datetime64[s]").astype(int)
                     )
