@@ -25,11 +25,12 @@ from zipline.utils.preprocess import preprocess
 from zipline.utils.sqlite_utils import check_and_create_engine
 
 from ..adjustments import SQLiteAdjustmentReader, SQLiteAdjustmentWriter
-from ..bcolz_daily_bars import BcolzDailyBarReader, BcolzDailyBarWriter
+from ..bcolz_daily_bars import BcolzDailyBarReader
 from ..minute_bars import (
     BcolzMinuteBarReader,
     BcolzMinuteBarWriter,
 )
+from ..parquet_daily_bars import ParquetDailyBarReader, ParquetDailyBarWriter
 
 log = Logger(__name__)
 
@@ -78,6 +79,11 @@ def cache_relative(bundle_name):
 
 
 def daily_equity_relative(bundle_name, timestr):
+    return bundle_name, timestr, "daily_equities.parquet"
+
+
+def bcolz_daily_equity_relative(bundle_name, timestr):
+    """Where ingestions made before zipline 2.0 stored their daily bars."""
     return bundle_name, timestr, "daily_equities.bcolz"
 
 
@@ -270,7 +276,7 @@ def _make_bundle_core():
                   The asset db writer to write into.
               minute_bar_writer : BcolzMinuteBarWriter
                   The minute bar writer to write into.
-              daily_bar_writer : BcolzDailyBarWriter
+              daily_bar_writer : ParquetDailyBarWriter
                   The daily bar writer to write into.
               adjustment_writer : SQLiteAdjustmentWriter
                   The adjustment db writer to write into.
@@ -419,18 +425,12 @@ def _make_bundle_core():
                     working_dir(pth.data_path([], environ=environ))
                 )
                 daily_bars_path = wd.ensure_dir(*daily_equity_relative(name, timestr))
-                daily_bar_writer = BcolzDailyBarWriter(
+                daily_bar_writer = ParquetDailyBarWriter(
                     daily_bars_path,
                     calendar,
                     start_session,
                     end_session,
                 )
-                # Do an empty write to ensure that the daily ctables exist
-                # when we create the SQLiteAdjustmentWriter below. The
-                # SQLiteAdjustmentWriter needs to open the daily ctables so
-                # that it can compute the adjustment ratios for the dividends.
-
-                daily_bar_writer.write(())
                 minute_bar_writer = BcolzMinuteBarWriter(
                     wd.ensure_dir(*minute_equity_relative(name, timestr)),
                     calendar,
@@ -445,7 +445,9 @@ def _make_bundle_core():
                 adjustment_db_writer = stack.enter_context(
                     SQLiteAdjustmentWriter(
                         wd.getpath(*adjustment_db_relative(name, timestr)),
-                        BcolzDailyBarReader(daily_bars_path),
+                        # Opens lazily, after the bundle has written its
+                        # daily bars, to compute dividend ratios.
+                        ParquetDailyBarReader(daily_bars_path),
                         overwrite=True,
                     )
                 )
@@ -474,6 +476,10 @@ def _make_bundle_core():
                 show_progress,
                 pth.data_path([name, timestr], environ=environ),
             )
+            if daily_bar_writer is not None and not daily_bar_writer.exists:
+                # The bundle has no daily bars; write an empty dataset so
+                # that the bundle can still be loaded.
+                daily_bar_writer.write(())
 
             for version in sorted(set(assets_versions), reverse=True):
                 version_path = wd.getpath(
@@ -550,6 +556,15 @@ def _make_bundle_core():
         if timestamp is None:
             timestamp = pd.Timestamp.now("UTC")
         timestr = most_recent_data(name, timestamp, environ=environ)
+        daily_path = daily_equity_path(name, timestr, environ=environ)
+        if os.path.exists(daily_path):
+            daily_bar_reader = ParquetDailyBarReader(daily_path)
+        else:
+            daily_bar_reader = BcolzDailyBarReader(
+                pth.data_path(
+                    bcolz_daily_equity_relative(name, timestr), environ=environ
+                )
+            )
         return BundleData(
             asset_finder=AssetFinder(
                 asset_db_path(name, timestr, environ=environ),
@@ -557,9 +572,7 @@ def _make_bundle_core():
             equity_minute_bar_reader=BcolzMinuteBarReader(
                 minute_equity_path(name, timestr, environ=environ),
             ),
-            equity_daily_bar_reader=BcolzDailyBarReader(
-                daily_equity_path(name, timestr, environ=environ),
-            ),
+            equity_daily_bar_reader=daily_bar_reader,
             adjustment_reader=SQLiteAdjustmentReader(
                 adjustment_db_path(name, timestr, environ=environ),
             ),

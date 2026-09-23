@@ -836,8 +836,14 @@ class ParquetDailyBarWriterTestCase(WithTmpDir, WithTradingCalendars, ZiplineTes
         metadata["version"] = FORMAT_VERSION + 1
         with open(metadata_path, "w") as f:
             json.dump(metadata, f)
+        reader = ParquetDailyBarReader(self.path)
         with self.assertRaisesRegex(ValueError, "format version"):
-            ParquetDailyBarReader(self.path)
+            reader.get_value(1, self.sessions[0], "close")
+
+    def test_opens_lazily(self):
+        reader = ParquetDailyBarReader(self.path)
+        self.write([(1, self.frame(self.sessions))])
+        assert_equal(reader.sessions, self.sessions)
 
 
 class _HDF5DailyBarTestCase(
