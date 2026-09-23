@@ -196,7 +196,7 @@ class SimulationBlotter(Blotter):
                 # Message appropriately depending on whether there's
                 # been a partial fill or not.
                 if order.filled > 0:
-                    warning_logger.warn(
+                    warning_logger.warning(
                         f"Your order for {order.amount} shares of "
                         f"{order.asset.symbol} has been partially filled. "
                         f"{order.filled} shares were successfully "
@@ -205,7 +205,7 @@ class SimulationBlotter(Blotter):
                         "were canceled."
                     )
                 elif order.filled < 0:
-                    warning_logger.warn(
+                    warning_logger.warning(
                         f"Your order for {order.amount} shares of "
                         f"{order.asset.symbol} has been partially filled. "
                         f"{-1 * order.filled} shares were successfully "
@@ -214,7 +214,7 @@ class SimulationBlotter(Blotter):
                         "were canceled."
                     )
                 else:
-                    warning_logger.warn(
+                    warning_logger.warning(
                         f"Your order for {order.amount} shares of "
                         f"{order.asset.symbol} failed to fill by the end of day "
                         "and was canceled."

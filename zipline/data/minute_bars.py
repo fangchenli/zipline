@@ -149,7 +149,7 @@ def convert_cols(cols, scale_factor, sid, invalid_data_behavior):
                 raise
 
             if invalid_data_behavior == "warn":
-                logger.warn(
+                logger.warning(
                     "Values for sid={}, col={} contain some too large for "
                     "uint32 (max={}), filtering them out",
                     sid,

@@ -21,7 +21,7 @@ from zipline.errors import (
     UnsupportedDataType,
 )
 from zipline.lib.labelarray import LabelArray
-from zipline.lib.rank import grouped_masked_is_maximal, is_missing
+from zipline.lib.rank import grouped_masked_is_maximal
 from zipline.pipeline.dtypes import (
     CLASSIFIER_DTYPES,
     FACTOR_DTYPES,
@@ -47,6 +47,7 @@ from zipline.utils.input_validation import expect_types
 from zipline.utils.numpy_utils import (
     bool_dtype,
     int64_dtype,
+    is_missing,
     repeat_first_axis,
     same,
 )

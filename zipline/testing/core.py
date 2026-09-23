@@ -5,7 +5,7 @@ import os
 import shutil
 import sys
 import tempfile
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
 from functools import wraps
 from itertools import (
@@ -1407,7 +1407,8 @@ class _TmpBarReader(tmp_dir, metaclass=ABCMeta):
         will be a unique name.
     """
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def _reader_cls(self):
         raise NotImplementedError("_reader")
 

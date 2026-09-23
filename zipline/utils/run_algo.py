@@ -6,8 +6,8 @@ import click
 
 try:
     from pygments import highlight
-    from pygments.formatters import TerminalFormatter
-    from pygments.lexers import PythonLexer
+    from pygments.formatters.terminal import TerminalFormatter
+    from pygments.lexers.python import PythonLexer
 
     PYGMENTS = True
 except ImportError:
@@ -526,12 +526,14 @@ class BenchmarkSpec:
                 end_date=end_date,
             )
         else:
-            log.warn("No benchmark configured. Assuming algorithm calls set_benchmark.")
-            log.warn(
+            log.warning(
+                "No benchmark configured. Assuming algorithm calls set_benchmark."
+            )
+            log.warning(
                 "Pass --benchmark-sid, --benchmark-symbol, or"
                 " --benchmark-file to set a source of benchmark returns."
             )
-            log.warn(
+            log.warning(
                 "Pass --no-benchmark to use a dummy benchmark of zero returns.",
             )
             benchmark_sid = None

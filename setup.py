@@ -63,6 +63,11 @@ for ext in ext_modules:
 setup(
     ext_modules=cythonize(
         ext_modules,
-        compiler_directives={"language_level": "3"},
+        compiler_directives={
+            "language_level": "3",
+            # Python-style signatures in docstrings, for help() and stubgen.
+            "embedsignature": True,
+            "embedsignature.format": "python",
+        },
     ),
 )

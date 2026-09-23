@@ -210,7 +210,7 @@ class PandasCSV(ABC):
 
         # Explicitly ignoring this parameter.  See note above.
         if format_str is not None:
-            logger.warn(
+            logger.warning(
                 "The 'format_str' parameter to fetch_csv is deprecated. "
                 "Ignoring and defaulting to pandas default date parsing."
             )
@@ -370,7 +370,7 @@ class PandasCSV(ABC):
             df = df[df["sid"].notnull()]
             no_sid_count = length_before_drop - len(df)
             if no_sid_count:
-                logger.warn(
+                logger.warning(
                     f"Dropped {no_sid_count} rows from fetched csv.",
                     no_sid_count,
                     extra={"syslog": True},

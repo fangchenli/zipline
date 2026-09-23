@@ -52,3 +52,7 @@ __all__ = [
     "time_rules",
     "calendars",
 ]
+
+# The names above are imported here; the rest of zipline.api is added by
+# ``@api_method`` when zipline.algorithm is imported.
+_STATIC_ALL = tuple(__all__)

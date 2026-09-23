@@ -15,7 +15,6 @@
 from abc import (
     ABC,
     abstractmethod,
-    abstractproperty,
 )
 
 from lru import LRU
@@ -308,11 +307,13 @@ class HistoryLoader(ABC):
         }
         self._prefetch_length = prefetch_length
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def _frequency(self):
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def _calendar(self):
         pass
 

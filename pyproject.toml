@@ -135,3 +135,7 @@ ignore = [
 
 [tool.ty.environment]
 python-version = "3.12"
+
+[tool.ty.analysis]
+# Optional notebook integrations, imported inside try/except ImportError.
+allowed-unresolved-imports = ["IPython.**", "ipywidgets"]

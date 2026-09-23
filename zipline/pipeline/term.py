@@ -2,7 +2,7 @@
 Base class for Filters, Factors and Classifiers
 """
 
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 from bisect import insort
 from collections.abc import Mapping
 from weakref import WeakValueDictionary
@@ -348,21 +348,24 @@ class Term(ABC):
         """
         return min_extra_rows
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def inputs(self):
         """
         A tuple of other Terms needed as inputs for ``self``.
         """
         raise NotImplementedError("inputs")
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def windowed(self):
         """
         Boolean indicating whether this term is a trailing-window computation.
         """
         raise NotImplementedError("windowed")
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def mask(self):
         """
         A :class:`~zipline.pipeline.Filter` representing asset/date pairs to
@@ -370,7 +373,8 @@ class Term(ABC):
         """
         raise NotImplementedError("mask")
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def dependencies(self):
         """
         A dictionary mapping terms that must be computed before `self` to the
