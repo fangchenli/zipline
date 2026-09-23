@@ -46,8 +46,8 @@ from zipline.testing.core import make_test_handler
 
 class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
                     ZiplineTestCase):
-    START_DATE = pd.Timestamp('2006-01-03', tz='utc')
-    END_DATE = pd.Timestamp('2006-12-29', tz='utc')
+    START_DATE = pd.Timestamp('2006-01-03')
+    END_DATE = pd.Timestamp('2006-12-29')
 
     @classmethod
     def make_equity_info(cls):
@@ -67,8 +67,8 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
                 },
                 3: {
                     'symbol': 'C',
-                    'start_date': pd.Timestamp('2006-05-26', tz='utc'),
-                    'end_date': pd.Timestamp('2006-08-09', tz='utc'),
+                    'start_date': pd.Timestamp('2006-05-26'),
+                    'end_date': pd.Timestamp('2006-08-09'),
                     "exchange": "TEST",
                 },
                 4: {

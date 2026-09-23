@@ -476,6 +476,7 @@ def as_column(a):
     >>> as_column(a).shape
     (5, 1)
     """
+    a = np.asarray(a)
     if a.ndim != 1:
         raise ValueError(
             "as_column expected an 1-dimensional array, "

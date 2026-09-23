@@ -82,8 +82,8 @@ def rolling_vwap(df, length):
 
 
 class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
-    START_DATE = pd.Timestamp('2014-01-01', tz='utc')
-    END_DATE = pd.Timestamp('2014-02-01', tz='utc')
+    START_DATE = pd.Timestamp('2014-01-01')
+    END_DATE = pd.Timestamp('2014-02-01')
     dates = date_range(START_DATE, END_DATE, freq=get_calendar("NYSE").day,
                        tz='utc')
 
@@ -192,9 +192,9 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
 
         # View of the data on/after the split.
         self.adj_closes = adj_closes = self.closes.copy()
-        adj_closes.ix[:self.split_date, self.split_asset] *= self.split_ratio
+        adj_closes.loc[:self.split_date, self.split_asset] *= self.split_ratio
         self.adj_volumes = adj_volumes = self.volumes.copy()
-        adj_volumes.ix[:self.split_date, self.split_asset] *= self.split_ratio
+        adj_volumes.loc[:self.split_date, self.split_asset] *= self.split_ratio
 
         self.pipeline_close_loader = DataFrameLoader(
             column=USEquityPricing.close,
@@ -437,8 +437,8 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
     BRK_A = 3
     ASSET_FINDER_EQUITY_SIDS = AAPL, MSFT, BRK_A
     ASSET_FINDER_EQUITY_SYMBOLS = 'AAPL', 'MSFT', 'BRK_A'
-    START_DATE = Timestamp('2014', tz='UTC')
-    END_DATE = Timestamp('2015', tz='UTC')
+    START_DATE = Timestamp('2014')
+    END_DATE = Timestamp('2015')
 
     SIM_PARAMS_DATA_FREQUENCY = 'daily'
     DATA_PORTAL_USE_MINUTE_DATA = False
@@ -500,7 +500,7 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
             cls.adjustment_reader,
         )
         cls.dates = cls.raw_data[cls.AAPL].index.tz_localize('UTC')
-        cls.AAPL_split_date = Timestamp("2014-06-09", tz='UTC')
+        cls.AAPL_split_date = Timestamp("2014-06-09")
         cls.assets = cls.asset_finder.retrieve_all(
             cls.ASSET_FINDER_EQUITY_SIDS
         )
@@ -527,9 +527,10 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
         # 9 get divided by the split ratio, and volumes get multiplied by the
         # split ratio.
         adj = {k: v.copy() for k, v in self.raw_data.items()}
+        aapl = adj[AAPL]
         for column in 'open', 'high', 'low', 'close':
-            adj[AAPL].ix[:split_loc, column] /= split_ratio
-        adj[AAPL].ix[:split_loc, 'volume'] *= split_ratio
+            aapl.iloc[:split_loc, aapl.columns.get_loc(column)] /= split_ratio
+        aapl.iloc[:split_loc, aapl.columns.get_loc('volume')] *= split_ratio
 
         # length -> asset -> expected vwap
         vwaps = {length: {} for length in window_lengths}
@@ -746,8 +747,8 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
 class PipelineSequenceTestCase(WithMakeAlgo, ZiplineTestCase):
 
     # run algorithm for 3 days
-    START_DATE = pd.Timestamp('2014-12-29', tz='utc')
-    END_DATE = pd.Timestamp('2014-12-31', tz='utc')
+    START_DATE = pd.Timestamp('2014-12-29')
+    END_DATE = pd.Timestamp('2014-12-31')
     ASSET_FINDER_COUNTRY_CODE = 'US'
 
     def get_pipeline_loader(self):

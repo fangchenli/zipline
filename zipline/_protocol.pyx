@@ -619,7 +619,7 @@ cdef class BarData:
 
         Returns
         -------
-        history : pd.Series or pd.DataFrame or pd.Panel
+        history : pd.Series or pd.DataFrame
             See notes below.
 
         Notes
@@ -642,13 +642,13 @@ cdef class BarData:
           :class:`pd.DatetimeIndex`, and its columns will be ``assets``.
 
         - If multiple assets and multiple fields are requested, the returned
-          value is a :class:`pd.Panel` with shape
-          ``(len(fields), bar_count, len(assets))``. The axes of the returned
-          panel will be:
-
-          - ``panel.items`` : ``fields``
-          - ``panel.major_axis`` : :class:`pd.DatetimeIndex` of length ``bar_count``
-          - ``panel.minor_axis`` : ``assets``
+          value is a :class:`pd.DataFrame` with shape
+          ``(bar_count, len(fields) * len(assets))``. The frame's index will be
+          a :class:`pd.DatetimeIndex`, and its columns will be a
+          :class:`pd.MultiIndex` of ``(field, asset)`` pairs, so
+          ``history[field]`` is a DataFrame with ``assets`` as columns. (This
+          replaces the ``pd.Panel`` returned by versions of zipline that
+          supported pandas < 1.0.)
 
         If the current simulation time is not a valid market time, we use the
         last market close instead.
@@ -746,11 +746,10 @@ cdef class BarData:
                     df_dict = {field: df * adjs[field]
                                for field, df in df_dict.items()}
 
-                # returned panel has:
-                # items: fields
-                # major axis: dt
-                # minor axis: assets
-                return pd.Panel(df_dict)
+                # Columns are a (field, asset) MultiIndex, so indexing the
+                # result by field gives a dt x assets frame, as the removed
+                # pd.Panel did.
+                return pd.concat(df_dict, axis=1)
 
     property current_dt:
         def __get__(self):

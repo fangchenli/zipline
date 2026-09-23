@@ -81,8 +81,8 @@ class Sum(CustomFactor):
 
 class MixedGenericsTestCase(zf.WithSeededRandomPipelineEngine,
                             zf.ZiplineTestCase):
-    START_DATE = pd.Timestamp('2014-01-02', tz='utc')
-    END_DATE = pd.Timestamp('2014-01-31', tz='utc')
+    START_DATE = pd.Timestamp('2014-01-02')
+    END_DATE = pd.Timestamp('2014-01-31')
     ASSET_FINDER_EQUITY_SIDS = (1, 2, 3, 4, 5)
     ASSET_FINDER_COUNTRY_CODE = 'US'
 
@@ -539,19 +539,19 @@ class RollForwardTestCase(zf.ZiplineTestCase):
         # so the first trading day should be the fourth
         self.assertEqual(
             JP_EQUITIES.roll_forward('2017-01-01'),
-            pd.Timestamp('2017-01-04', tz='UTC'),
+            pd.Timestamp('2017-01-04'),
         )
 
         # in US exchanges, the first trading day after 1/1 is the 3rd
         self.assertEqual(
             US_EQUITIES.roll_forward('2017-01-01'),
-            pd.Timestamp('2017-01-03', tz='UTC'),
+            pd.Timestamp('2017-01-03'),
         )
 
         # passing a valid trading day to roll_forward should return that day
         self.assertEqual(
             JP_EQUITIES.roll_forward('2017-01-04'),
-            pd.Timestamp('2017-01-04', tz='UTC'),
+            pd.Timestamp('2017-01-04'),
         )
 
         # passing a date before the first session should return the
@@ -597,12 +597,12 @@ class RollForwardTestCase(zf.ZiplineTestCase):
 
         self.assertEqual(
             session_domain.roll_forward('2000-02-01'),
-            pd.Timestamp('2000-02-01', tz='UTC'),
+            pd.Timestamp('2000-02-01'),
         )
 
         self.assertEqual(
             session_domain.roll_forward('2000-02-02'),
-            pd.Timestamp('2000-04-01', tz='UTC'),
+            pd.Timestamp('2000-04-01'),
         )
 
 

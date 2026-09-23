@@ -3,7 +3,7 @@
 import numpy as np
 
 from .base import FXRateReader, DEFAULT_FX_RATE
-from .utils import check_dts
+from .utils import as_utc, check_dts
 
 
 class InMemoryFXRateReader(FXRateReader):
@@ -35,6 +35,7 @@ class InMemoryFXRateReader(FXRateReader):
 
         df = self._data[rate][quote]
 
+        dts = as_utc(dts)
         check_dts(dts)
 
         # Get raw values out of the frame.

@@ -101,7 +101,7 @@ from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import bytes_array_to_native_str_object_array
 
 from .base import FXRateReader, DEFAULT_FX_RATE
-from .utils import check_dts, is_sorted_ascending
+from .utils import as_utc, check_dts, is_sorted_ascending
 
 HDF5_FX_VERSION = 0
 HDF5_FX_DEFAULT_CHUNK_SIZE = 75
@@ -188,6 +188,7 @@ class HDF5FXRateReader(FXRateReader):
         if rate == DEFAULT_FX_RATE:
             rate = self._default_rate
 
+        dts = as_utc(dts)
         check_dts(dts)
 
         col_ixs = self.dts.searchsorted(dts, side='right') - 1
@@ -274,7 +275,7 @@ class HDF5FXRateWriter:
 
     def _write_metadata(self):
         self._group.attrs['version'] = HDF5_FX_VERSION
-        self._group.attrs['last_updated_utc'] = str(pd.Timestamp.utcnow())
+        self._group.attrs['last_updated_utc'] = str(pd.Timestamp.now("UTC"))
 
     def _write_index_group(self, dts, currencies):
         """Write content of /index.

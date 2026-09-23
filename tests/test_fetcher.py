@@ -46,8 +46,8 @@ from .resources.fetcher_inputs.fetcher_test_data import (
 class FetcherTestCase(WithResponses,
                       WithMakeAlgo,
                       ZiplineTestCase):
-    START_DATE = pd.Timestamp('2006-01-03', tz='utc')
-    END_DATE = pd.Timestamp('2006-12-29', tz='utc')
+    START_DATE = pd.Timestamp('2006-01-03')
+    END_DATE = pd.Timestamp('2006-12-29')
 
     SIM_PARAMS_DATA_FREQUENCY = 'daily'
     DATA_PORTAL_USE_MINUTE_DATA = False
@@ -58,44 +58,44 @@ class FetcherTestCase(WithResponses,
         return pd.DataFrame.from_dict(
             {
                 24: {
-                    'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
-                    'end_date': pd.Timestamp('2007-01-01', tz='UTC'),
+                    'start_date': pd.Timestamp('2006-01-01'),
+                    'end_date': pd.Timestamp('2007-01-01'),
                     'symbol': 'AAPL',
                     'exchange': 'nasdaq'
                 },
                 3766: {
-                    'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
-                    'end_date': pd.Timestamp('2007-01-01', tz='UTC'),
+                    'start_date': pd.Timestamp('2006-01-01'),
+                    'end_date': pd.Timestamp('2007-01-01'),
                     'symbol': 'IBM',
                     'exchange': 'nasdaq'
                 },
                 5061: {
-                    'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
-                    'end_date': pd.Timestamp('2007-01-01', tz='UTC'),
+                    'start_date': pd.Timestamp('2006-01-01'),
+                    'end_date': pd.Timestamp('2007-01-01'),
                     'symbol': 'MSFT',
                     'exchange': 'nasdaq'
                 },
                 14848: {
-                    'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
-                    'end_date': pd.Timestamp('2007-01-01', tz='UTC'),
+                    'start_date': pd.Timestamp('2006-01-01'),
+                    'end_date': pd.Timestamp('2007-01-01'),
                     'symbol': 'YHOO',
                     'exchange': 'nasdaq'
                 },
                 25317: {
-                    'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
-                    'end_date': pd.Timestamp('2007-01-01', tz='UTC'),
+                    'start_date': pd.Timestamp('2006-01-01'),
+                    'end_date': pd.Timestamp('2007-01-01'),
                     'symbol': 'DELL',
                     'exchange': 'nasdaq'
                 },
                 13: {
-                    'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
-                    'end_date': pd.Timestamp('2010-01-01', tz='UTC'),
+                    'start_date': pd.Timestamp('2006-01-01'),
+                    'end_date': pd.Timestamp('2010-01-01'),
                     'symbol': 'NFLX',
                     'exchange': 'nasdaq'
                 },
                 9999999: {
-                    'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
-                    'end_date': pd.Timestamp('2007-01-01', tz='UTC'),
+                    'start_date': pd.Timestamp('2006-01-01'),
+                    'end_date': pd.Timestamp('2007-01-01'),
                     'symbol': 'AAPL',
                     'exchange': 'non_us_exchange'
                 }
@@ -135,8 +135,8 @@ class FetcherTestCase(WithResponses,
         )
 
         sim_params = factory.create_simulation_parameters(
-            start=pd.Timestamp("2006-01-03", tz='UTC'),
-            end=pd.Timestamp("2006-01-10", tz='UTC'),
+            start=pd.Timestamp("2006-01-03"),
+            end=pd.Timestamp("2006-01-10"),
             emission_rate="minute",
             data_frequency="minute"
         )
@@ -399,8 +399,8 @@ def handle_data(context, data):
         with patch('zipline.sources.requests_csv.PandasRequestsCSV.fetch_url',
                    new=lambda *a, **k: data):
             sim_params = factory.create_simulation_parameters(
-                start=pd.Timestamp("2006-01-09", tz='UTC'),
-                end=pd.Timestamp("2006-01-11", tz='UTC')
+                start=pd.Timestamp("2006-01-09"),
+                end=pd.Timestamp("2006-01-11")
             )
 
             algocode = """
@@ -454,8 +454,8 @@ def handle_data(context, data):
         )
 
         sim_params = factory.create_simulation_parameters(
-            start=pd.Timestamp("2006-01-09", tz='UTC'),
-            end=pd.Timestamp("2006-01-10", tz='UTC')
+            start=pd.Timestamp("2006-01-09"),
+            end=pd.Timestamp("2006-01-10")
         )
 
         self.run_algo(
@@ -512,8 +512,8 @@ def handle_data(context, data):
         )
 
         sim_params = factory.create_simulation_parameters(
-            start=pd.Timestamp("2006-01-09", tz='UTC'),
-            end=pd.Timestamp("2006-01-11", tz='UTC'),
+            start=pd.Timestamp("2006-01-09"),
+            end=pd.Timestamp("2006-01-11"),
             data_frequency="minute"
         )
 
@@ -561,8 +561,8 @@ def handle_data(context, data):
         )
 
         sim_params = factory.create_simulation_parameters(
-            start=pd.Timestamp("2013-06-13", tz='UTC'),
-            end=pd.Timestamp("2013-11-15", tz='UTC'),
+            start=pd.Timestamp("2013-06-13"),
+            end=pd.Timestamp("2013-11-15"),
             data_frequency="minute"
         )
 
@@ -596,8 +596,8 @@ def before_trading_start(context, data):
         )
 
         sim_params = factory.create_simulation_parameters(
-            start=pd.Timestamp("2013-06-12", tz='UTC'),
-            end=pd.Timestamp("2013-06-14", tz='UTC'),
+            start=pd.Timestamp("2013-06-12"),
+            end=pd.Timestamp("2013-06-14"),
             data_frequency="minute"
         )
 

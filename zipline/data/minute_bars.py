@@ -22,7 +22,6 @@ from types import MappingProxyType
 from lru import LRU
 import bcolz
 from bcolz import ctable
-import h5py
 from intervaltree import IntervalTree
 import logbook
 import numpy as np
@@ -774,7 +773,6 @@ class BcolzMinuteBarWriter:
         """
         table = self._ensure_ctable(sid)
 
-        tds = self._session_labels
         input_first_day = self._calendar.minute_to_session(
             pd.Timestamp(dts[0], tz='UTC'), direction='previous')
 
@@ -1321,7 +1319,8 @@ class H5MinuteBarUpdateWriter:
         The HDF5 complib, defaults to ``zlib``.
     """
 
-    FORMAT_VERSION = 0
+    # Version 1 stores a (sid, dt)-indexed frame; version 0 stored a pd.Panel.
+    FORMAT_VERSION = 1
 
     _COMPLEVEL = 5
     _COMPLIB = 'zlib'
@@ -1335,8 +1334,8 @@ class H5MinuteBarUpdateWriter:
 
     def write(self, frames):
         """
-        Write the frames to the target HDF5 file, using the format used by
-        ``pd.Panel.to_hdf``
+        Write the frames to the target HDF5 file as a single table indexed by
+        ``(sid, dt)``.
 
         Parameters
         ----------
@@ -1344,13 +1343,13 @@ class H5MinuteBarUpdateWriter:
             An iterable or other mapping of sid to the corresponding OHLCV
             pricing data.
         """
+        updates = pd.concat(dict(frames), names=['sid', 'dt'])
         with HDFStore(self._path, 'w',
                       complevel=self._complevel, complib=self._complib) \
                 as store:
-            panel = pd.Panel.from_dict(dict(frames))
-            panel.to_hdf(store, 'updates')
+            store.put('updates', updates)
         with tables.open_file(self._path, mode='r+') as h5file:
-            h5file.set_node_attr('/', 'version', 0)
+            h5file.set_node_attr('/', 'version', self.FORMAT_VERSION)
 
 
 class H5MinuteBarUpdateReader(MinuteBarUpdateReader):
@@ -1363,43 +1362,9 @@ class H5MinuteBarUpdateReader(MinuteBarUpdateReader):
         The path of the HDF5 file from which to source data.
     """
     def __init__(self, path):
-        try:
-            self._panel = pd.read_hdf(path)
-            return
-        except TypeError:
-            pass
-
-        # There is a bug in `pandas.read_hdf` whereby in Python 3 it fails to
-        # read the timezone attr of an h5 file if that file was written in
-        # Python 2. Until zipline has dropped Python 2 entirely we are at risk
-        # of hitting this issue. For now, use h5py to read the file instead.
-        # The downside of using h5py directly is that we need to interpret the
-        # attrs manually when creating our panel (specifically the tz attr),
-        # but since we know exactly how the file was written this should be
-        # pretty straightforward.
-        with h5py.File(path, 'r') as f:
-            updates = f['updates']
-            values = updates['block0_values']
-            items = updates['axis0']
-            major = updates['axis1']
-            minor = updates['axis2']
-
-            # Our current version of h5py is unable to read the tz attr in the
-            # tests as it was written by HDFStore. This is fixed in version
-            # 2.10.0 of h5py, but that requires >=Python3.7 on conda, so until
-            # then we should be safe to assume UTC.
-            try:
-                tz = major.attrs['tz'].decode()
-            except OSError:
-                tz = 'UTC'
-
-            self._panel = pd.Panel(
-                data=np.array(values).T,
-                items=np.array(items),
-                major_axis=pd.DatetimeIndex(major, tz=tz, freq='T'),
-                minor_axis=np.array(minor).astype('U'),
-            )
+        self._updates = pd.read_hdf(path, 'updates')
 
     def read(self, dts, sids):
-        panel = self._panel[sids, dts, :]
-        return panel.iteritems()
+        updates = self._updates
+        for sid in sids:
+            yield sid, updates.xs(sid, level='sid').reindex(dts)

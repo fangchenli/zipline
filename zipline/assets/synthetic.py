@@ -58,6 +58,11 @@ def make_rotating_equity_info(num_assets,
     )
 
 
+def _as_naive(dts):
+    """Convert tz-aware datetimes to naive UTC; asset dates are tz-naive."""
+    return dts.tz_convert(None) if dts.tz is not None else dts
+
+
 def make_simple_equity_info(sids,
                             start_date,
                             end_date,
@@ -88,6 +93,9 @@ def make_simple_equity_info(sids,
     info : pd.DataFrame
         DataFrame representing newly-created assets.
     """
+    if isinstance(sids, (set, frozenset)):
+        # pandas no longer accepts sets as an index.
+        sids = sorted(sids)
     num_assets = len(sids)
     if symbols is None:
         symbols = list(ascii_uppercase[:num_assets])
@@ -100,8 +108,8 @@ def make_simple_equity_info(sids,
     return pd.DataFrame(
         {
             'symbol': symbols,
-            'start_date': pd.to_datetime([start_date] * num_assets),
-            'end_date': pd.to_datetime([end_date] * num_assets),
+            'start_date': _as_naive(pd.to_datetime([start_date] * num_assets)),
+            'end_date': _as_naive(pd.to_datetime([end_date] * num_assets)),
             'asset_name': list(names),
             'exchange': exchange,
         },

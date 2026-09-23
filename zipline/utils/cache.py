@@ -189,10 +189,9 @@ class dataframe_cache(MutableMapping):
     clean_on_failure : bool, optional
         Should the directory be cleaned up if an exception is raised in the
         context manager.
-    serialize : {'msgpack', 'pickle:<n>'}, optional
-        How should the data be serialized. If ``'pickle'`` is passed, an
-        optional pickle protocol can be passed like: ``'pickle:3'`` which says
-        to use pickle protocol 3.
+    serialize : {'pickle', 'pickle:<n>'}, optional
+        How should the data be serialized. An optional pickle protocol can be
+        passed like: ``'pickle:3'`` which says to use pickle protocol 3.
 
     Notes
     -----
@@ -205,25 +204,17 @@ class dataframe_cache(MutableMapping):
                  path=None,
                  lock=None,
                  clean_on_failure=True,
-                 serialization='msgpack'):
+                 serialization='pickle'):
         self.path = path if path is not None else mkdtemp()
         self.lock = lock if lock is not None else nop_context
         self.clean_on_failure = clean_on_failure
 
-        if serialization == 'msgpack':
-            self.serialize = pd.DataFrame.to_msgpack
-            self.deserialize = pd.read_msgpack
-            self._protocol = None
-        else:
-            s = serialization.split(':', 1)
-            if s[0] != 'pickle':
-                raise ValueError(
-                    "'serialization' must be either 'msgpack' or 'pickle[:n]'",
-                )
-            self._protocol = int(s[1]) if len(s) == 2 else None
-
-            self.serialize = self._serialize_pickle
-            self.deserialize = partial(pickle.load, encoding='latin-1')
+        s = serialization.split(':', 1)
+        if s[0] != 'pickle':
+            raise ValueError("'serialization' must be 'pickle[:n]'")
+        self._protocol = int(s[1]) if len(s) == 2 else None
+        self.serialize = self._serialize_pickle
+        self.deserialize = partial(pickle.load, encoding="latin-1")
 
         ensure_directory(self.path)
 

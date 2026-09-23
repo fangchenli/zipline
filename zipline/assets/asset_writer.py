@@ -406,9 +406,12 @@ def check_version_info(conn, version_table, expected_version):
     """
 
     # Read the version out of the table
-    version_from_table = conn.execute(
-        sa.select((version_table.c.version,)),
-    ).scalar()
+    stmt = sa.select(version_table.c.version)
+    if isinstance(conn, sa.engine.Engine):
+        with conn.connect() as c:
+            version_from_table = c.execute(stmt).scalar()
+    else:
+        version_from_table = conn.execute(stmt).scalar()
 
     # A db without a version is considered v0
     if version_from_table is None:
@@ -434,7 +437,7 @@ def write_version_info(conn, version_table, version_value):
         The version to write in to the database
 
     """
-    conn.execute(sa.insert(version_table, values={'version': version_value}))
+    conn.execute(sa.insert(version_table).values(version=version_value))
 
 
 class _empty:
@@ -795,7 +798,7 @@ class AssetDBWriter:
 
     def _write_df_to_table(self, tbl, df, txn, chunk_size):
         df = df.copy()
-        for column, dtype in df.dtypes.iteritems():
+        for column, dtype in df.dtypes.items():
             if dtype.kind == 'M':
                 df[column] = _dt_to_epoch_ns(df[column])
 
@@ -864,11 +867,11 @@ class AssetDBWriter:
         has_tables : bool
             True if any tables are present, otherwise False.
         """
-        conn = txn.connect()
-        for table_name in asset_db_table_names:
-            if txn.dialect.has_table(conn, table_name):
-                return True
-        return False
+        inspector = sa.inspect(txn)
+        return any(
+            inspector.has_table(table_name)
+            for table_name in asset_db_table_names
+        )
 
     def init_db(self, txn=None):
         """Connect to database and create tables.

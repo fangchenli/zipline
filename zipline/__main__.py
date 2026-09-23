@@ -161,7 +161,7 @@ DEFAULT_BUNDLE = 'quantopian-quandl'
 @click.option(
     '--bundle-timestamp',
     type=Timestamp(),
-    default=pd.Timestamp.utcnow(),
+    default=pd.Timestamp.now("UTC"),
     show_default=False,
     help='The date to lookup data on or before.\n'
          '[default: <current-time>]'
@@ -379,7 +379,7 @@ def ingest(bundle, assets_version, show_progress):
     bundles_module.ingest(
         bundle,
         os.environ,
-        pd.Timestamp.utcnow(),
+        pd.Timestamp.now("UTC"),
         assets_version,
         show_progress,
     )

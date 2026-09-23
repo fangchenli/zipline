@@ -68,8 +68,8 @@ class SlippageTestCase(WithCreateBarData,
     SIM_PARAMS_EMISSION_RATE = 'daily'
 
     ASSET_FINDER_EQUITY_SIDS = (133,)
-    ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp('2006-01-05', tz='utc')
-    ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp('2006-01-07', tz='utc')
+    ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp('2006-01-05')
+    ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp('2006-01-07')
     minutes = pd.date_range(
         start=START_DATE,
         end=END_DATE - pd.Timedelta('1 minute'),
@@ -575,8 +575,8 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
     SIM_PARAMS_EMISSION_RATE = 'daily'
 
     ASSET_FINDER_EQUITY_SIDS = (133,)
-    ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp('2006-01-05', tz='utc')
-    ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp('2006-01-07', tz='utc')
+    ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp('2006-01-05')
+    ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp('2006-01-07')
     minutes = pd.date_range(
         start=START_DATE,
         end=END_DATE - pd.Timedelta('1 minute'),
@@ -1147,8 +1147,8 @@ class OrdersStopTestCase(WithSimParams,
 class FixedBasisPointsSlippageTestCase(WithCreateBarData,
                                        ZiplineTestCase):
 
-    START_DATE = pd.Timestamp('2006-01-05', tz='utc')
-    END_DATE = pd.Timestamp('2006-01-05', tz='utc')
+    START_DATE = pd.Timestamp('2006-01-05')
+    END_DATE = pd.Timestamp('2006-01-05')
 
     ASSET_FINDER_EQUITY_SIDS = (133,)
 

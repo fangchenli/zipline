@@ -173,8 +173,8 @@ class RollingSumSum(CustomFactor):
 
 class WithConstantInputs(zf.WithAssetFinder):
     asset_ids = ASSET_FINDER_EQUITY_SIDS = 1, 2, 3, 4
-    START_DATE = Timestamp('2014-01-01', tz='utc')
-    END_DATE = Timestamp('2014-03-01', tz='utc')
+    START_DATE = Timestamp('2014-01-01')
+    END_DATE = Timestamp('2014-03-01')
     ASSET_FINDER_COUNTRY_CODE = 'US'
 
     @classmethod
@@ -799,8 +799,8 @@ class FrameInputTestCase(zf.WithAssetFinder,
                          zf.WithTradingCalendars,
                          zf.ZiplineTestCase):
     asset_ids = ASSET_FINDER_EQUITY_SIDS = range(HUGE_SID, HUGE_SID + 3)
-    start = START_DATE = Timestamp('2015-01-01', tz='utc')
-    end = END_DATE = Timestamp('2015-01-31', tz='utc')
+    start = START_DATE = Timestamp('2015-01-01')
+    end = END_DATE = Timestamp('2015-01-31')
     ASSET_FINDER_COUNTRY_CODE = 'US'
 
     @classmethod
@@ -909,9 +909,9 @@ class FrameInputTestCase(zf.WithAssetFinder,
 class SyntheticBcolzTestCase(zf.WithAdjustmentReader,
                              zf.WithAssetFinder,
                              zf.ZiplineTestCase):
-    first_asset_start = Timestamp('2015-04-01', tz='UTC')
-    START_DATE = Timestamp('2015-01-01', tz='utc')
-    END_DATE = Timestamp('2015-08-01', tz='utc')
+    first_asset_start = Timestamp('2015-04-01')
+    START_DATE = Timestamp('2015-01-01')
+    END_DATE = Timestamp('2015-08-01')
 
     @classmethod
     def make_equity_info(cls):
@@ -972,13 +972,13 @@ class SyntheticBcolzTestCase(zf.WithAdjustmentReader,
         # Mask out with nans all the dates on which each asset didn't exist
         index = df.index
         min_, max_ = index[[0, -1]]
-        for asset in df.columns:
+        for col, asset in enumerate(df.columns):
             if asset.start_date >= min_:
-                start = index.get_loc(asset.start_date, method='bfill')
-                df.loc[:start + 1, asset] = nan  # +1 to overwrite start_date
+                start = index.get_indexer([asset.start_date], method='bfill')[0]
+                df.iloc[:start + 1, col] = nan  # +1 to overwrite start_date
             if asset.end_date <= max_:
                 end = index.get_loc(asset.end_date)
-                df.ix[end + 1:, asset] = nan  # +1 to *not* overwrite end_date
+                df.iloc[end + 1:, col] = nan  # +1 to *not* overwrite end_date
 
     def test_SMA(self):
         window_length = 5
@@ -1066,8 +1066,8 @@ class ParameterizedFactorTestCase(zf.WithAssetFinder,
                                   zf.WithTradingCalendars,
                                   zf.ZiplineTestCase):
     sids = ASSET_FINDER_EQUITY_SIDS = Index([1, 2, 3], dtype='int64')
-    START_DATE = Timestamp('2015-01-31', tz='UTC')
-    END_DATE = Timestamp('2015-03-01', tz='UTC')
+    START_DATE = Timestamp('2015-01-31')
+    END_DATE = Timestamp('2015-03-01')
     ASSET_FINDER_COUNTRY_CODE = '??'
 
     @classmethod
@@ -1500,8 +1500,8 @@ class PopulateInitialWorkspaceTestCase(WithConstantInputs,
 class ChunkedPipelineTestCase(zf.WithSeededRandomPipelineEngine,
                               zf.ZiplineTestCase):
 
-    PIPELINE_START_DATE = Timestamp('2006-01-05', tz='UTC')
-    END_DATE = Timestamp('2006-12-29', tz='UTC')
+    PIPELINE_START_DATE = Timestamp('2006-01-05')
+    END_DATE = Timestamp('2006-12-29')
     ASSET_FINDER_COUNTRY_CODE = 'US'
 
     def test_run_chunked_pipeline(self):

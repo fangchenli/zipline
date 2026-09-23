@@ -109,11 +109,8 @@ class TestMinuteBarData(WithCreateBarData,
                         WithBarDataChecks,
                         WithDataPortal,
                         ZiplineTestCase):
-    START_DATE = pd.Timestamp('2016-01-05', tz='UTC')
-    END_DATE = ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp(
-        '2016-01-07',
-        tz='UTC',
-    )
+    START_DATE = pd.Timestamp('2016-01-05')
+    END_DATE = ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp('2016-01-07')
 
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 3, 4, 5
 
@@ -156,17 +153,17 @@ class TestMinuteBarData(WithCreateBarData,
                 6: {
                     'symbol': 'CLG06',
                     'root_symbol': 'CL',
-                    'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
-                    'notice_date': pd.Timestamp('2005-12-20', tz='UTC'),
-                    'expiration_date': pd.Timestamp('2006-01-20', tz='UTC'),
+                    'start_date': pd.Timestamp('2005-12-01'),
+                    'notice_date': pd.Timestamp('2005-12-20'),
+                    'expiration_date': pd.Timestamp('2006-01-20'),
                     'exchange': 'ICEUS',
                 },
                 7: {
                     'symbol': 'CLK06',
                     'root_symbol': 'CL',
-                    'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
-                    'notice_date': pd.Timestamp('2006-03-20', tz='UTC'),
-                    'expiration_date': pd.Timestamp('2006-04-20', tz='UTC'),
+                    'start_date': pd.Timestamp('2005-12-01'),
+                    'notice_date': pd.Timestamp('2006-03-20'),
+                    'expiration_date': pd.Timestamp('2006-04-20'),
                     'exchange': 'ICEUS',
                 },
             },
@@ -435,7 +432,7 @@ class TestMinuteBarData(WithCreateBarData,
         split = splits[0]
         self.assertEqual(
             split[0],
-            pd.Timestamp("2016-01-06", tz='UTC')
+            pd.Timestamp("2016-01-06")
         )
 
         # ... but that's it's not applied when using spot value
@@ -664,7 +661,7 @@ class TestMinuteBarData(WithCreateBarData,
         split = splits[0]
         self.assertEqual(
             split[0],
-            pd.Timestamp("2016-01-06", tz='UTC')
+            pd.Timestamp("2016-01-06")
         )
 
         # Current day is 1/06/16
@@ -732,11 +729,8 @@ class TestMinuteBarDataFuturesCalendar(WithCreateBarData,
                                        WithBarDataChecks,
                                        ZiplineTestCase):
 
-    START_DATE = pd.Timestamp('2016-01-05', tz='UTC')
-    END_DATE = ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp(
-        '2016-01-07',
-        tz='UTC',
-    )
+    START_DATE = pd.Timestamp('2016-01-05')
+    END_DATE = ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp('2016-01-07')
 
     ASSET_FINDER_EQUITY_SIDS = [1]
 
@@ -756,18 +750,18 @@ class TestMinuteBarDataFuturesCalendar(WithCreateBarData,
                 6: {
                     'symbol': 'CLH16',
                     'root_symbol': 'CL',
-                    'start_date': pd.Timestamp('2016-01-04', tz='UTC'),
-                    'notice_date': pd.Timestamp('2016-01-19', tz='UTC'),
-                    'expiration_date': pd.Timestamp('2016-02-19', tz='UTC'),
+                    'start_date': pd.Timestamp('2016-01-04'),
+                    'notice_date': pd.Timestamp('2016-01-19'),
+                    'expiration_date': pd.Timestamp('2016-02-19'),
                     'exchange': 'ICEUS',
                 },
                 7: {
                     'symbol': 'FVH16',
                     'root_symbol': 'FV',
-                    'start_date': pd.Timestamp('2016-01-04', tz='UTC'),
-                    'notice_date': pd.Timestamp('2016-01-22', tz='UTC'),
-                    'expiration_date': pd.Timestamp('2016-02-22', tz='UTC'),
-                    'auto_close_date': pd.Timestamp('2016-01-20', tz='UTC'),
+                    'start_date': pd.Timestamp('2016-01-04'),
+                    'notice_date': pd.Timestamp('2016-01-22'),
+                    'expiration_date': pd.Timestamp('2016-02-22'),
+                    'auto_close_date': pd.Timestamp('2016-01-20'),
                     'exchange': 'CMES',
                 },
             },
@@ -858,11 +852,8 @@ class TestDailyBarData(WithCreateBarData,
                        WithBarDataChecks,
                        WithDataPortal,
                        ZiplineTestCase):
-    START_DATE = pd.Timestamp('2016-01-05', tz='UTC')
-    END_DATE = ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp(
-        '2016-01-11',
-        tz='UTC',
-    )
+    START_DATE = pd.Timestamp('2016-01-05')
+    END_DATE = ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp('2016-01-11')
     CREATE_BARDATA_DATA_FREQUENCY = 'daily'
 
     ASSET_FINDER_EQUITY_SIDS = set(range(1, 9))
@@ -877,7 +868,7 @@ class TestDailyBarData(WithCreateBarData,
     @classmethod
     def make_equity_info(cls):
         frame = super().make_equity_info()
-        frame.loc[[1, 2], 'end_date'] = pd.Timestamp('2016-01-08', tz='UTC')
+        frame.loc[[1, 2], 'end_date'] = pd.Timestamp('2016-01-08')
         return frame
 
     @classmethod
@@ -916,25 +907,25 @@ class TestDailyBarData(WithCreateBarData,
             {
                 # only care about ex date, the other dates don't matter here
                 'ex_date':
-                    pd.Timestamp('2016-01-06', tz='UTC').to_datetime64(),
+                    pd.Timestamp('2016-01-06').to_datetime64(),
                 'record_date':
-                    pd.Timestamp('2016-01-06', tz='UTC').to_datetime64(),
+                    pd.Timestamp('2016-01-06').to_datetime64(),
                 'declared_date':
-                    pd.Timestamp('2016-01-06', tz='UTC').to_datetime64(),
+                    pd.Timestamp('2016-01-06').to_datetime64(),
                 'pay_date':
-                    pd.Timestamp('2016-01-06', tz='UTC').to_datetime64(),
+                    pd.Timestamp('2016-01-06').to_datetime64(),
                 'amount': 2.0,
                 'sid': cls.DIVIDEND_ASSET_SID,
             },
             {
                 'ex_date':
-                    pd.Timestamp('2016-01-07', tz='UTC').to_datetime64(),
+                    pd.Timestamp('2016-01-07').to_datetime64(),
                 'record_date':
-                    pd.Timestamp('2016-01-07', tz='UTC').to_datetime64(),
+                    pd.Timestamp('2016-01-07').to_datetime64(),
                 'declared_date':
-                    pd.Timestamp('2016-01-07', tz='UTC').to_datetime64(),
+                    pd.Timestamp('2016-01-07').to_datetime64(),
                 'pay_date':
-                    pd.Timestamp('2016-01-07', tz='UTC').to_datetime64(),
+                    pd.Timestamp('2016-01-07').to_datetime64(),
                 'amount': 4.0,
                 'sid': cls.ILLIQUID_DIVIDEND_ASSET_SID,
             }],
@@ -1183,7 +1174,7 @@ class TestDailyBarData(WithCreateBarData,
         adjustment = adjustments[0]
         self.assertEqual(
             adjustment[0],
-            pd.Timestamp("2016-01-06", tz='UTC')
+            pd.Timestamp("2016-01-06")
         )
 
         # ... but that's it's not applied when using spot value
@@ -1228,9 +1219,9 @@ class TestDailyBarData(WithCreateBarData,
         """
 
         minutes_to_check = [
-            (pd.Timestamp("2016-01-05", tz="UTC"), False),
-            (pd.Timestamp("2016-01-06", tz="UTC"), False),
-            (pd.Timestamp("2016-01-07", tz="UTC"), True),
+            (pd.Timestamp("2016-01-05"), False),
+            (pd.Timestamp("2016-01-06"), False),
+            (pd.Timestamp("2016-01-07"), True),
         ]
 
         rlm = HistoricalRestrictions([

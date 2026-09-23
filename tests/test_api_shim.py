@@ -132,8 +132,8 @@ class TestAPIShim(WithCreateBarData,
                   WithMakeAlgo,
                   ZiplineTestCase):
 
-    START_DATE = pd.Timestamp("2016-01-05", tz='UTC')
-    END_DATE = pd.Timestamp("2016-01-28", tz='UTC')
+    START_DATE = pd.Timestamp("2016-01-05")
+    END_DATE = pd.Timestamp("2016-01-28")
     SIM_PARAMS_DATA_FREQUENCY = 'minute'
 
     sids = ASSET_FINDER_EQUITY_SIDS = 1, 2, 3

@@ -489,7 +489,7 @@ class EventsLoaderTestCase(WithAssetFinder,
         # from pandas won't be tz_localized.
         dates = dates.tz_localize(None)
 
-        for asset, asset_result in results.iteritems():
+        for asset, asset_result in results.items():
             relevant_events = events[events.sid == asset.sid]
             self.assertEqual(len(relevant_events), 2)
 
@@ -532,7 +532,7 @@ class EventsLoaderTestCase(WithAssetFinder,
         # Remove timezone info from trading days, since the outputs
         # from pandas won't be tz_localized.
         dates = dates.tz_localize(None)
-        for asset, asset_result in results.iteritems():
+        for asset, asset_result in results.items():
             relevant_events = events[events.sid == asset.sid]
             self.assertEqual(len(relevant_events), 2)
 

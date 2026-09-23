@@ -27,8 +27,8 @@ from zipline.utils.functional import apply
 class QuandlBundleTestCase(WithResponses,
                            ZiplineTestCase):
     symbols = 'AAPL', 'BRK_A', 'MSFT', 'ZEN'
-    start_date = pd.Timestamp('2014-01', tz='utc')
-    end_date = pd.Timestamp('2015-01', tz='utc')
+    start_date = pd.Timestamp('2014-01')
+    end_date = pd.Timestamp('2015-01')
     bundle = bundles['quandl']
     calendar = get_calendar(bundle.calendar_name)
     api_key = 'IamNotaQuandlAPIkey'
@@ -70,7 +70,8 @@ class QuandlBundleTestCase(WithResponses,
 
         # the first index our written data will appear in the files on disk
         start_idx = (
-            self.calendar.sessions.get_loc(self.start_date, 'ffill') + 1
+            self.calendar.sessions.get_indexer([self.start_date], method='ffill')[0]
+            + 1
         )
 
         # convert an index into the raw dataframe into an index into the
@@ -81,8 +82,8 @@ class QuandlBundleTestCase(WithResponses,
             sid = sids[symbol]
             return (
                 1 -
-                all_.ix[idx, ('ex_dividend', sid)] /
-                all_.ix[idx - 1, ('close', sid)]
+                all_.iloc[idx][('ex_dividend', sid)] /
+                all_.iloc[idx - 1][('close', sid)]
             )
 
         adjustments = [

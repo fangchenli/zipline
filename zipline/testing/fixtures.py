@@ -865,12 +865,9 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
         super(WithEquityDailyBarData, cls).init_class_fixtures()
         trading_calendar = cls.trading_calendars[Equity]
 
-        if trading_calendar.is_session(cls.EQUITY_DAILY_BAR_START_DATE):
-            first_session = cls.EQUITY_DAILY_BAR_START_DATE
-        else:
-            first_session = trading_calendar.date_to_session(
-                cls.EQUITY_DAILY_BAR_START_DATE, direction="next",
-            )
+        first_session = _as_session(
+            trading_calendar, cls.EQUITY_DAILY_BAR_START_DATE, 'next',
+        )
 
         if cls.EQUITY_DAILY_BAR_LOOKBACK_DAYS > 0:
             first_session = trading_calendar.session_offset(
@@ -880,7 +877,7 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
 
         days = trading_calendar.sessions_in_range(
             first_session,
-            cls.EQUITY_DAILY_BAR_END_DATE,
+            _as_session(trading_calendar, cls.EQUITY_DAILY_BAR_END_DATE, "previous"),
         )
 
         cls.equity_daily_bar_days = days
@@ -961,12 +958,9 @@ class WithFutureDailyBarData(WithAssetFinder, WithTradingCalendars):
         if cls.FUTURE_DAILY_BAR_USE_FULL_CALENDAR:
             days = trading_calendar.sessions
         else:
-            if trading_calendar.is_session(cls.FUTURE_DAILY_BAR_START_DATE):
-                first_session = cls.FUTURE_DAILY_BAR_START_DATE
-            else:
-                first_session = trading_calendar.date_to_session(
-                    cls.FUTURE_DAILY_BAR_START_DATE, direction="next",
-                )
+            first_session = _as_session(
+                trading_calendar, cls.FUTURE_DAILY_BAR_START_DATE, 'next',
+            )
 
             if cls.FUTURE_DAILY_BAR_LOOKBACK_DAYS > 0:
                 first_session = trading_calendar.session_offset(
@@ -976,7 +970,9 @@ class WithFutureDailyBarData(WithAssetFinder, WithTradingCalendars):
 
             days = trading_calendar.sessions_in_range(
                 first_session,
-                cls.FUTURE_DAILY_BAR_END_DATE,
+                _as_session(
+                    trading_calendar, cls.FUTURE_DAILY_BAR_END_DATE, "previous",
+                ),
             )
 
         cls.future_daily_bar_days = days
@@ -1178,11 +1174,26 @@ class WithBcolzEquityDailyBarReaderFromCSVs(WithBcolzEquityDailyBarReader):
     _write_method_name = 'write_csvs'
 
 
+def _as_session(calendar, dt, direction):
+    """The session label for ``dt``, which may be a date or a UTC minute.
+
+    Fixtures historically accepted either for their start and end dates.
+    """
+    dt = pd.Timestamp(dt)
+    if dt.tz is not None:
+        if dt.tz_convert('UTC') == dt.tz_convert('UTC').normalize():
+            # UTC midnight used to be the label of a session.
+            dt = dt.tz_convert(None)
+        else:
+            return calendar.minute_to_session(dt, direction=direction)
+    return calendar.date_to_session(dt, direction=direction)
+
+
 def _trading_days_for_minute_bars(calendar,
                                   start_date,
                                   end_date,
                                   lookback_days):
-    first_session = calendar.date_to_session(start_date, direction="next")
+    first_session = _as_session(calendar, start_date, 'next')
 
     if lookback_days > 0:
         first_session = calendar.session_offset(
@@ -1190,7 +1201,10 @@ def _trading_days_for_minute_bars(calendar,
             -lookback_days,
         )
 
-    return calendar.sessions_in_range(first_session, end_date)
+    return calendar.sessions_in_range(
+        first_session,
+        _as_session(calendar, end_date, 'previous'),
+    )
 
 
 # TODO_SS: This currently doesn't define any relationship between country_code

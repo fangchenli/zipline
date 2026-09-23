@@ -57,8 +57,8 @@ from zipline.testing.fixtures import (
 # Calendar is set to cover several half days, to check a case where half
 # days would be read out of order in cases of windows which spanned over
 # multiple half days.
-TEST_CALENDAR_START = Timestamp('2014-06-02', tz='UTC')
-TEST_CALENDAR_STOP = Timestamp('2015-12-31', tz='UTC')
+TEST_CALENDAR_START = Timestamp('2014-06-02')
+TEST_CALENDAR_STOP = Timestamp('2015-12-31')
 
 
 class BcolzMinuteBarTestCase(WithTradingCalendars,
@@ -72,12 +72,9 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
     def init_class_fixtures(cls):
         super().init_class_fixtures()
 
-        cal = cls.trading_calendar.schedule.loc[
-            TEST_CALENDAR_START:TEST_CALENDAR_STOP
-        ]
-
-        cls.market_opens = cal.market_open
-        cls.market_closes = cal.market_close
+        sessions = slice(TEST_CALENDAR_START, TEST_CALENDAR_STOP)
+        cls.market_opens = cls.trading_calendar.first_minutes.loc[sessions]
+        cls.market_closes = cls.trading_calendar.last_minutes.loc[sessions]
 
         cls.test_calendar_start = cls.market_opens.index[0]
         cls.test_calendar_stop = cls.market_opens.index[-1]
@@ -484,7 +481,7 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
 
         # Open a new writer to cover `open` method, also a common usage
         # of appending new days will be writing to an existing directory.
-        cday = self.trading_calendar.schedule.index.freq
+        cday = self.trading_calendar.day
         new_end_session = TEST_CALENDAR_STOP + cday
         writer = BcolzMinuteBarWriter.open(self.dest, new_end_session)
         next_day_minute = dt + cday
@@ -858,9 +855,9 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         Test unadjusted minute window, ensuring that early closes are filtered
         out.
         """
-        day_before_thanksgiving = Timestamp('2015-11-25', tz='UTC')
-        xmas_eve = Timestamp('2015-12-24', tz='UTC')
-        market_day_after_xmas = Timestamp('2015-12-28', tz='UTC')
+        day_before_thanksgiving = Timestamp('2015-11-25')
+        xmas_eve = Timestamp('2015-12-24')
+        market_day_after_xmas = Timestamp('2015-12-28')
 
         minutes = [self.market_closes[day_before_thanksgiving] -
                    Timedelta('2 min'),
@@ -915,8 +912,8 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
                                     arrays[i][j][minute_locs])
 
     def test_adjust_non_trading_minutes(self):
-        start_day = Timestamp('2015-06-01', tz='UTC')
-        end_day = Timestamp('2015-06-02', tz='UTC')
+        start_day = Timestamp('2015-06-01')
+        end_day = Timestamp('2015-06-02')
 
         sid = 1
         cols = {
@@ -949,7 +946,7 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         with self.assertRaises(NoDataOnDate):
             self.reader.get_value(
                 sid,
-                Timestamp('2015-06-02', tz='UTC'),
+                Timestamp('2015-06-02'),
                 'open'
             )
 
@@ -962,8 +959,8 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
 
     def test_adjust_non_trading_minutes_half_days(self):
         # half day
-        start_day = Timestamp('2015-11-27', tz='UTC')
-        end_day = Timestamp('2015-11-30', tz='UTC')
+        start_day = Timestamp('2015-11-27')
+        end_day = Timestamp('2015-11-30')
 
         sid = 1
         cols = {
@@ -1005,7 +1002,7 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         with self.assertRaises(NoDataOnDate):
             self.reader.get_value(
                 sid,
-                Timestamp('2015-11-30', tz='UTC'),
+                Timestamp('2015-11-30'),
                 'open'
             )
 
@@ -1021,8 +1018,8 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         """
 
         sid = 1
-        start_day = Timestamp('2015-11-27', tz='UTC')
-        end_day = Timestamp('2015-06-02', tz='UTC')
+        start_day = Timestamp('2015-11-27')
+        end_day = Timestamp('2015-06-02')
         attrs = {
             'start_day': start_day.value / int(1e9),
             'end_day': end_day.value / int(1e9),
@@ -1139,13 +1136,13 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
     def test_early_market_close(self):
         # Date to test is 2015-11-30 9:31
         # Early close is 2015-11-27 18:00
-        friday_after_tday = Timestamp('2015-11-27', tz='UTC')
+        friday_after_tday = Timestamp('2015-11-27')
         friday_after_tday_close = self.market_closes[friday_after_tday]
 
         before_early_close = friday_after_tday_close - timedelta(minutes=8)
         after_early_close = friday_after_tday_close + timedelta(minutes=8)
 
-        monday_after_tday = Timestamp('2015-11-30', tz='UTC')
+        monday_after_tday = Timestamp('2015-11-30')
         minute = self.market_opens[monday_after_tday]
 
         # Test condition where there is data written after the market

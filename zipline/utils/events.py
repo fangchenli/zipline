@@ -790,7 +790,7 @@ def _check_if_not_called(v):
     try:
         name = _uncalled_rules[v]
     except KeyError:
-        if not issubclass(v, EventRule):
+        if not (isinstance(v, type) and issubclass(v, EventRule)):
             return
 
         name = getattr(v, '__name__', None)

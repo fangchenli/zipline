@@ -18,7 +18,7 @@ import binascii
 from collections import deque, namedtuple
 from functools import partial
 from numbers import Integral
-from operator import itemgetter, attrgetter
+from operator import attrgetter
 import struct
 
 from logbook import Logger
@@ -165,18 +165,25 @@ def _build_ownership_map_from_rows(rows, key_from_row, value_from_row):
     return merge_ownership_periods(mappings)
 
 
-def build_ownership_map(table, key_from_row, value_from_row):
+def _fetchall(engine, stmt):
+    """Execute ``stmt`` on a fresh connection and return all rows."""
+    with engine.connect() as conn:
+        return conn.execute(stmt).fetchall()
+
+
+def build_ownership_map(engine, table, key_from_row, value_from_row):
     """
     Builds a dict mapping to lists of OwnershipPeriods, from a db table.
     """
     return _build_ownership_map_from_rows(
-        sa.select(table.c).execute().fetchall(),
+        _fetchall(engine, sa.select(table)),
         key_from_row,
         value_from_row,
     )
 
 
-def build_grouped_ownership_map(table,
+def build_grouped_ownership_map(engine,
+                                table,
                                 key_from_row,
                                 value_from_row,
                                 group_key):
@@ -186,7 +193,7 @@ def build_grouped_ownership_map(table,
     """
     grouped_rows = groupby(
         group_key,
-        sa.select(table.c).execute().fetchall(),
+        _fetchall(engine, sa.select(table)),
     )
     return {
         key: _build_ownership_map_from_rows(
@@ -307,8 +314,8 @@ class AssetFinder:
     @preprocess(engine=coerce_string_to_eng(require_exists=True))
     def __init__(self, engine, future_chain_predicates=CHAIN_PREDICATES):
         self.engine = engine
-        metadata = sa.MetaData(bind=engine)
-        metadata.reflect(only=asset_db_table_names)
+        metadata = sa.MetaData()
+        metadata.reflect(bind=engine, only=asset_db_table_names)
         for table_name in asset_db_table_names:
             setattr(self, table_name, metadata.tables[table_name])
 
@@ -336,7 +343,7 @@ class AssetFinder:
 
     @lazyval
     def exchange_info(self):
-        es = sa.select(self.exchanges.c).execute().fetchall()
+        es = _fetchall(self.engine, sa.select(self.exchanges))
         return {
             name: ExchangeInfo(name, canonical_name, country_code)
             for name, canonical_name, country_code in es
@@ -354,15 +361,19 @@ class AssetFinder:
     @lazyval
     def symbol_ownership_maps_by_country_code(self):
         sid_to_country_code = dict(
-            sa.select((
-                self.equities.c.sid,
-                self.exchanges.c.country_code,
-            )).where(
-                self.equities.c.exchange == self.exchanges.c.exchange
-            ).execute().fetchall(),
+            _fetchall(
+                self.engine,
+                sa.select(
+                    self.equities.c.sid,
+                    self.exchanges.c.country_code,
+                ).where(
+                    self.equities.c.exchange == self.exchanges.c.exchange
+                ),
+            ),
         )
 
         return build_grouped_ownership_map(
+            engine=self.engine,
             table=self.equity_symbol_mappings,
             key_from_row=(
                 lambda row: (row.company_symbol, row.share_class_symbol)
@@ -401,6 +412,7 @@ class AssetFinder:
     @lazyval
     def equity_supplementary_map(self):
         return build_ownership_map(
+            engine=self.engine,
             table=self.equity_supplementary_mappings,
             key_from_row=lambda row: (row.field, row.value),
             value_from_row=lambda row: row.value,
@@ -409,6 +421,7 @@ class AssetFinder:
     @lazyval
     def equity_supplementary_map_by_sid(self):
         return build_ownership_map(
+            engine=self.engine,
             table=self.equity_supplementary_mappings,
             key_from_row=lambda row: (row.field, row.sid),
             value_from_row=lambda row: row.value,
@@ -442,10 +455,10 @@ class AssetFinder:
         router_cols = self.asset_router.c
 
         for assets in group_into_chunks(missing):
-            query = sa.select((router_cols.sid, router_cols.asset_type)).where(
+            query = sa.select(router_cols.sid, router_cols.asset_type).where(
                 self.asset_router.c.sid.in_(map(int, assets))
             )
-            for sid, type_ in query.execute().fetchall():
+            for sid, type_ in _fetchall(self.engine, query):
                 missing.remove(sid)
                 found[sid] = self._asset_type_cache[sid] = type_
 
@@ -601,13 +614,13 @@ class AssetFinder:
 
     @staticmethod
     def _select_assets_by_sid(asset_tbl, sids):
-        return sa.select([asset_tbl]).where(
+        return sa.select(asset_tbl).where(
             asset_tbl.c.sid.in_(map(int, sids))
         )
 
     @staticmethod
     def _select_asset_by_symbol(asset_tbl, symbol):
-        return sa.select([asset_tbl]).where(asset_tbl.c.symbol == symbol)
+        return sa.select(asset_tbl).where(asset_tbl.c.symbol == symbol)
 
     def _select_most_recent_symbols_chunk(self, sid_group):
         """Retrieve the most recent symbol for a set of sids.
@@ -651,7 +664,7 @@ class AssetFinder:
         to_select = data_cols + (sa.func.max(cols.end_date),)
 
         return sa.select(
-            to_select,
+            *to_select,
         ).where(
             cols.sid.in_(map(int, sid_group))
         ).group_by(
@@ -660,11 +673,12 @@ class AssetFinder:
 
     def _lookup_most_recent_symbols(self, sids):
         return {
-            row.sid: {c: row[c] for c in symbol_columns}
+            row.sid: {c: row._mapping[c] for c in symbol_columns}
             for row in concat(
-                self.engine.execute(
+                _fetchall(
+                    self.engine,
                     self._select_most_recent_symbols_chunk(sid_group),
-                ).fetchall()
+                )
                 for sid_group in partition_all(
                     SQLITE_MAX_VARIABLE_NUMBER,
                     sids
@@ -680,14 +694,14 @@ class AssetFinder:
             def mkdict(row,
                        exchanges=self.exchange_info,
                        symbols=self._lookup_most_recent_symbols(sids)):
-                d = dict(row)
+                d = dict(row._mapping)
                 d['exchange_info'] = exchanges[d.pop('exchange')]
                 # we are not required to have a symbol for every asset, if
                 # we don't have any symbols we will just use the empty string
-                return merge(d, symbols.get(row['sid'], {}))
+                return merge(d, symbols.get(row.sid, {}))
         else:
             def mkdict(row, exchanges=self.exchange_info):
-                d = dict(row)
+                d = dict(row._mapping)
                 d['exchange_info'] = exchanges[d.pop('exchange')]
                 return d
 
@@ -695,7 +709,7 @@ class AssetFinder:
             # Load misses from the db.
             query = self._select_assets_by_sid(asset_tbl, assets)
 
-            for row in query.execute().fetchall():
+            for row in _fetchall(self.engine, query):
                 yield _convert_asset_timestamp_fields(mkdict(row))
 
     def _retrieve_assets(self, sids, asset_tbl, asset_type):
@@ -1110,13 +1124,15 @@ class AssetFinder:
 
         """
 
-        data = self._select_asset_by_symbol(self.futures_contracts, symbol)\
-                   .execute().fetchone()
+        with self.engine.connect() as conn:
+            data = conn.execute(
+                self._select_asset_by_symbol(self.futures_contracts, symbol),
+            ).fetchone()
 
         # If no data found, raise an exception
         if not data:
             raise SymbolNotFound(symbol=symbol)
-        return self.retrieve_asset(data['sid'])
+        return self.retrieve_asset(data.sid)
 
     def lookup_by_supplementary_field(self, field_name, value, as_of_date):
         try:
@@ -1212,18 +1228,20 @@ class AssetFinder:
         fc_cols = self.futures_contracts.c
 
         return [r.sid for r in
-                list(sa.select((fc_cols.sid,)).where(
+                _fetchall(self.engine, sa.select(fc_cols.sid).where(
                     (fc_cols.root_symbol == root_symbol) &
                     (fc_cols.start_date != pd.NaT.value)).order_by(
-                        fc_cols.sid).execute().fetchall())]
+                        fc_cols.sid))]
 
     def _get_root_symbol_exchange(self, root_symbol):
         fc_cols = self.futures_root_symbols.c
 
-        fields = (fc_cols.exchange,)
-
-        exchange = sa.select(fields).where(
-            fc_cols.root_symbol == root_symbol).execute().scalar()
+        with self.engine.connect() as conn:
+            exchange = conn.execute(
+                sa.select(fc_cols.exchange).where(
+                    fc_cols.root_symbol == root_symbol,
+                ),
+            ).scalar()
 
         if exchange is not None:
             return exchange
@@ -1288,12 +1306,13 @@ class AssetFinder:
 
     def _make_sids(tblattr):
         def _(self):
-            return tuple(map(
-                itemgetter('sid'),
-                sa.select((
-                    getattr(self, tblattr).c.sid,
-                )).execute().fetchall(),
-            ))
+            return tuple(
+                row.sid
+                for row in _fetchall(
+                    self.engine,
+                    sa.select(getattr(self, tblattr).c.sid),
+                )
+            )
 
         return _
 
@@ -1436,14 +1455,14 @@ class AssetFinder:
         sids = starts = ends = []
         equities_cols = self.equities.c
         if country_codes:
-            results = sa.select((
+            results = _fetchall(self.engine, sa.select(
                 equities_cols.sid,
                 equities_cols.start_date,
                 equities_cols.end_date,
-            )).where(
+            ).where(
                 (self.exchanges.c.exchange == equities_cols.exchange) &
                 (self.exchanges.c.country_code.in_(country_codes))
-            ).execute().fetchall()
+            ))
             if results:
                 sids, starts, ends = zip(*results)
 

@@ -373,7 +373,7 @@ def _make_bundle_core():
             end_session = calendar.last_session
 
         if timestamp is None:
-            timestamp = pd.Timestamp.utcnow()
+            timestamp = pd.Timestamp.now("UTC")
         timestamp = timestamp.tz_convert('utc').tz_localize(None)
 
         timestr = to_bundle_ingest_dirname(timestamp)
@@ -510,7 +510,7 @@ def _make_bundle_core():
             The raw data readers for this bundle.
         """
         if timestamp is None:
-            timestamp = pd.Timestamp.utcnow()
+            timestamp = pd.Timestamp.now("UTC")
         timestr = most_recent_data(name, timestamp, environ=environ)
         return BundleData(
             asset_finder=AssetFinder(

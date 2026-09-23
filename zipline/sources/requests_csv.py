@@ -223,7 +223,7 @@ class PandasCSV(ABC):
             format_str = None
 
         tz_str = str(tz)
-        if tz_str == ZoneInfo("UTC").zone:
+        if tz_str == "UTC":
             parsed = pd.to_datetime(
                 date_str_series.values,
                 format=format_str,

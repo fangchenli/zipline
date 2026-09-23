@@ -447,7 +447,7 @@ class DataPortalTestBase(WithDataPortal,
         # all the minutes of 7/6, 7/7, 7/8, and 31 minutes of 7/9
 
         july_9_dt = self.trading_calendar.session_first_last_minute(
-            pd.Timestamp("2015-07-09", tz='UTC')
+            pd.Timestamp("2015-07-09")
         )[0] + Timedelta("30 minutes")
 
         self.assertEqual(
@@ -470,7 +470,7 @@ class DataPortalTestBase(WithDataPortal,
         # all the minutes of 11/24, 11/25, 11/27 (half day!), and 31 minutes
         # of 11/30
         nov_30_dt = self.trading_calendar.session_first_last_minute(
-            pd.Timestamp("2015-11-30", tz='UTC')
+            pd.Timestamp("2015-11-30")
         )[0] + Timedelta("30 minutes")
 
         self.assertEqual(

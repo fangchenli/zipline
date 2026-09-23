@@ -236,7 +236,7 @@ class EarningsEstimatesLoader(PipelineLoader):
                 SHIFTED_NORMALIZED_QTRS,
             ],
         )
-        requested_qtr_data = stacked_last_per_qtr.loc[requested_qtr_idx]
+        requested_qtr_data = stacked_last_per_qtr.reindex(requested_qtr_idx)
         requested_qtr_data = requested_qtr_data.reset_index(
             SHIFTED_NORMALIZED_QTRS,
         )
@@ -705,10 +705,11 @@ class EarningsEstimatesLoader(PipelineLoader):
         last_per_qtr.index = dates
         # Forward fill values for each quarter/sid/dataset column.
         ffill_across_cols(last_per_qtr, columns, self.name_map)
-        # Stack quarter and sid into the index.
+        # Stack quarter and sid into the index, dropping all-NaN rows as the
+        # pre-pandas-3 ``stack`` did by default.
         stacked_last_per_qtr = last_per_qtr.stack(
             [SID_FIELD_NAME, NORMALIZED_QUARTERS],
-        )
+        ).dropna(how='all')
         # Set date index name for ease of reference
         stacked_last_per_qtr.index.set_names(
             SIMULATION_DATES,
