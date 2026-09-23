@@ -12,16 +12,16 @@ class BaseAliasTestCase:
 
     def test_alias(self):
         f = self.Term()
-        alias = f.alias('ayy lmao')
+        alias = f.alias("ayy lmao")
 
         f_values = np.random.RandomState(5).randn(5, 5)
 
         self.check_terms(
             terms={
-                'f_alias': alias,
+                "f_alias": alias,
             },
             expected={
-                'f_alias': f_values,
+                "f_alias": f_values,
             },
             initial_workspace={f: f_values},
             mask=self.build_mask(np.ones((5, 5))),
@@ -29,14 +29,14 @@ class BaseAliasTestCase:
 
     def test_repr(self):
         assert_equal(
-            repr(self.Term().alias('ayy lmao')),
+            repr(self.Term().alias("ayy lmao")),
             "Aliased{}(Term(...), name='ayy lmao')".format(
                 self.Term.__base__.__name__,
             ),
         )
 
     def test_graph_repr(self):
-        for name in ('a', 'b'):
+        for name in ("a", "b"):
             assert_equal(
                 self.Term().alias(name).graph_repr(),
                 name,

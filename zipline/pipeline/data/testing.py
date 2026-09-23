@@ -4,6 +4,7 @@ Datasets for testing use.
 Loaders for datasets in this file can be found in
 zipline.pipeline.data.testing.
 """
+
 from .dataset import Column, DataSet
 from zipline.utils.numpy_utils import (
     bool_dtype,
@@ -34,5 +35,5 @@ class TestingDataSet(DataSet):
     )
     categorical_default_NULL_string = Column(
         dtype=categorical_dtype,
-        missing_value='<<NULL>>',
+        missing_value="<<NULL>>",
     )

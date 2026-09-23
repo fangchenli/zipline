@@ -52,7 +52,7 @@ class _DatetimeParam(click.ParamType):
             return self.parser(value)
         except ValueError:
             self.fail(
-                f'{value} is not a valid {self.name.lower()}',
+                f"{value} is not a valid {self.name.lower()}",
                 param,
                 ctx,
             )
@@ -81,6 +81,7 @@ class Date(_DatetimeParam):
         If True, return the value as a tz-naive pd.Timestamp object normalized
         to midnight, i.e. a session label.
     """
+
     def __init__(self, tz=None, as_timestamp=False):
         super().__init__(tz=tz)
         self.as_timestamp = as_timestamp
@@ -102,6 +103,7 @@ class Time(_DatetimeParam):
         The timezone to parse the string as.
         By default the timezone will be infered from the string or naiive.
     """
+
     def parser(self, value):
         return super().parser(value).time()
 
@@ -114,7 +116,8 @@ class Timedelta(_DatetimeParam):
     unit : {'D', 'h', 'm', 's', 'ms', 'us', 'ns'}, optional
         Denotes the unit of the input if the input is an integer.
     """
-    def __init__(self, unit='ns'):
+
+    def __init__(self, unit="ns"):
         self.unit = unit
 
     def parser(self, value):

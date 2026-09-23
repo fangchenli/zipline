@@ -1,12 +1,12 @@
 """
 Base class for Pipeline API data loaders.
 """
+
 from abc import ABC, abstractmethod
 
 
 class PipelineLoader(ABC):
-    """Interface for PipelineLoaders.
-    """
+    """Interface for PipelineLoaders."""
 
     @abstractmethod
     def load_adjusted_array(self, domain, columns, dates, sids, mask):

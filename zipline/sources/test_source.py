@@ -20,10 +20,7 @@ A source to be used in testing.
 from datetime import timedelta
 import itertools
 
-from zipline.protocol import (
-    Event,
-    DATASOURCE_TYPE
-)
+from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.utils.date_utils import to_session_label
 
 
@@ -38,29 +35,23 @@ def create_trade(sid, price, amount, datetime, source_id="test_factory"):
     trade.price = price
     trade.close_price = price
     trade.open_price = price
-    trade.low = price * .95
+    trade.low = price * 0.95
     trade.high = price * 1.05
     trade.volume = amount
 
     return trade
 
 
-def date_gen(start,
-             end,
-             trading_calendar,
-             delta=timedelta(minutes=1),
-             repeats=None):
+def date_gen(start, end, trading_calendar, delta=timedelta(minutes=1), repeats=None):
     """
     Utility to generate a stream of dates.
     """
-    daily_delta = not (delta.total_seconds()
-                       % timedelta(days=1).total_seconds())
+    daily_delta = not (delta.total_seconds() % timedelta(days=1).total_seconds())
     cur = start
     if daily_delta:
         # if we are producing daily timestamps, we
         # use midnight
-        cur = cur.replace(hour=0, minute=0, second=0,
-                          microsecond=0)
+        cur = cur.replace(hour=0, minute=0, second=0, microsecond=0)
 
     def advance_current(cur):
         """
@@ -75,7 +66,8 @@ def date_gen(start,
             if trading_calendar.is_session(session):
                 return cur
             next_session = trading_calendar.date_to_session(
-                session, direction="next",
+                session,
+                direction="next",
             )
             if cur.tz is not None:
                 next_session = next_session.tz_localize(cur.tz)
@@ -113,14 +105,10 @@ class SpecificEquityTrades:
     delta  : timedelta between internal events
     filter : filter to remove the sids
     """
-    def __init__(self,
-                 trading_calendar,
-                 asset_finder,
-                 sids,
-                 start,
-                 end,
-                 delta,
-                 count=500):
+
+    def __init__(
+        self, trading_calendar, asset_finder, sids, start, end, delta, count=500
+    ):
 
         self.trading_calendar = trading_calendar
 
@@ -162,7 +150,8 @@ class SpecificEquityTrades:
                 price=float(i % 10) + 1.0,
                 amount=(i * 50) % 900 + 100,
                 datetime=date,
-            ) for (i, date), sid in itertools.product(
+            )
+            for (i, date), sid in itertools.product(
                 enumerate(date_generator), self.sids
             )
         )

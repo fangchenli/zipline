@@ -128,13 +128,10 @@ def handle_data(context, data):
 """
 
 
-class TestAPIShim(WithCreateBarData,
-                  WithMakeAlgo,
-                  ZiplineTestCase):
-
+class TestAPIShim(WithCreateBarData, WithMakeAlgo, ZiplineTestCase):
     START_DATE = pd.Timestamp("2016-01-05")
     END_DATE = pd.Timestamp("2016-01-28")
-    SIM_PARAMS_DATA_FREQUENCY = 'minute'
+    SIM_PARAMS_DATA_FREQUENCY = "minute"
     # Use static benchmark returns: some tests patch
     # DataPortal.get_history_window, which a benchmark asset would also use.
     BENCHMARK_SID = None
@@ -144,30 +141,38 @@ class TestAPIShim(WithCreateBarData,
     @classmethod
     def make_equity_minute_bar_data(cls):
         for sid in cls.sids:
-            yield sid, create_minute_df_for_asset(
-                cls.trading_calendar,
-                cls.SIM_PARAMS_START,
-                cls.SIM_PARAMS_END,
+            yield (
+                sid,
+                create_minute_df_for_asset(
+                    cls.trading_calendar,
+                    cls.SIM_PARAMS_START,
+                    cls.SIM_PARAMS_END,
+                ),
             )
 
     @classmethod
     def make_equity_daily_bar_data(cls, country_code, sids):
         for sid in sids:
-            yield sid, create_daily_df_for_asset(
-                cls.trading_calendar,
-                cls.SIM_PARAMS_START,
-                cls.SIM_PARAMS_END,
+            yield (
+                sid,
+                create_daily_df_for_asset(
+                    cls.trading_calendar,
+                    cls.SIM_PARAMS_START,
+                    cls.SIM_PARAMS_END,
+                ),
             )
 
     @classmethod
     def make_splits_data(cls):
-        return pd.DataFrame([
-            {
-                'effective_date': str_to_seconds('2016-01-06'),
-                'ratio': 0.5,
-                'sid': 3,
-            }
-        ])
+        return pd.DataFrame(
+            [
+                {
+                    "effective_date": str_to_seconds("2016-01-06"),
+                    "ratio": 0.5,
+                    "sid": 3,
+                }
+            ]
+        )
 
     @classmethod
     def make_adjustment_writer_equity_daily_bar_reader(cls):
@@ -191,9 +196,7 @@ class TestAPIShim(WithCreateBarData,
             sim_params = self.sim_params
 
         return self.make_algo(
-            script=code,
-            sim_params=sim_params,
-            algo_filename=filename
+            script=code, sim_params=sim_params, algo_filename=filename
         )
 
     def test_old_new_data_api_paths(self):
@@ -216,12 +219,11 @@ class TestAPIShim(WithCreateBarData,
         ohlcvp_fields = [
             "open",
             "high",
-            "low"
-            "close",
+            "lowclose",
             "volume",
             "price",
         ]
-        spot_value_meth = 'zipline.data.data_portal.DataPortal.get_spot_value'
+        spot_value_meth = "zipline.data.data_portal.DataPortal.get_spot_value"
 
         def assert_get_spot_value_called(fun, field):
             """
@@ -231,12 +233,8 @@ class TestAPIShim(WithCreateBarData,
             """
             with patch(spot_value_meth) as gsv:
                 fun()
-                gsv.assert_called_with(
-                    self.asset1,
-                    field,
-                    test_end_minute,
-                    'minute'
-                )
+                gsv.assert_called_with(self.asset1, field, test_end_minute, "minute")
+
         # Ensure that data.current(sid(n), field) has the same behaviour as
         # data[sid(n)].field.
         for field in ohlcvp_fields:
@@ -249,7 +247,7 @@ class TestAPIShim(WithCreateBarData,
                 field,
             )
 
-        history_meth = 'zipline.data.data_portal.DataPortal.get_history_window'
+        history_meth = "zipline.data.data_portal.DataPortal.get_history_window"
 
         def assert_get_history_window_called(fun, is_legacy):
             """
@@ -270,7 +268,7 @@ class TestAPIShim(WithCreateBarData,
                         "1m",
                         "volume",
                         "minute",
-                        True
+                        True,
                     )
                 else:
                     ghw.assert_called_with(
@@ -289,22 +287,15 @@ class TestAPIShim(WithCreateBarData,
             trading_calendar=self.trading_calendar,
         )
 
-        history_algorithm = self.create_algo(
-            history_algo,
-            sim_params=test_sim_params
-        )
+        history_algorithm = self.create_algo(history_algo, sim_params=test_sim_params)
         assert_get_history_window_called(
-            lambda: history_algorithm.run(),
-            is_legacy=True
+            lambda: history_algorithm.run(), is_legacy=True
         )
         assert_get_history_window_called(
             lambda: bar_data.history(
-                [self.asset1, self.asset2, self.asset3],
-                "volume",
-                5,
-                "1m"
+                [self.asset1, self.asset2, self.asset3], "volume", 5, "1m"
             ),
-            is_legacy=False
+            is_legacy=False,
         )
 
     def test_sid_accessor(self):
@@ -329,13 +320,10 @@ class TestAPIShim(WithCreateBarData,
             # Check that both the warnings raised were in fact
             # ZiplineDeprecationWarnings
             for warning in w:
-                self.assertEqual(
-                    ZiplineDeprecationWarning,
-                    warning.category
-                )
+                self.assertEqual(ZiplineDeprecationWarning, warning.category)
                 self.assertEqual(
                     "`data[sid(N)]` is deprecated. Use `data.current`.",
-                    str(warning.message)
+                    str(warning.message),
                 )
 
     def test_data_items(self):
@@ -354,19 +342,16 @@ class TestAPIShim(WithCreateBarData,
             self.assertEqual(4, len(w))
 
             for idx, warning in enumerate(w):
-                self.assertEqual(
-                    ZiplineDeprecationWarning,
-                    warning.category
-                )
+                self.assertEqual(ZiplineDeprecationWarning, warning.category)
                 if idx % 2 == 0:
                     self.assertEqual(
                         "Iterating over the assets in `data` is deprecated.",
-                        str(warning.message)
+                        str(warning.message),
                     )
                 else:
                     self.assertEqual(
                         "`data[sid(N)]` is deprecated. Use `data.current`.",
-                        str(warning.message)
+                        str(warning.message),
                     )
 
     def test_iterate_data(self):
@@ -383,8 +368,7 @@ class TestAPIShim(WithCreateBarData,
             self.assertEqual(4, len(set(line_nos)))
 
             for idx, warning in enumerate(w):
-                self.assertEqual(ZiplineDeprecationWarning,
-                                 warning.category)
+                self.assertEqual(ZiplineDeprecationWarning, warning.category)
 
                 self.assertEqual("<string>", warning.filename)
                 self.assertEqual(line_nos[idx], warning.lineno)
@@ -392,12 +376,12 @@ class TestAPIShim(WithCreateBarData,
                 if idx < 2:
                     self.assertEqual(
                         "Checking whether an asset is in data is deprecated.",
-                        str(warning.message)
+                        str(warning.message),
                     )
                 else:
                     self.assertEqual(
                         "Iterating over the assets in `data` is deprecated.",
-                        str(warning.message)
+                        str(warning.message),
                     )
 
     def test_history(self):
@@ -406,20 +390,20 @@ class TestAPIShim(WithCreateBarData,
             warnings.simplefilter("default", ZiplineDeprecationWarning)
 
             sim_params = self.sim_params.create_new(
-                self.sim_params.sessions[1],
-                self.sim_params.end_session
+                self.sim_params.sessions[1], self.sim_params.end_session
             )
 
-            algo = self.create_algo(history_algo,
-                                    sim_params=sim_params)
+            algo = self.create_algo(history_algo, sim_params=sim_params)
             algo.run()
 
             self.assertEqual(1, len(w))
             self.assertEqual(ZiplineDeprecationWarning, w[0].category)
             self.assertEqual("<string>", w[0].filename)
             self.assertEqual(8, w[0].lineno)
-            self.assertEqual("The `history` method is deprecated.  Use "
-                             "`data.history` instead.", str(w[0].message))
+            self.assertEqual(
+                "The `history` method is deprecated.  Use `data.history` instead.",
+                str(w[0].message),
+            )
 
     def test_old_new_history_bts_paths(self):
         """
@@ -434,13 +418,16 @@ class TestAPIShim(WithCreateBarData,
         expected_vol_without_split = np.arange(386, 391) * 100
         expected_vol_with_split = np.arange(386, 391) * 200
 
-        window = algo.recorded_vars['history']
-        np.testing.assert_array_equal(window[self.asset1].values,
-                                      expected_vol_without_split)
-        np.testing.assert_array_equal(window[self.asset2].values,
-                                      expected_vol_without_split)
-        np.testing.assert_array_equal(window[self.asset3].values,
-                                      expected_vol_with_split)
+        window = algo.recorded_vars["history"]
+        np.testing.assert_array_equal(
+            window[self.asset1].values, expected_vol_without_split
+        )
+        np.testing.assert_array_equal(
+            window[self.asset2].values, expected_vol_without_split
+        )
+        np.testing.assert_array_equal(
+            window[self.asset3].values, expected_vol_with_split
+        )
 
     def test_simple_transforms(self):
         with warnings.catch_warnings(record=True) as w:
@@ -454,8 +441,7 @@ class TestAPIShim(WithCreateBarData,
                 trading_calendar=self.trading_calendar,
             )
 
-            algo = self.create_algo(simple_transforms_algo,
-                                    sim_params=sim_params)
+            algo = self.create_algo(simple_transforms_algo, sim_params=sim_params)
             algo.run()
 
             self.assertEqual(8, len(w))
@@ -471,12 +457,14 @@ class TestAPIShim(WithCreateBarData,
                 self.assertEqual(line_no, warning1.lineno)
                 self.assertEqual(line_no, warning2.lineno)
 
-                self.assertEqual("`data[sid(N)]` is deprecated. Use "
-                                 "`data.current`.",
-                                 str(warning1.message))
-                self.assertEqual("The `{}` method is "
-                                 "deprecated.".format(transforms[idx]),
-                                 str(warning2.message))
+                self.assertEqual(
+                    "`data[sid(N)]` is deprecated. Use `data.current`.",
+                    str(warning1.message),
+                )
+                self.assertEqual(
+                    "The `{}` method is deprecated.".format(transforms[idx]),
+                    str(warning2.message),
+                )
 
             # now verify the transform values
             # minute price
@@ -528,13 +516,15 @@ class TestAPIShim(WithCreateBarData,
                 self.assertEqual(7 + idx, warning.lineno)
 
                 if idx < 2:
-                    self.assertEqual("Checking whether an asset is in data is "
-                                     "deprecated.",
-                                     str(warning.message))
+                    self.assertEqual(
+                        "Checking whether an asset is in data is deprecated.",
+                        str(warning.message),
+                    )
                 else:
-                    self.assertEqual("Iterating over the assets in `data` is "
-                                     "deprecated.",
-                                     str(warning.message))
+                    self.assertEqual(
+                        "Iterating over the assets in `data` is deprecated.",
+                        str(warning.message),
+                    )
 
     def test_reference_empty_position_by_int(self):
         with warnings.catch_warnings(record=True) as w:
@@ -546,22 +536,18 @@ class TestAPIShim(WithCreateBarData,
             self.assertEqual(1, len(w))
             self.assertEqual(
                 str(w[0].message),
-                "Referencing positions by integer is deprecated. Use an asset "
-                "instead."
+                "Referencing positions by integer is deprecated. Use an asset instead.",
             )
 
     def test_reference_empty_position_by_unexpected_type(self):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("default", ZiplineDeprecationWarning)
 
-            algo = self.create_algo(
-                reference_missing_position_by_unexpected_type_algo
-            )
+            algo = self.create_algo(reference_missing_position_by_unexpected_type_algo)
             algo.run()
 
             self.assertEqual(1, len(w))
             self.assertEqual(
                 str(w[0].message),
-                "Position lookup expected a value of type Asset but got str"
-                " instead."
+                "Position lookup expected a value of type Asset but got str instead.",
             )

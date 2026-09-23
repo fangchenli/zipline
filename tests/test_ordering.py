@@ -14,10 +14,12 @@ def T(s):
     return pd.Timestamp(s)
 
 
-class TestOrderMethods(zf.WithConstantEquityMinuteBarData,
-                       zf.WithConstantFutureMinuteBarData,
-                       zf.WithMakeAlgo,
-                       zf.ZiplineTestCase):
+class TestOrderMethods(
+    zf.WithConstantEquityMinuteBarData,
+    zf.WithConstantFutureMinuteBarData,
+    zf.WithMakeAlgo,
+    zf.ZiplineTestCase,
+):
     #     January 2006
     # Su Mo Tu We Th Fr Sa
     #  1  2  3  4  5  6  7
@@ -25,9 +27,9 @@ class TestOrderMethods(zf.WithConstantEquityMinuteBarData,
     # 15 16 17 18 19 20 21
     # 22 23 24 25 26 27 28
     # 29 30 31
-    START_DATE = T('2006-01-03')
-    END_DATE = T('2006-01-06')
-    SIM_PARAMS_START_DATE = T('2006-01-04')
+    START_DATE = T("2006-01-03")
+    END_DATE = T("2006-01-06")
+    SIM_PARAMS_START_DATE = T("2006-01-04")
 
     ASSET_FINDER_EQUITY_SIDS = (1,)
 
@@ -50,13 +52,9 @@ class TestOrderMethods(zf.WithConstantEquityMinuteBarData,
 
     @classmethod
     def make_futures_info(cls):
-        return pd.DataFrame.from_dict({
-            2: {
-                'multiplier': 10,
-                'symbol': 'F',
-                'exchange': 'TEST'
-            }
-        }, orient='index')
+        return pd.DataFrame.from_dict(
+            {2: {"multiplier": 10, "symbol": "F", "exchange": "TEST"}}, orient="index"
+        )
 
     @classmethod
     def init_class_fixtures(cls):
@@ -64,14 +62,16 @@ class TestOrderMethods(zf.WithConstantEquityMinuteBarData,
         cls.EQUITY = cls.asset_finder.retrieve_asset(1)
         cls.FUTURE = cls.asset_finder.retrieve_asset(2)
 
-    @parameterized.expand([
-        ('order', 1),
-        ('order_value', 1000),
-        ('order_target', 1),
-        ('order_target_value', 1000),
-        ('order_percent', 1),
-        ('order_target_percent', 1),
-    ])
+    @parameterized.expand(
+        [
+            ("order", 1),
+            ("order_value", 1000),
+            ("order_target", 1),
+            ("order_target_value", 1000),
+            ("order_percent", 1),
+            ("order_target_percent", 1),
+        ]
+    )
     def test_cannot_order_in_before_trading_start(self, order_method, amount):
         algotext = """
 from zipline.api import sid, {order_func}
@@ -87,12 +87,14 @@ def before_trading_start(context, data):
         with self.assertRaises(ze.OrderInBeforeTradingStart):
             algo.run()
 
-    @parameterized.expand([
-        # These should all be orders for the same amount.
-        ('order', 5000),         # 5000 shares times $2 per share
-        ('order_value', 10000),  # $10000
-        ('order_percent', 1),    # 100% on a $10000 capital base.
-    ])
+    @parameterized.expand(
+        [
+            # These should all be orders for the same amount.
+            ("order", 5000),  # 5000 shares times $2 per share
+            ("order_value", 10000),  # $10000
+            ("order_percent", 1),  # 100% on a $10000 capital base.
+        ]
+    )
     def test_order_equity_non_targeted(self, order_method, amount):
         # Every day, place an order for $10000 worth of sid(1)
         algotext = """
@@ -118,20 +120,22 @@ def do_order(context, data):
 
         for orders in result.orders.values:
             assert_equal(len(orders), 1)
-            assert_equal(orders[0]['amount'], 5000)
-            assert_equal(orders[0]['sid'], self.EQUITY)
+            assert_equal(orders[0]["amount"], 5000)
+            assert_equal(orders[0]["sid"], self.EQUITY)
 
         for i, positions in enumerate(result.positions.values, start=1):
             assert_equal(len(positions), 1)
-            assert_equal(positions[0]['amount'], 5000.0 * i)
-            assert_equal(positions[0]['sid'], self.EQUITY)
+            assert_equal(positions[0]["amount"], 5000.0 * i)
+            assert_equal(positions[0]["sid"], self.EQUITY)
 
-    @parameterized.expand([
-        # These should all be orders for the same amount.
-        ('order_target', 5000),         # 5000 shares times $2 per share
-        ('order_target_value', 10000),  # $10000
-        ('order_target_percent', 1),    # 100% on a $10000 capital base.
-    ])
+    @parameterized.expand(
+        [
+            # These should all be orders for the same amount.
+            ("order_target", 5000),  # 5000 shares times $2 per share
+            ("order_target_value", 10000),  # $10000
+            ("order_target_percent", 1),  # 100% on a $10000 capital base.
+        ]
+    )
     def test_order_equity_targeted(self, order_method, amount):
         # Every day, place an order for a target of $10000 worth of sid(1).
         # With no commissions or slippage, we should only place one order.
@@ -159,21 +163,23 @@ def do_order(context, data):
 
         assert_equal([len(ords) for ords in result.orders], [1, 0, 0, 0])
         order = result.orders.iloc[0][0]
-        assert_equal(order['amount'], 5000)
-        assert_equal(order['sid'], self.EQUITY)
+        assert_equal(order["amount"], 5000)
+        assert_equal(order["sid"], self.EQUITY)
 
         for positions in result.positions.values:
             assert_equal(len(positions), 1)
-            assert_equal(positions[0]['amount'], 5000.0)
-            assert_equal(positions[0]['sid'], self.EQUITY)
+            assert_equal(positions[0]["amount"], 5000.0)
+            assert_equal(positions[0]["sid"], self.EQUITY)
 
-    @parameterized.expand([
-        # These should all be orders for the same amount.
-        ('order', 500),          # 500 contracts times $2 per contract * 10x
-                                 # multiplier.
-        ('order_value', 10000),  # $10000
-        ('order_percent', 1),    # 100% on a $10000 capital base.
-    ])
+    @parameterized.expand(
+        [
+            # These should all be orders for the same amount.
+            ("order", 500),  # 500 contracts times $2 per contract * 10x
+            # multiplier.
+            ("order_value", 10000),  # $10000
+            ("order_percent", 1),  # 100% on a $10000 capital base.
+        ]
+    )
     def test_order_future_non_targeted(self, order_method, amount):
         # Every day, place an order for $10000 worth of sid(2)
         algotext = """
@@ -199,21 +205,23 @@ def do_order(context, data):
 
         for orders in result.orders.values:
             assert_equal(len(orders), 1)
-            assert_equal(orders[0]['amount'], 500)
-            assert_equal(orders[0]['sid'], self.FUTURE)
+            assert_equal(orders[0]["amount"], 500)
+            assert_equal(orders[0]["sid"], self.FUTURE)
 
         for i, positions in enumerate(result.positions.values, start=1):
             assert_equal(len(positions), 1)
-            assert_equal(positions[0]['amount'], 500.0 * i)
-            assert_equal(positions[0]['sid'], self.FUTURE)
+            assert_equal(positions[0]["amount"], 500.0 * i)
+            assert_equal(positions[0]["sid"], self.FUTURE)
 
-    @parameterized.expand([
-        # These should all be orders targeting the same amount.
-        ('order_target', 500),          # 500 contracts * $2 per contract * 10x
-                                        # multiplier.
-        ('order_target_value', 10000),  # $10000
-        ('order_target_percent', 1),    # 100% on a $10000 capital base.
-    ])
+    @parameterized.expand(
+        [
+            # These should all be orders targeting the same amount.
+            ("order_target", 500),  # 500 contracts * $2 per contract * 10x
+            # multiplier.
+            ("order_target_value", 10000),  # $10000
+            ("order_target_percent", 1),  # 100% on a $10000 capital base.
+        ]
+    )
     def test_order_future_targeted(self, order_method, amount):
         # Every day, place an order for a target of $10000 worth of sid(2).
         # With no commissions or slippage, we should only place one order.
@@ -242,23 +250,25 @@ def do_order(context, data):
         # We should get one order on the first day.
         assert_equal([len(ords) for ords in result.orders], [1, 0, 0, 0])
         order = result.orders.iloc[0][0]
-        assert_equal(order['amount'], 500)
-        assert_equal(order['sid'], self.FUTURE)
+        assert_equal(order["amount"], 500)
+        assert_equal(order["sid"], self.FUTURE)
 
         # Our position at the end of each day should be worth $10,000.
         for positions in result.positions.values:
             assert_equal(len(positions), 1)
-            assert_equal(positions[0]['amount'], 500.0)
-            assert_equal(positions[0]['sid'], self.FUTURE)
+            assert_equal(positions[0]["amount"], 500.0)
+            assert_equal(positions[0]["sid"], self.FUTURE)
 
-    @parameterized.expand([
-        (api.order, 5000),
-        (api.order_value, 10000),
-        (api.order_percent, 1.0),
-        (api.order_target, 5000),
-        (api.order_target_value, 10000),
-        (api.order_target_percent, 1.0),
-    ])
+    @parameterized.expand(
+        [
+            (api.order, 5000),
+            (api.order_value, 10000),
+            (api.order_percent, 1.0),
+            (api.order_target, 5000),
+            (api.order_target_value, 10000),
+            (api.order_target_percent, 1.0),
+        ]
+    )
     def test_order_method_style_forwarding(self, order_method, order_param):
         # Test that we correctly forward values passed via `style` to Order
         # objects.
@@ -293,8 +303,7 @@ def do_order(context, data):
         )
 
 
-class TestOrderMethodsDailyFrequency(zf.WithMakeAlgo,
-                                     zf.ZiplineTestCase):
+class TestOrderMethodsDailyFrequency(zf.WithMakeAlgo, zf.ZiplineTestCase):
     #     January 2006
     # Su Mo Tu We Th Fr Sa
     #  1  2  3  4  5  6  7
@@ -302,12 +311,12 @@ class TestOrderMethodsDailyFrequency(zf.WithMakeAlgo,
     # 15 16 17 18 19 20 21
     # 22 23 24 25 26 27 28
     # 29 30 31
-    START_DATE = T('2006-01-03')
-    END_DATE = T('2006-01-06')
-    SIM_PARAMS_START_DATE = T('2006-01-04')
+    START_DATE = T("2006-01-03")
+    END_DATE = T("2006-01-06")
+    SIM_PARAMS_START_DATE = T("2006-01-04")
     ASSET_FINDER_EQUITY_SIDS = (1,)
 
-    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    SIM_PARAMS_DATA_FREQUENCY = "daily"
     DATA_PORTAL_USE_MINUTE_DATA = False
 
     def test_invalid_order_parameters(self):
@@ -329,7 +338,6 @@ def initialize(context):
 
 
 class TestOrderRounding(zf.ZiplineTestCase):
-
     def test_order_rounding(self):
         answer_key = [
             (0, 0),
@@ -341,12 +349,6 @@ class TestOrderRounding(zf.ZiplineTestCase):
         ]
 
         for input, answer in answer_key:
-            self.assertEqual(
-                answer,
-                TradingAlgorithm.round_order(input)
-            )
+            self.assertEqual(answer, TradingAlgorithm.round_order(input))
 
-            self.assertEqual(
-                -1 * answer,
-                TradingAlgorithm.round_order(-1 * input)
-            )
+            self.assertEqual(-1 * answer, TradingAlgorithm.round_order(-1 * input))

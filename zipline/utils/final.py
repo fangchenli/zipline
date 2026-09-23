@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 
 # Consistent error to be thrown in various cases regarding overriding
 # `final` attributes.
-_type_error = TypeError('Cannot override final attribute')
+_type_error = TypeError("Cannot override final attribute")
 
 
 def bases_mro(bases):
@@ -23,20 +23,22 @@ def is_final(name, mro):
     of the classes. Because `final` objects are descriptor, we need to grab
     them _BEFORE_ the `__call__` is invoked.
     """
-    return any(isinstance(getattr(c, '__dict__', {}).get(name), final)
-               for c in bases_mro(mro))
+    return any(
+        isinstance(getattr(c, "__dict__", {}).get(name), final) for c in bases_mro(mro)
+    )
 
 
 class FinalMeta(type):
     """A metaclass template for classes the want to prevent subclassess from
     overriding a some methods or attributes.
     """
+
     def __new__(mcls, name, bases, dict_):
         for k, v in dict_.items():
             if is_final(k, bases):
                 raise _type_error
 
-        setattr_ = dict_.get('__setattr__')
+        setattr_ = dict_.get("__setattr__")
         if setattr_ is None:
             # No `__setattr__` was explicitly defined, look up the super
             # class's. `bases[0]` will have a `__setattr__` because
@@ -44,11 +46,10 @@ class FinalMeta(type):
             # explicit bases the class derives directly from `object`.
             setattr_ = (bases[0] if bases else object).__setattr__
 
-        if not is_final('__setattr__', bases) \
-           and not isinstance(setattr_, final):
+        if not is_final("__setattr__", bases) and not isinstance(setattr_, final):
             # implicitly make the `__setattr__` a `final` object so that
             # users cannot just avoid the descriptor protocol.
-            dict_['__setattr__'] = final(setattr_)
+            dict_["__setattr__"] = final(setattr_)
 
         return super(FinalMeta, mcls).__new__(mcls, name, bases, dict_)
 
@@ -79,11 +80,12 @@ class final(metaclass=ABCMeta):
     subclassing `C`; attempting to do so will raise a `TypeError` at class
     construction time.
     """
+
     def __new__(cls, attr):
         # Decide if this is a method wrapper or an attribute wrapper.
         # We are going to cache the `callable` check by creating a
         # method or attribute wrapper.
-        if hasattr(attr, '__get__'):
+        if hasattr(attr, "__get__"):
             return object.__new__(finaldescriptor)
         else:
             return object.__new__(finalvalue)
@@ -103,13 +105,14 @@ class final(metaclass=ABCMeta):
 
     @abstractmethod
     def __get__(self, instance, owner):
-        raise NotImplementedError('__get__')
+        raise NotImplementedError("__get__")
 
 
 class finalvalue(final):
     """
     A wrapper for a non-descriptor attribute.
     """
+
     def __get__(self, instance, owner):
         return self._attr
 
@@ -118,5 +121,6 @@ class finaldescriptor(final):
     """
     A final wrapper around a descriptor.
     """
+
     def __get__(self, instance, owner):
         return self._attr.__get__(instance, owner)

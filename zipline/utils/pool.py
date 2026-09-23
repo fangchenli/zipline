@@ -16,13 +16,13 @@ class ApplyAsyncResult:
         If ``False``, ``value`` is the exception that was raised when calling
         the functions.
     """
+
     def __init__(self, value, successful):
         self._value = value
         self._successful = successful
 
     def successful(self):
-        """Did the function execute without raising an exception?
-        """
+        """Did the function execute without raising an exception?"""
         return self._successful
 
     def get(self):
@@ -78,6 +78,7 @@ class SequentialPool:
     --------
     :class:`multiprocessing.Pool`
     """
+
     map = staticmethod(compose(list, builtins.map))
     imap = imap_unordered = staticmethod(builtins.map)
 

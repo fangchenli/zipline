@@ -1,52 +1,51 @@
-"""Canonical definitions of country code constants.
-"""
+"""Canonical definitions of country code constants."""
 
 
 class CountryCode:
-    """A simple namespace of iso3166 alpha2 country codes.
-    """
-    ARGENTINA = 'AR'
-    AUSTRALIA = 'AU'
-    AUSTRIA = 'AT'
-    BELGIUM = 'BE'
-    BRAZIL = 'BR'
-    CANADA = 'CA'
-    CHILE = 'CL'
-    CHINA = 'CN'
-    COLOMBIA = 'CO'
-    CZECH_REPUBLIC = 'CZ'
-    DENMARK = 'DK'
-    FINLAND = 'FI'
-    FRANCE = 'FR'
-    GERMANY = 'DE'
-    GREECE = 'GR'
-    HONG_KONG = 'HK'
-    HUNGARY = 'HU'
-    INDIA = 'IN'
-    INDONESIA = 'ID'
-    IRELAND = 'IE'
-    ISRAEL = 'IL'
-    ITALY = 'IT'
-    JAPAN = 'JP'
-    MALAYSIA = 'MY'
-    MEXICO = 'MX'
-    NETHERLANDS = 'NL'
-    NEW_ZEALAND = 'NZ'
-    NORWAY = 'NO'
-    PAKISTAN = 'PK'
-    PERU = 'PE'
-    PHILIPPINES = 'PH'
-    POLAND = 'PL'
-    PORTUGAL = 'PT'
-    RUSSIA = 'RU'
-    SINGAPORE = 'SG'
-    SOUTH_AFRICA = 'ZA'
-    SOUTH_KOREA = 'KR'
-    SPAIN = 'ES'
-    SWEDEN = 'SE'
-    SWITZERLAND = 'CH'
-    TAIWAN = 'TW'
-    THAILAND = 'TH'
-    TURKEY = 'TR'
-    UNITED_KINGDOM = 'GB'
-    UNITED_STATES = 'US'
+    """A simple namespace of iso3166 alpha2 country codes."""
+
+    ARGENTINA = "AR"
+    AUSTRALIA = "AU"
+    AUSTRIA = "AT"
+    BELGIUM = "BE"
+    BRAZIL = "BR"
+    CANADA = "CA"
+    CHILE = "CL"
+    CHINA = "CN"
+    COLOMBIA = "CO"
+    CZECH_REPUBLIC = "CZ"
+    DENMARK = "DK"
+    FINLAND = "FI"
+    FRANCE = "FR"
+    GERMANY = "DE"
+    GREECE = "GR"
+    HONG_KONG = "HK"
+    HUNGARY = "HU"
+    INDIA = "IN"
+    INDONESIA = "ID"
+    IRELAND = "IE"
+    ISRAEL = "IL"
+    ITALY = "IT"
+    JAPAN = "JP"
+    MALAYSIA = "MY"
+    MEXICO = "MX"
+    NETHERLANDS = "NL"
+    NEW_ZEALAND = "NZ"
+    NORWAY = "NO"
+    PAKISTAN = "PK"
+    PERU = "PE"
+    PHILIPPINES = "PH"
+    POLAND = "PL"
+    PORTUGAL = "PT"
+    RUSSIA = "RU"
+    SINGAPORE = "SG"
+    SOUTH_AFRICA = "ZA"
+    SOUTH_KOREA = "KR"
+    SPAIN = "ES"
+    SWEDEN = "SE"
+    SWITZERLAND = "CH"
+    TAIWAN = "TW"
+    THAILAND = "TH"
+    TURKEY = "TR"
+    UNITED_KINGDOM = "GB"
+    UNITED_STATES = "US"

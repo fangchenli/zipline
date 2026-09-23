@@ -1,6 +1,7 @@
 """
 PipelineLoader accepting a DataFrame as input.
 """
+
 from functools import partial
 
 from numpy import (
@@ -19,14 +20,16 @@ from zipline.utils.date_utils import to_session_labels
 from zipline.utils.numpy_utils import as_column
 from .base import PipelineLoader
 
-ADJUSTMENT_COLUMNS = Index([
-    'sid',
-    'value',
-    'kind',
-    'start_date',
-    'end_date',
-    'apply_date',
-])
+ADJUSTMENT_COLUMNS = Index(
+    [
+        "sid",
+        "value",
+        "kind",
+        "start_date",
+        "end_date",
+        "apply_date",
+    ]
+)
 
 
 class DataFrameLoader(PipelineLoader):
@@ -78,16 +81,16 @@ class DataFrameLoader(PipelineLoader):
         else:
             # Ensure that columns are in the correct order.
             adjustments = adjustments.reindex(ADJUSTMENT_COLUMNS, axis=1)
-            for date_col in ('start_date', 'end_date', 'apply_date'):
+            for date_col in ("start_date", "end_date", "apply_date"):
                 adjustments[date_col] = to_session_labels(
                     adjustments[date_col],
                 ).values
-            adjustments.sort_values(['apply_date', 'sid'], inplace=True)
+            adjustments.sort_values(["apply_date", "sid"], inplace=True)
 
         self.adjustments = adjustments
         self.adjustment_apply_dates = DatetimeIndex(adjustments.apply_date)
         self.adjustment_end_dates = DatetimeIndex(adjustments.end_date)
-        self.adjustment_sids = Index(adjustments.sid, dtype='int64')
+        self.adjustment_sids = Index(adjustments.sid, dtype="int64")
 
     def format_adjustments(self, dates, assets):
         """
@@ -119,18 +122,18 @@ class DataFrameLoader(PipelineLoader):
             min_date,
             max_date,
         )
-        dates_filter = zeros(len(self.adjustments), dtype='bool')
+        dates_filter = zeros(len(self.adjustments), dtype="bool")
         dates_filter[date_bounds] = True
         # Ignore adjustments whose apply_date is in range, but whose end_date
         # is out of range.
-        dates_filter &= (self.adjustment_end_dates >= min_date)
+        dates_filter &= self.adjustment_end_dates >= min_date
 
         # Mask for adjustments whose sids are in the requested assets.
         sids_filter = self.adjustment_sids.isin(assets.values)
 
-        adjustments_to_use = self.adjustments.loc[
-            dates_filter & sids_filter
-        ].set_index('apply_date')
+        adjustments_to_use = self.adjustments.loc[dates_filter & sids_filter].set_index(
+            "apply_date"
+        )
 
         # For each apply_date on which we have an adjustment, compute
         # the integer index of that adjustment's apply_date in `dates`.
@@ -144,7 +147,7 @@ class DataFrameLoader(PipelineLoader):
             apply_date, sid, value, kind, start_date, end_date = row
             if apply_date != previous_apply_date:
                 # Get the next apply date if no exact match.
-                row_loc = dates.get_indexer([apply_date], method='bfill')[0]
+                row_loc = dates.get_indexer([apply_date], method="bfill")[0]
                 if row_loc == -1:
                     raise KeyError(apply_date)
                 current_date_adjustments = out[row_loc] = []
@@ -162,9 +165,7 @@ class DataFrameLoader(PipelineLoader):
         Load data from our stored baseline.
         """
         if len(columns) != 1:
-            raise ValueError(
-                "Can't load multiple columns with DataFrameLoader"
-            )
+            raise ValueError("Can't load multiple columns with DataFrameLoader")
 
         column = columns[0]
         self._validate_input_column(column)
@@ -173,8 +174,8 @@ class DataFrameLoader(PipelineLoader):
         assets_indexer = self.assets.get_indexer(sids)
 
         # Boolean arrays with True on matched entries
-        good_dates = (date_indexer != -1)
-        good_assets = (assets_indexer != -1)
+        good_dates = date_indexer != -1
+        good_assets = assets_indexer != -1
 
         data = self.baseline[ix_(date_indexer, assets_indexer)]
         mask = (good_assets & as_column(good_dates)) & mask
@@ -192,7 +193,6 @@ class DataFrameLoader(PipelineLoader):
         }
 
     def _validate_input_column(self, column):
-        """Make sure a passed column is our column.
-        """
+        """Make sure a passed column is our column."""
         if column != self.column and column.unspecialize() != self.column:
             raise ValueError("Can't load unknown column %s" % column)

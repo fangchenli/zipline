@@ -48,14 +48,13 @@ class MetricsTracker:
     metrics : list[Metric]
         The metrics to track.
     """
+
     _hooks = (
-        'start_of_simulation',
-        'end_of_simulation',
-
-        'start_of_session',
-        'end_of_session',
-
-        'end_of_bar',
+        "start_of_simulation",
+        "end_of_simulation",
+        "start_of_session",
+        "end_of_session",
+        "end_of_bar",
     )
 
     @staticmethod
@@ -66,15 +65,17 @@ class MetricsTracker:
 
         return execution_open, execution_close
 
-    def __init__(self,
-                 trading_calendar,
-                 first_session,
-                 last_session,
-                 capital_base,
-                 emission_rate,
-                 data_frequency,
-                 asset_finder,
-                 metrics):
+    def __init__(
+        self,
+        trading_calendar,
+        first_session,
+        last_session,
+        capital_base,
+        emission_rate,
+        data_frequency,
+        asset_finder,
+        metrics,
+    ):
         self.emission_rate = emission_rate
 
         self._trading_calendar = trading_calendar
@@ -99,15 +100,17 @@ class MetricsTracker:
         self._ledger = Ledger(sessions, capital_base, data_frequency)
 
         self._benchmark_source = NamedExplodingObject(
-            'self._benchmark_source',
-            '_benchmark_source is not set until ``handle_start_of_simulation``'
-            ' is called',
+            "self._benchmark_source",
+            "_benchmark_source is not set until ``handle_start_of_simulation``"
+            " is called",
         )
 
-        if emission_rate == 'minute':
+        if emission_rate == "minute":
+
             def progress(self):
                 return 1.0  # a fake value
         else:
+
             def progress(self):
                 return self._session_count / self._total_session_count
 
@@ -158,12 +161,14 @@ class MetricsTracker:
     def positions(self):
         return self._ledger.position_tracker.positions
 
-    def update_position(self,
-                        asset,
-                        amount=None,
-                        last_sale_price=None,
-                        last_sale_date=None,
-                        cost_basis=None):
+    def update_position(
+        self,
+        asset,
+        amount=None,
+        last_sale_price=None,
+        last_sale_date=None,
+        cost_basis=None,
+    ):
         self._ledger.position_tracker.update_position(
             asset,
             amount,
@@ -193,10 +198,7 @@ class MetricsTracker:
     def capital_change(self, amount):
         self._ledger.capital_change(amount)
 
-    def sync_last_sale_prices(self,
-                              dt,
-                              data_portal,
-                              handle_non_market_minutes=False):
+    def sync_last_sale_prices(self, dt, data_portal, handle_non_market_minutes=False):
         self._ledger.sync_last_sale_prices(
             dt,
             data_portal,
@@ -219,19 +221,19 @@ class MetricsTracker:
         self.sync_last_sale_prices(dt, data_portal)
 
         packet = {
-            'period_start': self._first_session,
-            'period_end': self._last_session,
-            'capital_base': self._capital_base,
-            'minute_perf': {
-                'period_open': self._market_open,
-                'period_close': dt,
+            "period_start": self._first_session,
+            "period_end": self._last_session,
+            "capital_base": self._capital_base,
+            "minute_perf": {
+                "period_open": self._market_open,
+                "period_close": dt,
             },
-            'cumulative_perf': {
-                'period_open': self._first_session,
-                'period_close': self._last_session,
+            "cumulative_perf": {
+                "period_open": self._first_session,
+                "period_close": self._last_session,
             },
-            'progress': self._progress(self),
-            'cumulative_risk_metrics': {},
+            "progress": self._progress(self),
+            "cumulative_risk_metrics": {},
         }
         ledger = self._ledger
         ledger.end_of_bar(self._session_count)
@@ -292,7 +294,7 @@ class MetricsTracker:
         """
         completed_session = self._current_session
 
-        if self.emission_rate == 'daily':
+        if self.emission_rate == "daily":
             # this method is called for both minutely and daily emissions, but
             # this chunk of code here only applies for daily emissions. (since
             # it's done every minute, elsewhere, for minutely emission).
@@ -303,19 +305,19 @@ class MetricsTracker:
         self._session_count += 1
 
         packet = {
-            'period_start': self._first_session,
-            'period_end': self._last_session,
-            'capital_base': self._capital_base,
-            'daily_perf': {
-                'period_open': self._market_open,
-                'period_close': dt,
+            "period_start": self._first_session,
+            "period_end": self._last_session,
+            "capital_base": self._capital_base,
+            "daily_perf": {
+                "period_open": self._market_open,
+                "period_close": dt,
             },
-            'cumulative_perf': {
-                'period_open': self._first_session,
-                'period_close': self._last_session,
+            "cumulative_perf": {
+                "period_open": self._first_session,
+                "period_close": self._last_session,
             },
-            'progress': self._progress(self),
-            'cumulative_risk_metrics': {},
+            "progress": self._progress(self),
+            "cumulative_risk_metrics": {},
         }
         ledger = self._ledger
         ledger.end_of_session(session_ix)
@@ -335,9 +337,7 @@ class MetricsTracker:
         and send it out on the results socket.
         """
         log.info(
-            'Simulated {} trading days\n'
-            'first open: {}\n'
-            'last close: {}',
+            "Simulated {} trading days\nfirst open: {}\nlast close: {}",
             self._session_count,
             self._trading_calendar.session_first_minute(self._first_session),
             self._trading_calendar.session_last_minute(self._last_session),

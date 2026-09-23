@@ -1,6 +1,7 @@
 """
 classifier.py
 """
+
 from numbers import Number
 import operator
 import re
@@ -42,7 +43,7 @@ string_classifiers_only = restrict_to_dtype(
     message_template=(
         "{method_name}() is only defined on Classifiers producing strings"
         " but it was called on a Classifier of dtype {received_dtype}."
-    )
+    ),
 )
 
 
@@ -56,6 +57,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
     indicating that means/standard deviations should be computed on assets for
     which the classifier produced the same label.
     """
+
     # Used by RestrictedDTypeMixin
     ALLOWED_DTYPES = CLASSIFIER_DTYPES
     categories = NotSpecified
@@ -120,16 +122,16 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
 
     # Classifiers are categorical, so ordering comparisons are meaningless.
     def __gt__(self, other):
-        raise TypeError('cannot compare classifiers with >')
+        raise TypeError("cannot compare classifiers with >")
 
     def __ge__(self, other):
-        raise TypeError('cannot compare classifiers with >=')
+        raise TypeError("cannot compare classifiers with >=")
 
     def __le__(self, other):
-        raise TypeError('cannot compare classifiers with <=')
+        raise TypeError("cannot compare classifiers with <=")
 
     def __lt__(self, other):
-        raise TypeError('cannot compare classifiers with <')
+        raise TypeError("cannot compare classifiers with <")
 
     @string_classifiers_only
     @expect_types(prefix=(bytes, str))
@@ -201,7 +203,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         )
 
     @string_classifiers_only
-    @expect_types(pattern=(bytes, str, type(re.compile(''))))
+    @expect_types(pattern=(bytes, str, type(re.compile(""))))
     def matches(self, pattern):
         """
         Construct a Filter that checks regex matches against ``pattern``.
@@ -339,7 +341,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             return super().to_workspace_value(result, assets)
 
         assert isinstance(result.values, pd.Categorical), (
-            'Expected a Categorical, got %r.' % type(result.values)
+            "Expected a Categorical, got %r." % type(result.values)
         )
         with_missing = pd.Series(
             data=pd.Categorical(
@@ -375,9 +377,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             group_labels = output_array.as_int_array()
             null_label = output_array.missing_value_code
         else:
-            raise AssertionError(
-                "Unexpected Classifier dtype: %s." % self.dtype
-            )
+            raise AssertionError("Unexpected Classifier dtype: %s." % self.dtype)
         return group_labels, null_label
 
     def peer_count(self, mask=NotSpecified):
@@ -421,6 +421,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         """
         # Lazy import due to cyclic dependencies in factor.py, classifier.py
         from ..factors import PeerCount
+
         return PeerCount(inputs=[self], mask=mask)
 
 
@@ -428,6 +429,7 @@ class Everything(Classifier):
     """
     A trivial classifier that classifies everything the same.
     """
+
     dtype = int64_dtype
     window_length = 0
     inputs = ()
@@ -445,14 +447,15 @@ class Quantiles(SingleInputMixin, Classifier):
     """
     A classifier computing quantiles over an input.
     """
-    params = ('bins',)
+
+    params = ("bins",)
     dtype = int64_dtype
     window_length = 0
     missing_value = -1
 
     def _compute(self, arrays, dates, assets, mask):
         data = arrays[0]
-        bins = self.params['bins']
+        bins = self.params["bins"]
         to_bin = where(mask, data, nan)
         result = quantiles(to_bin, bins)
         # Write self.missing_value into nan locations, whether they were
@@ -462,7 +465,7 @@ class Quantiles(SingleInputMixin, Classifier):
 
     def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
-        return type(self).__name__ + '(%d)' % self.params['bins']
+        return type(self).__name__ + "(%d)" % self.params["bins"]
 
 
 class Relabel(SingleInputMixin, Classifier):
@@ -477,8 +480,9 @@ class Relabel(SingleInputMixin, Classifier):
     relabel_func : function(LabelArray) -> LabelArray
         Function to apply to the result of `term`.
     """
+
     window_length = 0
-    params = ('relabeler',)
+    params = ("relabeler",)
 
     # TODO: Support relabeling for integer dtypes.
     @expect_dtypes(term=categorical_dtype)
@@ -493,7 +497,7 @@ class Relabel(SingleInputMixin, Classifier):
         )
 
     def _compute(self, arrays, dates, assets, mask):
-        relabeler = self.params['relabeler']
+        relabeler = self.params["relabeler"]
         data = arrays[0]
 
         if isinstance(data, LabelArray):
@@ -501,16 +505,14 @@ class Relabel(SingleInputMixin, Classifier):
             result[~mask] = data.missing_value
         else:
             raise NotImplementedError(
-                "Relabeling is not currently supported for "
-                "int-dtype classifiers."
+                "Relabeling is not currently supported for int-dtype classifiers."
             )
         return result
 
 
-class CustomClassifier(PositiveWindowLengthMixin,
-                       StandardOutputs,
-                       CustomTermMixin,
-                       Classifier):
+class CustomClassifier(
+    PositiveWindowLengthMixin, StandardOutputs, CustomTermMixin, Classifier
+):
     """
     Base class for user-defined Classifiers.
 
@@ -521,6 +523,7 @@ class CustomClassifier(PositiveWindowLengthMixin,
     zipline.pipeline.CustomFactor
     zipline.pipeline.CustomFilter
     """
+
     def _validate(self):
         try:
             super()._validate()
@@ -529,13 +532,13 @@ class CustomClassifier(PositiveWindowLengthMixin,
                 raise UnsupportedDataType(
                     typename=type(self).__name__,
                     dtype=self.dtype,
-                    hint='Did you mean to create a CustomFactor?',
+                    hint="Did you mean to create a CustomFactor?",
                 )
             elif self.dtype in FILTER_DTYPES:
                 raise UnsupportedDataType(
                     typename=type(self).__name__,
                     dtype=self.dtype,
-                    hint='Did you mean to create a CustomFilter?',
+                    hint="Did you mean to create a CustomFilter?",
                 )
             raise
 
@@ -564,6 +567,7 @@ class Latest(LatestMixin, CustomClassifier):
     --------
     zipline.pipeline.data.dataset.BoundColumn.latest
     """
+
     pass
 
 

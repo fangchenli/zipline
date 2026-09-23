@@ -1,13 +1,13 @@
 """
 Utilities for working with pandas objects.
 """
+
 from contextlib import contextmanager
 import warnings
 
 import numpy as np
 import pandas as pd
 from zipline.utils.calendar_utils import days_at_time  # noqa: F401
-
 
 
 def july_5th_holiday_observance(datetime_index):
@@ -81,7 +81,7 @@ def nearest_unequal_elements(dts, dt):
     if not len(dts):
         return None, None
 
-    sortpos = dts.searchsorted(dt, side='left')
+    sortpos = dts.searchsorted(dt, side="left")
     try:
         sortval = dts[sortpos]
     except IndexError:
@@ -125,14 +125,14 @@ def ignore_pandas_nan_categorical_warning():
         # avoiding that requires a broader change to how missing values are
         # handled in pipeline, so for now just silence the warning.
         warnings.filterwarnings(
-            'ignore',
+            "ignore",
             category=FutureWarning,
         )
         yield
 
 
 # Attributes under which older pandas versions cached indexer objects.
-_INDEXER_NAMES = ['_iloc', '_loc', '_at', '_iat']
+_INDEXER_NAMES = ["_iloc", "_loc", "_at", "_iat"]
 
 
 def clear_dataframe_indexer_caches(df):
@@ -156,14 +156,12 @@ def clear_dataframe_indexer_caches(df):
 
 
 def _union_all(iterables):
-    """Union entries in ``iterables`` into a set.
-    """
+    """Union entries in ``iterables`` into a set."""
     return set().union(*iterables)
 
 
 def _sort_set_none_first(set_):
-    """Sort a set, sorting ``None`` before other elements, if present.
-    """
+    """Sort a set, sorting ``None`` before other elements, if present."""
     if None in set_:
         set_.remove(None)
         out = [None]
@@ -225,12 +223,11 @@ def check_indexes_all_same(indexes, message="Indexes are not equal."):
     iterator = iter(indexes)
     first = next(iterator)
     for other in iterator:
-        same = (first == other)
+        same = first == other
         if not same.all():
             bad_loc = np.flatnonzero(~same)[0]
             raise ValueError(
-                "{}\nFirst difference is at index {}: "
-                "{} != {}".format(
+                "{}\nFirst difference is at index {}: {} != {}".format(
                     message, bad_loc, first[bad_loc], other[bad_loc]
                 ),
             )

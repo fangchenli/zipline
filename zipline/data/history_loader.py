@@ -39,7 +39,6 @@ DEFAULT_ASSET_PRICE_DECIMALS = 3
 
 
 class HistoryCompatibleUSEquityAdjustmentReader:
-
     def __init__(self, adjustment_reader):
         self._adjustments_reader = adjustment_reader
 
@@ -55,8 +54,7 @@ class HistoryCompatibleUSEquityAdjustmentReader:
         for i, column in enumerate(columns):
             adjs = {}
             for asset in assets:
-                adjs.update(self._get_adjustments_in_range(
-                    asset, dts, column))
+                adjs.update(self._get_adjustments_in_range(asset, dts, column))
             out[i] = adjs
         return out
 
@@ -97,55 +95,40 @@ class HistoryCompatibleUSEquityAdjustmentReader:
         # the adjustment applies from the session's first minute.
         tz = dts.tz
         adjs = {}
-        if field != 'volume':
-            mergers = self._adjustments_reader.get_adjustments_for_sid(
-                'mergers', sid)
+        if field != "volume":
+            mergers = self._adjustments_reader.get_adjustments_for_sid("mergers", sid)
             for m in mergers:
                 dt = m[0] if tz is None else m[0].tz_localize(tz)
                 if start < dt <= end:
                     end_loc = dts.searchsorted(dt)
                     adj_loc = end_loc
-                    mult = Float64Multiply(0,
-                                           end_loc - 1,
-                                           0,
-                                           0,
-                                           m[1])
+                    mult = Float64Multiply(0, end_loc - 1, 0, 0, m[1])
                     try:
                         adjs[adj_loc].append(mult)
                     except KeyError:
                         adjs[adj_loc] = [mult]
-            divs = self._adjustments_reader.get_adjustments_for_sid(
-                'dividends', sid)
+            divs = self._adjustments_reader.get_adjustments_for_sid("dividends", sid)
             for d in divs:
                 dt = d[0] if tz is None else d[0].tz_localize(tz)
                 if start < dt <= end:
                     end_loc = dts.searchsorted(dt)
                     adj_loc = end_loc
-                    mult = Float64Multiply(0,
-                                           end_loc - 1,
-                                           0,
-                                           0,
-                                           d[1])
+                    mult = Float64Multiply(0, end_loc - 1, 0, 0, d[1])
                     try:
                         adjs[adj_loc].append(mult)
                     except KeyError:
                         adjs[adj_loc] = [mult]
-        splits = self._adjustments_reader.get_adjustments_for_sid(
-            'splits', sid)
+        splits = self._adjustments_reader.get_adjustments_for_sid("splits", sid)
         for s in splits:
             dt = s[0] if tz is None else s[0].tz_localize(tz)
             if start < dt <= end:
-                if field == 'volume':
+                if field == "volume":
                     ratio = 1.0 / s[1]
                 else:
                     ratio = s[1]
                 end_loc = dts.searchsorted(dt)
                 adj_loc = end_loc
-                mult = Float64Multiply(0,
-                                       end_loc - 1,
-                                       0,
-                                       0,
-                                       ratio)
+                mult = Float64Multiply(0, end_loc - 1, 0, 0, ratio)
                 try:
                     adjs[adj_loc].append(mult)
                 except KeyError:
@@ -159,12 +142,9 @@ class ContinuousFutureAdjustmentReader:
     close and open of the contracts on the either side of each roll.
     """
 
-    def __init__(self,
-                 trading_calendar,
-                 asset_finder,
-                 bar_reader,
-                 roll_finders,
-                 frequency):
+    def __init__(
+        self, trading_calendar, asset_finder, bar_reader, roll_finders, frequency
+    ):
         self._trading_calendar = trading_calendar
         self._asset_finder = asset_finder
         self._bar_reader = bar_reader
@@ -183,39 +163,29 @@ class ContinuousFutureAdjustmentReader:
         for i, column in enumerate(columns):
             adjs = {}
             for asset in assets:
-                adjs.update(self._get_adjustments_in_range(
-                    asset, dts, column))
+                adjs.update(self._get_adjustments_in_range(asset, dts, column))
             out[i] = adjs
         return out
 
-    def _make_adjustment(self,
-                         adjustment_type,
-                         front_close,
-                         back_close,
-                         end_loc):
+    def _make_adjustment(self, adjustment_type, front_close, back_close, end_loc):
         adj_base = back_close - front_close
-        if adjustment_type == 'mul':
+        if adjustment_type == "mul":
             adj_value = 1.0 + adj_base / front_close
             adj_class = Float64Multiply
-        elif adjustment_type == 'add':
+        elif adjustment_type == "add":
             adj_value = adj_base
             adj_class = Float64Add
-        return adj_class(0,
-                         end_loc,
-                         0,
-                         0,
-                         adj_value)
+        return adj_class(0, end_loc, 0, 0, adj_value)
 
     def _get_adjustments_in_range(self, cf, dts, field):
-        if field == 'volume' or field == 'sid':
+        if field == "volume" or field == "sid":
             return {}
         if cf.adjustment is None:
             return {}
         rf = self._roll_finders[cf.roll_style]
         partitions = []
 
-        rolls = rf.get_rolls(cf.root_symbol, dts[0], dts[-1],
-                             cf.offset)
+        rolls = rf.get_rolls(cf.root_symbol, dts[0], dts[-1], cf.offset)
 
         tc = self._trading_calendar
 
@@ -225,31 +195,25 @@ class ContinuousFutureAdjustmentReader:
             front_sid, roll_dt = front
             back_sid = back[0]
             dt = tc.previous_session(roll_dt)
-            if self._frequency == 'minute':
+            if self._frequency == "minute":
                 dt = tc.session_first_last_minute(dt)[1]
                 roll_dt = tc.session_first_last_minute(roll_dt)[0]
-            partitions.append((front_sid,
-                               back_sid,
-                               dt,
-                               roll_dt))
+            partitions.append((front_sid, back_sid, dt, roll_dt))
         for partition in partitions:
             front_sid, back_sid, dt, roll_dt = partition
             last_front_dt = self._bar_reader.get_last_traded_dt(
-                self._asset_finder.retrieve_asset(front_sid), dt)
+                self._asset_finder.retrieve_asset(front_sid), dt
+            )
             last_back_dt = self._bar_reader.get_last_traded_dt(
-                self._asset_finder.retrieve_asset(back_sid), dt)
+                self._asset_finder.retrieve_asset(back_sid), dt
+            )
             if isnull(last_front_dt) or isnull(last_back_dt):
                 continue
-            front_close = self._bar_reader.get_value(
-                front_sid, last_front_dt, 'close')
-            back_close = self._bar_reader.get_value(
-                back_sid, last_back_dt, 'close')
+            front_close = self._bar_reader.get_value(front_sid, last_front_dt, "close")
+            back_close = self._bar_reader.get_value(back_sid, last_back_dt, "close")
             adj_loc = dts.searchsorted(roll_dt)
             end_loc = adj_loc - 1
-            adj = self._make_adjustment(cf.adjustment,
-                                        front_close,
-                                        back_close,
-                                        end_loc)
+            adj = self._make_adjustment(cf.adjustment, front_close, back_close, end_loc)
             try:
                 adjs[adj_loc].append(adj)
             except KeyError:
@@ -308,31 +272,39 @@ class HistoryLoader(ABC):
     adjustment_reader : SQLiteAdjustmentReader
         Reader for adjustment data.
     """
-    FIELDS = ('open', 'high', 'low', 'close', 'volume', 'sid')
 
-    def __init__(self, trading_calendar, reader, equity_adjustment_reader,
-                 asset_finder,
-                 roll_finders=None,
-                 sid_cache_size=1000,
-                 prefetch_length=0):
+    FIELDS = ("open", "high", "low", "close", "volume", "sid")
+
+    def __init__(
+        self,
+        trading_calendar,
+        reader,
+        equity_adjustment_reader,
+        asset_finder,
+        roll_finders=None,
+        sid_cache_size=1000,
+        prefetch_length=0,
+    ):
         self.trading_calendar = trading_calendar
         self._asset_finder = asset_finder
         self._reader = reader
         self._adjustment_readers = {}
         if equity_adjustment_reader is not None:
-            self._adjustment_readers[Equity] = \
-                HistoryCompatibleUSEquityAdjustmentReader(
-                    equity_adjustment_reader)
+            self._adjustment_readers[Equity] = (
+                HistoryCompatibleUSEquityAdjustmentReader(equity_adjustment_reader)
+            )
         if roll_finders:
-            self._adjustment_readers[ContinuousFuture] =\
-                ContinuousFutureAdjustmentReader(trading_calendar,
-                                                 asset_finder,
-                                                 reader,
-                                                 roll_finders,
-                                                 self._frequency)
+            self._adjustment_readers[ContinuousFuture] = (
+                ContinuousFutureAdjustmentReader(
+                    trading_calendar,
+                    asset_finder,
+                    reader,
+                    roll_finders,
+                    self._frequency,
+                )
+            )
         self._window_blocks = {
-            field: ExpiringCache(LRU(sid_cache_size))
-            for field in self.FIELDS
+            field: ExpiringCache(LRU(sid_cache_size)) for field in self.FIELDS
         }
         self._prefetch_length = prefetch_length
 
@@ -363,8 +335,7 @@ class HistoryLoader(ABC):
                     return number_of_decimal_places(contract.tick_size)
         return DEFAULT_ASSET_PRICE_DECIMALS
 
-    def _ensure_sliding_windows(self, assets, dts, field,
-                                is_perspective_after):
+    def _ensure_sliding_windows(self, assets, dts, field, is_perspective_after):
         """
         Ensure that there is a Float64Multiply window for each asset that can
         provide data for the given parameters.
@@ -405,7 +376,8 @@ class HistoryLoader(ABC):
         for asset in assets:
             try:
                 window = self._window_blocks[field].get(
-                    (asset, size, is_perspective_after), end)
+                    (asset, size, is_perspective_after), end
+                )
             except KeyError:
                 needed_assets.append(asset)
             else:
@@ -423,22 +395,22 @@ class HistoryLoader(ABC):
 
             prefetch_end_ix = min(end_ix + self._prefetch_length, len(cal) - 1)
             prefetch_end = cal[prefetch_end_ix]
-            prefetch_dts = cal[start_ix:prefetch_end_ix + 1]
+            prefetch_dts = cal[start_ix : prefetch_end_ix + 1]
             if is_perspective_after:
                 adj_end_ix = min(prefetch_end_ix + 1, len(cal) - 1)
-                adj_dts = cal[start_ix:adj_end_ix + 1]
+                adj_dts = cal[start_ix : adj_end_ix + 1]
             else:
                 adj_dts = prefetch_dts
             prefetch_len = len(prefetch_dts)
             array = self._array(prefetch_dts, needed_assets, field)
 
-            if field == 'sid':
+            if field == "sid":
                 window_type = Int64Window
             else:
                 window_type = Float64Window
 
             view_kwargs = {}
-            if field == 'volume':
+            if field == "volume":
                 array = array.astype(float64_dtype)
 
             for i, asset in enumerate(needed_assets):
@@ -449,7 +421,8 @@ class HistoryLoader(ABC):
                     adj_reader = None
                 if adj_reader is not None:
                     adjs = adj_reader.load_pricing_adjustments(
-                        [field], adj_dts, [asset])[0]
+                        [field], adj_dts, [asset]
+                    )[0]
                 else:
                     adjs = {}
                 window = window_type(
@@ -464,9 +437,8 @@ class HistoryLoader(ABC):
                 sliding_window = SlidingWindow(window, size, start_ix, offset)
                 asset_windows[asset] = sliding_window
                 self._window_blocks[field].set(
-                    (asset, size, is_perspective_after),
-                    sliding_window,
-                    prefetch_end)
+                    (asset, size, is_perspective_after), sliding_window, prefetch_end
+                )
 
         return [asset_windows[asset] for asset in assets]
 
@@ -545,10 +517,7 @@ class HistoryLoader(ABC):
         -------
         out : np.ndarray with shape(len(days between start, end), len(assets))
         """
-        block = self._ensure_sliding_windows(assets,
-                                             dts,
-                                             field,
-                                             is_perspective_after)
+        block = self._ensure_sliding_windows(assets, dts, field, is_perspective_after)
         end_ix = self._calendar.searchsorted(dts[-1])
 
         return concatenate(
@@ -558,10 +527,9 @@ class HistoryLoader(ABC):
 
 
 class DailyHistoryLoader(HistoryLoader):
-
     @property
     def _frequency(self):
-        return 'daily'
+        return "daily"
 
     @property
     def _calendar(self):
@@ -577,19 +545,18 @@ class DailyHistoryLoader(HistoryLoader):
 
 
 class MinuteHistoryLoader(HistoryLoader):
-
     @property
     def _frequency(self):
-        return 'minute'
+        return "minute"
 
     @lazyval
     def _calendar(self):
         mm = self.trading_calendar.minutes
         first_trading_day = self._reader.first_trading_day
         if first_trading_day.tzinfo is None:
-            first_trading_day = first_trading_day.tz_localize('UTC')
+            first_trading_day = first_trading_day.tz_localize("UTC")
         start = mm.searchsorted(first_trading_day)
-        end = mm.searchsorted(self._reader.last_available_dt, side='right')
+        end = mm.searchsorted(self._reader.last_available_dt, side="right")
         return mm[start:end]
 
     def _array(self, dts, assets, field):

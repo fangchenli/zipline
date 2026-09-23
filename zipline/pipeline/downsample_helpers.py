@@ -10,10 +10,10 @@ from zipline.utils.sharedoc import (
 )
 
 _dt_to_period = {
-    'year_start': lambda dts: dts.year.to_numpy(),
-    'quarter_start': lambda dts: dts.quarter.to_numpy(),
-    'month_start': lambda dts: dts.month.to_numpy(),
-    'week_start': lambda dts: dts.isocalendar().week.to_numpy(dtype='int64'),
+    "year_start": lambda dts: dts.year.to_numpy(),
+    "quarter_start": lambda dts: dts.quarter.to_numpy(),
+    "month_start": lambda dts: dts.month.to_numpy(),
+    "week_start": lambda dts: dts.isocalendar().week.to_numpy(dtype="int64"),
 }
 
 SUPPORTED_DOWNSAMPLE_FREQUENCIES = frozenset(_dt_to_period)
@@ -54,7 +54,4 @@ def select_sampling_indices(dates, frequency):
     ``np.diff(dates.<frequency>)`` to find dates where the sampling
     period has changed.
     """
-    return changed_locations(
-        _dt_to_period[frequency](dates),
-        include_first=True
-    )
+    return changed_locations(_dt_to_period[frequency](dates), include_first=True)

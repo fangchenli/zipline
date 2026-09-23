@@ -26,7 +26,7 @@ from .utils.run_algo import run_algorithm
 from ._version import __version__
 
 # These need to happen after the other imports.
-from . algorithm import TradingAlgorithm
+from .algorithm import TradingAlgorithm
 from . import api
 from zipline import extensions as ext
 from zipline.finance.blotter import Blotter
@@ -35,8 +35,10 @@ from zipline.finance.blotter import Blotter
 # Having calendars doesn't break anything per-se, but it makes zipline imports
 # noticeably slower, which becomes particularly noticeable in the Zipline CLI.
 from exchange_calendars.calendar_utils import global_calendar_dispatcher
+
 if global_calendar_dispatcher._calendars:
     import warnings
+
     warnings.warn(
         "Found ExchangeCalendar instances after zipline import.\n"
         "Zipline startup will be much slower until this is fixed!",
@@ -50,10 +52,11 @@ extension_args = ext.Namespace()
 
 def load_ipython_extension(ipython):
     from .__main__ import zipline_magic
-    ipython.register_magic_function(zipline_magic, 'line_cell', 'zipline')
+
+    ipython.register_magic_function(zipline_magic, "line_cell", "zipline")
 
 
-if os.name == 'nt':
+if os.name == "nt":
     # we need to be able to write to our temp directoy on windows so we
     # create a subdir in %TMP% that has write access and use that as %TMP%
     def _():
@@ -65,22 +68,24 @@ if os.name == 'nt':
         @atexit.register
         def cleanup_tempdir():
             import shutil
+
             shutil.rmtree(tempdir)
+
     _()
     del _
 
 __all__ = [
-    'Blotter',
-    'TradingAlgorithm',
-    'api',
-    'data',
-    'finance',
-    'get_calendar',
-    'gens',
-    'run_algorithm',
-    'utils',
-    'extension_args',
-    '__version__',
+    "Blotter",
+    "TradingAlgorithm",
+    "api",
+    "data",
+    "finance",
+    "get_calendar",
+    "gens",
+    "run_algorithm",
+    "utils",
+    "extension_args",
+    "__version__",
 ]
 
 

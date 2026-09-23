@@ -18,7 +18,7 @@ def values_as_list(dictionary):
 
 
 # ``inspect.ArgSpec`` was removed in Python 3.11.
-ArgSpec = namedtuple('ArgSpec', 'args varargs keywords defaults')
+ArgSpec = namedtuple("ArgSpec", "args varargs keywords defaults")
 
 
 def getargspec(f):
@@ -32,6 +32,6 @@ def getargspec(f):
 
 
 __all__ = [
-    'consistent_round',
-    'values_as_list',
+    "consistent_round",
+    "values_as_list",
 ]

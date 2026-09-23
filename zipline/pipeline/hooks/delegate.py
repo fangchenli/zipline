@@ -22,6 +22,7 @@ def delegating_hooks_method(method_name):
                     sub_ctx = getattr(hook, method_name)(*args, **kwargs)
                     stack.enter_context(sub_ctx)
                 yield stack
+
         return ctx
     else:
         # Generate a method that calls methods of all child hooks.
@@ -42,6 +43,7 @@ class DelegatingHooks(PipelineHooks):
     hooks : list[PipelineHooks]
         Sequence of hooks to delegate to.
     """
+
     def __new__(cls, hooks):
         if len(hooks) == 0:
             # OPTIMIZATION: Short-circuit to a NoHooks if we don't have any
@@ -58,10 +60,12 @@ class DelegatingHooks(PipelineHooks):
 
     # Implement all interface methods by delegating to corresponding methods on
     # input hooks.
-    locals().update({
-        name: delegating_hooks_method(name)
-        for name in sorted(PipelineHooks.__abstractmethods__)
-    })
+    locals().update(
+        {
+            name: delegating_hooks_method(name)
+            for name in sorted(PipelineHooks.__abstractmethods__)
+        }
+    )
 
 
 del delegating_hooks_method

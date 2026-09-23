@@ -1,11 +1,7 @@
 import numpy as np
 
 
-def naive_grouped_rowwise_apply(data,
-                                group_labels,
-                                func,
-                                func_args=(),
-                                out=None):
+def naive_grouped_rowwise_apply(data, group_labels, func, func_args=(), out=None):
     """
     Simple implementation of grouped row-wise function application.
 
@@ -44,8 +40,8 @@ def naive_grouped_rowwise_apply(data,
     if out is None:
         out = np.empty_like(data)
 
-    for (row, label_row, out_row) in zip(data, group_labels, out):
+    for row, label_row, out_row in zip(data, group_labels, out):
         for label in np.unique(label_row):
-            locs = (label_row == label)
+            locs = label_row == label
             out_row[locs] = func(row[locs], *func_args)
     return out

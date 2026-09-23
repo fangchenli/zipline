@@ -13,15 +13,15 @@ class FinalMetaTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
         class ClassWithFinal(metaclass=FinalMeta):
-            a = final('ClassWithFinal: a')
-            b = 'ClassWithFinal: b'
+            a = final("ClassWithFinal: a")
+            b = "ClassWithFinal: b"
 
             @final
             def f(self):
-                return 'ClassWithFinal: f'
+                return "ClassWithFinal: f"
 
             def g(self):
-                return 'ClassWithFinal: g'
+                return "ClassWithFinal: g"
 
         cls.class_ = ClassWithFinal
 
@@ -30,6 +30,7 @@ class FinalMetaTestCase(TestCase):
         Tests that it is valid to create a subclass that does not override
         any methods.
         """
+
         class SubClass(self.class_):
             pass
 
@@ -38,11 +39,12 @@ class FinalMetaTestCase(TestCase):
         Tests that it is valid to create a subclass that does not override
         and final methods.
         """
+
         class SubClass(self.class_):
-            b = 'SubClass: b'
+            b = "SubClass: b"
 
             def g(self):
-                return 'SubClass: g'
+                return "SubClass: g"
 
     def test_override_final_no_decorator(self):
         """
@@ -50,9 +52,10 @@ class FinalMetaTestCase(TestCase):
         method will raise a `TypeError`.
         """
         with self.assertRaises(TypeError):
+
             class SubClass(self.class_):
                 def f(self):
-                    return 'SubClass: f'
+                    return "SubClass: f"
 
     def test_override_final_attribute(self):
         """
@@ -60,8 +63,9 @@ class FinalMetaTestCase(TestCase):
         attribute will raise a `TypeError`.
         """
         with self.assertRaises(TypeError):
+
             class SubClass(self.class_):
-                a = 'SubClass: a'
+                a = "SubClass: a"
 
     def test_override_final_with_decorator(self):
         """
@@ -70,10 +74,11 @@ class FinalMetaTestCase(TestCase):
         final.
         """
         with self.assertRaises(TypeError):
+
             class SubClass(self.class_):
                 @final
                 def f(self):
-                    return 'SubClass: f'
+                    return "SubClass: f"
 
     def test_override_final_attribute_with_final(self):
         """
@@ -82,37 +87,40 @@ class FinalMetaTestCase(TestCase):
         final.
         """
         with self.assertRaises(TypeError):
+
             class SubClass(self.class_):
-                a = final('SubClass: a')
+                a = final("SubClass: a")
 
     def test_override_on_class_object(self):
         """
         Tests overriding final methods and attributes on the class object
         itself.
         """
+
         class SubClass(self.class_):
             pass
 
         with self.assertRaises(TypeError):
-            SubClass.f = lambda self: 'SubClass: f'
+            SubClass.f = lambda self: "SubClass: f"
 
         with self.assertRaises(TypeError):
-            SubClass.a = 'SubClass: a'
+            SubClass.a = "SubClass: a"
 
     def test_override_on_instance(self):
         """
         Tests overriding final methods on instances of a class.
         """
+
         class SubClass(self.class_):
             def h(self):
                 pass
 
         s = SubClass()
         with self.assertRaises(TypeError):
-            s.f = lambda self: 'SubClass: f'
+            s.f = lambda self: "SubClass: f"
 
         with self.assertRaises(TypeError):
-            s.a = lambda self: 'SubClass: a'
+            s.a = lambda self: "SubClass: a"
 
     def test_override_on_super(self):
         """
@@ -129,7 +137,7 @@ class FinalMetaTestCase(TestCase):
 
         try:
             with self.assertRaises(TypeError):
-                self.class_.a = 'SubClass: a'
+                self.class_.a = "SubClass: a"
         except Exception:
             self.class_.a = old_a
             raise
@@ -139,6 +147,7 @@ class FinalMetaTestCase(TestCase):
         Tests an attempt to override __setattr__ which is implicitly final.
         """
         with self.assertRaises(TypeError):
+
             class SubClass(self.class_):
                 def __setattr__(self, name, value):
                     object.__setattr__(self, name, value)
@@ -147,6 +156,7 @@ class FinalMetaTestCase(TestCase):
         """
         Tests overriding __setattr__ on an instance.
         """
+
         class SubClass(self.class_):
             pass
 
@@ -161,19 +171,19 @@ class FinalABCMetaTestCase(FinalMetaTestCase):
         FinalABCMeta = compose_types(FinalMeta, ABCMeta)
 
         class ABCWithFinal(metaclass=FinalABCMeta):
-            a = final('ABCWithFinal: a')
-            b = 'ABCWithFinal: b'
+            a = final("ABCWithFinal: a")
+            b = "ABCWithFinal: b"
 
             @final
             def f(self):
-                return 'ABCWithFinal: f'
+                return "ABCWithFinal: f"
 
             def g(self):
-                return 'ABCWithFinal: g'
+                return "ABCWithFinal: g"
 
             @abstractmethod
             def h(self):
-                raise NotImplementedError('h')
+                raise NotImplementedError("h")
 
         cls.class_ = ABCWithFinal
 
@@ -182,6 +192,7 @@ class FinalABCMetaTestCase(FinalMetaTestCase):
         Tests that you cannot create an instance of a subclass
         that does not implement the abstractmethod h.
         """
+
         class AbstractSubClass(self.class_):
             pass
 
@@ -198,12 +209,13 @@ class FinalABCMetaTestCase(FinalMetaTestCase):
 
         s = SubClass()
         with self.assertRaises(TypeError):
-            s.f = lambda self: 'SubClass: f'
+            s.f = lambda self: "SubClass: f"
 
     def test_override___setattr___on_instance(self):
         """
         Tests overriding __setattr__ on an instance.
         """
+
         class SubClass(self.class_):
             def h(self):
                 pass
@@ -216,18 +228,19 @@ class FinalABCMetaTestCase(FinalMetaTestCase):
         """
         Tests that subclasses don't destroy the __setattr__.
         """
+
         class ClassWithFinal(metaclass=FinalMeta):
             @final
             def f(self):
-                return 'ClassWithFinal: f'
+                return "ClassWithFinal: f"
 
         class SubClass(ClassWithFinal):
             def __init__(self):
-                self.a = 'a'
+                self.a = "a"
 
         SubClass()
-        self.assertEqual(SubClass().a, 'a')
-        self.assertEqual(SubClass().f(), 'ClassWithFinal: f')
+        self.assertEqual(SubClass().a, "a")
+        self.assertEqual(SubClass().f(), "ClassWithFinal: f")
 
     def test_final_classmethod(self):
 
@@ -241,6 +254,7 @@ class FinalABCMetaTestCase(FinalMetaTestCase):
                 return cls.count
 
         with self.assertRaises(TypeError):
+
             class ClassOverridingClassMethod(ClassWithClassMethod):
                 @classmethod
                 def f(cls):

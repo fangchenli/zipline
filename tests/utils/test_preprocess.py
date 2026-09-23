@@ -1,6 +1,7 @@
 """
 Tests for zipline.utils.validate.
 """
+
 from operator import attrgetter
 from types import FunctionType
 from unittest import TestCase
@@ -27,22 +28,24 @@ def noop(func, argname, argvalue):
     return argvalue
 
 
-qualname = attrgetter('__qualname__')
+qualname = attrgetter("__qualname__")
 
 
 class PreprocessTestCase(TestCase):
-
-    @parameterized.expand([
-        ('too_many', (1, 2, 3), {}),
-        ('too_few', (1,), {}),
-        ('collision', (1,), {'a': 1}),
-        ('unexpected', (1,), {'q': 1}),
-    ])
+    @parameterized.expand(
+        [
+            ("too_many", (1, 2, 3), {}),
+            ("too_few", (1,), {}),
+            ("collision", (1,), {"a": 1}),
+            ("unexpected", (1,), {"q": 1}),
+        ]
+    )
     def test_preprocess_doesnt_change_TypeErrors(self, name, args, kwargs):
         """
         Verify that the validate decorator doesn't swallow typeerrors that
         would be raised when calling a function with invalid arguments
         """
+
         def undecorated(x, y):
             return x, y
 
@@ -87,15 +90,17 @@ class PreprocessTestCase(TestCase):
         def arglebargle():
             pass
 
-        self.assertEqual(arglebargle.__name__, 'arglebargle')
+        self.assertEqual(arglebargle.__name__, "arglebargle")
 
-    @parameterized.expand([
-        ((1, 2), {}),
-        ((1, 2), {'c': 3}),
-        ((1,), {'b': 2}),
-        ((), {'a': 1, 'b': 2}),
-        ((), {'a': 1, 'b': 2, 'c': 3}),
-    ])
+    @parameterized.expand(
+        [
+            ((1, 2), {}),
+            ((1, 2), {"c": 3}),
+            ((1,), {"b": 2}),
+            ((), {"a": 1, "b": 2}),
+            ((), {"a": 1, "b": 2, "c": 3}),
+        ]
+    )
     def test_preprocess_no_processors(self, args, kwargs):
 
         @preprocess()
@@ -116,26 +121,32 @@ class PreprocessTestCase(TestCase):
         def func_with_default_arg_named_a(a=1):
             pass
 
-        message = "Got processors for unknown arguments: %s." % {'a'}
+        message = "Got processors for unknown arguments: %s." % {"a"}
         with self.assertRaises(TypeError) as e:
+
             @a_processor
             def func_with_no_args():
                 pass
+
         self.assertEqual(e.exception.args[0], message)
 
         with self.assertRaises(TypeError) as e:
+
             @a_processor
             def func_with_arg_named_b(b):
                 pass
+
         self.assertEqual(e.exception.args[0], message)
 
-    @parameterized.expand([
-        ((1, 2), {}),
-        ((1, 2), {'c': 3}),
-        ((1,), {'b': 2}),
-        ((), {'a': 1, 'b': 2}),
-        ((), {'a': 1, 'b': 2, 'c': 3}),
-    ])
+    @parameterized.expand(
+        [
+            ((1, 2), {}),
+            ((1, 2), {"c": 3}),
+            ((1,), {"b": 2}),
+            ((), {"a": 1, "b": 2}),
+            ((), {"a": 1, "b": 2, "c": 3}),
+        ]
+    )
     def test_preprocess_on_function(self, args, kwargs):
 
         decorators = [
@@ -143,26 +154,30 @@ class PreprocessTestCase(TestCase):
         ]
 
         for decorator in decorators:
+
             @decorator
             def func(a, b, c=3):
                 return a, b, c
-            self.assertEqual(func(*args, **kwargs), ('1', 2.0, 4))
 
-    @parameterized.expand([
-        ((1, 2), {}),
-        ((1, 2), {'c': 3}),
-        ((1,), {'b': 2}),
-        ((), {'a': 1, 'b': 2}),
-        ((), {'a': 1, 'b': 2, 'c': 3}),
-    ])
+            self.assertEqual(func(*args, **kwargs), ("1", 2.0, 4))
+
+    @parameterized.expand(
+        [
+            ((1, 2), {}),
+            ((1, 2), {"c": 3}),
+            ((1,), {"b": 2}),
+            ((), {"a": 1, "b": 2}),
+            ((), {"a": 1, "b": 2, "c": 3}),
+        ]
+    )
     def test_preprocess_on_method(self, args, kwargs):
         decorators = [
             preprocess(a=call(str), b=call(float), c=call(lambda x: x + 1)),
         ]
 
         for decorator in decorators:
-            class Foo:
 
+            class Foo:
                 @decorator
                 def method(self, a, b, c=3):
                     return a, b, c
@@ -172,8 +187,8 @@ class PreprocessTestCase(TestCase):
                 def clsmeth(cls, a, b, c=3):
                     return a, b, c
 
-            self.assertEqual(Foo.clsmeth(*args, **kwargs), ('1', 2.0, 4))
-            self.assertEqual(Foo().method(*args, **kwargs), ('1', 2.0, 4))
+            self.assertEqual(Foo.clsmeth(*args, **kwargs), ("1", 2.0, 4))
+            self.assertEqual(Foo().method(*args, **kwargs), ("1", 2.0, 4))
 
     def test_expect_types(self):
 
@@ -184,7 +199,7 @@ class PreprocessTestCase(TestCase):
         self.assertEqual(foo(1, 2, 3), (1, 2, 3))
         self.assertEqual(foo(1, 2, c=3), (1, 2, 3))
         self.assertEqual(foo(1, b=2, c=3), (1, 2, 3))
-        self.assertEqual(foo(1, 2, c='3'), (1, 2, '3'))
+        self.assertEqual(foo(1, 2, c="3"), (1, 2, "3"))
 
         for not_int in (str, float):
             with self.assertRaises(TypeError) as e:
@@ -195,7 +210,7 @@ class PreprocessTestCase(TestCase):
                 "int for argument 'a', but got {t} instead.".format(
                     qualname=qualname(foo),
                     t=not_int.__name__,
-                )
+                ),
             )
             with self.assertRaises(TypeError):
                 foo(1, not_int(2), 3)
@@ -205,7 +220,7 @@ class PreprocessTestCase(TestCase):
     def test_expect_types_custom_funcname(self):
 
         class Foo:
-            @expect_types(__funcname='ArgleBargle', a=int)
+            @expect_types(__funcname="ArgleBargle", a=int)
             def __init__(self, a):
                 self.a = a
 
@@ -220,7 +235,7 @@ class PreprocessTestCase(TestCase):
                 "ArgleBargle() expected a value of type "
                 "int for argument 'a', but got {t} instead.".format(
                     t=not_int.__name__,
-                )
+                ),
             )
 
     def test_expect_types_with_tuple(self):
@@ -232,7 +247,7 @@ class PreprocessTestCase(TestCase):
         self.assertEqual(foo(1.0), 1.0)
 
         with self.assertRaises(TypeError) as e:
-            foo('1')
+            foo("1")
 
         expected_message = (
             "{qualname}() expected a value of "
@@ -254,7 +269,7 @@ class PreprocessTestCase(TestCase):
         self.assertEqual(foo(a=1), 1)
 
         with self.assertRaises(TypeError) as e:
-            foo('1')
+            foo("1")
 
         expected_message = (
             "{qualname}() expected a value of "
@@ -263,17 +278,17 @@ class PreprocessTestCase(TestCase):
         self.assertEqual(e.exception.args[0], expected_message)
 
     def test_expect_element(self):
-        set_ = {'a', 'b'}
+        set_ = {"a", "b"}
 
         @expect_element(a=set_)
         def f(a):
             return a
 
-        self.assertEqual(f('a'), 'a')
-        self.assertEqual(f('b'), 'b')
+        self.assertEqual(f("a"), "a")
+        self.assertEqual(f("b"), "b")
 
         with self.assertRaises(ValueError) as e:
-            f('c')
+            f("c")
 
         expected_message = (
             "{qualname}() expected a value in {set_!r}"
@@ -287,15 +302,15 @@ class PreprocessTestCase(TestCase):
 
     def test_expect_element_custom_funcname(self):
 
-        set_ = {'a', 'b'}
+        set_ = {"a", "b"}
 
         class Foo:
-            @expect_element(__funcname='ArgleBargle', a=set_)
+            @expect_element(__funcname="ArgleBargle", a=set_)
             def __init__(self, a):
                 self.a = a
 
         with self.assertRaises(ValueError) as e:
-            Foo('c')
+            Foo("c")
 
         expected_message = (
             "ArgleBargle() expected a value in {set_!r}"
@@ -308,12 +323,12 @@ class PreprocessTestCase(TestCase):
 
     def test_expect_dtypes(self):
 
-        @expect_dtypes(a=dtype(float), b=dtype('datetime64[ns]'))
+        @expect_dtypes(a=dtype(float), b=dtype("datetime64[ns]"))
         def foo(a, b, c):
             return a, b, c
 
         good_a = arange(3, dtype=float)
-        good_b = arange(3).astype('datetime64[ns]')
+        good_b = arange(3).astype("datetime64[ns]")
         good_c = object()
 
         a_ret, b_ret, c_ret = foo(good_a, good_b, good_c)
@@ -322,7 +337,7 @@ class PreprocessTestCase(TestCase):
         self.assertIs(c_ret, good_c)
 
         with self.assertRaises(TypeError) as e:
-            foo(good_a, arange(3, dtype='int64'), good_c)
+            foo(good_a, arange(3, dtype="int64"), good_c)
 
         expected_message = (
             "{qualname}() expected a value with dtype 'datetime64[ns]'"
@@ -331,7 +346,7 @@ class PreprocessTestCase(TestCase):
         self.assertEqual(e.exception.args[0], expected_message)
 
         with self.assertRaises(TypeError) as e:
-            foo(arange(3, dtype='uint32'), good_c, good_c)
+            foo(arange(3, dtype="uint32"), good_c, good_c)
 
         expected_message = (
             "{qualname}() expected a value with dtype 'float64'"
@@ -341,7 +356,7 @@ class PreprocessTestCase(TestCase):
 
     def test_expect_dtypes_with_tuple(self):
 
-        allowed_dtypes = (dtype('datetime64[ns]'), dtype('float'))
+        allowed_dtypes = (dtype("datetime64[ns]"), dtype("float"))
 
         @expect_dtypes(a=allowed_dtypes)
         def foo(a, b):
@@ -355,7 +370,7 @@ class PreprocessTestCase(TestCase):
             self.assertIs(good_b, ret_b)
 
         with self.assertRaises(TypeError) as e:
-            foo(arange(3, dtype='uint32'), object())
+            foo(arange(3, dtype="uint32"), object())
 
         expected_message = (
             "{qualname}() expected a value with dtype 'datetime64[ns]' "
@@ -365,15 +380,15 @@ class PreprocessTestCase(TestCase):
 
     def test_expect_dtypes_custom_funcname(self):
 
-        allowed_dtypes = (dtype('datetime64[ns]'), dtype('float'))
+        allowed_dtypes = (dtype("datetime64[ns]"), dtype("float"))
 
         class Foo:
-            @expect_dtypes(__funcname='Foo', a=allowed_dtypes)
+            @expect_dtypes(__funcname="Foo", a=allowed_dtypes)
             def __init__(self, a):
                 self.a = a
 
         with self.assertRaises(TypeError) as e:
-            Foo(arange(3, dtype='uint32'))
+            Foo(arange(3, dtype="uint32"))
 
         expected_message = (
             "Foo() expected a value with dtype 'datetime64[ns]' "
@@ -387,14 +402,14 @@ class PreprocessTestCase(TestCase):
             return tz
 
         valid = {
-            'utc',
-            'EST',
-            'US/Eastern',
+            "utc",
+            "EST",
+            "US/Eastern",
         }
         invalid = {
             # unfortunately, these are not actually timezones (yet)
-            'ayy',
-            'lmao',
+            "ayy",
+            "lmao",
         }
 
         # test coercing from string
@@ -410,7 +425,7 @@ class PreprocessTestCase(TestCase):
             self.assertRaises(ZoneInfoNotFoundError, f, tz)
 
     def test_optionally(self):
-        error = TypeError('arg must be int')
+        error = TypeError("arg must be int")
 
         def preprocessor(func, argname, arg):
             if not isinstance(arg, int):
@@ -425,7 +440,7 @@ class PreprocessTestCase(TestCase):
         self.assertIsNone(f(None))
 
         with self.assertRaises(TypeError) as e:
-            f('a')
+            f("a")
         self.assertIs(e.exception, error)
 
     def test_expect_dimensions(self):
@@ -465,7 +480,7 @@ class PreprocessTestCase(TestCase):
 
     def test_expect_dimensions_custom_name(self):
 
-        @expect_dimensions(__funcname='fizzbuzz', x=2)
+        @expect_dimensions(__funcname="fizzbuzz", x=2)
         def foo(x, y):
             return x[0, 0]
 

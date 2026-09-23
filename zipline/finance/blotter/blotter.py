@@ -19,7 +19,6 @@ from zipline.finance.cancel_policy import NeverCancel
 
 @extensible
 class Blotter(ABC):
-
     def __init__(self, cancel_policy=None):
         self.cancel_policy = cancel_policy if cancel_policy else NeverCancel()
         self.current_dt = None
@@ -61,7 +60,7 @@ class Blotter(ABC):
                                stop_price))
         """
 
-        raise NotImplementedError('order')
+        raise NotImplementedError("order")
 
     def batch_order(self, order_arg_lists):
         """Place a batch of orders.
@@ -97,23 +96,22 @@ class Blotter(ABC):
         relay_status : bool
             Whether or not to record the status of the order
         """
-        raise NotImplementedError('cancel')
+        raise NotImplementedError("cancel")
 
     @abstractmethod
-    def cancel_all_orders_for_asset(self, asset, warn=False,
-                                    relay_status=True):
+    def cancel_all_orders_for_asset(self, asset, warn=False, relay_status=True):
         """
         Cancel all open orders for a given asset.
         """
 
-        raise NotImplementedError('cancel_all_orders_for_asset')
+        raise NotImplementedError("cancel_all_orders_for_asset")
 
     @abstractmethod
     def execute_cancel_policy(self, event):
-        raise NotImplementedError('execute_cancel_policy')
+        raise NotImplementedError("execute_cancel_policy")
 
     @abstractmethod
-    def reject(self, order_id, reason=''):
+    def reject(self, order_id, reason=""):
         """
         Mark the given order as 'rejected', which is functionally similar to
         cancelled. The distinction is that rejections are involuntary (and
@@ -121,17 +119,17 @@ class Blotter(ABC):
         rejected) while cancels are typically user-driven.
         """
 
-        raise NotImplementedError('reject')
+        raise NotImplementedError("reject")
 
     @abstractmethod
-    def hold(self, order_id, reason=''):
+    def hold(self, order_id, reason=""):
         """
         Mark the order with order_id as 'held'. Held is functionally similar
         to 'open'. When a fill (full or partial) arrives, the status
         will automatically change back to open/filled as necessary.
         """
 
-        raise NotImplementedError('hold')
+        raise NotImplementedError("hold")
 
     @abstractmethod
     def process_splits(self, splits):
@@ -148,7 +146,7 @@ class Blotter(ABC):
         None
         """
 
-        raise NotImplementedError('process_splits')
+        raise NotImplementedError("process_splits")
 
     @abstractmethod
     def get_transactions(self, bar_data):
@@ -181,7 +179,7 @@ class Blotter(ABC):
             closed_orders: list of all the orders that have filled.
         """
 
-        raise NotImplementedError('get_transactions')
+        raise NotImplementedError("get_transactions")
 
     @abstractmethod
     def prune_orders(self, closed_orders):
@@ -197,4 +195,4 @@ class Blotter(ABC):
         None
         """
 
-        raise NotImplementedError('prune_orders')
+        raise NotImplementedError("prune_orders")

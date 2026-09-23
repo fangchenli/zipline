@@ -1,6 +1,7 @@
 """
 Algorithms for computing quantiles on numpy arrays.
 """
+
 from numpy import apply_along_axis
 from pandas import qcut
 
@@ -13,5 +14,6 @@ def quantiles(data, nbins_or_partition_bounds):
         qcut,
         1,
         data,
-        q=nbins_or_partition_bounds, labels=False,
+        q=nbins_or_partition_bounds,
+        labels=False,
     )

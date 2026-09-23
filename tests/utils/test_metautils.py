@@ -10,32 +10,31 @@ from zipline.utils.metautils import compose_types
 class C:
     @staticmethod
     def f():
-        return 'C.f'
+        return "C.f"
 
     def delegate(self):
-        return 'C.delegate', super().delegate()
+        return "C.delegate", super().delegate()
 
 
 class D:
     @staticmethod
     def f():
-        return 'D.f'
+        return "D.f"
 
     @staticmethod
     def g():
-        return 'D.g'
+        return "D.g"
 
     def delegate(self):
-        return 'D.delegate'
+        return "D.delegate"
 
 
 class ComposeTypesTestCase(ZiplineTestCase):
-
     def test_identity(self):
         assert_is(
             compose_types(C),
             C,
-            msg='compose_types of a single class should be identity',
+            msg="compose_types of a single class should be identity",
         )
 
     def test_compose(self):
@@ -50,5 +49,4 @@ class ComposeTypesTestCase(ZiplineTestCase):
         assert_equal(composed.f(), C.f())
         assert_equal(composed.g(), D.g())
 
-        assert_equal(composed().delegate(), ('C.delegate', 'D.delegate'))
-
+        assert_equal(composed().delegate(), ("C.delegate", "D.delegate"))

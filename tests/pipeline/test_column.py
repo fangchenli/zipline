@@ -1,6 +1,7 @@
 """
 Tests BoundColumn attributes and methods.
 """
+
 import operator
 
 from parameterized import parameterized
@@ -16,21 +17,20 @@ from zipline.pipeline.domain import US_EQUITIES
 from zipline.testing.fixtures import (
     WithSeededRandomPipelineEngine,
     WithTradingSessions,
-    ZiplineTestCase
+    ZiplineTestCase,
 )
 from zipline.utils.numpy_utils import datetime64ns_dtype
 from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning
 
 
-class LatestTestCase(WithSeededRandomPipelineEngine,
-                     WithTradingSessions,
-                     ZiplineTestCase):
-
-    START_DATE = Timestamp('2014-01-01')
-    END_DATE = Timestamp('2015-12-31')
+class LatestTestCase(
+    WithSeededRandomPipelineEngine, WithTradingSessions, ZiplineTestCase
+):
+    START_DATE = Timestamp("2014-01-01")
+    END_DATE = Timestamp("2015-12-31")
     SEEDED_RANDOM_PIPELINE_SEED = 100
     ASSET_FINDER_EQUITY_SIDS = list(range(5))
-    ASSET_FINDER_COUNTRY_CODE = 'US'
+    ASSET_FINDER_COUNTRY_CODE = "US"
     SEEDED_RANDOM_PIPELINE_DEFAULT_DOMAIN = US_EQUITIES
 
     @classmethod
@@ -38,17 +38,15 @@ class LatestTestCase(WithSeededRandomPipelineEngine,
         super().init_class_fixtures()
         cls.engine = cls.seeded_random_engine
         cls.sids = cls.ASSET_FINDER_EQUITY_SIDS
-        cls.assets = cls.engine._finder.retrieve_all(
-            cls.ASSET_FINDER_EQUITY_SIDS)
+        cls.assets = cls.engine._finder.retrieve_all(cls.ASSET_FINDER_EQUITY_SIDS)
 
     def expected_latest(self, column, slice_):
         loader = self.seeded_random_loader
         index = self.trading_days[slice_]
         columns = self.assets
-        values = loader.values(column.dtype, self.trading_days, self.sids)[
-            slice_]
+        values = loader.values(column.dtype, self.trading_days, self.sids)[slice_]
 
-        if column.dtype.kind in ('O', 'S', 'U'):
+        if column.dtype.kind in ("O", "S", "U"):
             # For string columns, we expect a categorical in the output.
             return LabelArray(
                 values,
@@ -84,12 +82,14 @@ class LatestTestCase(WithSeededRandomPipelineEngine,
             expected_col_result = self.expected_latest(column, cal_slice)
             assert_frame_equal(col_result, expected_col_result)
 
-    @parameterized.expand([
-        (operator.gt,),
-        (operator.ge,),
-        (operator.lt,),
-        (operator.le,),
-    ])
+    @parameterized.expand(
+        [
+            (operator.gt,),
+            (operator.ge,),
+            (operator.lt,),
+            (operator.le,),
+        ]
+    )
     def test_comparison_errors(self, op):
         for column in TDS.columns:
             with self.assertRaises(TypeError):
@@ -97,9 +97,9 @@ class LatestTestCase(WithSeededRandomPipelineEngine,
             with self.assertRaises(TypeError):
                 op(1000, column)
             with self.assertRaises(TypeError):
-                op(column, 'test')
+                op(column, "test")
             with self.assertRaises(TypeError):
-                op('test', column)
+                op("test", column)
 
     def test_comparison_error_message(self):
         column = USEquityPricing.volume
@@ -123,7 +123,7 @@ class LatestTestCase(WithSeededRandomPipelineEngine,
 
         self.assertEqual(
             str(exc.exception),
-            'Columns cannot be constructed with currency_aware=True, '
-            'dtype=datetime64[ns]. Currency aware columns must have a float64 '
-            'dtype.',
+            "Columns cannot be constructed with currency_aware=True, "
+            "dtype=datetime64[ns]. Currency aware columns must have a float64 "
+            "dtype.",
         )

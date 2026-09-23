@@ -13,6 +13,7 @@ calendars are constructed with zipline's conventions:
 Session labels are timezone-naive midnight timestamps; minutes are
 timezone-aware UTC timestamps.
 """
+
 import pandas as pd
 from exchange_calendars import (
     ExchangeCalendar,

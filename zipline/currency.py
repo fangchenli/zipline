@@ -20,6 +20,7 @@ class Currency:
     name : str
         Plain english name for the currency, e.g., 'US Dollar'.
     """
+
     def __new__(cls, code):
         try:
             return _ALL_CURRENCIES[code]
@@ -30,9 +31,7 @@ class Currency:
                 try:
                     name = ISO4217Currency(code).currency_name
                 except ValueError:
-                    raise ValueError(
-                        f"{code!r} is not a valid currency code."
-                    )
+                    raise ValueError(f"{code!r} is not a valid currency code.")
 
             obj = _ALL_CURRENCIES[code] = super().__new__(cls)
             obj._code = code
@@ -71,7 +70,4 @@ class Currency:
         return self.code < other.code
 
     def __repr__(self):
-        return "{}({!r})".format(
-            type(self).__name__,
-            self.code
-        )
+        return "{}({!r})".format(type(self).__name__, self.code)
