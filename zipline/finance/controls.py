@@ -22,6 +22,7 @@ from zipline.errors import (
     AccountControlViolation,
     TradingControlViolation,
 )
+from zipline.utils.date_utils import to_session_label
 from zipline.utils.input_validation import (
     expect_bounded,
     expect_types,
@@ -279,32 +280,27 @@ class AssetDateBounds(TradingControl):
         if amount == 0:
             return
 
-        normalized_algo_dt = _naive_date(algo_datetime)
+        normalized_algo_dt = _session_or_none(algo_datetime)
         if normalized_algo_dt is None:
             return
 
         # Fail if the algo is before this Asset's start_date
-        normalized_start = _naive_date(asset.start_date)
+        normalized_start = _session_or_none(asset.start_date)
         if normalized_start is not None and normalized_algo_dt < normalized_start:
             metadata = {"asset_start_date": normalized_start}
             self.handle_violation(asset, amount, algo_datetime, metadata=metadata)
         # Fail if the algo has passed this Asset's end_date
-        normalized_end = _naive_date(asset.end_date)
+        normalized_end = _session_or_none(asset.end_date)
         if normalized_end is not None and normalized_algo_dt > normalized_end:
             metadata = {"asset_end_date": normalized_end}
             self.handle_violation(asset, amount, algo_datetime, metadata=metadata)
 
 
-def _naive_date(dt):
-    """The tz-naive date of ``dt``, or None if it is missing (None or NaT).
-
-    Asset lifetime dates are tz-naive session labels.
-    """
-    ts = pd.Timestamp(dt) if dt is not None else None
-    if not isinstance(ts, pd.Timestamp):
+def _session_or_none(dt):
+    """The session label for ``dt``, or None if it is missing (None or NaT)."""
+    if dt is None or pd.isna(dt):
         return None
-    ts = ts.normalize()
-    return ts.tz_localize(None) if ts.tz is not None else ts
+    return to_session_label(dt)
 
 
 class AccountControl(ABC):

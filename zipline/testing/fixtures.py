@@ -1,4 +1,3 @@
-import gc
 import os
 import sqlite3
 import warnings
@@ -2108,9 +2107,6 @@ class WithMakeAlgo(WithBenchmarkReturns, WithSimParams, WithLogger, WithDataPort
 class WithWerror(_FixtureMixin):
     @classmethod
     def init_class_fixtures(cls):
-        # Collect garbage left by earlier tests first, so that resource
-        # warnings from their finalizers aren't raised as errors here.
-        gc.collect()
         cls.enter_class_context(warnings.catch_warnings())
         warnings.simplefilter("error")
 

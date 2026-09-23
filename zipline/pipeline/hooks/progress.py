@@ -54,9 +54,10 @@ class ProgressHooks(PipelineHooks):
         return self._model
 
     def _publish(self):
-        if self._publisher is None:
-            raise RuntimeError("ProgressHooks event received outside of a chunk.")
-        self._publisher.publish(self._active_model)
+        model = self._active_model  # Raises outside of a chunk.
+        # computing_chunk sets the publisher together with the model.
+        assert self._publisher is not None
+        self._publisher.publish(model)
 
     @contextmanager
     def running_pipeline(self, pipeline, start_date, end_date):

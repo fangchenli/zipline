@@ -3,6 +3,7 @@ from itertools import product
 from operator import eq, ne
 
 import numpy as np
+import pandas as pd
 from toolz import take
 
 from zipline.lib.labelarray import LabelArray
@@ -101,6 +102,14 @@ class LabelArrayTestCase(ZiplineTestCase):
             arr.has_substring(compval),
             np_contains(strs) & notmissing,
         )
+
+    def test_compare_to_unsupported_type(self):
+        # Anything that isn't a LabelArray, ndarray or supported scalar is
+        # simply unequal, rather than being compared elementwise.
+        arr = LabelArray(np.array(["a", "b"], dtype=object), missing_value=None)
+        other = pd.Series(["a", "b"])
+        assert (arr == other) is False
+        assert (arr != other) is True
 
     @parameter_space(
         __fail_fast=True,

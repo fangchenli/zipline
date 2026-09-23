@@ -8,7 +8,7 @@ function for every API method, using the method's signature and docstring.
 Usage::
 
     uv run python scripts/gen_api_stub.py
-    uv run ruff format zipline/api.pyi && uv run ruff check --fix zipline/api.pyi
+    uv run ruff check --fix zipline/api.pyi && uv run ruff format zipline/api.pyi
 """
 
 import inspect

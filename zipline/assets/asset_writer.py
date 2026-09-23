@@ -595,7 +595,9 @@ class AssetDBWriter:
                   The amount of the underlying asset represented by this
                   contract.
         exchanges : pd.DataFrame, optional
-            The exchanges where assets can be traded. The columns of this
+            The exchanges where assets can be traded. Required when ``equities`` is
+            given (unlike :meth:`write`, this does not derive it from the
+            equities' ``exchange`` column). The columns of this
             dataframe are:
 
               exchange : str

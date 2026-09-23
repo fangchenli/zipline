@@ -27,13 +27,13 @@ from logbook import WARNING, TestHandler
 from pandas.errors import PerformanceWarning
 from parameterized import parameterized
 from testfixtures import TempDirectory
-from zipline.assets.continuous_futures import ContinuousFuture
 
 import zipline.api
 import zipline.testing.fixtures as zf
 import zipline.utils.factory as factory
 from zipline.api import FixedSlippage
 from zipline.assets import Asset, Equity, Future
+from zipline.assets.continuous_futures import ContinuousFuture
 from zipline.assets.synthetic import (
     make_jagged_equity_info,
     make_simple_equity_info,
@@ -263,6 +263,16 @@ def handle_data(algo, data):
         algo = self.make_algo(script=code)
         with self.assertRaises(UnsupportedCancelPolicy):
             algo.run()
+
+    def test_portfolio_and_account_outside_run(self):
+        # These only exist while the algorithm runs; introspection such as
+        # hasattr and getattr with a default must keep working otherwise.
+        algo = self.make_algo(
+            initialize=lambda context: None,
+            handle_data=lambda context, data: None,
+        )
+        assert not hasattr(algo, "portfolio")
+        assert getattr(algo, "account", None) is None
 
     def test_zipline_api_resolves_dynamically(self):
         # Make a dummy algo.

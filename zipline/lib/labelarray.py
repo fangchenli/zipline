@@ -114,8 +114,10 @@ def _equality_check(op):
             i = self._reverse_categories.get(other, -1)
             return op(self.as_int_array(), i) & self.not_missing()
 
-        # Let Python fall back to the other operand, or to identity.
-        return NotImplemented
+        # Anything else is simply not equal to a LabelArray. (Returning
+        # NotImplemented would hand the comparison to the other operand, e.g.
+        # an elementwise pd.Series comparison.)
+        return op is ne
 
     return method
 

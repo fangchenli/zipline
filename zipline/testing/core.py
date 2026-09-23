@@ -6,6 +6,7 @@ import shutil
 import sys
 import tempfile
 from abc import ABCMeta, abstractmethod
+from collections.abc import Mapping
 from contextlib import contextmanager
 from functools import wraps
 from itertools import (
@@ -1400,7 +1401,7 @@ class _TmpBarReader(tmp_dir, metaclass=ABCMeta):
 
     days : pd.DatetimeIndex
         The days to write for.
-    data : dict[int -> pd.DataFrame]
+    data : dict[int -> pd.DataFrame] or iterable[(int, pd.DataFrame)]
         The data to write.
     path : str, optional
         The path to the directory to write the data into. If not given, this
@@ -1422,7 +1423,9 @@ class _TmpBarReader(tmp_dir, metaclass=ABCMeta):
         super().__init__(path=path)
         self._cal = cal
         self._days = days
-        self._data = data
+        # Accept a mapping or an iterable of (sid, frame) pairs; the writers
+        # iterate pairs.
+        self._data = data.items() if isinstance(data, Mapping) else data
 
     def __enter__(self):
         tmpdir = super().__enter__()
@@ -1448,7 +1451,7 @@ class tmp_bcolz_equity_minute_bar_reader(_TmpBarReader):
         The trading calendar for which we're writing data.
     days : pd.DatetimeIndex
         The days to write for.
-    data : iterable[(int, pd.DataFrame)]
+    data : dict[int -> pd.DataFrame] or iterable[(int, pd.DataFrame)]
         The data to write.
     path : str, optional
         The path to the directory to write the data into. If not given, this
@@ -1472,7 +1475,7 @@ class tmp_bcolz_equity_daily_bar_reader(_TmpBarReader):
         The trading calendar for which we're writing data.
     days : pd.DatetimeIndex
         The days to write for.
-    data : dict[int -> pd.DataFrame]
+    data : dict[int -> pd.DataFrame] or iterable[(int, pd.DataFrame)]
         The data to write.
     path : str, optional
         The path to the directory to write the data into. If not given, this

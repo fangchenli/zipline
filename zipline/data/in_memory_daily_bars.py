@@ -114,9 +114,11 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
                        NaT if no trade is found before the given dt.
         """
         try:
-            return self._frames["close"].loc[:, asset.sid].last_valid_index()
-        except IndexError:
+            closes = self._frames["close"].loc[:dt, asset.sid]
+        except KeyError:
             return NaT
+        last = closes.last_valid_index()
+        return NaT if last is None else last
 
     @property
     def first_trading_day(self):

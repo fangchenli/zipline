@@ -1442,9 +1442,13 @@ class TradingAlgorithm:
 
     @property
     def _running_metrics_tracker(self):
-        """The metrics tracker, which only exists while the algorithm runs."""
+        """The metrics tracker, which only exists while the algorithm runs.
+
+        Raises AttributeError (not RuntimeError) otherwise, so that ``hasattr``
+        and ``getattr(..., default)`` on the public properties keep working.
+        """
         if self.metrics_tracker is None:
-            raise RuntimeError(
+            raise AttributeError(
                 "The algorithm's metrics are only available while it is running."
             )
         return self.metrics_tracker
@@ -1453,7 +1457,7 @@ class TradingAlgorithm:
     def _running_data_portal(self):
         """The data portal, which is only guaranteed while the algorithm runs."""
         if self.data_portal is None:
-            raise RuntimeError(
+            raise AttributeError(
                 "The algorithm's data is only available while it is running."
             )
         return self.data_portal
