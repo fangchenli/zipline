@@ -43,8 +43,6 @@ from zipline.utils.cli import maybe_show_progress
 from zipline.utils.input_validation import expect_element
 from zipline.utils.numpy_utils import float64_dtype, iNaT, uint32_dtype
 
-from ._equities import _compute_row_slices, _read_bcolz_data
-
 OHLC = frozenset(["open", "high", "low", "close"])
 US_EQUITY_PRICING_BCOLZ_COLUMNS = (
     "open",
@@ -689,3 +687,129 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
             else:
                 out.append(None)
         return np.array(out, dtype=object)
+
+
+def _compute_row_slices(
+    asset_starts_absolute,
+    asset_ends_absolute,
+    asset_starts_calendar,
+    query_start,
+    query_end,
+    requested_assets,
+):
+    """
+    Core indexing functionality for loading raw data from bcolz.
+
+    For each asset in requested assets, computes three values:
+
+    1.) The index in the raw bcolz data of first row to load.
+    2.) The index in the raw bcolz data of the last row to load.
+    3.) The index in the dates of our query corresponding to the first row for
+        each asset. This is non-zero iff the asset's lifetime begins partway
+        through the requested query dates.
+
+    Values for unknown sids will be populated with a value of -1.
+
+    Parameters
+    ----------
+    asset_starts_absolute : dict
+        Dictionary containing the index of the first row of each asset in the
+        bcolz file from which we will query.
+    asset_ends_absolute : dict
+        Dictionary containing the index of the last row of each asset in the
+        bcolz file from which we will query.
+    asset_starts_calendar : dict
+        Dictionary containing the index of in our calendar corresponding to the
+        start date of each asset
+    query_start : int
+        Start index in our calendar of the dates for which we're querying.
+    query_end : int
+        End index in our calendar of the dates for which we're querying.
+    requested_assets : pandas.Index[int64]
+        The assets for which we want to load data.
+
+    Returns
+    -------
+    first_rows, last_rows, offsets : 3-tuple of ndarrays
+    """
+    nassets = len(requested_assets)
+    first_rows = np.full(nassets, -1, dtype=np.intp)
+    last_rows = np.full(nassets, -1, dtype=np.intp)
+    offsets = np.full(nassets, -1, dtype=np.intp)
+
+    any_hits = False
+    for i, asset in enumerate(requested_assets):
+        if asset not in asset_starts_absolute:
+            # This is an unknown asset, leave its slot empty.
+            continue
+        any_hits = True
+
+        start_data = asset_starts_absolute[asset]
+        end_data = asset_ends_absolute[asset]
+        start_calendar = asset_starts_calendar[asset]
+        end_calendar = start_calendar + (end_data - start_data)
+
+        # The asset's first row, plus the rows before the query on which it
+        # existed.
+        first_rows[i] = start_data + max(0, query_start - start_calendar)
+        # The asset's last row, minus the rows after the query on which it
+        # existed.
+        last_rows[i] = end_data - max(0, end_calendar - query_end)
+        # The rows of the query before the asset existed.
+        offsets[i] = max(0, start_calendar - query_start)
+
+    if not any_hits:
+        raise ValueError("At least one valid asset id is required.")
+
+    return first_rows, last_rows, offsets
+
+
+def _read_bcolz_data(table, shape, columns, first_rows, last_rows, offsets, read_all):
+    """
+    Load raw bcolz data for the given columns and indices.
+
+    Parameters
+    ----------
+    table : bcolz.ctable
+        The table from which to read.
+    shape : tuple (length 2)
+        The shape of the expected output arrays.
+    columns : list[str]
+        List of column names to read.
+    first_rows : ndarray[intp]
+    last_rows : ndarray[intp]
+    offsets : ndarray[intp]
+        Arrays in the format returned by _compute_row_slices.
+    read_all : bool
+        Whether to read all sids' data at once, or to read a slice from the
+        carray for each sid.
+
+    Returns
+    -------
+    results : list of ndarray
+        A 2D array of shape `shape` for each column in `columns`.
+    """
+    nassets = shape[1]
+    if not nassets == len(first_rows) == len(last_rows) == len(offsets):
+        raise ValueError("Incompatible index arrays.")
+
+    results = []
+    for column in columns:
+        out = np.zeros(shape, dtype=np.uint32)
+        data = table[column][:] if read_all else table[column]
+        for asset, (first, last, offset) in enumerate(
+            zip(first_rows, last_rows, offsets, strict=True)
+        ):
+            # Unknown assets (-1) and empty slices leave their slots empty.
+            if first == -1 or first > last:
+                continue
+            out[offset : offset + (last + 1 - first), asset] = data[first : last + 1]
+
+        if column in OHLC:
+            # Prices are stored as thousandths, and 0 for missing.
+            prices = out.astype(np.float64) * 0.001
+            prices[out == 0] = np.nan
+            results.append(prices)
+        else:
+            results.append(out)
+    return results
