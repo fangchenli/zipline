@@ -52,7 +52,6 @@ from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.testing import create_empty_splits_mergers_frame, str_to_seconds
 from zipline.testing.fixtures import (
     WithAdjustmentReader,
-    WithBcolzEquityDailyBarReaderFromCSVs,
     WithMakeAlgo,
     ZiplineTestCase,
 )
@@ -440,7 +439,6 @@ class MockDailyBarSpotReader:
 
 class PipelineAlgorithmTestCase(
     WithMakeAlgo,
-    WithBcolzEquityDailyBarReaderFromCSVs,
     WithAdjustmentReader,
     ZiplineTestCase,
 ):
@@ -477,7 +475,7 @@ class PipelineAlgorithmTestCase(
         for frame in raw_data.values():
             frame["price"] = frame["close"]
 
-        return resources
+        return raw_data.items()
 
     @classmethod
     def make_splits_data(cls):
@@ -515,7 +513,7 @@ class PipelineAlgorithmTestCase(
     def init_class_fixtures(cls):
         super().init_class_fixtures()
         cls.pipeline_loader = USEquityPricingLoader.without_fx(
-            cls.bcolz_equity_daily_bar_reader,
+            cls.equity_daily_bar_reader,
             cls.adjustment_reader,
         )
         cls.dates = cls.raw_data[cls.AAPL].index

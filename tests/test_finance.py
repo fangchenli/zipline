@@ -26,12 +26,9 @@ from testfixtures import TempDirectory
 
 import zipline.testing.fixtures as zf
 import zipline.utils.factory as factory
-from zipline.data.bcolz_daily_bars import (
-    BcolzDailyBarReader,
-    BcolzDailyBarWriter,
-)
 from zipline.data.data_portal import DataPortal
-from zipline.data.minute_bars import BcolzMinuteBarReader
+from zipline.data.parquet_daily_bars import ParquetDailyBarReader
+from zipline.data.parquet_minute_bars import ParquetMinuteBarReader
 from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.finance.blotter.simulation_blotter import SimulationBlotter
 from zipline.finance.execution import LimitOrder, MarketOrder
@@ -40,7 +37,7 @@ from zipline.finance.metrics import load as load_metrics_set
 from zipline.finance.slippage import FixedBasisPointsSlippage, FixedSlippage
 from zipline.finance.trading import SimulationParameters
 from zipline.protocol import BarData
-from zipline.testing import write_bcolz_minute_data
+from zipline.testing import write_daily_bars, write_minute_bars
 
 EXTENDED_TIMEOUT = 90
 
@@ -199,7 +196,7 @@ class FinanceTestCase(zf.WithAssetFinder, zf.WithTradingCalendars, zf.ZiplineTes
                     ).set_index("dt")
                 }
 
-                write_bcolz_minute_data(
+                write_minute_bars(
                     self.trading_calendar,
                     self.trading_calendar.sessions_in_range(
                         self.trading_calendar.minute_to_session(minutes[0]),
@@ -209,7 +206,7 @@ class FinanceTestCase(zf.WithAssetFinder, zf.WithTradingCalendars, zf.ZiplineTes
                     assets.items(),
                 )
 
-                equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
+                equity_minute_reader = ParquetMinuteBarReader(tempdir.path)
 
                 data_portal = DataPortal(
                     self.asset_finder,
@@ -238,12 +235,10 @@ class FinanceTestCase(zf.WithAssetFinder, zf.WithTradingCalendars, zf.ZiplineTes
                     )
                 }
 
-                path = os.path.join(tempdir.path, "testdata.bcolz")
-                BcolzDailyBarWriter(
-                    path, self.trading_calendar, days[0], days[-1]
-                ).write(assets.items())
+                path = os.path.join(tempdir.path, "testdata.parquet")
+                write_daily_bars(self.trading_calendar, days, path, assets.items())
 
-                equity_daily_reader = BcolzDailyBarReader(path)
+                equity_daily_reader = ParquetDailyBarReader(path)
 
                 data_portal = DataPortal(
                     self.asset_finder,

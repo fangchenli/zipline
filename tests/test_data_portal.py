@@ -46,12 +46,6 @@ class DataPortalTestBase(WithDataPortal, WithTradingSessions):
 
     EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = True
 
-    # Since the future with sid 10001 has a tick size of 0.0001, its prices
-    # should be rounded out to 4 decimal places. To test that this rounding
-    # occurs correctly, store its prices out to 5 decimal places by using a
-    # multiplier of 100,000 when writing its values.
-    OHLC_RATIOS_PER_SID = {10001: 100000}
-
     @classmethod
     def make_root_symbols_info(self):
         return pd.DataFrame(
@@ -219,6 +213,9 @@ class DataPortalTestBase(WithDataPortal, WithTradingSessions):
         yield 10000, asset10000_df
 
         missing_dts = trading_calendar.session_minutes(trading_sessions[0])
+        # Since the future with sid 10001 has a tick size of 0.0001, its prices
+        # should be rounded out to 4 decimal places. Its prices are stored out
+        # to 5 decimal places to test that this rounding occurs correctly.
         asset10001_df = pd.DataFrame(
             {
                 "open": 1.00549,
@@ -437,7 +434,9 @@ class DataPortalTestBase(WithDataPortal, WithTradingSessions):
         day = calendar.day
         dividend_date = self.trading_days[2]
 
-        prev_day_price = 1.006
+        # The asset's close before the ex date (see
+        # make_equity_minute_bar_data). bcolz stored it rounded to 1.006.
+        prev_day_price = 1.0055
         dividend_amount = 0.5  # see self.make_dividends_data
         ratio = 1.0 - dividend_amount / prev_day_price
 
@@ -620,12 +619,6 @@ class DataPortalTestBase(WithDataPortal, WithTradingSessions):
 class TestDataPortal(DataPortalTestBase, ZiplineTestCase):
     DATA_PORTAL_LAST_AVAILABLE_SESSION = None
     DATA_PORTAL_LAST_AVAILABLE_MINUTE = None
-
-
-class TestParquetDataPortal(TestDataPortal):
-    """The data portal tests, reading equity minute bars from Parquet."""
-
-    EQUITY_MINUTE_BAR_FORMAT = "parquet"
 
 
 class TestDataPortalExplicitLastAvailable(DataPortalTestBase, ZiplineTestCase):

@@ -28,7 +28,7 @@ from zipline.testing import (
     MockDailyBarReader,
     create_minute_bar_data,
     parameter_space,
-    tmp_bcolz_equity_minute_bar_reader,
+    tmp_equity_minute_bar_reader,
 )
 from zipline.testing.core import make_test_handler
 from zipline.testing.fixtures import (
@@ -178,7 +178,7 @@ class TestBenchmark(
             self.sim_params.sessions[0], self.sim_params.sessions[5]
         )
 
-        tmp_reader = tmp_bcolz_equity_minute_bar_reader(
+        tmp_reader = tmp_equity_minute_bar_reader(
             self.trading_calendar,
             self.trading_calendar.sessions,
             create_minute_bar_data(minutes, [2]),
@@ -189,7 +189,7 @@ class TestBenchmark(
                 self.trading_calendar,
                 first_trading_day=reader.first_trading_day,
                 equity_minute_reader=reader,
-                equity_daily_reader=self.bcolz_equity_daily_bar_reader,
+                equity_daily_reader=self.equity_daily_bar_reader,
                 adjustment_reader=self.adjustment_reader,
             )
 

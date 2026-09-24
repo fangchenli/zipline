@@ -110,6 +110,9 @@ Enhancements
 Bug Fixes
 ~~~~~~~~~
 
+- Daily bars resampled from minute bars (e.g. futures' daily history) summed
+  volume in uint32, which overflowed for sessions with more than 2 ** 32
+  shares or contracts traded.
 - ``InMemoryDailyBarReader.get_value`` and ``get_last_traded_dt`` used a
   misnamed attribute and always raised; ``get_last_traded_dt`` also looked
   ahead past the requested date.

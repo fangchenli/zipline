@@ -1502,7 +1502,7 @@ def record_current_contract(algo, data):
         )
 
 
-class RollFinderTestCase(zf.WithBcolzFutureDailyBarReader, zf.ZiplineTestCase):
+class RollFinderTestCase(zf.WithFutureDailyBarReader, zf.ZiplineTestCase):
     START_DATE = pd.Timestamp("2017-01-03")
     END_DATE = pd.Timestamp("2017-05-23")
 
@@ -1516,7 +1516,7 @@ class RollFinderTestCase(zf.WithBcolzFutureDailyBarReader, zf.ZiplineTestCase):
         cls.volume_roll_finder = VolumeRollFinder(
             cls.trading_calendar,
             cls.asset_finder,
-            cls.bcolz_future_daily_bar_reader,
+            cls.future_daily_bar_reader,
         )
 
     @classmethod

@@ -13,7 +13,7 @@
 # limitations under the License.
 from cython cimport boundscheck, wraparound
 from numpy import finfo, float64, nan, isnan
-from numpy cimport intp_t, float64_t, uint32_t
+from numpy cimport intp_t, float64_t
 
 @boundscheck(False)
 @wraparound(False)
@@ -102,10 +102,11 @@ cpdef void _minute_to_session_close(intp_t[:] close_locs,
 @boundscheck(False)
 @wraparound(False)
 cpdef void _minute_to_session_volume(intp_t[:] close_locs,
-                                     uint32_t[:] data,
-                                     uint32_t[:] out):
+                                     float64_t[:] data,
+                                     float64_t[:] out):
+    # float64 rather than uint32: a session's volume can exceed 2 ** 32.
     cdef intp_t i, close_loc, loc = 0
-    cdef uint32_t val
+    cdef float64_t val
     loc = 0
     for i, close_loc in enumerate(close_locs):
         val = 0

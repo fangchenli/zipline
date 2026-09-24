@@ -17,7 +17,6 @@ from .core import (  # noqa
     check_arrays,
     chrange,
     create_daily_df_for_asset,
-    create_data_portal,
     create_data_portal_from_trade_history,
     create_empty_splits_mergers_frame,
     create_minute_bar_data,
@@ -46,12 +45,13 @@ from .core import (  # noqa
     test_resource_path,
     tmp_asset_finder,
     tmp_assets_db,
-    tmp_bcolz_equity_minute_bar_reader,
+    tmp_equity_minute_bar_reader,
     tmp_dir,
     to_series,
     to_utc,
     trades_by_sid_to_dfs,
-    write_bcolz_minute_data,
+    write_daily_bars,
+    write_minute_bars,
     write_compressed,
 )
 from .fixtures import ZiplineTestCase  # noqa

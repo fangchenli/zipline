@@ -409,10 +409,6 @@ class ParquetDailyBarReader(CurrencyAwareSessionBarReader):
             self._rootdir, FORMAT_NAME, FORMAT_VERSION, "Parquet daily bar"
         )
 
-    @property
-    def data_frequency(self):
-        return "daily"
-
     @cached_property
     def trading_calendar(self):
         return get_calendar(self._metadata["calendar_name"])

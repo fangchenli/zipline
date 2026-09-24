@@ -674,12 +674,6 @@ class TestMinuteBarData(
             self.assertEqual(bar_data.can_trade(self.ASSET1), info[1])
 
 
-class TestParquetMinuteBarData(TestMinuteBarData):
-    """The minute BarData tests, reading equity minute bars from Parquet."""
-
-    EQUITY_MINUTE_BAR_FORMAT = "parquet"
-
-
 class TestMinuteBarDataFuturesCalendar(
     WithCreateBarData, WithBarDataChecks, ZiplineTestCase
 ):
