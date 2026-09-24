@@ -138,11 +138,18 @@ Enhancements
 - New ``zipline convert`` command and :func:`zipline.data.bundles.convert`
   function, which rewrite the bcolz daily and minute bars of bundles ingested
   by earlier versions as Parquet.
-- The algorithm API (``zipline.api``) and ``run_algorithm`` have type
-  annotations, so type checkers and editors check calls such as
-  ``order(asset, "10")`` or ``continuous_future("CL", roll="daily")``, and
-  know what ``get_order`` returns. The ``Order`` objects returned by
-  ``get_order`` and ``get_open_orders`` declare their attributes.
+- The algorithm API (``zipline.api``), ``run_algorithm`` and ``BarData`` (an
+  algorithm's ``data``) have type annotations, so type checkers and editors
+  check calls such as ``order(asset, "10")`` or
+  ``continuous_future("CL", roll="daily")`` and know what they return:
+  ``data.current(asset, "price")`` is a ``float``, ``data.current(assets,
+  "price")`` a ``Series[float]``, ``data.history(asset, "close", 20, "1d")``
+  a ``Series[float]``, ``get_environment("start")`` a ``Timestamp``, and so
+  on. The ``Order`` objects returned by ``get_order`` and
+  ``get_open_orders`` declare their attributes.
+- ``batch_market_order`` is documented to return the list of order ids it
+  returns, rather than a ``pd.Index``, and ``symbols`` takes
+  ``country_code`` as a keyword argument rather than ``**kwargs``.
 - New ``alpaca`` bundle with US equities from `Alpaca
   <https://alpaca.markets>`__ since 2016, with the free API keys of a paper
   trading account: unadjusted daily bars, splits, dividends and asset

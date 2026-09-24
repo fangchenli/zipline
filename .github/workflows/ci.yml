@@ -27,7 +27,7 @@ jobs:
           fetch-depth: 0
       - uses: astral-sh/setup-uv@v10.2.0  # no floating major-version tags
       - run: uv sync --locked
-      - run: uv run ty check zipline
+      - run: uv run ty check zipline tests/typing
 
   docs:
     runs-on: ubuntu-latest

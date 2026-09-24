@@ -22,7 +22,7 @@ from contextlib import ExitStack
 from copy import copy
 from datetime import datetime, time, timedelta, tzinfo
 from itertools import chain, repeat
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Literal, overload
 from zoneinfo import ZoneInfo
 
 import numpy as np
@@ -745,8 +745,27 @@ class TradingAlgorithm:
             }
         }
 
+    # What get_environment returns depends on the field.
+    @overload
+    def get_environment(
+        self, field: Literal["platform", "arena"] = "platform"
+    ) -> str: ...
+    @overload
+    def get_environment(
+        self, field: Literal["data_frequency"]
+    ) -> Literal["daily", "minute"]: ...
+    @overload
+    def get_environment(self, field: Literal["start", "end"]) -> pd.Timestamp: ...
+    @overload
+    def get_environment(self, field: Literal["capital_base"]) -> float: ...
+    @overload
+    def get_environment(
+        self, field: Literal["*"]
+    ) -> dict[str, str | pd.Timestamp | float]: ...
     @api_method
-    def get_environment(self, field: str = "platform") -> Any:
+    def get_environment(
+        self, field: str = "platform"
+    ) -> str | pd.Timestamp | float | dict[str, str | pd.Timestamp | float]:
         """Query the execution environment.
 
         Parameters
@@ -814,9 +833,11 @@ class TradingAlgorithm:
         symbol: str | None = None,
         mask: bool = True,
         symbol_column: str | None = None,
-        special_params_checker: Callable[..., Any] | None = None,
+        special_params_checker: (
+            Callable[[str], tuple[str, dict[str, str] | None]] | None
+        ) = None,
         country_code: str | None = None,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> PandasRequestsCSV:
         """Fetch a csv from a remote url and register the data so that it is
         queryable from the ``data`` object.
@@ -912,7 +933,7 @@ class TradingAlgorithm:
     @api_method
     def schedule_function(
         self,
-        func: Callable[[Any, BarData], object],
+        func: Callable[[TradingAlgorithm, BarData], object],
         date_rule: EventRule | None = None,
         time_rule: EventRule | None = None,
         half_days: bool = True,
@@ -985,7 +1006,7 @@ class TradingAlgorithm:
         )
 
     @api_method
-    def record(self, *args: Any, **kwargs: Any) -> None:
+    def record(self, *args: object, **kwargs: object) -> None:
         """Track and record values each day.
 
         Parameters
@@ -1113,7 +1134,7 @@ class TradingAlgorithm:
         )
 
     @api_method
-    def symbols(self, *args: str, **kwargs: Any) -> list[Equity]:
+    def symbols(self, *args: str, country_code: str | None = None) -> list[Equity]:
         """Lookup multuple Equities as a list.
 
         Parameters
@@ -1139,7 +1160,7 @@ class TradingAlgorithm:
         --------
         :func:`zipline.api.set_symbol_lookup_date`
         """
-        return [self.symbol(identifier, **kwargs) for identifier in args]
+        return [self.symbol(identifier, country_code) for identifier in args]
 
     @api_method
     def sid(self, sid: int) -> Asset:
@@ -1964,7 +1985,9 @@ class TradingAlgorithm:
     @api_method
     @expect_types(share_counts=pd.Series)
     @expect_dtypes(share_counts=int64_dtype)
-    def batch_market_order(self, share_counts: pd.Series) -> pd.Index:
+    def batch_market_order(
+        self, share_counts: pd.Series[int] | pd.Series[float]
+    ) -> list[str | None]:
         """Place a batch market order for multiple assets.
 
         Parameters
@@ -1974,8 +1997,9 @@ class TradingAlgorithm:
 
         Returns
         -------
-        order_ids : pd.Index[str]
-            Index of ids for newly-created orders.
+        order_ids : list[str or None]
+            The ids of the new orders, or None for orders that weren't placed,
+            in the order of ``share_counts`` without the zero counts.
         """
         style = MarketOrder()
         order_args = [
@@ -2055,7 +2079,7 @@ class TradingAlgorithm:
     @require_initialized(HistoryInInitialize())
     def history(
         self, bar_count: int, frequency: str, field: str, ffill: bool = True
-    ) -> Any:
+    ) -> pd.DataFrame:
         """DEPRECATED: use ``data.history`` instead."""
         warnings.warn(
             "The `history` method is deprecated.  Use `data.history` instead.",

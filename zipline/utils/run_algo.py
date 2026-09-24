@@ -5,7 +5,7 @@ import sys
 import warnings
 from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Literal
 
 import click
 
@@ -311,17 +311,17 @@ def load_extensions(default, extensions, strict, environ, reload=False):
 def run_algorithm(
     start: datetime | str,
     end: datetime | str,
-    initialize: Callable[[Any], object] | None,
+    initialize: Callable[[TradingAlgorithm], object] | None,
     capital_base: float,
-    handle_data: Callable[[Any, BarData], object] | None = None,
-    before_trading_start: Callable[[Any, BarData], object] | None = None,
-    analyze: Callable[[Any, pd.DataFrame], object] | None = None,
+    handle_data: Callable[[TradingAlgorithm, BarData], object] | None = None,
+    before_trading_start: Callable[[TradingAlgorithm, BarData], object] | None = None,
+    analyze: Callable[[TradingAlgorithm, pd.DataFrame], object] | None = None,
     data_frequency: Literal["daily", "minute"] = "daily",
     bundle: str = "massive",
     bundle_timestamp: datetime | None = None,
     trading_calendar: ExchangeCalendar | None = None,
     metrics_set: str | Iterable[object] = "default",
-    benchmark_returns: pd.Series | None = None,
+    benchmark_returns: pd.Series[float] | None = None,
     default_extension: bool = True,
     extensions: Iterable[str] = (),
     strict_extensions: bool = True,

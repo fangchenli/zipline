@@ -2,7 +2,7 @@ import os
 import sqlite3
 import warnings
 from contextlib import ExitStack
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 from unittest import TestCase
 
 import numpy as np
@@ -2097,7 +2097,7 @@ class WithResponses(_FixtureMixin):
 
 
 class WithCreateBarData(WithDataPortal):
-    CREATE_BARDATA_DATA_FREQUENCY = "minute"
+    CREATE_BARDATA_DATA_FREQUENCY: Literal["daily", "minute"] = "minute"
 
     def create_bardata(self, simulation_dt_func, restrictions=None):
         return BarData(
