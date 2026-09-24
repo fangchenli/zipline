@@ -1,4 +1,5 @@
 import logging
+import sqlite3
 
 import numpy as np
 import pandas as pd
@@ -6,6 +7,7 @@ import pandas as pd
 from zipline.data.adjustments import (
     SQLiteAdjustmentReader,
     SQLiteAdjustmentWriter,
+    load_adjustments_from_sqlite,
 )
 from zipline.data.in_memory_daily_bars import InMemoryDailyBarReader
 from zipline.testing import parameter_space
@@ -311,3 +313,91 @@ class TestSQLiteAdjustmentsWriter(
         ).sort_index()
 
         assert_equal(result, expected)
+
+
+class LoadAdjustmentsFromSQLiteTestCase(ZiplineTestCase):
+    dates = pd.DatetimeIndex(
+        ["2020-01-02", "2020-01-03", "2020-01-06", "2020-01-07"]
+    ).as_unit("ns")
+
+    @staticmethod
+    def seconds(date):
+        return int(pd.Timestamp(date).timestamp())
+
+    def db(self, splits=(), mergers=(), dividends=(), max_variables=None):
+        db = sqlite3.connect(":memory:")
+        self.addCleanup(db.close)
+        if max_variables is not None:
+            db.setlimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER, max_variables)
+        for table, rows in (
+            ("splits", splits),
+            ("mergers", mergers),
+            ("dividends", dividends),
+        ):
+            db.execute(f"CREATE TABLE {table} (sid, ratio, effective_date)")
+            db.executemany(
+                f"INSERT INTO {table} VALUES (?, ?, ?)",
+                [(sid, ratio, self.seconds(date)) for sid, ratio, date in rows],
+            )
+        return db
+
+    @staticmethod
+    def as_tuples(adjustments):
+        return {
+            loc: [
+                (a.first_row, a.last_row, a.first_col, a.last_col, a.value) for a in v
+            ]
+            for loc, v in adjustments.items()
+        }
+
+    def test_load(self):
+        db = self.db(
+            splits=[(5, 0.5, "2020-01-03")],
+            mergers=[(7, 0.9, "2020-01-07")],
+            # On a weekend: applies from the next session. Sid 8 isn't
+            # requested.
+            dividends=[(5, 0.99, "2020-01-04"), (8, 0.98, "2020-01-06")],
+        )
+        assets = pd.Index([7, 5, 6], dtype="int64")
+        result = load_adjustments_from_sqlite(
+            db, self.dates, assets, True, True, True, "all"
+        )
+        assert_equal(
+            self.as_tuples(result["price"]),
+            {
+                1: [(0, 1, 1, 1, 0.5)],
+                3: [(0, 3, 0, 0, 0.9)],
+                2: [(0, 2, 1, 1, 0.99)],
+            },
+        )
+        # Splits adjust volumes inversely; mergers and dividends don't.
+        assert_equal(self.as_tuples(result["volume"]), {1: [(0, 1, 1, 1, 2.0)]})
+
+        result = load_adjustments_from_sqlite(
+            db, self.dates, assets, True, True, True, "volume"
+        )
+        assert_equal(set(result), {"volume"})
+        assert_equal(self.as_tuples(result["volume"]), {1: [(0, 1, 1, 1, 2.0)]})
+
+        with self.assertRaises(ValueError):
+            load_adjustments_from_sqlite(
+                db, self.dates, assets, True, True, True, "prices"
+            )
+
+    def test_many_assets(self):
+        # More assets than SQLite versions before 3.32 bind in one statement.
+        nassets = 1500
+        db = self.db(
+            splits=[(sid, 0.5, "2020-01-03") for sid in range(nassets)],
+            max_variables=999,
+        )
+        result = load_adjustments_from_sqlite(
+            db,
+            self.dates,
+            pd.Index(range(nassets), dtype="int64"),
+            True,
+            False,
+            False,
+            "price",
+        )
+        assert_equal(len(result["price"][1]), nassets)

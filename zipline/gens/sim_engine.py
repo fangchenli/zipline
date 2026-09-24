@@ -71,7 +71,9 @@ class MinuteSimulationClock:
         }
 
     def __iter__(self):
-        for session_nano, bts_nano in zip(self.sessions_nanos, self.bts_nanos):
+        for session_nano, bts_nano in zip(
+            self.sessions_nanos, self.bts_nanos, strict=True
+        ):
             # Session labels are tz-naive midnight timestamps.
             yield pd.Timestamp(session_nano), SESSION_START
 

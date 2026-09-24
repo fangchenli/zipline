@@ -20,11 +20,17 @@ import sqlalchemy as sa
 
 from .input_validation import coerce_string
 
-SQLITE_MAX_VARIABLE_NUMBER = 998
+#: The most parameters one SQLite statement can bind on builds before 3.32
+#: (later ones allow 32766).
+SQLITE_MAX_VARIABLE_NUMBER = 999
 
 
-def group_into_chunks(items, chunk_size=SQLITE_MAX_VARIABLE_NUMBER):
+def group_into_chunks(items, other_params=0):
+    """Split ``items`` into lists small enough to bind as the parameters of one
+    statement that also binds ``other_params`` others.
+    """
     items = list(items)
+    chunk_size = SQLITE_MAX_VARIABLE_NUMBER - other_params
     return [items[x : x + chunk_size] for x in range(0, len(items), chunk_size)]
 
 
