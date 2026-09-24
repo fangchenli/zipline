@@ -19,7 +19,9 @@ missing_values = {
 
 class DtypeTestCase(ZiplineTestCase):
     def correct_dtype(cls, dtypes):
-        @pytest.mark.parametrize("dtype_", dtypes)
+        # Sorted: set order varies between processes, and xdist workers must
+        # collect tests in the same order.
+        @pytest.mark.parametrize("dtype_", sorted(dtypes, key=str))
         def test(self, dtype_):
             class Correct(cls):
                 missing_value = missing_values.get(dtype_, NotSpecified)
@@ -33,7 +35,9 @@ class DtypeTestCase(ZiplineTestCase):
         return test
 
     def incorrect_dtype(cls, dtypes, hint):
-        @pytest.mark.parametrize("dtype_", dtypes)
+        # Sorted: set order varies between processes, and xdist workers must
+        # collect tests in the same order.
+        @pytest.mark.parametrize("dtype_", sorted(dtypes, key=str))
         def test(self, dtype_):
             with pytest.raises(UnsupportedDataType) as e:
 

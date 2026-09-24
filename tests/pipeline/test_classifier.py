@@ -440,7 +440,7 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             )
             assert errmsg == expected
 
-    @pytest.mark.parametrize("dtype_", Classifier.ALLOWED_DTYPES)
+    @pytest.mark.parametrize("dtype_", sorted(Classifier.ALLOWED_DTYPES, key=str))
     def test_element_of_rejects_unhashable_type(self, dtype_):
 
         class C(Classifier):

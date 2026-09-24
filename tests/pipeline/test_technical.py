@@ -70,9 +70,9 @@ class BollingerBandsTestCase(BaseUSEquityPipelineTestCase):
         lowers = np.column_stack(lower_cols)[where]
         return uppers, middles, lowers
 
-    @pytest.mark.parametrize("window_length", {5, 10, 20})
-    @pytest.mark.parametrize("k", {1.5, 2, 2.5})
-    @pytest.mark.parametrize("mask_last_sid", {True, False})
+    @pytest.mark.parametrize("window_length", [5, 10, 20])
+    @pytest.mark.parametrize("k", [1.5, 2, 2.5])
+    @pytest.mark.parametrize("mask_last_sid", [True, False])
     def test_bollinger_bands(self, window_length, k, mask_last_sid):
         closes = self.closes(mask_last_sid=mask_last_sid)
         mask = ~np.isnan(closes)
