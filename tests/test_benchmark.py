@@ -16,6 +16,7 @@ import logging
 
 import numpy as np
 import pandas as pd
+import pytest
 from pandas.testing import assert_series_equal
 
 from zipline.data.data_portal import DataPortal
@@ -131,7 +132,7 @@ class TestBenchmark(
         # compare all the fields except the first one, for which we don't have
         # data in manually_calculated
         for idx, day in enumerate(days_to_use[1:]):
-            self.assertEqual(source.get_value(day), manually_calculated.iloc[idx + 1])
+            assert source.get_value(day) == manually_calculated.iloc[idx + 1]
 
         # compare a slice of the data
         assert_series_equal(
@@ -143,7 +144,7 @@ class TestBenchmark(
         benchmark_start = benchmark.start_date
         benchmark_end = benchmark.end_date
 
-        with self.assertRaises(BenchmarkAssetNotAvailableTooEarly) as exc:
+        with pytest.raises(BenchmarkAssetNotAvailableTooEarly) as exc:
             BenchmarkSource(
                 benchmark,
                 self.trading_calendar,
@@ -151,13 +152,12 @@ class TestBenchmark(
                 self.data_portal,
             )
 
-        self.assertEqual(
+        assert (
             f"Equity(3 [C]) does not exist on {self.sim_params.sessions[1]}. "
-            f"It started trading on {benchmark_start}.",
-            exc.exception.message,
+            f"It started trading on {benchmark_start}." == exc.value.message
         )
 
-        with self.assertRaises(BenchmarkAssetNotAvailableTooLate) as exc2:
+        with pytest.raises(BenchmarkAssetNotAvailableTooLate) as exc2:
             BenchmarkSource(
                 benchmark,
                 self.trading_calendar,
@@ -165,10 +165,9 @@ class TestBenchmark(
                 self.data_portal,
             )
 
-        self.assertEqual(
+        assert (
             f"Equity(3 [C]) does not exist on {self.sim_params.sessions[-1]}. "
-            f"It stopped trading on {benchmark_end}.",
-            exc2.exception.message,
+            f"It stopped trading on {benchmark_end}." == exc2.value.message
         )
 
     def test_asset_IPOed_same_day(self):
@@ -203,7 +202,7 @@ class TestBenchmark(
             days_to_use = self.sim_params.sessions
 
             # first value should be 0.0, coming from daily data
-            self.assertAlmostEqual(0.0, source.get_value(days_to_use[0]))
+            assert 0.0 == pytest.approx(source.get_value(days_to_use[0]), abs=1e-7)
 
             manually_calculated = data_portal.get_history_window(
                 [2],
@@ -215,15 +214,13 @@ class TestBenchmark(
             )[2].pct_change()
 
             for idx, day in enumerate(days_to_use[1:]):
-                self.assertEqual(
-                    source.get_value(day), manually_calculated.iloc[idx + 1]
-                )
+                assert source.get_value(day) == manually_calculated.iloc[idx + 1]
 
     def test_no_stock_dividends_allowed(self):
         # try to use sid(4) as benchmark, should blow up due to the presence
         # of a stock dividend
 
-        with self.assertRaises(InvalidBenchmarkAsset) as exc:
+        with pytest.raises(InvalidBenchmarkAsset) as exc:
             BenchmarkSource(
                 self.asset_finder.retrieve_asset(4),
                 self.trading_calendar,
@@ -231,12 +228,11 @@ class TestBenchmark(
                 self.data_portal,
             )
 
-        self.assertEqual(
+        assert (
             "Equity(4 [D]) cannot be used as the benchmark "
             "because it has a stock dividend on 2006-03-16 "
             "00:00:00.  Choose another asset to use as the "
-            "benchmark.",
-            exc.exception.message,
+            "benchmark." == exc.value.message
         )
 
 
@@ -291,8 +287,8 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
         with self.assertLogs("zipline", logging.WARNING) as logs:
             sid, returns = self.resolve_spec(spec)
 
-        self.assertIs(sid, None)
-        self.assertIs(returns, None)
+        assert sid is None
+        assert returns is None
 
         warnings = [record.getMessage() for record in logs.records]
         expected = [
@@ -314,7 +310,7 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
         with self.assertNoLogs("zipline", logging.WARNING):
             sid, returns = self.resolve_spec(spec)
 
-        self.assertIs(sid, None)
+        assert sid is None
         assert_series_equal(returns, self.zero_returns)
 
     @parameter_space(case=[("A", 1), ("B", 2)])
@@ -333,7 +329,7 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
             sid, returns = self.resolve_spec(spec)
 
         assert_equal(sid, expected_sid)
-        self.assertIs(returns, None)
+        assert returns is None
 
     @parameter_space(input_sid=[1, 2])
     def test_benchmark_sid(self, input_sid):
@@ -349,7 +345,7 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
             sid, returns = self.resolve_spec(spec)
 
         assert_equal(sid, input_sid)
-        self.assertIs(returns, None)
+        assert returns is None
 
     def test_benchmark_file(self):
         """Test running with a benchmark file."""
@@ -374,7 +370,7 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
         with self.assertNoLogs("zipline", logging.WARNING):
             sid, returns = self.resolve_spec(spec)
 
-        self.assertIs(sid, None)
+        assert sid is None
 
         expected_dates = pd.to_datetime(
             ["2020-01-03", "2020-01-06", "2020-01-07", "2020-01-08", "2020-01-09"],

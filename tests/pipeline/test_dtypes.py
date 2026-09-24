@@ -1,3 +1,5 @@
+import pytest
+
 from zipline.errors import UnsupportedDataType
 from zipline.pipeline import CustomClassifier, CustomFactor, CustomFilter
 from zipline.pipeline.dtypes import (
@@ -27,14 +29,14 @@ class DtypeTestCase(ZiplineTestCase):
                 dtype = dtype_
 
             # construct an instance to make sure the valid dtype checks out
-            self.assertEqual(Correct().dtype, dtype_)
+            assert Correct().dtype == dtype_
 
         return test
 
     def incorrect_dtype(cls, dtypes, hint):
         @parameter_space(dtype_=dtypes)
         def test(self, dtype_):
-            with self.assertRaises(UnsupportedDataType) as e:
+            with pytest.raises(UnsupportedDataType) as e:
 
                 class Incorrect(cls):
                     missing_value = missing_values.get(dtype_, NotSpecified)
@@ -46,8 +48,8 @@ class DtypeTestCase(ZiplineTestCase):
                 # construction time
                 Incorrect()
 
-            self.assertIn(hint, str(e.exception))
-            self.assertIn(str(dtype_), str(e.exception))
+            assert hint in str(e.value)
+            assert str(dtype_) in str(e.value)
 
         return test
 

@@ -4,7 +4,6 @@ from zipline.finance.metrics.core import _make_metrics_set_core
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import (
     assert_equal,
-    assert_is,
     assert_raises_str,
 )
 
@@ -43,7 +42,7 @@ class MetricsSetCoreTestCase(ZiplineTestCase):
 
         expected_metrics_sets = MappingProxyType({"ayy-lmao": ayy_lmao})
         assert_equal(self.metrics_sets, expected_metrics_sets)
-        assert_is(self.load("ayy-lmao"), ayy_lmao_set)
+        assert self.load("ayy-lmao") is ayy_lmao_set
 
         msg = "metrics set 'ayy-lmao' is already registered"
         with assert_raises_str(ValueError, msg):
@@ -55,7 +54,7 @@ class MetricsSetCoreTestCase(ZiplineTestCase):
         # ensure that the failed registration didn't break the previously
         # registered set
         assert_equal(self.metrics_sets, expected_metrics_sets)
-        assert_is(self.load("ayy-lmao"), ayy_lmao_set)
+        assert self.load("ayy-lmao") is ayy_lmao_set
 
         self.unregister("ayy-lmao")
         assert_equal(self.metrics_sets, MappingProxyType({}))
@@ -78,7 +77,7 @@ class MetricsSetCoreTestCase(ZiplineTestCase):
 
         expected_metrics_sets = MappingProxyType({"ayy-lmao": ayy_lmao})
         assert_equal(self.metrics_sets, expected_metrics_sets)
-        assert_is(self.load("ayy-lmao"), ayy_lmao_set)
+        assert self.load("ayy-lmao") is ayy_lmao_set
 
         def other():  # pragma: no cover
             raise AssertionError("dead")
@@ -90,7 +89,7 @@ class MetricsSetCoreTestCase(ZiplineTestCase):
         # ensure that the failed registration didn't break the previously
         # registered set
         assert_equal(self.metrics_sets, expected_metrics_sets)
-        assert_is(self.load("ayy-lmao"), ayy_lmao_set)
+        assert self.load("ayy-lmao") is ayy_lmao_set
 
         self.unregister("ayy-lmao")
         assert_equal(self.metrics_sets, MappingProxyType({}))

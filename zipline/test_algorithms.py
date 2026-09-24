@@ -73,6 +73,7 @@ The algorithm must expose methods:
 """
 
 import numpy as np
+import pytest
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.api import (
@@ -89,7 +90,6 @@ from zipline.finance.execution import (
     StopLimitOrder,
     StopOrder,
 )
-from zipline.testing.predicates import assert_raises
 
 
 class TestAlgorithm(TradingAlgorithm):
@@ -268,40 +268,40 @@ class InvalidOrderAlgorithm(TradingAlgorithm):
             StopOrder(10),
             StopLimitOrder(10, 10, asset=self.asset),
         ]:
-            with assert_raises(UnsupportedOrderParameters):
+            with pytest.raises(UnsupportedOrderParameters):
                 order(self.asset, 10, limit_price=10, style=style)
 
-            with assert_raises(UnsupportedOrderParameters):
+            with pytest.raises(UnsupportedOrderParameters):
                 order(self.asset, 10, stop_price=10, style=style)
 
-            with assert_raises(UnsupportedOrderParameters):
+            with pytest.raises(UnsupportedOrderParameters):
                 order_value(self.asset, 300, limit_price=10, style=style)
 
-            with assert_raises(UnsupportedOrderParameters):
+            with pytest.raises(UnsupportedOrderParameters):
                 order_value(self.asset, 300, stop_price=10, style=style)
 
-            with assert_raises(UnsupportedOrderParameters):
+            with pytest.raises(UnsupportedOrderParameters):
                 order_percent(self.asset, 0.1, limit_price=10, style=style)
 
-            with assert_raises(UnsupportedOrderParameters):
+            with pytest.raises(UnsupportedOrderParameters):
                 order_percent(self.asset, 0.1, stop_price=10, style=style)
 
-            with assert_raises(UnsupportedOrderParameters):
+            with pytest.raises(UnsupportedOrderParameters):
                 order_target(self.asset, 100, limit_price=10, style=style)
 
-            with assert_raises(UnsupportedOrderParameters):
+            with pytest.raises(UnsupportedOrderParameters):
                 order_target(self.asset, 100, stop_price=10, style=style)
 
-            with assert_raises(UnsupportedOrderParameters):
+            with pytest.raises(UnsupportedOrderParameters):
                 order_target_value(self.asset, 100, limit_price=10, style=style)
 
-            with assert_raises(UnsupportedOrderParameters):
+            with pytest.raises(UnsupportedOrderParameters):
                 order_target_value(self.asset, 100, stop_price=10, style=style)
 
-            with assert_raises(UnsupportedOrderParameters):
+            with pytest.raises(UnsupportedOrderParameters):
                 order_target_percent(self.asset, 0.2, limit_price=10, style=style)
 
-            with assert_raises(UnsupportedOrderParameters):
+            with pytest.raises(UnsupportedOrderParameters):
                 order_target_percent(self.asset, 0.2, stop_price=10, style=style)
 
 

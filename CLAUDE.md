@@ -33,7 +33,7 @@ uv run --group bench asv run --python=same --quick      # smoke-run the benchmar
 uv run --group bench asv continuous master HEAD        # compare performance vs master
 ```
 
-Test cases are still `unittest`-style classes, some parameterized with `parameterized`. pytest collects them directly.
+Tests use plain `assert`, `pytest.raises`/`pytest.warns` and `pytest.approx`, not unittest's `self.assert*` methods or nose-style helpers; `zipline.testing.predicates` keeps the structural `assert_equal` family and `assert_raises_str` (exact message match). Test classes are still `unittest`-style, some parameterized with `parameterized`, and pytest collects them directly.
 
 Benchmarks live in `benchmarks/` (asv). They run against a synthetic bundle built by `benchmarks/data.py`, which is also where a new storage backend gets added to `BACKENDS`. Quick runs take one sample and are only a smoke test; use `asv continuous` for real comparisons.
 

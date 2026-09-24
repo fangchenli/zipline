@@ -72,24 +72,24 @@ def everything_but(k, d):
 class TypeCheckTestCase(TestCase):
     def test_is_float(self):
         for good_value in CASES[float]:
-            self.assertTrue(is_float(good_value))
+            assert is_float(good_value)
 
         for bad_value in everything_but(float, CASES):
-            self.assertFalse(is_float(bad_value))
+            assert not is_float(bad_value)
 
     def test_is_int(self):
         for good_value in CASES[int]:
-            self.assertTrue(is_int(good_value))
+            assert is_int(good_value)
 
         for bad_value in everything_but(int, CASES):
-            self.assertFalse(is_int(bad_value))
+            assert not is_int(bad_value)
 
     def test_is_datetime(self):
         for good_value in CASES[datetime]:
-            self.assertTrue(is_datetime(good_value))
+            assert is_datetime(good_value)
 
         for bad_value in everything_but(datetime, CASES):
-            self.assertFalse(is_datetime(bad_value))
+            assert not is_datetime(bad_value)
 
 
 class ArrayUtilsTestCase(TestCase):

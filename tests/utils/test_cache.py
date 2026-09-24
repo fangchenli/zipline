@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+import pytest
 from pandas import Timedelta, Timestamp
 
 from zipline.utils.cache import CachedObject, Expired, ExpiringCache, LRUCache
@@ -13,17 +14,17 @@ class CachedObjectTestCase(TestCase):
 
         obj = CachedObject(1, expiry)
 
-        self.assertEqual(obj.unwrap(before), 1)
-        self.assertEqual(obj.unwrap(expiry), 1)  # Unwrap on expiry is allowed.
-        with self.assertRaises(Expired) as e:
+        assert obj.unwrap(before) == 1
+        assert obj.unwrap(expiry) == 1  # Unwrap on expiry is allowed.
+        with pytest.raises(Expired) as e:
             obj.unwrap(after)
-        self.assertEqual(e.exception.args, (expiry,))
+        assert e.value.args == (expiry,)
 
     def test_expired(self):
         always_expired = CachedObject.expired()
 
         for dt in Timestamp.min, Timestamp.now(), Timestamp.max:
-            with self.assertRaises(Expired):
+            with pytest.raises(Expired):
                 always_expired.unwrap(dt)
 
 
@@ -43,26 +44,26 @@ class ExpiringCacheTestCase(TestCase):
         cache.set("foo", 1, expiry_1)
         cache.set("bar", 2, expiry_2)
 
-        self.assertEqual(cache.get("foo", before_1), 1)
+        assert cache.get("foo", before_1) == 1
         # Unwrap on expiry is allowed.
-        self.assertEqual(cache.get("foo", expiry_1), 1)
+        assert cache.get("foo", expiry_1) == 1
 
-        with self.assertRaises(KeyError) as e:
-            self.assertEqual(cache.get("foo", after_1))
-        self.assertEqual(e.exception.args, ("foo",))
+        with pytest.raises(KeyError) as e:
+            cache.get("foo", after_1)
+        assert e.value.args == ("foo",)
 
         # Should raise same KeyError after deletion.
-        with self.assertRaises(KeyError) as e:
-            self.assertEqual(cache.get("foo", before_1))
-        self.assertEqual(e.exception.args, ("foo",))
+        with pytest.raises(KeyError) as e:
+            cache.get("foo", before_1)
+        assert e.value.args == ("foo",)
 
         # Second value should still exist.
-        self.assertEqual(cache.get("bar", after_2), 2)
+        assert cache.get("bar", after_2) == 2
 
         # Should raise similar KeyError on non-existent key.
-        with self.assertRaises(KeyError) as e:
-            self.assertEqual(cache.get("baz", expiry_3))
-        self.assertEqual(e.exception.args, ("baz",))
+        with pytest.raises(KeyError) as e:
+            cache.get("baz", expiry_3)
+        assert e.value.args == ("baz",)
 
 
 class LRUCacheTestCase(TestCase):
@@ -71,16 +72,16 @@ class LRUCacheTestCase(TestCase):
         cache["a"] = 1
         cache["b"] = 2
         # Reading "a" makes "b" the least recently used.
-        self.assertEqual(cache["a"], 1)
+        assert cache["a"] == 1
         cache["c"] = 3
-        self.assertEqual(dict(cache), {"a": 1, "c": 3})
+        assert dict(cache) == {"a": 1, "c": 3}
         # So does overwriting it.
         cache["a"] = 4
         cache["d"] = 5
-        self.assertEqual(dict(cache), {"a": 4, "d": 5})
+        assert dict(cache) == {"a": 4, "d": 5}
         del cache["a"]
-        self.assertEqual(len(cache), 1)
+        assert len(cache) == 1
 
     def test_maxsize(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             LRUCache(0)

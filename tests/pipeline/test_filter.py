@@ -7,6 +7,7 @@ from itertools import product
 from operator import and_
 
 import pandas as pd
+import pytest
 from numpy import (
     arange,
     argsort,
@@ -144,7 +145,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             (50, 50),
         ]
         for min_, max_ in bad_percentiles:
-            with self.assertRaises(BadPercentileBounds):
+            with pytest.raises(BadPercentileBounds):
                 f.percentile_between(min_, max_)
 
     def test_top_and_bottom(self):
@@ -578,12 +579,10 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
     def test_all_present_filter_input(self):
         """Test error is raised when filter factor is input to `AllPresent`"""
-        with self.assertRaises(TypeError) as err:
+        with pytest.raises(TypeError) as err:
             AllPresent([Mask()], window_length=4)
 
-        self.assertEqual(
-            "Input to filter `AllPresent` cannot be a Filter.", str(err.exception)
-        )
+        assert "Input to filter `AllPresent` cannot be a Filter." == str(err.value)
 
     def test_all(self):
 
@@ -855,10 +854,10 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
         # Factors are not window safe by default.
         factor = TestFactor()
-        self.assertFalse(factor.window_safe)
+        assert not factor.window_safe
 
         filter_ = TestFactor() > 3
-        self.assertTrue(filter_.window_safe)
+        assert filter_.window_safe
 
     @parameter_space(
         dtype=("float64", "datetime64[ns]"), seed=(1, 2, 3), __fail_fast=True

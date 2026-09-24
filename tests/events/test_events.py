@@ -19,6 +19,7 @@ from inspect import isabstract
 from unittest import TestCase
 
 import pandas as pd
+import pytest
 from parameterized import parameterized
 
 import zipline.utils.events
@@ -62,38 +63,32 @@ class TestUtils(TestCase):
         ]
     )
     def test_build_none(self, name, f):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             f(None, {})
 
     def test_build_offset_default(self):
         default = object()
-        self.assertIs(default, _build_offset(None, {}, default))
+        assert default is _build_offset(None, {}, default)
 
     def test_build_offset_both(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             _build_offset(datetime.timedelta(minutes=1), {"minutes": 1}, None)
 
     def test_build_offset_exc(self):
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             # object() is not an instance of a timedelta.
             _build_offset(object(), {}, None)
 
     def test_build_offset_kwargs(self):
         kwargs = {"minutes": 1}
-        self.assertEqual(
-            _build_offset(None, kwargs, None),
-            datetime.timedelta(**kwargs),
-        )
+        assert _build_offset(None, kwargs, None) == datetime.timedelta(**kwargs)
 
     def test_build_offset_td(self):
         td = datetime.timedelta(minutes=1)
-        self.assertEqual(
-            _build_offset(td, {}, None),
-            td,
-        )
+        assert _build_offset(td, {}, None) == td
 
     def test_build_date_both(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             _build_date(
                 datetime.date(year=2014, month=9, day=25),
                 {
@@ -105,20 +100,14 @@ class TestUtils(TestCase):
 
     def test_build_date_kwargs(self):
         kwargs = {"year": 2014, "month": 9, "day": 25}
-        self.assertEqual(
-            _build_date(None, kwargs),
-            datetime.date(**kwargs),
-        )
+        assert _build_date(None, kwargs) == datetime.date(**kwargs)
 
     def test_build_date_date(self):
         date = datetime.date(year=2014, month=9, day=25)
-        self.assertEqual(
-            _build_date(date, {}),
-            date,
-        )
+        assert _build_date(date, {}) == date
 
     def test_build_time_both(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             _build_time(
                 datetime.time(hour=1, minute=5),
                 {
@@ -129,10 +118,7 @@ class TestUtils(TestCase):
 
     def test_build_time_kwargs(self):
         kwargs = {"hour": 1, "minute": 5}
-        self.assertEqual(
-            _build_time(None, kwargs),
-            datetime.time(**kwargs),
-        )
+        assert _build_time(None, kwargs) == datetime.time(**kwargs)
 
 
 class TestEventManager(TestCase):
@@ -143,17 +129,17 @@ class TestEventManager(TestCase):
 
     def test_add_event(self):
         self.em.add_event(self.event1)
-        self.assertEqual(len(self.em._events), 1)
+        assert len(self.em._events) == 1
 
     def test_add_event_prepend(self):
         self.em.add_event(self.event1)
         self.em.add_event(self.event2, prepend=True)
-        self.assertEqual([self.event2, self.event1], self.em._events)
+        assert [self.event2, self.event1] == self.em._events
 
     def test_add_event_append(self):
         self.em.add_event(self.event1)
         self.em.add_event(self.event2)
-        self.assertEqual([self.event1, self.event2], self.em._events)
+        assert [self.event1, self.event2] == self.em._events
 
     def test_checks_should_trigger(self):
         class CountingRule(Always):
@@ -168,16 +154,16 @@ class TestEventManager(TestCase):
 
         self.em.handle_data(None, None, datetime.datetime.now())
 
-        self.assertEqual(CountingRule.count, 5)
+        assert CountingRule.count == 5
 
 
 class TestEventRule(TestCase):
     def test_is_abstract(self):
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             EventRule()
 
     def test_not_implemented(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             super(Always, Always()).should_trigger("a")
 
 
@@ -256,10 +242,9 @@ class RuleTestCase:
             and not isabstract(v)
         }
         ds = {k[5:] for k in dir(self) if k.startswith("test") and k[5:] in dem}
-        self.assertTrue(
-            dem <= ds,
-            msg="This suite is missing tests for the following classes:\n"
-            + "\n".join(map(repr, dem - ds)),
+        assert dem <= ds, (
+            "This suite is missing tests for the following classes:\n"
+            + "\n".join(map(repr, dem - ds))
         )
 
 
@@ -291,12 +276,12 @@ class StatelessRulesTests(RuleTestCase):
     def test_Always(self):
         should_trigger = Always().should_trigger
         for session_minutes in minutes_for_days(self.cal):
-            self.assertTrue(all(map(should_trigger, session_minutes)))
+            assert all(map(should_trigger, session_minutes))
 
     def test_Never(self):
         should_trigger = Never().should_trigger
         for session_minutes in minutes_for_days(self.cal):
-            self.assertFalse(any(map(should_trigger, session_minutes)))
+            assert not any(map(should_trigger, session_minutes))
 
     def test_AfterOpen(self):
         minute_groups = minutes_for_days(self.cal, ordered_days=True)
@@ -305,21 +290,21 @@ class StatelessRulesTests(RuleTestCase):
             for i, minute in enumerate(session_minutes):
                 # Should only trigger at the 64th minute
                 if i != 64:
-                    self.assertFalse(should_trigger(minute))
+                    assert not should_trigger(minute)
                 else:
-                    self.assertTrue(should_trigger(minute))
+                    assert should_trigger(minute)
 
     def test_invalid_offset(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             AfterOpen(hours=12, minutes=1)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             AfterOpen(hours=0, minutes=0)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             BeforeClose(hours=12, minutes=1)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             BeforeClose(hours=0, minutes=0)
 
     def test_BeforeClose(self):
@@ -329,9 +314,9 @@ class StatelessRulesTests(RuleTestCase):
             for minute in minute_group:
                 # Should only trigger at the 65th-to-last minute
                 if minute != minute_group[-66]:
-                    self.assertFalse(should_trigger(minute))
+                    assert not should_trigger(minute)
                 else:
-                    self.assertTrue(should_trigger(minute))
+                    assert should_trigger(minute)
 
     def test_NotHalfDay(self):
         rule = NotHalfDay()
@@ -339,11 +324,11 @@ class StatelessRulesTests(RuleTestCase):
 
         if self.HALF_SESSION:
             for minute in self.cal.session_minutes(self.HALF_SESSION):
-                self.assertFalse(rule.should_trigger(minute))
+                assert not rule.should_trigger(minute)
 
         if self.FULL_SESSION:
             for minute in self.cal.session_minutes(self.FULL_SESSION):
-                self.assertTrue(rule.should_trigger(minute))
+                assert rule.should_trigger(minute)
 
     def test_NthTradingDayOfWeek_day_zero(self):
         """
@@ -353,7 +338,7 @@ class StatelessRulesTests(RuleTestCase):
         rule = NthTradingDayOfWeek(0)
         rule.cal = self.cal
         first_open = self.cal.session_first_last_minute(self.cal.sessions[0])
-        self.assertTrue(first_open)
+        assert first_open
 
     def test_NthTradingDayOfWeek(self):
         for n in range(MAX_WEEK_RANGE):
@@ -370,9 +355,9 @@ class StatelessRulesTests(RuleTestCase):
                     prev_period = period
 
                 if should_trigger(minute):
-                    self.assertEqual(n_tdays, n)
+                    assert n_tdays == n
                 else:
-                    self.assertNotEqual(n_tdays, n)
+                    assert n_tdays != n
 
     def test_NDaysBeforeLastTradingDayOfWeek(self):
         for n in range(MAX_WEEK_RANGE):
@@ -389,7 +374,7 @@ class StatelessRulesTests(RuleTestCase):
                         next_session = self.cal.next_session(session)
                         n_tdays += 1
 
-                    self.assertEqual(n_tdays, n)
+                    assert n_tdays == n
 
     def test_NthTradingDayOfMonth(self):
         for n in range(MAX_MONTH_RANGE):
@@ -401,9 +386,9 @@ class StatelessRulesTests(RuleTestCase):
                     # just check the first 10 minutes of each session
                     for m in self.cal.session_minutes(session)[0:10]:
                         if should_trigger(m):
-                            self.assertEqual(n_tdays, n)
+                            assert n_tdays == n
                         else:
-                            self.assertNotEqual(n_tdays, n)
+                            assert n_tdays != n
 
     def test_NDaysBeforeLastTradingDayOfMonth(self):
         for n in range(MAX_MONTH_RANGE):
@@ -414,9 +399,9 @@ class StatelessRulesTests(RuleTestCase):
             for n_days_before, session in enumerate(sessions):
                 for m in self.cal.session_minutes(session)[0:10]:
                     if should_trigger(m):
-                        self.assertEqual(n_days_before, n)
+                        assert n_days_before == n
                     else:
-                        self.assertNotEqual(n_days_before, n)
+                        assert n_days_before != n
 
     def test_ComposedRule(self):
         minute_groups = minutes_for_days(self.cal)
@@ -426,10 +411,10 @@ class StatelessRulesTests(RuleTestCase):
         for minute in minute_groups:
             composed = rule1 & rule2
             should_trigger = composed.should_trigger
-            self.assertIsInstance(composed, ComposedRule)
-            self.assertIs(composed.first, rule1)
-            self.assertIs(composed.second, rule2)
-            self.assertFalse(any(map(should_trigger, minute)))
+            assert isinstance(composed, ComposedRule)
+            assert composed.first is rule1
+            assert composed.second is rule2
+            assert not any(map(should_trigger, minute))
 
     @parameterized.expand(
         [
@@ -445,24 +430,24 @@ class StatelessRulesTests(RuleTestCase):
             rule_type(n=3)  # Shouldn't trigger a warning.
             rule_type(n=3.0)  # Should trigger a warning about float coercion.
 
-        self.assertEqual(len(raised_warnings), 1)
+        assert len(raised_warnings) == 1
 
         # We only implicitly convert from float to int when there's no loss of
         # precision.
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             rule_type(3.1)
 
     def test_invalid_offsets(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             NthTradingDayOfWeek(5)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             NthTradingDayOfWeek(-1)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             NthTradingDayOfMonth(-1)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             NthTradingDayOfMonth(24)
 
 
@@ -497,4 +482,4 @@ class StatefulRulesTests(RuleTestCase):
             for minute in minute_group:
                 rule.should_trigger(minute)
 
-            self.assertEqual(rule.count, 1)
+            assert rule.count == 1

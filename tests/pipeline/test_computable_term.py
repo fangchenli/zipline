@@ -1,6 +1,7 @@
 """Tests for common behaviors shared by all ComputableTerms."""
 
 import numpy as np
+import pytest
 
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Classifier, Factor, Filter
@@ -235,11 +236,11 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
         )
 
     def should_error(self, f, exc_type, expected_message):
-        with self.assertRaises(exc_type) as e:
+        with pytest.raises(exc_type) as e:
             f()
 
-        message = str(e.exception)
-        self.assertIn(expected_message, message)
+        message = str(e.value)
+        assert expected_message in message
 
     def test_bad_inputs(self):
         def dtype_for(o):

@@ -4,6 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
+import pytest
 
 from zipline.data.bar_reader import NoDataForSid, NoDataOnDate
 from zipline.data.parquet_minute_bars import (
@@ -105,11 +106,11 @@ class ParquetMinuteBarReaderTestCase(
 
     def test_get_value_non_trading_minute(self):
         # After Thanksgiving's early close.
-        with self.assertRaises(NoDataOnDate):
+        with pytest.raises(NoDataOnDate):
             self.reader.get_value(
                 1, pd.Timestamp("2015-11-27 19:00", tz="UTC"), "close"
             )
-        with self.assertRaises(NoDataOnDate):
+        with pytest.raises(NoDataOnDate):
             self.reader.get_value(
                 1, pd.Timestamp("2016-01-09 15:00", tz="UTC"), "close"
             )
@@ -134,9 +135,9 @@ class ParquetMinuteBarReaderTestCase(
 
     def test_unknown_sid(self):
         minute = self.minutes[0]
-        with self.assertRaises(NoDataForSid):
+        with pytest.raises(NoDataForSid):
             self.reader.get_value(1000, minute, "close")
-        with self.assertRaises(NoDataForSid):
+        with pytest.raises(NoDataForSid):
             self.reader.load_raw_arrays(["close"], minute, minute, [1, 1000])
         assert self.reader.get_last_traded_dt(1000, minute) is pd.NaT
 
@@ -177,7 +178,7 @@ class ParquetMinuteBarBreaksTestCase(
             ["close"], in_break, in_break + pd.Timedelta(minutes=5), [1]
         )
         assert_equal(close.shape, (0, 1))
-        with self.assertRaises(NoDataOnDate):
+        with pytest.raises(NoDataOnDate):
             reader.get_value(1, in_break, "close")
 
 
@@ -262,9 +263,9 @@ class ParquetMinuteBarWriterTestCase(
         frame = self.frame(self.minutes[:2])
         frame.loc[self.minutes[0], "high"] = -1.0
         frame.loc[self.minutes[1], "low"] = np.inf
-        with self.assertRaisesRegex(ValueError, "2 negative or infinite values"):
+        with pytest.raises(ValueError, match="2 negative or infinite values"):
             self.write([(1, frame)], invalid_data_behavior="raise")
-        with self.assertWarnsRegex(UserWarning, "2 negative or infinite values"):
+        with pytest.warns(UserWarning, match="2 negative or infinite values"):
             reader = self.write([(1, frame)], invalid_data_behavior="warn")
         assert np.isnan(reader.get_value(1, self.minutes[0], "high"))
         assert np.isnan(reader.get_value(1, self.minutes[1], "low"))
@@ -274,7 +275,7 @@ class ParquetMinuteBarWriterTestCase(
         minutes = pd.DatetimeIndex(
             [self.minutes[0], pd.Timestamp("2015-11-27 19:00", tz="UTC")]
         )
-        with self.assertRaisesRegex(ValueError, "1 minutes are not trading minutes"):
+        with pytest.raises(ValueError, match="1 minutes are not trading minutes"):
             self.write([(1, self.frame(minutes))])
 
     def test_naive_minutes_are_utc(self):
@@ -310,12 +311,12 @@ class ParquetMinuteBarWriterTestCase(
 
     def test_duplicate_sid(self):
         frame = self.frame(self.minutes[:1])
-        with self.assertRaisesRegex(ValueError, "sid 1 appears more than once"):
+        with pytest.raises(ValueError, match="sid 1 appears more than once"):
             self.write([(1, frame), (1, frame)])
 
     def test_refuses_to_overwrite(self):
         self.write([(1, self.frame(self.minutes[:1]))])
-        with self.assertRaisesRegex(ValueError, "is not empty"):
+        with pytest.raises(ValueError, match="is not empty"):
             self.write([(1, self.frame(self.minutes[:1]))])
 
     def test_newer_format_version(self):
@@ -326,7 +327,7 @@ class ParquetMinuteBarWriterTestCase(
         with open(f"{self.path}/_metadata.json", "w") as f:
             json.dump(metadata, f)
         reader = ParquetMinuteBarReader(self.path)
-        with self.assertRaisesRegex(ValueError, "format version"):
+        with pytest.raises(ValueError, match="format version"):
             reader.get_value(1, self.minutes[0], "close")
 
     def test_opens_lazily(self):
@@ -339,18 +340,18 @@ class ParquetMinuteBarWriterTestCase(
         good = self.frame(self.minutes[:5])
         bad = self.frame(self.minutes[-5:])
         bad.loc[self.minutes[-1], "close"] = -1.0
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             self.write(
                 [(1, good), (2, bad)], row_group_size=1, invalid_data_behavior="raise"
             )
-        with self.assertRaisesRegex(ValueError, "is not empty"):
+        with pytest.raises(ValueError, match="is not empty"):
             self.write([(2, self.frame(self.minutes[-5:]))])
 
     def test_missing_metadata(self):
         self.write([(1, self.frame(self.minutes[:1]))])
         os.rename(f"{self.path}/_metadata.json", f"{self.path}/metadata.json")
         reader = ParquetMinuteBarReader(self.path)
-        with self.assertRaisesRegex(ValueError, "_metadata.json is missing"):
+        with pytest.raises(ValueError, match="_metadata.json is missing"):
             reader.get_value(1, self.minutes[0], "close")
 
     def test_different_calendar(self):
@@ -368,7 +369,7 @@ class ParquetMinuteBarWriterTestCase(
             json.dump(metadata, f)
         reader = ParquetMinuteBarReader(self.path)
         # July's row group holds the Canada Day bars.
-        with self.assertRaisesRegex(ValueError, "not trading minutes"):
+        with pytest.raises(ValueError, match="not trading minutes"):
             reader.get_value(1, minutes[-1], "close")
 
     def test_small_cache_bounds_reads(self):

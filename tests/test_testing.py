@@ -6,6 +6,7 @@ from itertools import product
 from unittest import TestCase
 
 import pandas as pd
+import pytest
 from numpy import array, datetime64, empty
 
 from zipline._protocol import BarData
@@ -143,8 +144,8 @@ class TestTestingSlippage(
 
         price, volume = model.process_order(self.bar_data, order)
 
-        self.assertEqual(price, self.EQUITY_MINUTE_CONSTANT_CLOSE)
-        self.assertEqual(volume, filled_per_tick)
+        assert price == self.EQUITY_MINUTE_CONSTANT_CLOSE
+        assert volume == filled_per_tick
 
     def test_fill_all(self):
         filled_per_tick = TestingSlippage.ALL
@@ -155,19 +156,19 @@ class TestTestingSlippage(
 
         price, volume = model.process_order(self.bar_data, order)
 
-        self.assertEqual(price, self.EQUITY_MINUTE_CONSTANT_CLOSE)
-        self.assertEqual(volume, order_amount)
+        assert price == self.EQUITY_MINUTE_CONSTANT_CLOSE
+        assert volume == order_amount
 
 
 class TestPredicates(ZiplineTestCase):
     def test_assert_equal_dispatch(self):
         # Mismatched types are compared with ==.
-        with self.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             assert_equal(1.0, "1.0")
         # Implementations registered for a pair of types, or tuples of types,
         # apply to their subclasses.
         assert_equal(pd.Timestamp("2020-01-02"), pd.Timestamp("2020-01-02"))
-        with self.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             assert_equal(pd.Timestamp("2020-01-02"), datetime64("2020-01-02"))
         assert_equal(
             pd.Timestamp("2020-01-02"),
@@ -179,15 +180,15 @@ class TestPredicates(ZiplineTestCase):
 
     def test_wildcard(self):
         for obj in 1, object(), "foo", {}:
-            self.assertEqual(obj, wildcard)
-            self.assertEqual([obj], [wildcard])
-            self.assertEqual({"foo": wildcard}, {"foo": wildcard})
+            assert obj == wildcard
+            assert [obj] == [wildcard]
+            assert {"foo": wildcard} == {"foo": wildcard}
 
     def test_instance_of(self):
-        self.assertEqual(1, instance_of(int))
-        self.assertNotEqual(1, instance_of(str))
-        self.assertEqual(1, instance_of((str, int)))
-        self.assertEqual("foo", instance_of((str, int)))
+        assert 1 == instance_of(int)
+        assert 1 != instance_of(str)
+        assert 1 == instance_of((str, int))
+        assert "foo" == instance_of((str, int))
 
     def test_instance_of_exact(self):
 
@@ -197,8 +198,8 @@ class TestPredicates(ZiplineTestCase):
         class Bar(Foo):
             pass
 
-        self.assertEqual(Bar(), instance_of(Foo))
-        self.assertNotEqual(Bar(), instance_of(Foo, exact=True))
+        assert Bar() == instance_of(Foo)
+        assert Bar() != instance_of(Foo, exact=True)
 
 
 class TestAssertTimestampEqual(TestCase):
@@ -208,25 +209,25 @@ class TestAssertTimestampEqual(TestCase):
         assert_timestamp_equal(pd.NaT, pd.NaT)
 
     def test_unequal(self):
-        with self.assertRaises(AssertionError) as e:
+        with pytest.raises(AssertionError) as e:
             assert_timestamp_equal(
                 pd.Timestamp("2020-01-02"),
                 pd.Timestamp("2020-01-03"),
                 msg="context",
             )
-        assert "context" in str(e.exception)
-        with self.assertRaises(AssertionError):
+        assert "context" in str(e.value)
+        with pytest.raises(AssertionError):
             assert_timestamp_equal(pd.NaT, pd.NaT, compare_nat_equal=False)
 
 
 class TestDebugMROFailure(TestCase):
     def test_reports_cycle(self):
         # WithDataPortal subclasses WithTmpDir, so it can't come after it.
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
 
             class _Unlinearizable(WithTmpDir, WithDataPortal, ZiplineTestCase):
                 pass
 
-        message = str(e.exception)
+        message = str(e.value)
         assert "Cycle found when trying to compute MRO for _Unlinearizable" in message
         assert "WithTmpDir comes before WithDataPortal" in message

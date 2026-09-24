@@ -4,6 +4,7 @@ Tests for Downsampled Filters/Factors/Classifiers
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from zipline.errors import NoFurtherDataError
 from zipline.pipeline import (
@@ -194,8 +195,8 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
         # land prior to the first date of 2012. The downsampled terms will fail
         # to request enough extra rows.
         for i in range(0, 30, 5):
-            with self.assertRaisesRegex(
-                NoFurtherDataError, r"\s*Insufficient data to compute Pipeline"
+            with pytest.raises(
+                NoFurtherDataError, match=r"\s*Insufficient data to compute Pipeline"
             ):
                 self.check_extra_row_calculations(
                     downsampled_terms,
@@ -567,11 +568,9 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
                 end_session,
                 min_extra_rows,
             )
-            self.assertEqual(
-                result,
-                expected_extra_rows,
+            assert result == expected_extra_rows, (
                 f"Expected {expected_extra_rows} extra_rows from {term}, "
-                f"but got {result}.",
+                f"but got {result}."
             )
 
 
@@ -713,7 +712,7 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine, ZiplineTestCas
     def test_errors_on_bad_downsample_frequency(self):
 
         f = NDaysAgoFactor(window_length=3)
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(ValueError) as e:
             f.downsample("bad")
 
         expected = (
@@ -721,7 +720,7 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine, ZiplineTestCas
             "('month_start', 'quarter_start', 'week_start', 'year_start') "
             "for argument 'frequency', but got 'bad' instead."
         )
-        self.assertEqual(str(e.exception), expected)
+        assert str(e.value) == expected
 
 
 class DownsampledGBPipelineTestCase(DownsampledPipelineTestCase):

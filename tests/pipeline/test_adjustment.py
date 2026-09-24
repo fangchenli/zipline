@@ -4,6 +4,7 @@ Tests for zipline.lib.adjustment
 
 from unittest import TestCase
 
+import pytest
 from parameterized import parameterized
 
 from zipline.lib import adjustment as adj
@@ -39,7 +40,7 @@ class AdjustmentTestCase(TestCase):
             last_col=4,
             value=0.5,
         )
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_make_int_adjustment(self):
         result = adj.make_adjustment_from_indices(
@@ -57,7 +58,7 @@ class AdjustmentTestCase(TestCase):
             last_col=4,
             value=1,
         )
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_make_datetime_adjustment(self):
         overwrite_dt = make_datetime64ns(0)
@@ -76,7 +77,7 @@ class AdjustmentTestCase(TestCase):
             last_col=4,
             value=overwrite_dt,
         )
-        self.assertEqual(result, expected)
+        assert result == expected
 
     @parameterized.expand([("some text",), (b"some text",), (None,)])
     def test_make_object_adjustment(self, value):
@@ -96,13 +97,13 @@ class AdjustmentTestCase(TestCase):
             last_col=4,
             value=value,
         )
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_unsupported_type(self):
         class SomeClass:
             pass
 
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
             adj.make_adjustment_from_indices(
                 1,
                 2,
@@ -112,9 +113,9 @@ class AdjustmentTestCase(TestCase):
                 value=SomeClass(),
             )
 
-        exc = e.exception
+        exc = e.value
         expected_msg = (
             "Don't know how to make overwrite adjustments for values of type "
             f"{SomeClass!r}."
         )
-        self.assertEqual(str(exc), expected_msg)
+        assert str(exc) == expected_msg

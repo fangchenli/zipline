@@ -21,10 +21,10 @@ from zipline.gens.sim_engine import BAR, SESSION_END
 class CancelPolicyTestCase(TestCase):
     def test_eod_cancel(self):
         cancel_policy = EODCancel()
-        self.assertTrue(cancel_policy.should_cancel(SESSION_END))
-        self.assertFalse(cancel_policy.should_cancel(BAR))
+        assert cancel_policy.should_cancel(SESSION_END)
+        assert not cancel_policy.should_cancel(BAR)
 
     def test_never_cancel(self):
         cancel_policy = NeverCancel()
-        self.assertFalse(cancel_policy.should_cancel(SESSION_END))
-        self.assertFalse(cancel_policy.should_cancel(BAR))
+        assert not cancel_policy.should_cancel(SESSION_END)
+        assert not cancel_policy.should_cancel(BAR)

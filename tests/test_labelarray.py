@@ -4,6 +4,7 @@ from operator import eq, ne
 
 import numpy as np
 import pandas as pd
+import pytest
 from toolz import take
 
 from zipline.lib.labelarray import LabelArray
@@ -42,12 +43,10 @@ class LabelArrayTestCase(ZiplineTestCase):
     def test_fail_on_direct_construction(self):
         # See https://docs.scipy.org/doc/numpy-1.10.0/user/basics.subclassing.html#simple-example-adding-an-extra-attribute-to-ndarray  # noqa
 
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
             np.ndarray.__new__(LabelArray, (5, 5))
 
-        self.assertEqual(
-            str(e.exception), "Direct construction of LabelArrays is not supported."
-        )
+        assert str(e.value) == "Direct construction of LabelArrays is not supported."
 
     @parameter_space(
         __fail_fast=True,
@@ -160,7 +159,7 @@ class LabelArrayTestCase(ZiplineTestCase):
     def test_map_requires_f_to_return_a_string_or_none(self, f):
         la = LabelArray(self.strs, missing_value=None)
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             la.map(f)
 
     def test_map_can_only_return_none_if_missing_value_is_none(self):
@@ -175,7 +174,7 @@ class LabelArrayTestCase(ZiplineTestCase):
         )
 
         la = LabelArray(self.strs, missing_value="__MISSING__")
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             la.map(lambda x: None)
 
     @parameter_space(
@@ -249,10 +248,10 @@ class LabelArrayTestCase(ZiplineTestCase):
     def test_slicing_preserves_attributes(self, slice_):
         arr = LabelArray(self.strs.reshape((9, 3)), missing_value="")
         sliced = arr[slice_]
-        self.assertIsInstance(sliced, LabelArray)
-        self.assertIs(sliced.categories, arr.categories)
-        self.assertIs(sliced.reverse_categories, arr.reverse_categories)
-        self.assertIs(sliced.missing_value, arr.missing_value)
+        assert isinstance(sliced, LabelArray)
+        assert sliced.categories is arr.categories
+        assert sliced.reverse_categories is arr.reverse_categories
+        assert sliced.missing_value is arr.missing_value
 
     def test_infer_categories(self):
         """
@@ -261,8 +260,8 @@ class LabelArrayTestCase(ZiplineTestCase):
         """
         arr1d = LabelArray(self.strs, missing_value="")
         codes1d = arr1d.as_int_array()
-        self.assertEqual(arr1d.shape, self.strs.shape)
-        self.assertEqual(arr1d.shape, codes1d.shape)
+        assert arr1d.shape == self.strs.shape
+        assert arr1d.shape == codes1d.shape
 
         categories = arr1d.categories
         unique_rowvalues = set(self.rowvalues)
@@ -270,8 +269,8 @@ class LabelArrayTestCase(ZiplineTestCase):
         # There should be an entry in categories for each unique row value, and
         # each integer stored in the data array should be an index into
         # categories.
-        self.assertEqual(list(categories), sorted(set(self.rowvalues)))
-        self.assertEqual(set(codes1d.ravel()), set(range(len(unique_rowvalues))))
+        assert list(categories) == sorted(set(self.rowvalues))
+        assert set(codes1d.ravel()) == set(range(len(unique_rowvalues)))
         for idx, value in enumerate(arr1d.categories):
             check_arrays(
                 self.strs == value,
@@ -291,7 +290,7 @@ class LabelArrayTestCase(ZiplineTestCase):
             arr2d = LabelArray(strs2d, missing_value="")
             codes2d = arr2d.as_int_array()
 
-            self.assertEqual(arr2d.shape, shape)
+            assert arr2d.shape == shape
             check_arrays(arr2d.categories, categories)
 
             for idx, value in enumerate(arr2d.categories):
@@ -330,11 +329,11 @@ class LabelArrayTestCase(ZiplineTestCase):
                     elif func.nin == 2:
                         ret = func(labels, ints)
                     else:
-                        self.fail("Who added a ternary ufunc !?!")
+                        pytest.fail("Who added a ternary ufunc !?!")
                 except (TypeError, ValueError):
                     pass
                 else:
-                    self.assertIs(ret, NotImplemented)
+                    assert ret is NotImplemented
 
     @parameter_space(
         __fail_fast=True,
@@ -345,64 +344,60 @@ class LabelArrayTestCase(ZiplineTestCase):
         arr = LabelArray(self.strs, missing_value=missing_value)
 
         if not arr.has_label(val):
-            self.assertTrue(
-                (val == "not in the array")
-                or (val is None and missing_value is not None)
+            assert (val == "not in the array") or (
+                val is None and missing_value is not None
             )
             for slicer in [(0, 0), (0, 1), 1]:
-                with self.assertRaises(ValueError):
+                with pytest.raises(ValueError):
                     arr[slicer] = val
             return
 
         arr[0, 0] = val
-        self.assertEqual(arr[0, 0], val)
+        assert arr[0, 0] == val
 
         arr[0, 1] = val
-        self.assertEqual(arr[0, 1], val)
+        assert arr[0, 1] == val
 
         arr[1] = val
         if val == missing_value:
-            self.assertTrue(arr.is_missing()[1].all())
+            assert arr.is_missing()[1].all()
         else:
-            self.assertTrue((arr[1] == val).all())
-            self.assertTrue((arr[1].as_string_array() == val).all())
+            assert (arr[1] == val).all()
+            assert (arr[1].as_string_array() == val).all()
 
         arr[:, -1] = val
         if val == missing_value:
-            self.assertTrue(arr.is_missing()[:, -1].all())
+            assert arr.is_missing()[:, -1].all()
         else:
-            self.assertTrue((arr[:, -1] == val).all())
-            self.assertTrue((arr[:, -1].as_string_array() == val).all())
+            assert (arr[:, -1] == val).all()
+            assert (arr[:, -1].as_string_array() == val).all()
 
         arr[:] = val
         if val == missing_value:
-            self.assertTrue(arr.is_missing().all())
+            assert arr.is_missing().all()
         else:
-            self.assertFalse(arr.is_missing().any())
-            self.assertTrue((arr == val).all())
+            assert not arr.is_missing().any()
+            assert (arr == val).all()
 
     def test_setitem_array(self):
         arr = LabelArray(self.strs, missing_value=None)
         orig_arr = arr.copy()
 
         # Write a row.
-        self.assertFalse(
-            (arr[0] == arr[1]).all(),
-            "This test doesn't test anything because rows 0 and 1 are already equal!",
+        assert not (arr[0] == arr[1]).all(), (
+            "This test doesn't test anything because rows 0 and 1 are already equal!"
         )
         arr[0] = arr[1]
         for i in range(arr.shape[1]):
-            self.assertEqual(arr[0, i], arr[1, i])
+            assert arr[0, i] == arr[1, i]
 
         # Write a column.
-        self.assertFalse(
-            (arr[:, 0] == arr[:, 1]).all(),
-            "This test doesn't test anything because columns 0"
-            " and 1 are already equal!",
+        assert not (arr[:, 0] == arr[:, 1]).all(), (
+            "This test doesn't test anything because columns 0 and 1 are already equal!"
         )
         arr[:, 0] = arr[:, 1]
         for i in range(arr.shape[0]):
-            self.assertEqual(arr[i, 0], arr[i, 1])
+            assert arr[i, 0] == arr[i, 1]
 
         # Write the whole array.
         arr[:] = orig_arr
@@ -440,12 +435,12 @@ class LabelArrayTestCase(ZiplineTestCase):
             missing_value=categories[0],
             categories=categories,
         )
-        self.assertEqual(arr.itemsize, 1)
+        assert arr.itemsize == 1
         check_roundtrip(arr)
 
         # uint8 inference
         arr = LabelArray(categories, missing_value=categories[0])
-        self.assertEqual(arr.itemsize, 1)
+        assert arr.itemsize == 1
         check_roundtrip(arr)
 
         # just over uint8
@@ -455,7 +450,7 @@ class LabelArrayTestCase(ZiplineTestCase):
             missing_value=categories[0],
             categories=categories,
         )
-        self.assertEqual(arr.itemsize, 2)
+        assert arr.itemsize == 2
         check_roundtrip(arr)
 
         # fits in uint16
@@ -465,12 +460,12 @@ class LabelArrayTestCase(ZiplineTestCase):
             missing_value=categories[0],
             categories=categories,
         )
-        self.assertEqual(arr.itemsize, 2)
+        assert arr.itemsize == 2
         check_roundtrip(arr)
 
         # uint16 inference
         arr = LabelArray(categories, missing_value=categories[0])
-        self.assertEqual(arr.itemsize, 2)
+        assert arr.itemsize == 2
         check_roundtrip(arr)
 
         # just over uint16
@@ -480,12 +475,12 @@ class LabelArrayTestCase(ZiplineTestCase):
             missing_value=categories[0],
             categories=categories,
         )
-        self.assertEqual(arr.itemsize, 4)
+        assert arr.itemsize == 4
         check_roundtrip(arr)
 
         # uint32 inference
         arr = LabelArray(categories, missing_value=categories[0])
-        self.assertEqual(arr.itemsize, 4)
+        assert arr.itemsize == 4
         check_roundtrip(arr)
 
         # NOTE: we could do this for 32 and 64; however, no one has enough RAM
@@ -503,7 +498,7 @@ class LabelArrayTestCase(ZiplineTestCase):
         )
         self.check_roundtrip(arr)
         # the missing value pushes us into 2 byte storage
-        self.assertEqual(arr.itemsize, 2)
+        assert arr.itemsize == 2
 
     def test_narrow_condense_back_to_valid_size(self):
         categories = ["a"] * (2**8 + 1)
@@ -526,15 +521,15 @@ class LabelArrayTestCase(ZiplineTestCase):
             missing_value=None,
         )
 
-        self.assertEqual(arr.itemsize, 2)
+        assert arr.itemsize == 2
 
         def either_A_or_B(s):
             return ("A", "B")[sum(ord(c) for c in s) % 2]
 
         result = arr.map(either_A_or_B)
 
-        self.assertEqual(set(result.categories), {"A", "B", None})
-        self.assertEqual(result.itemsize, 1)
+        assert set(result.categories) == {"A", "B", None}
+        assert result.itemsize == 1
 
         assert_equal(
             np.vectorize(either_A_or_B)(arr.as_string_array()),
@@ -615,7 +610,7 @@ class LabelArrayTestCase(ZiplineTestCase):
             dtype=object,
         )
         strs_F = strs.T
-        self.assertTrue(strs_F.flags.f_contiguous)
+        assert strs_F.flags.f_contiguous
 
         arr = LabelArray(
             strs_F,

@@ -8,6 +8,7 @@ from string import ascii_lowercase, ascii_uppercase
 from textwrap import dedent
 from unittest import TestCase
 
+import pytest
 from numpy import (
     arange,
     array,
@@ -448,11 +449,11 @@ class AdjustedArrayTestCase(TestCase):
 
         assert_equal(data, original_data * 2)
 
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(ValueError) as e:
             adjusted_array.traverse(1)
 
         assert_equal(
-            str(e.exception),
+            str(e.value),
             "cannot traverse invalidated AdjustedArray",
         )
 
@@ -469,11 +470,11 @@ class AdjustedArrayTestCase(TestCase):
         for a, b in zip(a_it, b_it):
             assert_equal(a, b)
 
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(ValueError) as e:
             adjusted_array.copy()
 
         assert_equal(
-            str(e.exception),
+            str(e.value),
             "cannot copy invalidated AdjustedArray",
         )
 
@@ -718,13 +719,13 @@ class AdjustedArrayTestCase(TestCase):
         data = arange(30, dtype=float).reshape(6, 5)
         adj_array = AdjustedArray(data, {}, float("nan"))
 
-        with self.assertRaises(WindowLengthTooLong):
+        with pytest.raises(WindowLengthTooLong):
             adj_array.traverse(7)
 
-        with self.assertRaises(WindowLengthNotPositive):
+        with pytest.raises(WindowLengthNotPositive):
             adj_array.traverse(0)
 
-        with self.assertRaises(WindowLengthNotPositive):
+        with pytest.raises(WindowLengthNotPositive):
             adj_array.traverse(-1)
 
     def test_array_views_arent_writable(self):
@@ -733,7 +734,7 @@ class AdjustedArrayTestCase(TestCase):
         adj_array = AdjustedArray(data, {}, float("nan"))
 
         for frame in adj_array.traverse(3):
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 frame[0, 0] = 5.0
 
     def test_inspect(self):
@@ -761,7 +762,7 @@ last_col=0, value=4.000000)]}
             """
         )
         got = adj_array.inspect()
-        self.assertEqual(expected, got)
+        assert expected == got
 
     def test_update_labels(self):
         data = array(
@@ -803,7 +804,7 @@ last_col=0, value=4.000000)]}
         # Check that the mapped AdjustedArray has the expected baseline
         # values and adjustment values.
         check_arrays(adj_array.data, expected_adj_array.data)
-        self.assertEqual(adj_array.adjustments, expected_adj_array.adjustments)
+        assert adj_array.adjustments == expected_adj_array.adjustments
 
     A = Float64Multiply(0, 4, 1, 1, 0.5)
     B = Float64Overwrite(3, 3, 4, 4, 4.2)
@@ -865,4 +866,4 @@ last_col=0, value=4.000000)]}
             adjusted_array = AdjustedArray(data, initial_adjustments, float("nan"))
 
             adjusted_array.update_adjustments(adjustments_to_add, method)
-            self.assertEqual(adjusted_array.adjustments, expected_output)
+            assert adjusted_array.adjustments == expected_output

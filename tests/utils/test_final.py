@@ -1,6 +1,8 @@
 from abc import ABCMeta, abstractmethod
 from unittest import TestCase
 
+import pytest
+
 from zipline.utils.final import (
     FinalMeta,
     final,
@@ -50,7 +52,7 @@ class FinalMetaTestCase(TestCase):
         Tests that attempting to create a subclass that overrides a final
         method will raise a `TypeError`.
         """
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
 
             class SubClass(self.class_):
                 def f(self):
@@ -61,7 +63,7 @@ class FinalMetaTestCase(TestCase):
         Tests that attempting to create a subclass that overrides a final
         attribute will raise a `TypeError`.
         """
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
 
             class SubClass(self.class_):
                 a = "SubClass: a"
@@ -72,7 +74,7 @@ class FinalMetaTestCase(TestCase):
         method will raise a `TypeError` even if you mark the new version as
         final.
         """
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
 
             class SubClass(self.class_):
                 @final
@@ -85,7 +87,7 @@ class FinalMetaTestCase(TestCase):
         attribute will raise a `TypeError` even if you mark the new version as
         final.
         """
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
 
             class SubClass(self.class_):
                 a = final("SubClass: a")
@@ -99,10 +101,10 @@ class FinalMetaTestCase(TestCase):
         class SubClass(self.class_):
             pass
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             SubClass.f = lambda self: "SubClass: f"
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             SubClass.a = "SubClass: a"
 
     def test_override_on_instance(self):
@@ -115,10 +117,10 @@ class FinalMetaTestCase(TestCase):
                 pass
 
         s = SubClass()
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             s.f = lambda self: "SubClass: f"
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             s.a = lambda self: "SubClass: a"
 
     def test_override_on_super(self):
@@ -128,14 +130,14 @@ class FinalMetaTestCase(TestCase):
         old_a = self.class_.a
         old_f = self.class_.f
         try:
-            with self.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 self.class_.f = lambda *args: None
         except Exception:
             self.class_.f = old_f
             raise
 
         try:
-            with self.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 self.class_.a = "SubClass: a"
         except Exception:
             self.class_.a = old_a
@@ -145,7 +147,7 @@ class FinalMetaTestCase(TestCase):
         """
         Tests an attempt to override __setattr__ which is implicitly final.
         """
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
 
             class SubClass(self.class_):
                 def __setattr__(self, name, value):
@@ -160,7 +162,7 @@ class FinalMetaTestCase(TestCase):
             pass
 
         s = SubClass()
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             s.__setattr__ = lambda a, b: None
 
 
@@ -195,7 +197,7 @@ class FinalABCMetaTestCase(FinalMetaTestCase):
         class AbstractSubClass(self.class_):
             pass
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             AbstractSubClass()
 
     def test_override_on_instance(self):
@@ -207,7 +209,7 @@ class FinalABCMetaTestCase(FinalMetaTestCase):
                 pass
 
         s = SubClass()
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             s.f = lambda self: "SubClass: f"
 
     def test_override___setattr___on_instance(self):
@@ -220,7 +222,7 @@ class FinalABCMetaTestCase(FinalMetaTestCase):
                 pass
 
         s = SubClass()
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             s.__setattr__ = lambda a, b: None
 
     def test_subclass_setattr(self):
@@ -238,8 +240,8 @@ class FinalABCMetaTestCase(FinalMetaTestCase):
                 self.a = "a"
 
         SubClass()
-        self.assertEqual(SubClass().a, "a")
-        self.assertEqual(SubClass().f(), "ClassWithFinal: f")
+        assert SubClass().a == "a"
+        assert SubClass().f() == "ClassWithFinal: f"
 
     def test_final_classmethod(self):
 
@@ -252,25 +254,25 @@ class FinalABCMetaTestCase(FinalMetaTestCase):
                 cls.count += 1
                 return cls.count
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
 
             class ClassOverridingClassMethod(ClassWithClassMethod):
                 @classmethod
                 def f(cls):
                     return "Oh Noes!"
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             ClassWithClassMethod.f = lambda cls: 0
 
-        self.assertEqual(ClassWithClassMethod.f(), 1)
-        self.assertEqual(ClassWithClassMethod.f(), 2)
-        self.assertEqual(ClassWithClassMethod.f(), 3)
+        assert ClassWithClassMethod.f() == 1
+        assert ClassWithClassMethod.f() == 2
+        assert ClassWithClassMethod.f() == 3
 
         instance = ClassWithClassMethod()
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             instance.f = lambda cls: 0
 
-        self.assertEqual(ClassWithClassMethod.f(), 4)
-        self.assertEqual(ClassWithClassMethod.f(), 5)
-        self.assertEqual(ClassWithClassMethod.f(), 6)
+        assert ClassWithClassMethod.f() == 4
+        assert ClassWithClassMethod.f() == 5
+        assert ClassWithClassMethod.f() == 6

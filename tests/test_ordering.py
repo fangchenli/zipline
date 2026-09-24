@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 from parameterized import parameterized
 
 import zipline.api as api
@@ -84,7 +85,7 @@ def before_trading_start(context, data):
      """
 
         algo = self.make_algo(script=algotext)
-        with self.assertRaises(ze.OrderInBeforeTradingStart):
+        with pytest.raises(ze.OrderInBeforeTradingStart):
             algo.run()
 
     @parameterized.expand(
@@ -333,7 +334,7 @@ def initialize(context):
     order(sid(1), 10)"""
 
         algo = self.make_algo(script=algotext)
-        with self.assertRaises(ze.OrderDuringInitialize):
+        with pytest.raises(ze.OrderDuringInitialize):
             algo.run()
 
 
@@ -349,6 +350,6 @@ class TestOrderRounding(zf.ZiplineTestCase):
         ]
 
         for input, answer in answer_key:
-            self.assertEqual(answer, TradingAlgorithm.round_order(input))
+            assert answer == TradingAlgorithm.round_order(input)
 
-            self.assertEqual(-1 * answer, TradingAlgorithm.round_order(-1 * input))
+            assert -1 * answer == TradingAlgorithm.round_order(-1 * input)

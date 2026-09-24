@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from zipline.pipeline import Pipeline, SimplePipelineEngine
 from zipline.pipeline.common import (
@@ -196,7 +197,7 @@ class EventIndexerTestCase(ZiplineTestCase):
 
     def check_previous_event_indexer(self, events, all_dates, sid, indexer):
         relevant_events = events[events.sid == sid]
-        self.assertEqual(len(relevant_events), 2)
+        assert len(relevant_events) == 2
 
         ix1, ix2 = relevant_events.index
 
@@ -213,14 +214,14 @@ class EventIndexerTestCase(ZiplineTestCase):
             if date >= event2_first_eligible:
                 # If we've seen event 2, it should win even if we've seen event
                 # 1, because events are sorted by event_date.
-                self.assertEqual(computed_index, ix2)
+                assert computed_index == ix2
             elif date >= event1_first_eligible:
                 # If we've seen event 1 but not event 2, event 1 should win.
-                self.assertEqual(computed_index, ix1)
+                assert computed_index == ix1
             else:
                 # If we haven't seen either event, then we should have -1 as
                 # sentinel.
-                self.assertEqual(computed_index, -1)
+                assert computed_index == (-1)
 
     def test_next_event_indexer(self):
         events = self.events
@@ -257,7 +258,7 @@ class EventIndexerTestCase(ZiplineTestCase):
 
     def check_next_event_indexer(self, events, all_dates, sid, indexer):
         relevant_events = events[events.sid == sid]
-        self.assertEqual(len(relevant_events), 2)
+        assert len(relevant_events) == 2
 
         ix1, ix2 = relevant_events.index
         e1, e2 = relevant_events["event_date"]
@@ -269,13 +270,13 @@ class EventIndexerTestCase(ZiplineTestCase):
             if t1 <= date <= e1:
                 # If e1 is eligible, it should be chosen even if e2 is
                 # eligible, since it's earlier.
-                self.assertEqual(computed_index, ix1)
+                assert computed_index == ix1
             elif t2 <= date <= e2:
                 # e2 is eligible and e1 is not, so e2 should be chosen.
-                self.assertEqual(computed_index, ix2)
+                assert computed_index == ix2
             else:
                 # Neither event is eligible.  Return -1 as a sentinel.
-                self.assertEqual(computed_index, -1)
+                assert computed_index == (-1)
 
 
 class EventsLoaderEmptyTestCase(WithAssetFinder, WithTradingSessions, ZiplineTestCase):
@@ -485,7 +486,7 @@ class EventsLoaderTestCase(WithAssetFinder, WithTradingSessions, ZiplineTestCase
 
         for asset, asset_result in results.items():
             relevant_events = events[events.sid == asset.sid]
-            self.assertEqual(len(relevant_events), 2)
+            assert len(relevant_events) == 2
 
             v1, v2 = relevant_events[self.previous_value_columns[column]]
             event1_first_eligible = max(
@@ -501,11 +502,11 @@ class EventsLoaderTestCase(WithAssetFinder, WithTradingSessions, ZiplineTestCase
                 if date >= event2_first_eligible:
                     # If we've seen event 2, it should win even if we've seen
                     # event 1, because events are sorted by event_date.
-                    self.assertEqual(computed_value, v2)
+                    assert computed_value == v2
                 elif date >= event1_first_eligible:
                     # If we've seen event 1 but not event 2, event 1 should
                     # win.
-                    self.assertEqual(computed_value, v1)
+                    assert computed_value == v1
                 else:
                     # If we haven't seen either event, then we should have
                     # column.missing_value.
@@ -515,7 +516,7 @@ class EventsLoaderTestCase(WithAssetFinder, WithTradingSessions, ZiplineTestCase
         if column.missing_value is None:
             # Categorical outputs represent a ``None`` missing value as NaN,
             # since pandas doesn't allow null categories.
-            self.assertTrue(pd.isnull(computed_value))
+            assert pd.isnull(computed_value)
         else:
             assert_equal(
                 computed_value,
@@ -536,7 +537,7 @@ class EventsLoaderTestCase(WithAssetFinder, WithTradingSessions, ZiplineTestCase
         dates = dates.tz_localize(None)
         for asset, asset_result in results.items():
             relevant_events = events[events.sid == asset.sid]
-            self.assertEqual(len(relevant_events), 2)
+            assert len(relevant_events) == 2
 
             v1, v2 = relevant_events[self.next_value_columns[column]]
             e1, e2 = relevant_events["event_date"]
@@ -546,11 +547,11 @@ class EventsLoaderTestCase(WithAssetFinder, WithTradingSessions, ZiplineTestCase
                 if t1 <= date <= e1:
                     # If we've seen event 2, it should win even if we've seen
                     # event 1, because events are sorted by event_date.
-                    self.assertEqual(computed_value, v1)
+                    assert computed_value == v1
                 elif t2 <= date <= e2:
                     # If we've seen event 1 but not event 2, event 1 should
                     # win.
-                    self.assertEqual(computed_value, v2)
+                    assert computed_value == v2
                 else:
                     # If we haven't seen either event, then we should have
                     # column.missing_value.
@@ -570,13 +571,13 @@ class EventsLoaderTestCase(WithAssetFinder, WithTradingSessions, ZiplineTestCase
         EventsLoader(events, {EventDataSet_US.next_float: "c"}, {})
         EventsLoader(events, {}, {EventDataSet_US.previous_float: "c"})
 
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(ValueError) as e:
             EventsLoader(events, {EventDataSet_US.next_float: "d"}, {})
 
-        msg = str(e.exception)
+        msg = str(e.value)
         expected = (
             "EventsLoader missing required columns ['d'].\n"
             "Got Columns: ['c', 'event_date', 'sid', 'timestamp']\n"
             "Expected Columns: ['d', 'event_date', 'sid', 'timestamp']"
         )
-        self.assertEqual(msg, expected)
+        assert msg == expected

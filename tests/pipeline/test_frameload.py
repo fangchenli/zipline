@@ -5,6 +5,7 @@ Tests for zipline.pipeline.loaders.frame.DataFrameLoader.
 from unittest import TestCase
 from unittest.mock import patch
 
+import pytest
 from numpy import arange, ones
 from numpy.testing import assert_array_equal
 from pandas import (
@@ -54,7 +55,7 @@ class DataFrameLoaderTestCase(TestCase):
             baseline,
         )
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             # Wrong column.
             loader.load_adjusted_array(
                 US_EQUITIES,
@@ -64,7 +65,7 @@ class DataFrameLoaderTestCase(TestCase):
                 self.mask,
             )
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             # Too many columns.
             loader.load_adjusted_array(
                 US_EQUITIES,
@@ -230,7 +231,7 @@ class DataFrameLoaderTestCase(TestCase):
                 )
             ],
         }
-        self.assertEqual(formatted_adjustments, expected_formatted_adjustments)
+        assert formatted_adjustments == expected_formatted_adjustments
 
         mask = self.mask[dates_slice, sids_slice]
         with patch("zipline.pipeline.loaders.frame.AdjustedArray") as m:
@@ -242,8 +243,8 @@ class DataFrameLoaderTestCase(TestCase):
                 mask=mask,
             )
 
-        self.assertEqual(m.call_count, 1)
+        assert m.call_count == 1
 
         args, kwargs = m.call_args
         assert_array_equal(kwargs["data"], expected_baseline.values)
-        self.assertEqual(kwargs["adjustments"], expected_formatted_adjustments)
+        assert kwargs["adjustments"] == expected_formatted_adjustments

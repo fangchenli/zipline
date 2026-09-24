@@ -8,6 +8,7 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
+import pytest
 from numpy import (
     apply_along_axis,
     arange,
@@ -151,7 +152,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         self.f = F()
 
     def test_bad_input(self):
-        with self.assertRaises(UnknownRankMethod):
+        with pytest.raises(UnknownRankMethod):
             self.f.rank("not a real rank method")
 
     @parameter_space(method_name=["isnan", "notnan", "isfinite"])
@@ -163,7 +164,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         nf = NotFloat()
         meth = getattr(nf, method_name)
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             meth()
 
     @parameter_space(custom_missing_value=[-1, 0])
@@ -737,10 +738,10 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         check_allclose(expected, out)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             PercentChange(inputs=(), window_length=2)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             PercentChange(inputs=[EquityPricing.close], window_length=1)
 
     def gen_ranking_cases():
@@ -1097,7 +1098,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         bad_percentiles = [(-0.1, 1), (0, 95), (5, 95), (5, 5), (0.6, 0.4)]
         for min_, max_ in bad_percentiles:
-            with self.assertRaises(BadPercentileBounds):
+            with pytest.raises(BadPercentileBounds):
                 f.winsorize(min_percentile=min_, max_percentile=max_)
 
     @parameter_space(
@@ -1231,16 +1232,16 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             window_length = 0
 
         d = DateFactor()
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
             getattr(d, method_name)()
 
-        errmsg = str(e.exception)
+        errmsg = str(e.value)
         expected = (
             f"{method_name}() is only defined on Factors of dtype float64,"
             " but it was called on a Factor of dtype datetime64[ns]."
         )
 
-        self.assertEqual(errmsg, expected)
+        assert errmsg == expected
 
     @parameter_space(seed=[1, 2, 3])
     def test_quantiles_unmasked(self, seed):
@@ -1474,17 +1475,17 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         f = self.f
         m = Mask()
 
-        self.assertIs(f.quartiles(), f.quantiles(bins=4))
-        self.assertIs(f.quartiles(mask=m), f.quantiles(bins=4, mask=m))
-        self.assertIsNot(f.quartiles(), f.quartiles(mask=m))
+        assert f.quartiles() is f.quantiles(bins=4)
+        assert f.quartiles(mask=m) is f.quantiles(bins=4, mask=m)
+        assert f.quartiles() is not f.quartiles(mask=m)
 
-        self.assertIs(f.quintiles(), f.quantiles(bins=5))
-        self.assertIs(f.quintiles(mask=m), f.quantiles(bins=5, mask=m))
-        self.assertIsNot(f.quintiles(), f.quintiles(mask=m))
+        assert f.quintiles() is f.quantiles(bins=5)
+        assert f.quintiles(mask=m) is f.quantiles(bins=5, mask=m)
+        assert f.quintiles() is not f.quintiles(mask=m)
 
-        self.assertIs(f.deciles(), f.quantiles(bins=10))
-        self.assertIs(f.deciles(mask=m), f.quantiles(bins=10, mask=m))
-        self.assertIsNot(f.deciles(), f.deciles(mask=m))
+        assert f.deciles() is f.quantiles(bins=10)
+        assert f.deciles(mask=m) is f.quantiles(bins=10, mask=m)
+        assert f.deciles() is not f.deciles(mask=m)
 
     @parameter_space(seed=[1, 2, 3])
     def test_clip(self, seed):
@@ -1498,8 +1499,8 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             size=shape,
         )
         min_, max_ = np.percentile(input_array, [25, 75])
-        self.assertGreater(min_, original_min)
-        self.assertLess(max_, original_max)
+        assert min_ > original_min
+        assert max_ < original_max
 
         f = F()
 
@@ -1539,15 +1540,15 @@ class ReprTestCase(TestCase):
 
     def test_demean(self):
         r = F().demean().graph_repr()
-        self.assertEqual(r, "GroupedRowTransform('demean')")
+        assert r == "GroupedRowTransform('demean')"
 
     def test_zscore(self):
         r = F().zscore().graph_repr()
-        self.assertEqual(r, "GroupedRowTransform('zscore')")
+        assert r == "GroupedRowTransform('zscore')"
 
     def test_winsorize(self):
         r = F().winsorize(min_percentile=0.05, max_percentile=0.95).graph_repr()
-        self.assertEqual(r, "GroupedRowTransform('winsorize')")
+        assert r == "GroupedRowTransform('winsorize')"
 
     def test_recarray_field_repr(self):
         class MultipleOutputs(CustomFactor):
@@ -1561,8 +1562,8 @@ class ReprTestCase(TestCase):
         a = MultipleOutputs().a
         b = MultipleOutputs().b
 
-        self.assertEqual(a.graph_repr(), "CustomRepr().a")
-        self.assertEqual(b.graph_repr(), "CustomRepr().b")
+        assert a.graph_repr() == "CustomRepr().a"
+        assert b.graph_repr() == "CustomRepr().b"
 
     def test_latest_repr(self):
 
@@ -1570,8 +1571,8 @@ class ReprTestCase(TestCase):
             a = Column(dtype=float64_dtype)
             b = Column(dtype=float64_dtype)
 
-        self.assertEqual(SomeDataSet.a.latest.graph_repr(), "Latest")
-        self.assertEqual(SomeDataSet.b.latest.graph_repr(), "Latest")
+        assert SomeDataSet.a.latest.graph_repr() == "Latest"
+        assert SomeDataSet.b.latest.graph_repr() == "Latest"
 
     def test_recursive_repr(self):
 
@@ -1589,30 +1590,30 @@ class ReprTestCase(TestCase):
 
         result = repr(HasInputs())
         expected = "HasInputs([Input(...), DS.a, DS.b], 3)"
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_rank_repr(self):
         rank = DailyReturns().rank()
         result = repr(rank)
         expected = "Rank(DailyReturns(...), method='ordinal')"
-        self.assertEqual(result, expected)
+        assert result == expected
 
         recursive_repr = rank.recursive_repr()
-        self.assertEqual(recursive_repr, "Rank(...)")
+        assert recursive_repr == "Rank(...)"
 
     def test_rank_repr_with_mask(self):
         rank = DailyReturns().rank(mask=Mask())
         result = repr(rank)
         expected = "Rank(DailyReturns(...), method='ordinal', mask=Mask(...))"
-        self.assertEqual(result, expected)
+        assert result == expected
 
         recursive_repr = rank.recursive_repr()
-        self.assertEqual(recursive_repr, "Rank(...)")
+        assert recursive_repr == "Rank(...)"
 
 
 class TestWindowSafety(TestCase):
     def test_zscore_is_window_safe(self):
-        self.assertTrue(F().zscore().window_safe)
+        assert F().zscore().window_safe
 
     @parameter_space(__fail_fast=True, is_window_safe=[True, False])
     def test_window_safety_propagates_to_recarray_fields(self, is_window_safe):
@@ -1626,23 +1627,21 @@ class TestWindowSafety(TestCase):
         mo = MultipleOutputs()
 
         for attr in mo.a, mo.b:
-            self.assertEqual(attr.window_safe, mo.window_safe)
+            assert attr.window_safe == mo.window_safe
 
     def test_demean_is_window_safe_if_input_is_window_safe(self):
-        self.assertFalse(F().demean().window_safe)
-        self.assertFalse(F(window_safe=False).demean().window_safe)
-        self.assertTrue(F(window_safe=True).demean().window_safe)
+        assert not F().demean().window_safe
+        assert not F(window_safe=False).demean().window_safe
+        assert F(window_safe=True).demean().window_safe
 
     def test_winsorize_is_window_safe_if_input_is_window_safe(self):
-        self.assertFalse(
-            F().winsorize(min_percentile=0.05, max_percentile=0.95).window_safe
-        )
-        self.assertFalse(
-            F(window_safe=False)
+        assert not F().winsorize(min_percentile=0.05, max_percentile=0.95).window_safe
+        assert (
+            not F(window_safe=False)
             .winsorize(min_percentile=0.05, max_percentile=0.95)
             .window_safe
         )
-        self.assertTrue(
+        assert (
             F(window_safe=True)
             .winsorize(min_percentile=0.05, max_percentile=0.95)
             .window_safe
@@ -1691,7 +1690,7 @@ class TestSpecialCases(WithUSEquityPricingPipelineEngine, ZiplineTestCase):
     ASSET_FINDER_COUNTRY_CODE = "US"
 
     def check_equivalent_terms(self, terms):
-        self.assertTrue(len(terms) > 1, "Need at least two terms to compare")
+        assert len(terms) > 1, "Need at least two terms to compare"
         pipe = Pipeline(terms)
 
         start, end = self.trading_days[[-10, -1]]
@@ -1759,7 +1758,7 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             }
 
         # Make sure we have test coverage for all summary funcs.
-        self.assertEqual(set(expected), summary_funcs.names)
+        assert set(expected) == summary_funcs.names
 
         self.check_terms(
             terms=terms,
@@ -1905,7 +1904,7 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             }
 
         # Make sure we have test coverage for all summary funcs.
-        self.assertEqual(set(expected), summary_funcs.names)
+        assert set(expected) == summary_funcs.names
 
         if mask_mode == "root":
             root_mask = self.build_mask(mask)
@@ -1933,11 +1932,5 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
 
         for method in summary_funcs.names:
             summarized = getattr(f, method)()
-            self.assertEqual(
-                repr(summarized),
-                f"MyFactor().{method}()",
-            )
-            self.assertEqual(
-                summarized.recursive_repr(),
-                f"MyFactor().{method}()",
-            )
+            assert repr(summarized) == f"MyFactor().{method}()"
+            assert summarized.recursive_repr() == f"MyFactor().{method}()"

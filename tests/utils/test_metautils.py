@@ -1,7 +1,6 @@
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import (
     assert_equal,
-    assert_is,
     assert_is_subclass,
 )
 from zipline.utils.metautils import compose_types
@@ -31,10 +30,8 @@ class D:
 
 class ComposeTypesTestCase(ZiplineTestCase):
     def test_identity(self):
-        assert_is(
-            compose_types(C),
-            C,
-            msg="compose_types of a single class should be identity",
+        assert compose_types(C) is C, (
+            "compose_types of a single class should be identity"
         )
 
     def test_compose(self):

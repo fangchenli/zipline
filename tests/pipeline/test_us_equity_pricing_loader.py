@@ -16,6 +16,7 @@
 Tests for USEquityPricingLoader and related classes.
 """
 
+import pytest
 from numpy import (
     arange,
     float64,
@@ -277,8 +278,8 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
                 asset_start, asset_end = EQUITY_INFO.loc[
                     sid, ["start_date", "end_date"]
                 ]
-                self.assertGreaterEqual(eff_date, asset_start)
-                self.assertLessEqual(eff_date, asset_end)
+                assert eff_date >= asset_start
+                assert eff_date <= asset_end
 
     @classmethod
     def calendar_days_between(cls, start_date, end_date, shift=0):
@@ -384,10 +385,10 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
                 price_adjustment = adjustments["price"][key]
                 for j, adj in enumerate(price_adjustment):
                     expected = expected_price_adjustments[key][j]
-                    self.assertEqual(adj.first_row, expected.first_row)
-                    self.assertEqual(adj.last_row, expected.last_row)
-                    self.assertEqual(adj.first_col, expected.first_col)
-                    self.assertEqual(adj.last_col, expected.last_col)
+                    assert adj.first_row == expected.first_row
+                    assert adj.last_row == expected.last_row
+                    assert adj.first_col == expected.first_col
+                    assert adj.last_col == expected.last_col
                     assert_allclose(adj.value, expected.value)
 
         if adjustment_type == "all" or adjustment_type == "volume":
@@ -396,10 +397,10 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
                 volume_adjustment = adjustments["volume"][key]
                 for j, adj in enumerate(volume_adjustment):
                     expected = expected_volume_adjustments[key][j]
-                    self.assertEqual(adj.first_row, expected.first_row)
-                    self.assertEqual(adj.last_row, expected.last_row)
-                    self.assertEqual(adj.first_col, expected.first_col)
-                    self.assertEqual(adj.last_col, expected.last_col)
+                    assert adj.first_row == expected.first_row
+                    assert adj.last_row == expected.last_row
+                    assert adj.first_col == expected.first_col
+                    assert adj.last_col == expected.last_col
                     assert_allclose(adj.value, expected.value)
 
     @parameterized.expand([(True,), (False,)])
@@ -476,7 +477,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
             query_days,
             self.sids,
         )
-        self.assertEqual(adjustments, [{}, {}])
+        assert adjustments == [{}, {}]
 
         pricing_loader = USEquityPricingLoader.without_fx(
             self.equity_daily_bar_reader,
@@ -520,9 +521,9 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
                 )
 
         # Verify that we checked up to the longest possible window.
-        with self.assertRaises(WindowLengthTooLong):
+        with pytest.raises(WindowLengthTooLong):
             closes.traverse(windowlen + 1)
-        with self.assertRaises(WindowLengthTooLong):
+        with pytest.raises(WindowLengthTooLong):
             volumes.traverse(windowlen + 1)
 
     def apply_adjustments(self, dates, assets, baseline_values, adjustments):
@@ -618,7 +619,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
                 )
 
         # Verify that we checked up to the longest possible window.
-        with self.assertRaises(WindowLengthTooLong):
+        with pytest.raises(WindowLengthTooLong):
             highs.traverse(windowlen + 1)
-        with self.assertRaises(WindowLengthTooLong):
+        with pytest.raises(WindowLengthTooLong):
             volumes.traverse(windowlen + 1)

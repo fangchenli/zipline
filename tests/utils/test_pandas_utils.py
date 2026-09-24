@@ -3,6 +3,7 @@ Tests for zipline/utils/pandas_utils.py
 """
 
 import pandas as pd
+import pytest
 
 from zipline.testing import ZiplineTestCase, parameter_space
 from zipline.utils.pandas_utils import nearest_unequal_elements
@@ -36,7 +37,7 @@ class TestNearestUnequalElements(ZiplineTestCase):
         ):
             computed = nearest_unequal_elements(dts, t(dt))
             expected = (t(before), t(after))
-            self.assertEqual(computed, expected)
+            assert computed == expected
 
     @parameter_space(tz=["UTC", "US/Eastern"], __fail_fast=True)
     def test_nearest_unequal_elements_short_dts(self, tz):
@@ -54,7 +55,7 @@ class TestNearestUnequalElements(ZiplineTestCase):
         ):
             computed = nearest_unequal_elements(dts, t(dt))
             expected = (t(before), t(after))
-            self.assertEqual(computed, expected)
+            assert computed == expected
 
         # Length 0
         dts = pd.to_datetime([]).tz_localize(tz)
@@ -65,24 +66,21 @@ class TestNearestUnequalElements(ZiplineTestCase):
         ):
             computed = nearest_unequal_elements(dts, t(dt))
             expected = (t(before), t(after))
-            self.assertEqual(computed, expected)
+            assert computed == expected
 
     def test_nearest_unequal_bad_input(self):
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(ValueError) as e:
             nearest_unequal_elements(
                 pd.to_datetime(["2014", "2014"]),
                 pd.Timestamp("2014"),
             )
 
-        self.assertEqual(str(e.exception), "dts must be unique")
+        assert str(e.value) == "dts must be unique"
 
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(ValueError) as e:
             nearest_unequal_elements(
                 pd.to_datetime(["2014", "2013"]),
                 pd.Timestamp("2014"),
             )
 
-        self.assertEqual(
-            str(e.exception),
-            "dts must be sorted in increasing order",
-        )
+        assert str(e.value) == "dts must be sorted in increasing order"

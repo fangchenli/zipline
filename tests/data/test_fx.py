@@ -2,6 +2,7 @@ import itertools
 
 import numpy as np
 import pandas as pd
+import pytest
 
 import zipline.testing.fixtures as zp_fixtures
 from zipline.data.fx import DEFAULT_FX_RATE
@@ -261,9 +262,9 @@ class ParquetFXReaderTestCase(zp_fixtures.WithTmpDir, _FXReaderTestCase):
 
     def test_unknown_rate_or_quote(self):
         dts = pd.DatetimeIndex([self.FX_RATES_START_DATE])
-        with self.assertRaisesRegex(ValueError, "rate=unknown_rate"):
+        with pytest.raises(ValueError, match="rate=unknown_rate"):
             self.reader.get_rates("unknown_rate", "USD", ["CAD"], dts)
-        with self.assertRaisesRegex(ValueError, "quote_currency=XYZ"):
+        with pytest.raises(ValueError, match="quote_currency=XYZ"):
             self.reader.get_rates(self.FX_RATES_RATE_NAMES[0], "XYZ", ["CAD"], dts)
 
     def test_readable_as_dataset(self):
@@ -296,5 +297,5 @@ class FastGetLocTestCase(zp_fixtures.ZiplineTestCase):
             -1,
         )
 
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             zp_fixtures.fast_get_loc_ffilled(dts, pd.Timestamp("2014-01-01"))

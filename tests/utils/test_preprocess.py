@@ -8,6 +8,7 @@ from types import FunctionType
 from unittest import TestCase
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+import pytest
 from numpy import arange, array, dtype
 from parameterized import parameterized
 
@@ -52,18 +53,18 @@ class PreprocessTestCase(TestCase):
 
         decorated = preprocess(x=noop, y=noop)(undecorated)
 
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
             undecorated(*args, **kwargs)
-        undecorated_errargs = e.exception.args
+        undecorated_errargs = e.value.args
 
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
             decorated(*args, **kwargs)
-        decorated_errargs = e.exception.args
+        decorated_errargs = e.value.args
 
-        self.assertEqual(len(decorated_errargs), 1)
-        self.assertEqual(len(undecorated_errargs), 1)
+        assert len(decorated_errargs) == 1
+        assert len(undecorated_errargs) == 1
 
-        self.assertEqual(decorated_errargs[0], undecorated_errargs[0])
+        assert decorated_errargs[0] == undecorated_errargs[0]
 
     def test_preprocess_introspection(self):
         # Source and signature inspection, e.g. IPython's ``??``, find the
@@ -73,8 +74,8 @@ class PreprocessTestCase(TestCase):
 
         decorated = preprocess(a=call(int))(undecorated)
 
-        self.assertEqual(inspect.getsource(decorated), inspect.getsource(undecorated))
-        self.assertEqual(inspect.signature(decorated), inspect.signature(undecorated))
+        assert inspect.getsource(decorated) == inspect.getsource(undecorated)
+        assert inspect.signature(decorated) == inspect.signature(undecorated)
 
     def test_preprocess_preserves_docstring(self):
 
@@ -82,7 +83,7 @@ class PreprocessTestCase(TestCase):
         def func():
             "My awesome docstring"
 
-        self.assertEqual(func.__doc__, "My awesome docstring")
+        assert func.__doc__ == "My awesome docstring"
 
     def test_preprocess_preserves_function_name(self):
 
@@ -90,7 +91,7 @@ class PreprocessTestCase(TestCase):
         def arglebargle():
             pass
 
-        self.assertEqual(arglebargle.__name__, "arglebargle")
+        assert arglebargle.__name__ == "arglebargle"
 
     @parameterized.expand(
         [
@@ -107,15 +108,15 @@ class PreprocessTestCase(TestCase):
         def func(a, b, c=3):
             return a, b, c
 
-        self.assertEqual(func(*args, **kwargs), (1, 2, 3))
+        assert func(*args, **kwargs) == (1, 2, 3)
 
     def test_preprocess_keyword_only(self):
         @preprocess(a=call(str), b=call(float))
         def func(a, *, b=2):
             return a, b
 
-        self.assertEqual(func(1), ("1", 2.0))
-        self.assertEqual(func(1, b=3), ("1", 3.0))
+        assert func(1) == ("1", 2.0)
+        assert func(1, b=3) == ("1", 3.0)
 
     def test_preprocess_var_args(self):
         @preprocess(
@@ -125,11 +126,11 @@ class PreprocessTestCase(TestCase):
         def func(a, *args, **kwargs):
             return a, args, kwargs
 
-        self.assertEqual(func(1), (1, (), {}))
-        self.assertEqual(func(1, 2, 3, x=4), (1, (4, 6), {"x": 8}))
-        with self.assertRaises(TypeError) as e:
+        assert func(1) == (1, (), {})
+        assert func(1, 2, 3, x=4) == (1, (4, 6), {"x": 8})
+        with pytest.raises(TypeError) as e:
             func()
-        self.assertEqual(e.exception.args[0], "func() missing a required argument: 'a'")
+        assert e.value.args[0] == "func() missing a required argument: 'a'"
 
     def test_preprocess_bad_processor_name(self):
         a_processor = preprocess(a=int)
@@ -144,21 +145,21 @@ class PreprocessTestCase(TestCase):
             pass
 
         message = "Got processors for unknown arguments: %s." % {"a"}
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
 
             @a_processor
             def func_with_no_args():
                 pass
 
-        self.assertEqual(e.exception.args[0], message)
+        assert e.value.args[0] == message
 
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
 
             @a_processor
             def func_with_arg_named_b(b):
                 pass
 
-        self.assertEqual(e.exception.args[0], message)
+        assert e.value.args[0] == message
 
     @parameterized.expand(
         [
@@ -181,7 +182,7 @@ class PreprocessTestCase(TestCase):
             def func(a, b, c=3):
                 return a, b, c
 
-            self.assertEqual(func(*args, **kwargs), ("1", 2.0, 4))
+            assert func(*args, **kwargs) == ("1", 2.0, 4)
 
     @parameterized.expand(
         [
@@ -209,8 +210,8 @@ class PreprocessTestCase(TestCase):
                 def clsmeth(cls, a, b, c=3):
                     return a, b, c
 
-            self.assertEqual(Foo.clsmeth(*args, **kwargs), ("1", 2.0, 4))
-            self.assertEqual(Foo().method(*args, **kwargs), ("1", 2.0, 4))
+            assert Foo.clsmeth(*args, **kwargs) == ("1", 2.0, 4)
+            assert Foo().method(*args, **kwargs) == ("1", 2.0, 4)
 
     def test_expect_types(self):
 
@@ -218,22 +219,21 @@ class PreprocessTestCase(TestCase):
         def foo(a, b, c):
             return a, b, c
 
-        self.assertEqual(foo(1, 2, 3), (1, 2, 3))
-        self.assertEqual(foo(1, 2, c=3), (1, 2, 3))
-        self.assertEqual(foo(1, b=2, c=3), (1, 2, 3))
-        self.assertEqual(foo(1, 2, c="3"), (1, 2, "3"))
+        assert foo(1, 2, 3) == (1, 2, 3)
+        assert foo(1, 2, c=3) == (1, 2, 3)
+        assert foo(1, b=2, c=3) == (1, 2, 3)
+        assert foo(1, 2, c="3") == (1, 2, "3")
 
         for not_int in (str, float):
-            with self.assertRaises(TypeError) as e:
+            with pytest.raises(TypeError) as e:
                 foo(not_int(1), 2, 3)
-            self.assertEqual(
-                e.exception.args[0],
-                f"{qualname(foo)}() expected a value of type "
-                f"int for argument 'a', but got {not_int.__name__} instead.",
+            assert (
+                e.value.args[0] == f"{qualname(foo)}() expected a value of type "
+                f"int for argument 'a', but got {not_int.__name__} instead."
             )
-            with self.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 foo(1, not_int(2), 3)
-            with self.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 foo(not_int(1), not_int(2), 3)
 
     def test_expect_types_custom_funcname(self):
@@ -244,15 +244,14 @@ class PreprocessTestCase(TestCase):
                 self.a = a
 
         foo = Foo(1)
-        self.assertEqual(foo.a, 1)
+        assert foo.a == 1
 
         for not_int in (str, float):
-            with self.assertRaises(TypeError) as e:
+            with pytest.raises(TypeError) as e:
                 Foo(not_int(1))
-            self.assertEqual(
-                e.exception.args[0],
-                "ArgleBargle() expected a value of type "
-                f"int for argument 'a', but got {not_int.__name__} instead.",
+            assert (
+                e.value.args[0] == "ArgleBargle() expected a value of type "
+                f"int for argument 'a', but got {not_int.__name__} instead."
             )
 
     def test_expect_types_with_tuple(self):
@@ -260,17 +259,17 @@ class PreprocessTestCase(TestCase):
         def foo(a):
             return a
 
-        self.assertEqual(foo(1), 1)
-        self.assertEqual(foo(1.0), 1.0)
+        assert foo(1) == 1
+        assert foo(1.0) == 1.0
 
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
             foo("1")
 
         expected_message = (
             f"{qualname(foo)}() expected a value of "
             "type int or float for argument 'a', but got str instead."
         )
-        self.assertEqual(e.exception.args[0], expected_message)
+        assert e.value.args[0] == expected_message
 
     def test_expect_optional_types(self):
 
@@ -278,21 +277,21 @@ class PreprocessTestCase(TestCase):
         def foo(a=None):
             return a
 
-        self.assertIs(foo(), None)
-        self.assertIs(foo(None), None)
-        self.assertIs(foo(a=None), None)
+        assert foo() is None
+        assert foo(None) is None
+        assert foo(a=None) is None
 
-        self.assertEqual(foo(1), 1)
-        self.assertEqual(foo(a=1), 1)
+        assert foo(1) == 1
+        assert foo(a=1) == 1
 
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
             foo("1")
 
         expected_message = (
             f"{qualname(foo)}() expected a value of "
             "type int or NoneType for argument 'a', but got str instead."
         )
-        self.assertEqual(e.exception.args[0], expected_message)
+        assert e.value.args[0] == expected_message
 
     def test_expect_element(self):
         set_ = {"a", "b"}
@@ -301,10 +300,10 @@ class PreprocessTestCase(TestCase):
         def f(a):
             return a
 
-        self.assertEqual(f("a"), "a")
-        self.assertEqual(f("b"), "b")
+        assert f("a") == "a"
+        assert f("b") == "b"
 
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(ValueError) as e:
             f("c")
 
         # We special-case set to show a tuple instead of the set repr.
@@ -312,7 +311,7 @@ class PreprocessTestCase(TestCase):
             f"{qualname(f)}() expected a value in {tuple(sorted(set_))!r}"
             " for argument 'a', but got 'c' instead."
         )
-        self.assertEqual(e.exception.args[0], expected_message)
+        assert e.value.args[0] == expected_message
 
     def test_expect_element_custom_funcname(self):
 
@@ -323,7 +322,7 @@ class PreprocessTestCase(TestCase):
             def __init__(self, a):
                 self.a = a
 
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(ValueError) as e:
             Foo("c")
 
         # We special-case set to show a tuple instead of the set repr.
@@ -331,7 +330,7 @@ class PreprocessTestCase(TestCase):
             f"ArgleBargle() expected a value in {tuple(sorted(set_))!r}"
             " for argument 'a', but got 'c' instead."
         )
-        self.assertEqual(e.exception.args[0], expected_message)
+        assert e.value.args[0] == expected_message
 
     def test_expect_dtypes(self):
 
@@ -344,27 +343,27 @@ class PreprocessTestCase(TestCase):
         good_c = object()
 
         a_ret, b_ret, c_ret = foo(good_a, good_b, good_c)
-        self.assertIs(a_ret, good_a)
-        self.assertIs(b_ret, good_b)
-        self.assertIs(c_ret, good_c)
+        assert a_ret is good_a
+        assert b_ret is good_b
+        assert c_ret is good_c
 
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
             foo(good_a, arange(3, dtype="int64"), good_c)
 
         expected_message = (
             f"{qualname(foo)}() expected a value with dtype 'datetime64[ns]'"
             " for argument 'b', but got 'int64' instead."
         )
-        self.assertEqual(e.exception.args[0], expected_message)
+        assert e.value.args[0] == expected_message
 
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
             foo(arange(3, dtype="uint32"), good_c, good_c)
 
         expected_message = (
             f"{qualname(foo)}() expected a value with dtype 'float64'"
             " for argument 'a', but got 'uint32' instead."
         )
-        self.assertEqual(e.exception.args[0], expected_message)
+        assert e.value.args[0] == expected_message
 
     def test_expect_dtypes_with_tuple(self):
 
@@ -378,17 +377,17 @@ class PreprocessTestCase(TestCase):
             good_a = arange(3).astype(d)
             good_b = object()
             ret_a, ret_b = foo(good_a, good_b)
-            self.assertIs(good_a, ret_a)
-            self.assertIs(good_b, ret_b)
+            assert good_a is ret_a
+            assert good_b is ret_b
 
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
             foo(arange(3, dtype="uint32"), object())
 
         expected_message = (
             f"{qualname(foo)}() expected a value with dtype 'datetime64[ns]' "
             "or 'float64' for argument 'a', but got 'uint32' instead."
         )
-        self.assertEqual(e.exception.args[0], expected_message)
+        assert e.value.args[0] == expected_message
 
     def test_expect_dtypes_custom_funcname(self):
 
@@ -399,14 +398,14 @@ class PreprocessTestCase(TestCase):
             def __init__(self, a):
                 self.a = a
 
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
             Foo(arange(3, dtype="uint32"))
 
         expected_message = (
             "Foo() expected a value with dtype 'datetime64[ns]' "
             "or 'float64' for argument 'a', but got 'uint32' instead."
         )
-        self.assertEqual(e.exception.args[0], expected_message)
+        assert e.value.args[0] == expected_message
 
     def test_ensure_timezone(self):
         @preprocess(tz=ensure_timezone)
@@ -429,15 +428,16 @@ class PreprocessTestCase(TestCase):
 
         # test coercing from string
         for name, key in valid.items():
-            self.assertEqual(f(name), ZoneInfo(key))
+            assert f(name) == ZoneInfo(key)
 
         # test pass through of tzinfo objects
         for tz in map(ZoneInfo, set(valid.values())):
-            self.assertEqual(f(tz), tz)
+            assert f(tz) == tz
 
         # test invalid timezone strings
         for tz in invalid:
-            self.assertRaises(ZoneInfoNotFoundError, f, tz)
+            with pytest.raises(ZoneInfoNotFoundError):
+                f(tz)
 
     def test_optionally(self):
         error = TypeError("arg must be int")
@@ -451,12 +451,12 @@ class PreprocessTestCase(TestCase):
         def f(a):
             return a
 
-        self.assertIs(f(1), 1)
-        self.assertIsNone(f(None))
+        assert f(1) == 1
+        assert f(None) is None
 
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
             f("a")
-        self.assertIs(e.exception, error)
+        assert e.value is error
 
     def test_expect_dimensions(self):
 
@@ -464,34 +464,34 @@ class PreprocessTestCase(TestCase):
         def foo(x, y):
             return x[0, 0]
 
-        self.assertEqual(foo(arange(1).reshape(1, 1), 10), 0)
+        assert foo(arange(1).reshape(1, 1), 10) == 0
 
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(ValueError) as e:
             foo(arange(1), 1)
-        errmsg = str(e.exception)
+        errmsg = str(e.value)
         expected = (
             f"{qualname(foo)}() expected a 2-D array for argument 'x', but got"
             " a 1-D array instead."
         )
-        self.assertEqual(errmsg, expected)
+        assert errmsg == expected
 
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(ValueError) as e:
             foo(arange(1).reshape(1, 1, 1), 1)
-        errmsg = str(e.exception)
+        errmsg = str(e.value)
         expected = (
             f"{qualname(foo)}() expected a 2-D array for argument 'x', but got"
             " a 3-D array instead."
         )
-        self.assertEqual(errmsg, expected)
+        assert errmsg == expected
 
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(ValueError) as e:
             foo(array(0), 1)
-        errmsg = str(e.exception)
+        errmsg = str(e.value)
         expected = (
             f"{qualname(foo)}() expected a 2-D array for argument 'x', but got"
             " a scalar instead."
         )
-        self.assertEqual(errmsg, expected)
+        assert errmsg == expected
 
     def test_expect_dimensions_custom_name(self):
 
@@ -499,11 +499,11 @@ class PreprocessTestCase(TestCase):
         def foo(x, y):
             return x[0, 0]
 
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(ValueError) as e:
             foo(arange(1), 1)
-        errmsg = str(e.exception)
+        errmsg = str(e.value)
         expected = (
             "fizzbuzz() expected a 2-D array for argument 'x', but got"
             " a 1-D array instead."
         )
-        self.assertEqual(errmsg, expected)
+        assert errmsg == expected
