@@ -432,6 +432,40 @@ def clean(bundle, before, after, keep_last):
 
 
 @main.command()
+@click.option(
+    "-b",
+    "--bundle",
+    default=DEFAULT_BUNDLE,
+    metavar="BUNDLE-NAME",
+    show_default=True,
+    help="The data bundle to convert.",
+)
+@click.option(
+    "--delete-bcolz/--keep-bcolz",
+    default=False,
+    show_default=True,
+    help="Delete the bcolz data once it has been converted.",
+)
+@click.option(
+    "--show-progress/--no-show-progress",
+    default=True,
+    help="Print progress information to the terminal.",
+)
+def convert(bundle, delete_bcolz, show_progress):
+    """Convert a bundle's bcolz bars, from zipline before 2.0, to Parquet."""
+    converted = bundles_module.convert(
+        bundle,
+        os.environ,
+        delete_bcolz=delete_bcolz,
+        show_progress=show_progress,
+    )
+    for path in converted:
+        click.echo(f"Converted {path}")
+    if not converted:
+        click.echo(f"No bcolz data to convert for bundle {bundle!r}.")
+
+
+@main.command()
 def bundles():
     """List all of the available data bundles."""
     for bundle in sorted(bundles_module.bundles.keys()):

@@ -86,6 +86,26 @@ For example:
    # clean all but the last <int> runs
    $ zipline clean [-b <bundle>] --keep-last <int>
 
+Converting Data from Earlier Versions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Zipline 2.0 stores pricing data as Parquet. Bundles ingested by earlier
+versions stored it with bcolz, and they still load, but the bcolz formats will
+be removed in a future version. Since old data can't always be ingested again
+(the Quandl WIKI dataset, for example, stopped updating in 2018), the
+``convert`` command rewrites a bundle's bcolz data as Parquet in place:
+
+.. code-block:: bash
+
+   # convert every ingestion of <bundle>, keeping the bcolz data
+   $ zipline convert [-b <bundle>]
+
+   # convert, then delete the bcolz data
+   $ zipline convert [-b <bundle>] --delete-bcolz
+
+Ingestions that already use Parquet are left alone, so the command is safe to
+run more than once.
+
 
 Running Backtests with Data Bundles
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

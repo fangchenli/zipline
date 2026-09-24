@@ -26,6 +26,7 @@ from zipline.utils.sqlite_utils import check_and_create_engine
 
 from ..adjustments import SQLiteAdjustmentReader, SQLiteAdjustmentWriter
 from ..bcolz_daily_bars import BcolzDailyBarReader
+from ..convert_bcolz import convert_daily_bars, convert_minute_bars
 from ..minute_bars import BcolzMinuteBarReader
 from ..parquet_daily_bars import ParquetDailyBarReader, ParquetDailyBarWriter
 from ..parquet_minute_bars import ParquetMinuteBarReader, ParquetMinuteBarWriter
@@ -142,6 +143,54 @@ def ingestions_for_bundle(bundle, environ=None):
         ),
         reverse=True,
     )
+
+
+def convert(bundle, environ=None, delete_bcolz=False, show_progress=False):
+    """Convert a bundle's bcolz daily and minute bars to Parquet.
+
+    Bundles ingested before zipline 2.0 stored their bars with bcolz. This
+    rewrites them in the Parquet formats for every ingestion of ``bundle``;
+    ingestions already using Parquet are left alone. Each dataset is written
+    to a temporary directory first, so an interrupted conversion leaves the
+    ingestion as it was.
+
+    Parameters
+    ----------
+    bundle : str
+        The name of the bundle.
+    environ : mapping, optional
+        The environment variables. Defaults to os.environ.
+    delete_bcolz : bool, optional
+        Delete each bcolz dataset once it has been converted.
+    show_progress : bool, optional
+        Show the progress of each conversion.
+
+    Returns
+    -------
+    converted : list[str]
+        The paths of the Parquet datasets written.
+    """
+    converted = []
+    for ingestion in ingestions_for_bundle(bundle, environ):
+        timestr = to_bundle_ingest_dirname(ingestion)
+        for bcolz_relative, relative, convert_bars in (
+            (bcolz_daily_equity_relative, daily_equity_relative, convert_daily_bars),
+            (bcolz_minute_equity_relative, minute_equity_relative, convert_minute_bars),
+        ):
+            src = pth.data_path(bcolz_relative(bundle, timestr), environ=environ)
+            dest = pth.data_path(relative(bundle, timestr), environ=environ)
+            if not os.path.isdir(src) or os.path.exists(dest):
+                continue
+            log.info("Converting {} to Parquet.", src)
+            tmp = dest + ".converting"
+            # Left over from an interrupted conversion.
+            shutil.rmtree(tmp, ignore_errors=True)
+            convert_bars(src, tmp, show_progress=show_progress)
+            os.replace(tmp, dest)
+            if delete_bcolz:
+                shutil.rmtree(src)
+            converted.append(dest)
+    return converted
 
 
 RegisteredBundle = namedtuple(
