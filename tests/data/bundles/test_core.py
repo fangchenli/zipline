@@ -22,10 +22,18 @@ from zipline.data.bundles.core import (
     _make_bundle_core,
     asset_db_path,
     bcolz_daily_equity_relative,
+    bcolz_minute_equity_relative,
     daily_equity_path,
+    minute_equity_path,
     to_bundle_ingest_dirname,
 )
+from zipline.data.minute_bars import (
+    US_EQUITIES_MINUTES_PER_DAY,
+    BcolzMinuteBarReader,
+    BcolzMinuteBarWriter,
+)
 from zipline.data.parquet_daily_bars import ParquetDailyBarReader
+from zipline.data.parquet_minute_bars import ParquetMinuteBarReader
 from zipline.lib.adjustment import Float64Multiply
 from zipline.pipeline.loaders.synthetic import (
     expected_bar_values_2d,
@@ -87,6 +95,13 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             assert_is(self.bundles[name].ingest, ingest)
 
         self._check_bundles(set("abcde"))
+
+    def test_register_minutes_per_day_is_deprecated(self):
+        def ingest(*args):
+            pass
+
+        with self.assertWarnsRegex(DeprecationWarning, "minutes_per_day"):
+            self.register("bundle", ingest, minutes_per_day=390)
 
     def test_register_call(self):
         def ingest(*args):
@@ -209,6 +224,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
 
         assert_equal(set(bundle.asset_finder.sids), set(sids))
         assert_is_instance(bundle.equity_daily_bar_reader, ParquetDailyBarReader)
+        assert_is_instance(bundle.equity_minute_bar_reader, ParquetMinuteBarReader)
 
         columns = "open", "high", "low", "close", "volume"
 
@@ -359,24 +375,49 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         assert_equal(reader.sessions, sessions)
         assert_equal(reader.currency_codes(sids).tolist(), [None] * len(sids))
 
+    def test_ingest_without_minute_bars(self):
+        _, _, sessions = self._ingest_daily()
+        bundle = self.load("bundle", environ=self.environ)
+        self.add_instance_callback(bundle.close)
+
+        reader = bundle.equity_minute_bar_reader
+        assert_is_instance(reader, ParquetMinuteBarReader)
+        calendar = get_calendar("XNYS")
+        assert_equal(
+            reader.last_available_dt, calendar.session_last_minute(sessions[-1])
+        )
+
     def test_load_bcolz_ingestion(self):
-        """Bundles ingested before daily bars moved to Parquet still load."""
+        """Bundles ingested before bars moved to Parquet still load."""
         bundle, sids, sessions = self._ingest_daily()
         (timestr,) = ingestions_for_bundle("bundle", environ=self.environ)
         timestr = to_bundle_ingest_dirname(timestr)
+        calendar = get_calendar("XNYS")
+        minutes = calendar.sessions_minutes(sessions[0], sessions[-1])
         equities = make_simple_equity_info(sids, self.START_DATE, self.END_DATE)
-        daily_bar_data = make_bar_data(equities, sessions)
 
-        # Replace the Parquet dataset with bcolz in the old location.
+        # Replace the Parquet datasets with bcolz in the old locations.
         shutil.rmtree(daily_equity_path("bundle", timestr, environ=self.environ))
         BcolzDailyBarWriter(
             pth.data_path(
                 bcolz_daily_equity_relative("bundle", timestr), environ=self.environ
             ),
-            get_calendar("XNYS"),
+            calendar,
             sessions[0],
             sessions[-1],
-        ).write(daily_bar_data)
+        ).write(make_bar_data(equities, sessions))
+        shutil.rmtree(minute_equity_path("bundle", timestr, environ=self.environ))
+        bcolz_minute_path = pth.data_path(
+            bcolz_minute_equity_relative("bundle", timestr), environ=self.environ
+        )
+        os.makedirs(bcolz_minute_path)
+        BcolzMinuteBarWriter(
+            bcolz_minute_path,
+            calendar,
+            sessions[0],
+            sessions[-1],
+            US_EQUITIES_MINUTES_PER_DAY,
+        ).write(make_bar_data(equities, minutes))
 
         bundle = self.load("bundle", environ=self.environ)
         self.add_instance_callback(bundle.close)
@@ -384,6 +425,11 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         assert_is_instance(reader, BcolzDailyBarReader)
         (close,) = reader.load_raw_arrays(["close"], sessions[0], sessions[-1], sids)
         assert_equal(close, expected_bar_values_2d(sessions, sids, equities, "close"))
+
+        reader = bundle.equity_minute_bar_reader
+        assert_is_instance(reader, BcolzMinuteBarReader)
+        (close,) = reader.load_raw_arrays(["close"], minutes[0], minutes[-1], sids)
+        assert_equal(close, expected_bar_values_2d(minutes, sids, equities, "close"))
 
     def test_ingest_assets_versions(self):
         versions = (1, 2)

@@ -26,11 +26,9 @@ from zipline.utils.sqlite_utils import check_and_create_engine
 
 from ..adjustments import SQLiteAdjustmentReader, SQLiteAdjustmentWriter
 from ..bcolz_daily_bars import BcolzDailyBarReader
-from ..minute_bars import (
-    BcolzMinuteBarReader,
-    BcolzMinuteBarWriter,
-)
+from ..minute_bars import BcolzMinuteBarReader
 from ..parquet_daily_bars import ParquetDailyBarReader, ParquetDailyBarWriter
+from ..parquet_minute_bars import ParquetMinuteBarReader, ParquetMinuteBarWriter
 
 log = Logger(__name__)
 
@@ -88,6 +86,11 @@ def bcolz_daily_equity_relative(bundle_name, timestr):
 
 
 def minute_equity_relative(bundle_name, timestr):
+    return bundle_name, timestr, "minute_equities.parquet"
+
+
+def bcolz_minute_equity_relative(bundle_name, timestr):
+    """Where ingestions made before zipline 2.0 stored their minute bars."""
     return bundle_name, timestr, "minute_equities.bcolz"
 
 
@@ -258,7 +261,7 @@ def _make_bundle_core():
         calendar_name="NYSE",
         start_session=None,
         end_session=None,
-        minutes_per_day=390,
+        minutes_per_day=None,
         create_writers=True,
     ):
         """Register a data bundle ingest function.
@@ -274,7 +277,7 @@ def _make_bundle_core():
                   The environment this is being run with.
               asset_db_writer : AssetDBWriter
                   The asset db writer to write into.
-              minute_bar_writer : BcolzMinuteBarWriter
+              minute_bar_writer : ParquetMinuteBarWriter
                   The minute bar writer to write into.
               daily_bar_writer : ParquetDailyBarWriter
                   The daily bar writer to write into.
@@ -305,7 +308,8 @@ def _make_bundle_core():
             or if the date lies outside the range supported by the
             calendar, the last_session of the calendar is used.
         minutes_per_day : int, optional
-            The number of minutes in each normal trading day.
+            Deprecated and ignored. Minute bars are stored at the calendar's
+            trading minutes, so the number of minutes per day is not needed.
         create_writers : bool, optional
             Should the ingest machinery create the writers for the ingest
             function. This can be disabled as an optimization for cases where
@@ -328,6 +332,13 @@ def _make_bundle_core():
         if name in bundles:
             warnings.warn(
                 f"Overwriting bundle with name {name!r}",
+                stacklevel=3,
+            )
+        if minutes_per_day is not None:
+            warnings.warn(
+                "register(minutes_per_day=...) is deprecated and ignored: minute "
+                "bars are stored at the calendar's trading minutes",
+                DeprecationWarning,
                 stacklevel=3,
             )
 
@@ -431,12 +442,11 @@ def _make_bundle_core():
                     start_session,
                     end_session,
                 )
-                minute_bar_writer = BcolzMinuteBarWriter(
+                minute_bar_writer = ParquetMinuteBarWriter(
                     wd.ensure_dir(*minute_equity_relative(name, timestr)),
                     calendar,
                     start_session,
                     end_session,
-                    minutes_per_day=bundle.minutes_per_day,
                 )
                 assets_db_path = wd.getpath(*asset_db_relative(name, timestr))
                 asset_db_writer = AssetDBWriter(assets_db_path)
@@ -476,10 +486,11 @@ def _make_bundle_core():
                 show_progress,
                 pth.data_path([name, timestr], environ=environ),
             )
-            if daily_bar_writer is not None and not daily_bar_writer.exists:
-                # The bundle has no daily bars; write an empty dataset so
-                # that the bundle can still be loaded.
-                daily_bar_writer.write(())
+            # Write an empty dataset for each kind of bars the bundle didn't
+            # provide, so that the bundle can still be loaded.
+            for writer in (daily_bar_writer, minute_bar_writer):
+                if writer is not None and not writer.exists:
+                    writer.write(())
 
             for version in sorted(set(assets_versions), reverse=True):
                 version_path = wd.getpath(
@@ -565,13 +576,20 @@ def _make_bundle_core():
                     bcolz_daily_equity_relative(name, timestr), environ=environ
                 )
             )
+        minute_path = minute_equity_path(name, timestr, environ=environ)
+        if os.path.exists(minute_path):
+            minute_bar_reader = ParquetMinuteBarReader(minute_path)
+        else:
+            minute_bar_reader = BcolzMinuteBarReader(
+                pth.data_path(
+                    bcolz_minute_equity_relative(name, timestr), environ=environ
+                )
+            )
         return BundleData(
             asset_finder=AssetFinder(
                 asset_db_path(name, timestr, environ=environ),
             ),
-            equity_minute_bar_reader=BcolzMinuteBarReader(
-                minute_equity_path(name, timestr, environ=environ),
-            ),
+            equity_minute_bar_reader=minute_bar_reader,
             equity_daily_bar_reader=daily_bar_reader,
             adjustment_reader=SQLiteAdjustmentReader(
                 adjustment_db_path(name, timestr, environ=environ),
