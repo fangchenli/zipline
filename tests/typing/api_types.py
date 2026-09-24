@@ -32,6 +32,13 @@ def handle_data(context: TradingAlgorithm, data: BarData) -> None:
     assets = symbols("AAPL", "MSFT", country_code="US")
     assert_type(assets, list[Equity])
 
+    # Asset attributes. Assets built without dates (e.g. in tests) have None.
+    assert_type(aapl.sid, int)
+    assert_type(aapl.symbol, str)
+    assert_type(aapl.exchange, str)
+    assert_type(aapl.end_date, pd.Timestamp | None)
+    assert_type(aapl < 10, bool)
+
     # BarData.current: a scalar, a Series or a DataFrame, by argument shape.
     assert_type(data.current(aapl, "price"), float)
     assert_type(data.current(aapl, "volume"), float)

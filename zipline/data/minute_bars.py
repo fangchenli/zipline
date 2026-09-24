@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Literal
+
 from zipline.data.bar_reader import BarReader
 
 # The minutes in a regular session of US equities and of US futures.
@@ -22,5 +24,5 @@ class MinuteBarReader(BarReader):
     """A reader of minute bars."""
 
     @property
-    def data_frequency(self):
+    def data_frequency(self) -> Literal["minute"]:
         return "minute"

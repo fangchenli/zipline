@@ -11,7 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    import numpy as np
+    import pandas as pd
+    from pandas.api.typing import NaTType
+
+    from zipline.assets import Asset
+    from zipline.utils.calendar_utils import ExchangeCalendar
 
 
 class NoDataOnDate(Exception):
@@ -44,11 +56,17 @@ OHLCV = ("open", "high", "low", "close", "volume")
 class BarReader(ABC):
     @property
     @abstractmethod
-    def data_frequency(self):
+    def data_frequency(self) -> Literal["session", "minute"]:
         pass
 
     @abstractmethod
-    def load_raw_arrays(self, columns, start_date, end_date, assets):
+    def load_raw_arrays(
+        self,
+        columns: Sequence[str],
+        start_date: pd.Timestamp,
+        end_date: pd.Timestamp,
+        assets: Sequence[int] | np.ndarray,
+    ) -> list[np.ndarray]:
         """
         Parameters
         ----------
@@ -72,7 +90,7 @@ class BarReader(ABC):
 
     @property
     @abstractmethod
-    def last_available_dt(self):
+    def last_available_dt(self) -> pd.Timestamp:
         """
         Returns
         -------
@@ -83,7 +101,7 @@ class BarReader(ABC):
 
     @property
     @abstractmethod
-    def trading_calendar(self):
+    def trading_calendar(self) -> ExchangeCalendar | None:
         """
         Returns the zipline.utils.calendar.trading_calendar used to read
         the data.  Can be None (if the writer didn't specify it).
@@ -92,7 +110,7 @@ class BarReader(ABC):
 
     @property
     @abstractmethod
-    def first_trading_day(self):
+    def first_trading_day(self) -> pd.Timestamp | None:
         """
         Returns
         -------
@@ -103,7 +121,7 @@ class BarReader(ABC):
         pass
 
     @abstractmethod
-    def get_value(self, sid, dt, field):
+    def get_value(self, sid: int, dt: pd.Timestamp, field: str) -> float:
         """
         Retrieve the value at the given coordinates.
 
@@ -131,7 +149,9 @@ class BarReader(ABC):
         pass
 
     @abstractmethod
-    def get_last_traded_dt(self, asset, dt):
+    def get_last_traded_dt(
+        self, asset: Asset, dt: pd.Timestamp
+    ) -> pd.Timestamp | NaTType:
         """
         Get the latest minute on or before ``dt`` in which ``asset`` traded.
 

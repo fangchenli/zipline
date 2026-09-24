@@ -25,9 +25,20 @@ splits them into per-asset arrays of (minute position, OHLCV), and keeps
 recently used row groups in a cache bounded by size.
 """
 
+from __future__ import annotations
+
 import os
 from collections import OrderedDict
 from functools import cached_property
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from pandas.api.typing import NaTType
+
+    from zipline.assets import Asset
+    from zipline.utils.calendar_utils import ExchangeCalendar
 
 import numpy as np
 import pandas as pd
@@ -495,7 +506,9 @@ class ParquetMinuteBarReader(MinuteBarReader):
     zipline.data.parquet_minute_bars.ParquetMinuteBarWriter
     """
 
-    def __init__(self, rootdir, block_cache_bytes=DEFAULT_BLOCK_CACHE_BYTES):
+    def __init__(
+        self, rootdir: str, block_cache_bytes: int = DEFAULT_BLOCK_CACHE_BYTES
+    ) -> None:
         self._rootdir = rootdir
         self._block_cache_bytes = block_cache_bytes
         # (month, row group) -> _Block, least recently used first.
@@ -516,7 +529,7 @@ class ParquetMinuteBarReader(MinuteBarReader):
         )
 
     @cached_property
-    def trading_calendar(self):
+    def trading_calendar(self) -> ExchangeCalendar:
         return get_calendar(self._metadata["calendar_name"])
 
     @cached_property
@@ -528,12 +541,12 @@ class ParquetMinuteBarReader(MinuteBarReader):
         )
 
     @property
-    def first_trading_day(self):
+    def first_trading_day(self) -> pd.Timestamp:
         """The first session of the dataset."""
         return pd.Timestamp(self._metadata["start_session"])
 
     @cached_property
-    def last_available_dt(self):
+    def last_available_dt(self) -> pd.Timestamp:
         """The last trading minute of the dataset."""
         return self._index.minute(-1)
 
@@ -689,7 +702,7 @@ class ParquetMinuteBarReader(MinuteBarReader):
         block = self._sid_block(month, sid)
         return _NO_ROWS if block is None else block.rows(sid)
 
-    def get_value(self, sid, dt, field):
+    def get_value(self, sid: int, dt: pd.Timestamp, field: str) -> float:
         """Retrieve the value of ``field`` for ``sid`` at the minute ``dt``.
 
         Returns NaN for a missing price and 0 for a missing volume.
@@ -710,7 +723,9 @@ class ParquetMinuteBarReader(MinuteBarReader):
                 return block.values[row, FIELD_INDEX[field]]
         return 0.0 if field == "volume" else np.nan
 
-    def get_last_traded_dt(self, asset, dt):
+    def get_last_traded_dt(
+        self, asset: Asset | int, dt: pd.Timestamp
+    ) -> pd.Timestamp | NaTType:
         """The last minute at or before ``dt`` with volume for ``asset``."""
         sid = int(asset)
         lifetime = self._assets.get(sid)
@@ -733,7 +748,13 @@ class ParquetMinuteBarReader(MinuteBarReader):
                 return self._index.minute(positions[traded[-1]])
         return pd.NaT
 
-    def load_raw_arrays(self, columns, start_date, end_date, assets):
+    def load_raw_arrays(
+        self,
+        columns: Sequence[str],
+        start_date: pd.Timestamp,
+        end_date: pd.Timestamp,
+        assets: Sequence[int] | np.ndarray,
+    ) -> list[np.ndarray]:
         """Load (minutes, assets) float64 arrays of each field in ``columns``.
 
         The rows are the trading minutes from ``start_date`` through

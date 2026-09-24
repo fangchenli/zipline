@@ -26,7 +26,7 @@ from zipline.data.bundles import (
 )
 from zipline.data.bundles.core import (
     BadClean,
-    _make_bundle_core,
+    BundleCore,
     asset_db_path,
     bcolz_daily_equity_relative,
     bcolz_minute_equity_relative,
@@ -76,14 +76,13 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         super().init_instance_fixtures()
         # Output dirs written by the bundle that ``_empty_ingest`` registers.
         self._empty_ingest_wrote_to = []
-        (
-            self.bundles,
-            self.register,
-            self.unregister,
-            self.ingest,
-            self.load,
-            self.clean,
-        ) = _make_bundle_core()
+        core = BundleCore()
+        self.bundles = core.bundles
+        self.register = core.register
+        self.unregister = core.unregister
+        self.ingest = core.ingest
+        self.load = core.load
+        self.clean = core.clean
         self.environ = {"ZIPLINE_ROOT": self.instance_tmpdir.path}
 
     def test_register_decorator(self):

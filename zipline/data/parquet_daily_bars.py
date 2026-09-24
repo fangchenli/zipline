@@ -22,9 +22,20 @@ and looking up single values, are then numpy indexing on cached blocks, and
 memory stays bounded by the cache size rather than the dataset size.
 """
 
+from __future__ import annotations
+
 import os
 from collections import OrderedDict
 from functools import cached_property
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from pandas.api.typing import NaTType
+
+    from zipline.assets import Asset
+    from zipline.utils.calendar_utils import ExchangeCalendar
 
 import numpy as np
 import pandas as pd
@@ -396,7 +407,9 @@ class ParquetDailyBarReader(CurrencyAwareSessionBarReader):
     zipline.data.parquet_daily_bars.ParquetDailyBarWriter
     """
 
-    def __init__(self, rootdir, block_cache_size=DEFAULT_BLOCK_CACHE_SIZE):
+    def __init__(
+        self, rootdir: str, block_cache_size: int = DEFAULT_BLOCK_CACHE_SIZE
+    ) -> None:
         self._rootdir = rootdir
         self._block_cache_size = block_cache_size
         self._blocks = OrderedDict()
@@ -410,11 +423,11 @@ class ParquetDailyBarReader(CurrencyAwareSessionBarReader):
         )
 
     @cached_property
-    def trading_calendar(self):
+    def trading_calendar(self) -> ExchangeCalendar:
         return get_calendar(self._metadata["calendar_name"])
 
     @cached_property
-    def sessions(self):
+    def sessions(self) -> pd.DatetimeIndex:
         """The sessions the dataset covers, as a DatetimeIndex."""
         return self.trading_calendar.sessions_in_range(
             pd.Timestamp(self._metadata["start_session"]),
@@ -426,16 +439,16 @@ class ParquetDailyBarReader(CurrencyAwareSessionBarReader):
         return epoch_nanos(self.sessions)
 
     @property
-    def last_available_dt(self):
+    def last_available_dt(self) -> pd.Timestamp:
         return self.sessions[-1]
 
     @property
-    def sids(self):
+    def sids(self) -> np.ndarray:
         """The sids the dataset has bars for, in ascending order."""
         return np.sort(self._assets.index.to_numpy())
 
     @cached_property
-    def first_trading_day(self):
+    def first_trading_day(self) -> pd.Timestamp | None:
         """The first session with a bar for any asset, or None."""
         first = self._metadata["first_trading_day"]
         return None if first is None else pd.Timestamp(first)
@@ -529,7 +542,13 @@ class ParquetDailyBarReader(CurrencyAwareSessionBarReader):
             self._blocks.popitem(last=False)
         return block
 
-    def load_raw_arrays(self, columns, start_date, end_date, assets):
+    def load_raw_arrays(
+        self,
+        columns: Sequence[str],
+        start_date: pd.Timestamp,
+        end_date: pd.Timestamp,
+        assets: Sequence[int] | np.ndarray,
+    ) -> list[np.ndarray]:
         start_pos = self._session_position(start_date)
         end_pos = self._session_position(end_date)
         sids = as_sids(assets)
@@ -585,12 +604,14 @@ class ParquetDailyBarReader(CurrencyAwareSessionBarReader):
             return 0.0 if field == "volume" else np.nan
         return block.values[pos - block.first_pos, col]
 
-    def get_value(self, sid, dt, field):
+    def get_value(self, sid: int, dt: pd.Timestamp, field: str) -> float:
         sid = int(sid)
         pos = self._checked_position(sid, dt)
         return self._value_at(sid, pos, field)
 
-    def get_last_traded_dt(self, asset, dt):
+    def get_last_traded_dt(
+        self, asset: Asset | int, dt: pd.Timestamp
+    ) -> pd.Timestamp | NaTType:
         sid = int(asset)
         try:
             start, end = self._lifetime(sid)
@@ -611,7 +632,7 @@ class ParquetDailyBarReader(CurrencyAwareSessionBarReader):
             pos = first - 1
         return pd.NaT
 
-    def currency_codes(self, sids):
+    def currency_codes(self, sids: Sequence[int] | np.ndarray) -> np.ndarray:
         assets = self._assets
         known = assets.index.get_indexer(as_sids(sids))
         currencies = assets["currency"].to_numpy()
