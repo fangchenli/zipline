@@ -2,6 +2,8 @@
 Helpers for downsampling code.
 """
 
+from typing import Literal
+
 from zipline.utils.input_validation import expect_element
 from zipline.utils.numpy_utils import changed_locations
 from zipline.utils.sharedoc import (
@@ -17,6 +19,11 @@ _dt_to_period = {
 }
 
 SUPPORTED_DOWNSAMPLE_FREQUENCIES = frozenset(_dt_to_period)
+
+#: The frequencies a term can be downsampled to.
+type DownsampleFrequency = Literal[
+    "year_start", "quarter_start", "month_start", "week_start"
+]
 
 
 expect_downsample_frequency = expect_element(

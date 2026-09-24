@@ -6,15 +6,17 @@ Like ``api_types.py``, this module isn't run: CI type-checks it, and each
 
 from typing import assert_type
 
+from zipline.assets import Equity
 from zipline.pipeline import Classifier, CustomFactor, Factor, Filter, Pipeline
-from zipline.pipeline.data import EquityPricing
+from zipline.pipeline.data import BoundColumn, Column, DataSet, EquityPricing
 from zipline.pipeline.factors import Returns, SimpleMovingAverage
 from zipline.pipeline.factors.factor import RecarrayField
 from zipline.pipeline.factors.statistical import RollingLinearRegression
 from zipline.pipeline.term import ComputableTerm
+from zipline.utils.numpy_utils import bool_dtype, categorical_dtype, int64_dtype
 
 
-def make_pipeline() -> Pipeline:
+def make_pipeline(aapl: Equity) -> Pipeline:
     returns = Returns(window_length=2)
     sma = SimpleMovingAverage(inputs=[EquityPricing.close], window_length=10)
     universe = sma.top(500)
@@ -47,6 +49,23 @@ def make_pipeline() -> Pipeline:
     assert_type(regression, RollingLinearRegression)
     assert_type(regression.beta, Factor)
 
+    # Terms derived from a term keep its kind (Factor, Filter or Classifier).
+    assert_type(returns[aapl], Factor)
+    assert_type(returns.downsample("month_start"), Factor)
+    assert_type(universe.alias("universe"), Filter)
+    assert_type(returns.fillna(0.0), Factor)
+    assert_type(returns.isnull(), Filter)
+    assert_type(universe.if_else(returns, sma), Factor)
+
+    sector = returns.quartiles()
+    assert_type(sector.eq(1), Filter)
+    assert_type(sector != 2, Filter)
+    assert_type(sector.element_of([1, 2]), Filter)
+    assert_type(sector.peer_count(), Factor)
+    assert_type(sector.fillna(0), Classifier)
+    assert_type(sector.startswith("A"), Filter)
+    assert_type(sector.relabel(str.upper), Classifier)
+
     pipe = Pipeline(columns={"returns": returns}, screen=universe)
     pipe.add(ranked, "ranked")
     assert_type(pipe.columns, dict[str, ComputableTerm])
@@ -62,3 +81,21 @@ class TwoOutputs(CustomFactor):
 
 low, high = TwoOutputs()
 assert_type(low, RecarrayField)
+
+
+# A column's dtype decides what kind of term its ``latest`` is.
+class Fundamentals(DataSet):
+    revenue = Column(float)
+    is_profitable = Column(bool_dtype)
+    sector_code = Column(int64_dtype, missing_value=-1)
+    industry = Column(categorical_dtype)
+
+
+assert_type(EquityPricing.close, BoundColumn[Factor])
+assert_type(EquityPricing.close.latest, Factor)
+assert_type(EquityPricing.close.latest > 5, Filter)
+assert_type(EquityPricing.close.fx("EUR"), BoundColumn[Factor])
+assert_type(Fundamentals.revenue.latest, Factor)
+assert_type(Fundamentals.is_profitable.latest, Filter)
+assert_type(Fundamentals.sector_code.latest, Classifier)
+assert_type(Fundamentals.industry.latest.startswith("Tech"), Filter)

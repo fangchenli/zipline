@@ -2,11 +2,15 @@
 classifier.py
 """
 
+from __future__ import annotations
+
 import operator
 import re
+from collections.abc import Callable, Iterable
 from numbers import Number
-from typing import Any
+from typing import TYPE_CHECKING, Any, NoReturn
 
+import numpy as np
 import pandas as pd
 from numpy import isnan, nan, where, zeros
 
@@ -19,7 +23,7 @@ from zipline.pipeline.dtypes import (
     FACTOR_DTYPES,
     FILTER_DTYPES,
 )
-from zipline.pipeline.sentinels import NotSpecified
+from zipline.pipeline.sentinels import NotSpecified, NotSpecifiedType
 from zipline.pipeline.term import ComputableTerm
 from zipline.utils.input_validation import expect_dtypes, expect_types
 from zipline.utils.numpy_utils import (
@@ -28,7 +32,7 @@ from zipline.utils.numpy_utils import (
     vectorized_is_element,
 )
 
-from ..filters import ArrayPredicate, NumExprFilter
+from ..filters import ArrayPredicate, Filter, NumExprFilter
 from ..mixins import (
     CustomTermMixin,
     LatestMixin,
@@ -37,6 +41,9 @@ from ..mixins import (
     SingleInputMixin,
     StandardOutputs,
 )
+
+if TYPE_CHECKING:
+    from ..factors import Factor
 
 string_classifiers_only = restrict_to_dtype(
     dtype=categorical_dtype,
@@ -66,7 +73,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
     # We explicitly don't support classifier to classifier comparisons, since
     # the stored values likely don't mean the same thing. This may be relaxed
     # in the future, but for now we're starting conservatively.
-    def eq(self, other):
+    def eq(self, other: int | np.integer | str | bytes) -> Filter:
         """
         Construct a Filter returning True for asset/date pairs where the output
         of ``self`` matches ``other``.
@@ -98,7 +105,11 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
                 opargs=(other,),
             )
 
-    def __ne__(self, other):
+    # Like numpy's and pandas' elementwise comparisons, this compares with a
+    # label and returns a Filter, unlike object.__ne__(object) -> bool.
+    def __ne__(  # ty: ignore[invalid-method-override]
+        self, other: int | np.integer | str | bytes
+    ) -> Filter:
         """
         Construct a Filter returning True for asset/date pairs where the output
         of ``self`` matches ``other.
@@ -116,21 +127,21 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             return ArrayPredicate(term=self, op=operator.ne, opargs=(other,))
 
     # Classifiers are categorical, so ordering comparisons are meaningless.
-    def __gt__(self, other):
+    def __gt__(self, other: object) -> NoReturn:
         raise TypeError("cannot compare classifiers with >")
 
-    def __ge__(self, other):
+    def __ge__(self, other: object) -> NoReturn:
         raise TypeError("cannot compare classifiers with >=")
 
-    def __le__(self, other):
+    def __le__(self, other: object) -> NoReturn:
         raise TypeError("cannot compare classifiers with <=")
 
-    def __lt__(self, other):
+    def __lt__(self, other: object) -> NoReturn:
         raise TypeError("cannot compare classifiers with <")
 
     @string_classifiers_only
     @expect_types(prefix=(bytes, str))
-    def startswith(self, prefix):
+    def startswith(self, prefix: str | bytes) -> Filter:
         """
         Construct a Filter matching values starting with ``prefix``.
 
@@ -153,7 +164,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
 
     @string_classifiers_only
     @expect_types(suffix=(bytes, str))
-    def endswith(self, suffix):
+    def endswith(self, suffix: str | bytes) -> Filter:
         """
         Construct a Filter matching values ending with ``suffix``.
 
@@ -176,7 +187,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
 
     @string_classifiers_only
     @expect_types(substring=(bytes, str))
-    def has_substring(self, substring):
+    def has_substring(self, substring: str | bytes) -> Filter:
         """
         Construct a Filter matching values containing ``substring``.
 
@@ -199,7 +210,9 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
 
     @string_classifiers_only
     @expect_types(pattern=(bytes, str, type(re.compile(""))))
-    def matches(self, pattern):
+    def matches(
+        self, pattern: str | bytes | re.Pattern[str] | re.Pattern[bytes]
+    ) -> Filter:
         """
         Construct a Filter that checks regex matches against ``pattern``.
 
@@ -226,7 +239,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
 
     # TODO: Support relabeling for integer dtypes.
     @string_classifiers_only
-    def relabel(self, relabeler):
+    def relabel(self, relabeler: Callable[[str], str | None]) -> Classifier:
         """
         Convert ``self`` into a new classifier by mapping a function over each
         element produced by ``self``.
@@ -244,7 +257,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         """
         return Relabel(term=self, relabeler=relabeler)
 
-    def element_of(self, choices):
+    def element_of(self, choices: Iterable[int | str | bytes]) -> Filter:
         """
         Construct a Filter indicating whether values are in ``choices``.
 
@@ -366,7 +379,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             raise AssertionError(f"Unexpected Classifier dtype: {self.dtype}.")
         return group_labels, null_label
 
-    def peer_count(self, mask=NotSpecified):
+    def peer_count(self, mask: Filter | NotSpecifiedType = NotSpecified) -> Factor:
         """
         Construct a factor that gives the number of occurrences of
         each distinct category in a classifier.

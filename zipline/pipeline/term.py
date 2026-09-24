@@ -50,10 +50,12 @@ from zipline.utils.sharedoc import (
 )
 
 from .domain import GENERIC, Domain, infer_domain
-from .downsample_helpers import expect_downsample_frequency
+from .downsample_helpers import DownsampleFrequency, expect_downsample_frequency
 from .sentinels import NotSpecified, NotSpecifiedType
 
 if TYPE_CHECKING:
+    from .classifiers import Classifier
+    from .factors import Factor
     from .filters import Filter
 
 #: The type of a term's missing value, the fill for asset/date pairs with no
@@ -262,7 +264,7 @@ class Term(ABC):
         pass
 
     @expect_types(key=Asset)
-    def __getitem__(self, key):
+    def __getitem__[P: (Factor, Filter, Classifier)](self: P, key: Asset) -> P:
         if not isinstance(self, ComputableTerm):
             raise NonSliceableTerm(term=self)
 
@@ -388,12 +390,12 @@ class Term(ABC):
         """
         raise NotImplementedError("dependencies")
 
-    def graph_repr(self):
+    def graph_repr(self) -> str:
         """A short repr to use when rendering GraphViz graphs."""
         # Default graph_repr is just the name of the type.
         return type(self).__name__
 
-    def recursive_repr(self):
+    def recursive_repr(self) -> str:
         """A short repr to use when recursively rendering terms with inputs."""
         # Default recursive_repr is just the name of the type.
         return type(self).__name__
@@ -724,7 +726,9 @@ class ComputableTerm(Term):
 
     @expect_downsample_frequency
     @templated_docstring(frequency=PIPELINE_DOWNSAMPLING_FREQUENCY_DOC)
-    def downsample(self, frequency):
+    def downsample[P: (Factor, Filter, Classifier)](
+        self: P, frequency: DownsampleFrequency
+    ) -> P:
         """
         Make a term that computes from ``self`` at lower-than-daily frequency.
 
@@ -738,7 +742,7 @@ class ComputableTerm(Term):
         return downsampled_type(term=self, frequency=frequency)
 
     @templated_docstring(name=PIPELINE_ALIAS_NAME_DOC)
-    def alias(self, name):
+    def alias[P: (Factor, Filter, Classifier)](self: P, name: str) -> P:
         """
         Make a term from ``self`` that names the expression.
 
@@ -760,7 +764,7 @@ class ComputableTerm(Term):
         aliased_type = type(self)._with_mixin(AliasedMixin)
         return aliased_type(term=self, name=name)
 
-    def isnull(self):
+    def isnull(self) -> Filter:
         """
         A Filter producing True for values where this Factor has missing data.
 
@@ -784,7 +788,7 @@ class ComputableTerm(Term):
         else:
             return NullFilter(self)
 
-    def notnull(self):
+    def notnull(self) -> Filter:
         """
         A Filter producing True for values where this Factor has complete data.
 
@@ -802,7 +806,7 @@ class ComputableTerm(Term):
 
         return NotNullFilter(self)
 
-    def fillna(self, fill_value):
+    def fillna[P: (Factor, Classifier)](self: P, fill_value: P | MissingValue) -> P:
         """
         Create a new term that fills missing values of this term's output with
         ``fill_value``.

@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 import abc
 from collections import OrderedDict, namedtuple
 from itertools import repeat
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal, Self, cast, overload
 from weakref import WeakKeyDictionary
 
+import numpy as np
+from numpy.typing import DTypeLike
 from toolz import first
 
 from zipline.currency import Currency
@@ -16,10 +20,12 @@ from zipline.pipeline.factors import Factor
 from zipline.pipeline.factors import Latest as LatestFactor
 from zipline.pipeline.filters import Filter
 from zipline.pipeline.filters import Latest as LatestFilter
-from zipline.pipeline.sentinels import NotSpecified
+from zipline.pipeline.sentinels import NotSpecified, NotSpecifiedType
 from zipline.pipeline.term import (
     AssetExists,
+    ComputableTerm,
     LoadableTerm,
+    MissingValue,
     validate_dtype,
 )
 from zipline.utils.formatting import plural, s
@@ -35,27 +41,87 @@ from zipline.utils.string_formatting import bulleted_list
 
 IsSpecialization = sentinel("IsSpecialization")
 
+# The dtypes a Column can be declared with, by the kind of term its ``latest``
+# is (see BoundColumn.latest).
+type FilterDType = (
+    np.dtype[np.bool_] | type[bool] | type[np.bool_] | Literal["bool", "?"]
+)
+type FactorDType = (
+    np.dtype[np.float64]
+    | np.dtype[np.datetime64]
+    | type[float]
+    | type[np.datetime64]
+    | Literal["float64", "f8", "datetime64[ns]", "M8[ns]"]
+)
+type ClassifierDType = (
+    np.dtype[np.int64]
+    | np.dtype[np.object_]
+    | type[int]
+    | type[np.int64]
+    | Literal["int64", "i8", "object", "O"]
+)
 
-class Column:
+
+class Column[T: ComputableTerm]:
     """
     An abstract column of data, not yet associated with a dataset.
+
+    ``T`` is the kind of term its ``latest`` is, which follows from the dtype:
+    Filter for bool, Factor for float64 and datetime64, and Classifier for
+    int64 and object (strings).
     """
 
     if TYPE_CHECKING:
         # DataSetMeta replaces each Column in a DataSet's class body with a
         # _BoundColumnDescr, so accessing a column on a DataSet gives a
         # BoundColumn. (Type-checking only; Column itself isn't a descriptor.)
-        def __get__(self, instance: object, owner: type) -> "BoundColumn": ...
+        def __get__(self, instance: object, owner: type) -> BoundColumn[T]: ...
 
+    @overload
+    def __init__(
+        self: Column[Filter],
+        dtype: FilterDType,
+        missing_value: MissingValue | NotSpecifiedType = NotSpecified,
+        doc: str | None = None,
+        metadata: dict[str, object] | None = None,
+        currency_aware: bool = False,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self: Column[Factor],
+        dtype: FactorDType,
+        missing_value: MissingValue | NotSpecifiedType = NotSpecified,
+        doc: str | None = None,
+        metadata: dict[str, object] | None = None,
+        currency_aware: bool = False,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self: Column[Classifier],
+        dtype: ClassifierDType,
+        missing_value: MissingValue | NotSpecifiedType = NotSpecified,
+        doc: str | None = None,
+        metadata: dict[str, object] | None = None,
+        currency_aware: bool = False,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self: Column[ComputableTerm],
+        dtype: DTypeLike,
+        missing_value: MissingValue | NotSpecifiedType = NotSpecified,
+        doc: str | None = None,
+        metadata: dict[str, object] | None = None,
+        currency_aware: bool = False,
+    ) -> None: ...
     @preprocess(dtype=ensure_dtype)
     def __init__(
         self,
-        dtype,
-        missing_value=NotSpecified,
-        doc=None,
-        metadata=None,
-        currency_aware=False,
-    ):
+        dtype: DTypeLike,
+        missing_value: MissingValue | NotSpecifiedType = NotSpecified,
+        doc: str | None = None,
+        metadata: dict[str, object] | None = None,
+        currency_aware: bool = False,
+    ) -> None:
         if currency_aware and dtype != float64_dtype:
             raise ValueError(
                 f"Columns cannot be constructed with currency_aware={currency_aware}, "
@@ -136,7 +202,7 @@ class _BoundColumnDescr:
         )
 
 
-class BoundColumn(LoadableTerm):
+class BoundColumn[T: ComputableTerm](LoadableTerm):
     """
     A column of data that's been concretely bound to a particular dataset.
 
@@ -265,14 +331,14 @@ class BoundColumn(LoadableTerm):
 
         return type(self)(**kw)
 
-    def specialize(self, domain):
+    def specialize(self, domain: Domain) -> Self:
         """Specialize ``self`` to a concrete domain."""
         if domain == self.domain:
             return self
 
         return self._replace(dataset=self._dataset.specialize(domain))
 
-    def unspecialize(self):
+    def unspecialize(self) -> Self:
         """
         Unspecialize a column to its generic form.
 
@@ -281,7 +347,7 @@ class BoundColumn(LoadableTerm):
         return self.specialize(GENERIC)
 
     @coerce_types(currency=(str, Currency))
-    def fx(self, currency):
+    def fx(self, currency: str | Currency) -> Self:
         """
         Construct a currency-converted version of this column.
 
@@ -357,7 +423,7 @@ class BoundColumn(LoadableTerm):
         return out
 
     @property
-    def latest(self):
+    def latest(self) -> T:
         dtype = self.dtype
         if dtype in Filter.ALLOWED_DTYPES:
             Latest = LatestFilter
@@ -367,12 +433,14 @@ class BoundColumn(LoadableTerm):
             assert dtype in Factor.ALLOWED_DTYPES, f"Unknown dtype {dtype}."
             Latest = LatestFactor
 
-        return Latest(
+        latest = Latest(
             inputs=(self,),
             dtype=dtype,
             missing_value=self.missing_value,
             ndim=self.ndim,
         )
+        # The dtype picks the kind of term, which is T by Column's overloads.
+        return cast(T, latest)
 
     def __repr__(self):
         return f"{self.qualname}::{self.dtype.name}"
@@ -741,7 +809,7 @@ class DataSetFamilyMeta(abc.ABCMeta):
     domain: Domain
     extra_dims: Any
     slice_ndim: int
-    _SliceType: type["DataSetFamilySlice"]
+    _SliceType: type[DataSetFamilySlice]
     _slice_cache: dict
 
     def __new__(cls, name, bases, dict_):
