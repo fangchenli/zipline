@@ -12,8 +12,13 @@ need a C compiler:
   on Debian and Ubuntu, or ``gcc`` on Fedora.
 - **macOS:** the Xcode command line tools (``xcode-select --install``).
 
-Every other dependency, including numpy, pandas, h5py, PyTables and bcolz,
-is installed from binary wheels.
+Every other dependency, including numpy, pandas and pyarrow, is installed
+from binary wheels.
+
+Bundles ingested by Zipline before 2.0 store their pricing data with bcolz.
+Reading or converting them (see :doc:`bundles`) needs the optional bcolz
+support, installed with the ``bcolz`` extra, e.g.
+``pip install 'zipline[bcolz] @ git+https://github.com/fangchenli/zipline'``.
 
 We recommend installing Zipline into a virtual environment rather than your
 system Python.
