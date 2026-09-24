@@ -45,7 +45,6 @@ def my_bundle(
     daily_bar_writer.write(())
 
 
-
 # Without writers, the ingest function gets None for each of them.
 @register("prebuilt", create_writers=False)
 def prebuilt(
