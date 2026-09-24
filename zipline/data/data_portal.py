@@ -17,7 +17,6 @@ from operator import mul
 
 import numpy as np
 import pandas as pd
-from logbook import Logger
 from numpy import float64, int64, nan
 from pandas import isnull
 
@@ -56,8 +55,6 @@ from zipline.errors import HistoryWindowStartsBeforeData
 from zipline.utils.math_utils import nanmean, nanstd, nansum
 from zipline.utils.memoize import remember_last, weak_lru_cache
 from zipline.utils.pandas_utils import timedelta_to_integral_minutes
-
-log = Logger("DataPortal")
 
 BASE_FIELDS = frozenset(
     [

@@ -2,6 +2,7 @@
 Module for building a complete daily dataset from Quandl's WIKI dataset.
 """
 
+import logging
 from io import BytesIO
 from urllib.parse import urlencode
 from zipfile import ZipFile
@@ -9,13 +10,12 @@ from zipfile import ZipFile
 import pandas as pd
 import requests
 from click import progressbar
-from logbook import Logger
 
 from zipline.utils.calendar_utils import register_calendar_alias
 
 from . import core as bundles
 
-log = Logger(__name__)
+log = logging.getLogger(__name__)
 
 ONE_MEGABYTE = 1024 * 1024
 # Quandl is now Nasdaq Data Link; the WIKI Prices dataset stopped updating in

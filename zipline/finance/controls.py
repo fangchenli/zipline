@@ -12,10 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 
-import logbook
 import pandas as pd
 
 from zipline.errors import (
@@ -28,7 +28,7 @@ from zipline.utils.input_validation import (
     expect_types,
 )
 
-log = logbook.Logger("TradingControl")
+log = logging.getLogger(__name__)
 
 
 class TradingControl(ABC):
@@ -82,12 +82,11 @@ class TradingControl(ABC):
             )
         elif self.on_error == "log":
             log.error(
-                "Order for {amount} shares of {asset} at {dt} "
-                "violates trading constraint {constraint}",
-                amount=amount,
-                asset=asset,
-                dt=datetime,
-                constraint=constraint,
+                "Order for %s shares of %s at %s violates trading constraint %s",
+                amount,
+                asset,
+                datetime,
+                constraint,
             )
 
     def __repr__(self):

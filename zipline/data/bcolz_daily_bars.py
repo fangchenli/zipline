@@ -15,7 +15,6 @@ import warnings
 from collections.abc import Hashable
 from functools import partial
 
-import logbook
 import numpy as np
 from bcolz import carray, ctable
 from numpy import (
@@ -46,8 +45,6 @@ from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import float64_dtype, iNaT, uint32_dtype
 
 from ._equities import _compute_row_slices, _read_bcolz_data
-
-logger = logbook.Logger("UsEquityPricing")
 
 OHLC = frozenset(["open", "high", "low", "close"])
 US_EQUITY_PRICING_BCOLZ_COLUMNS = (

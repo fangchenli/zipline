@@ -1,4 +1,5 @@
 import errno
+import logging
 import os
 import shutil
 import warnings
@@ -8,7 +9,6 @@ from types import MappingProxyType
 
 import click
 import pandas as pd
-from logbook import Logger
 from toolz import complement, curry, take
 
 import zipline.utils.paths as pth
@@ -28,7 +28,7 @@ from ..adjustments import SQLiteAdjustmentReader, SQLiteAdjustmentWriter
 from ..parquet_daily_bars import ParquetDailyBarReader, ParquetDailyBarWriter
 from ..parquet_minute_bars import ParquetMinuteBarReader, ParquetMinuteBarWriter
 
-log = Logger(__name__)
+log = logging.getLogger(__name__)
 
 
 def asset_db_path(bundle_name, timestr, environ=None, db_version=None):
@@ -199,7 +199,7 @@ def convert(bundle, environ=None, delete_bcolz=False, show_progress=False):
             convert_bars = (
                 convert_daily_bars if kind == "daily" else convert_minute_bars
             )
-            log.info("Converting {} to Parquet.", src)
+            log.info("Converting %s to Parquet.", src)
             tmp = dest + ".converting"
             # Left over from an interrupted conversion.
             shutil.rmtree(tmp, ignore_errors=True)
@@ -539,7 +539,7 @@ def _make_bundle_core():
                         "writers in order to downgrade the assets"
                         " db."
                     )
-            log.info("Ingesting {}.", name)
+            log.info("Ingesting %s.", name)
             bundle.ingest(
                 environ,
                 asset_db_writer,
@@ -751,7 +751,7 @@ def _make_bundle_core():
         cleaned = set()
         for run in all_runs:
             if should_clean(run):
-                log.info("Cleaning {}.", run)
+                log.info("Cleaning %s.", run)
                 path = pth.data_path([name, run], environ=environ)
                 shutil.rmtree(path)
                 cleaned.add(path)

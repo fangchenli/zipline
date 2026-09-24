@@ -24,15 +24,12 @@ from zipline.finance.execution import (
 )
 from zipline.testing.fixtures import (
     WithConstantFutureMinuteBarData,
-    WithLogger,
     ZiplineTestCase,
 )
 from zipline.testing.predicates import assert_equal
 
 
-class ExecutionStyleTestCase(
-    WithConstantFutureMinuteBarData, WithLogger, ZiplineTestCase
-):
+class ExecutionStyleTestCase(WithConstantFutureMinuteBarData, ZiplineTestCase):
     """
     Tests for zipline ExecutionStyle classes.
     """

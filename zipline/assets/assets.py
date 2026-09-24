@@ -24,7 +24,6 @@ from operator import attrgetter
 import numpy as np
 import pandas as pd
 import sqlalchemy as sa
-from logbook import Logger
 from pandas import isnull
 from toolz import (
     compose,
@@ -77,8 +76,6 @@ from .continuous_futures import (
     OrderedContracts,
 )
 from .exchange_info import ExchangeInfo
-
-log = Logger("assets.py")
 
 # A set of fields that need to be converted to strings before building an
 # Asset to avoid unicode fields

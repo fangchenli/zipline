@@ -20,7 +20,6 @@ from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
-from logbook import TestHandler
 from numpy import float64
 from numpy.testing import assert_allclose, assert_array_equal
 from sqlalchemy import create_engine
@@ -1252,28 +1251,6 @@ def permute_rows(seed, array):
     """
     rand = np.random.RandomState(seed)
     return np.apply_along_axis(rand.permutation, 1, array)
-
-
-def make_test_handler(testcase, *args, **kwargs):
-    """
-    Returns a TestHandler which will be used by the given testcase. This
-    handler can be used to test log messages.
-
-    Parameters
-    ----------
-    testcase: unittest.TestCase
-        The test class in which the log handler will be used.
-    *args, **kwargs
-        Forwarded to the new TestHandler object.
-
-    Returns
-    -------
-    handler: logbook.TestHandler
-        The handler to use for the test case.
-    """
-    handler = TestHandler(*args, **kwargs)
-    testcase.addCleanup(handler.close)
-    return handler
 
 
 def write_compressed(path, content):

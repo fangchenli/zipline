@@ -12,9 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 from collections.abc import Callable
-
-import logbook
 
 from zipline.utils.calendar_utils import (
     execution_time_from_close,
@@ -24,7 +23,7 @@ from zipline.utils.exploding_object import NamedExplodingObject
 
 from ..ledger import Ledger
 
-log = logbook.Logger(__name__)
+log = logging.getLogger(__name__)
 
 
 def _call_all(callbacks):
@@ -348,7 +347,7 @@ class MetricsTracker:
         and send it out on the results socket.
         """
         log.info(
-            "Simulated {} trading days\nfirst open: {}\nlast close: {}",
+            "Simulated %s trading days\nfirst open: %s\nlast close: %s",
             self._session_count,
             self._trading_calendar.session_first_minute(self._first_session),
             self._trading_calendar.session_last_minute(self._last_session),

@@ -13,18 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import datetime
+import logging
 import warnings
 from copy import deepcopy
 from datetime import timedelta
 from textwrap import dedent
 from zoneinfo import ZoneInfo
 
-import logbook
 import numpy as np
 import pandas as pd
 import toolz
-from logbook import WARNING
-from logbook import TestHandler as LogCatcher
 from pandas.errors import PerformanceWarning
 from parameterized import parameterized
 from testfixtures import TempDirectory
@@ -107,7 +105,6 @@ from zipline.testing import (
     create_daily_df_for_asset,
     create_data_portal_from_trade_history,
     create_minute_df_for_asset,
-    make_test_handler,
     make_trade_data_for_asset_info,
     parameter_space,
     str_to_seconds,
@@ -2936,9 +2933,9 @@ class TestTradingControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
             initialize=initialize,
             handle_data=handle_data,
         )
-        with make_test_handler(self) as log_catcher:
+        with self.assertLogs("zipline", logging.ERROR) as log_catcher:
             self.check_algo_succeeds(algo)
-        logs = [r.message for r in log_catcher.records]
+        logs = [r.getMessage() for r in log_catcher.records]
         self.assertIn(
             "Order for 100 shares of Equity(133 [A]) at "
             "2006-01-03 21:00:00+00:00 violates trading constraint "
@@ -3741,8 +3738,7 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
             minute_emission=minute_emission,
         )
 
-        log_catcher = LogCatcher()
-        with log_catcher:
+        with self.assertLogs("zipline", logging.WARNING) as log_catcher:
             results = algo.run()
 
             for daily_positions in results.positions:
@@ -3767,7 +3763,9 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
             self.assertEqual(np.copysign(389, direction), the_order["filled"])
 
             warnings = [
-                record for record in log_catcher.records if record.level == WARNING
+                record
+                for record in log_catcher.records
+                if record.levelno == logging.WARNING
             ]
 
             self.assertEqual(1, len(warnings))
@@ -3778,7 +3776,7 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
                     "filled. 389 shares were successfully purchased. "
                     "611 shares were not filled by the end of day and "
                     "were canceled.",
-                    str(warnings[0].message),
+                    warnings[0].getMessage(),
                 )
             elif direction == -1:
                 self.assertEqual(
@@ -3786,14 +3784,13 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
                     "filled. 389 shares were successfully sold. "
                     "611 shares were not filled by the end of day and "
                     "were canceled.",
-                    str(warnings[0].message),
+                    warnings[0].getMessage(),
                 )
 
     def test_default_cancelation_policy(self):
         algo = self.prep_algo("")
 
-        log_catcher = LogCatcher()
-        with log_catcher:
+        with self.assertNoLogs("zipline", logging.WARNING):
             results = algo.run()
 
             # order stays open throughout simulation
@@ -3806,14 +3803,11 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
                 [389, 390, 221], list(map(len, results.transactions))
             )
 
-            self.assertFalse(log_catcher.has_warnings)
-
     def test_eod_order_cancel_daily(self):
         # in daily mode, EODCancel does nothing.
         algo = self.prep_algo("set_cancel_policy(cancel_policy.EODCancel())", "daily")
 
-        log_catcher = LogCatcher()
-        with log_catcher:
+        with self.assertNoLogs("zipline", logging.WARNING):
             results = algo.run()
 
             # order stays open throughout simulation
@@ -3823,8 +3817,6 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
             np.testing.assert_array_equal(
                 [0, 1, 1], list(map(len, results.transactions))
             )
-
-            self.assertFalse(log_catcher.has_warnings)
 
 
 class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
@@ -4487,10 +4479,10 @@ class TestOrderAfterDelist(zf.WithMakeAlgo, zf.ZiplineTestCase):
                 data_frequency="minute",
             ),
         )
-        with make_test_handler(self) as log_catcher:
+        with self.assertLogs("zipline", logging.WARNING) as log_catcher:
             algo.run()
 
-            warnings = [r for r in log_catcher.records if r.level == logbook.WARNING]
+            warnings = [r for r in log_catcher.records if r.levelno == logging.WARNING]
 
             # one warning per order on the second day
             self.assertEqual(6 * 390, len(warnings))
@@ -4501,7 +4493,7 @@ class TestOrderAfterDelist(zf.WithMakeAlgo, zf.ZiplineTestCase):
                     "Any existing positions for this asset will be liquidated "
                     f"on {asset.auto_close_date}."
                 )
-                self.assertEqual(expected_message, w.message)
+                self.assertEqual(expected_message, w.getMessage())
 
 
 class AlgoInputValidationTestCase(zf.WithMakeAlgo, zf.ZiplineTestCase):

@@ -12,7 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logbook
+import logging
+
 import numpy as np
 import pandas as pd
 from pandas.testing import assert_series_equal
@@ -30,7 +31,6 @@ from zipline.testing import (
     parameter_space,
     tmp_equity_minute_bar_reader,
 )
-from zipline.testing.core import make_test_handler
 from zipline.testing.fixtures import (
     WithAssetFinder,
     WithDataPortal,
@@ -253,10 +253,6 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
         )
         cls.zero_returns = pd.Series(index=zero_returns_index, data=0.0)
 
-    def init_instance_fixtures(self):
-        super().init_instance_fixtures()
-        self.log_handler = self.enter_instance_context(make_test_handler(self))
-
     @classmethod
     def make_equity_info(cls):
         return pd.DataFrame.from_dict(
@@ -277,9 +273,6 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
             orient="index",
         )
 
-    def logs_at_level(self, level):
-        return [r.message for r in self.log_handler.records if r.level == level]
-
     def resolve_spec(self, spec):
         return spec.resolve(self.asset_finder, self.START_DATE, self.END_DATE)
 
@@ -295,12 +288,13 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
             benchmark_file=None,
         )
 
-        sid, returns = self.resolve_spec(spec)
+        with self.assertLogs("zipline", logging.WARNING) as logs:
+            sid, returns = self.resolve_spec(spec)
 
         self.assertIs(sid, None)
         self.assertIs(returns, None)
 
-        warnings = self.logs_at_level(logbook.WARNING)
+        warnings = [record.getMessage() for record in logs.records]
         expected = [
             "No benchmark configured. Assuming algorithm calls set_benchmark.",
             "Pass --benchmark-sid, --benchmark-symbol, or --benchmark-file to set a source of benchmark returns.",  # noqa
@@ -317,14 +311,11 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
             benchmark_file=None,
         )
 
-        sid, returns = self.resolve_spec(spec)
+        with self.assertNoLogs("zipline", logging.WARNING):
+            sid, returns = self.resolve_spec(spec)
 
         self.assertIs(sid, None)
         assert_series_equal(returns, self.zero_returns)
-
-        warnings = self.logs_at_level(logbook.WARNING)
-        expected = []
-        assert_equal(warnings, expected)
 
     @parameter_space(case=[("A", 1), ("B", 2)])
     def test_benchmark_symbol(self, case):
@@ -338,14 +329,11 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
             benchmark_file=None,
         )
 
-        sid, returns = self.resolve_spec(spec)
+        with self.assertNoLogs("zipline", logging.WARNING):
+            sid, returns = self.resolve_spec(spec)
 
         assert_equal(sid, expected_sid)
         self.assertIs(returns, None)
-
-        warnings = self.logs_at_level(logbook.WARNING)
-        expected = []
-        assert_equal(warnings, expected)
 
     @parameter_space(input_sid=[1, 2])
     def test_benchmark_sid(self, input_sid):
@@ -357,14 +345,11 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
             benchmark_file=None,
         )
 
-        sid, returns = self.resolve_spec(spec)
+        with self.assertNoLogs("zipline", logging.WARNING):
+            sid, returns = self.resolve_spec(spec)
 
         assert_equal(sid, input_sid)
         self.assertIs(returns, None)
-
-        warnings = self.logs_at_level(logbook.WARNING)
-        expected = []
-        assert_equal(warnings, expected)
 
     def test_benchmark_file(self):
         """Test running with a benchmark file."""
@@ -386,7 +371,8 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
             benchmark_file=csv_file_path,
         )
 
-        sid, returns = self.resolve_spec(spec)
+        with self.assertNoLogs("zipline", logging.WARNING):
+            sid, returns = self.resolve_spec(spec)
 
         self.assertIs(sid, None)
 
@@ -397,7 +383,3 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
         expected_returns = pd.Series(index=expected_dates, data=expected_values)
 
         assert_series_equal(returns, expected_returns, check_names=False)
-
-        warnings = self.logs_at_level(logbook.WARNING)
-        expected = []
-        assert_equal(warnings, expected)

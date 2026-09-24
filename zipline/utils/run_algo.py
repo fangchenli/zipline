@@ -12,7 +12,8 @@ try:
     PYGMENTS = True
 except ImportError:
     PYGMENTS = False
-import logbook
+import logging
+
 import pandas as pd
 from toolz import concatv
 
@@ -32,7 +33,7 @@ from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.date_utils import to_session_label
 from zipline.utils.results import write_results
 
-log = logbook.Logger(__name__)
+log = logging.getLogger(__name__)
 
 
 class _RunAlgoError(click.ClickException, ValueError):

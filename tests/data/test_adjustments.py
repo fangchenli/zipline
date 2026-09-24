@@ -1,4 +1,5 @@
-import logbook
+import logging
+
 import numpy as np
 import pandas as pd
 
@@ -10,7 +11,6 @@ from zipline.data.in_memory_daily_bars import InMemoryDailyBarReader
 from zipline.testing import parameter_space
 from zipline.testing.fixtures import (
     WithInstanceTmpDir,
-    WithLogger,
     WithTradingCalendars,
     ZiplineTestCase,
 )
@@ -20,10 +20,8 @@ nat = pd.Timestamp("nat")
 
 
 class TestSQLiteAdjustmentsWriter(
-    WithTradingCalendars, WithInstanceTmpDir, WithLogger, ZiplineTestCase
+    WithTradingCalendars, WithInstanceTmpDir, ZiplineTestCase
 ):
-    make_log_handler = logbook.TestHandler
-
     def init_instance_fixtures(self):
         super().init_instance_fixtures()
         self.db_path = self.instance_tmpdir.getpath("adjustments.db")
@@ -139,7 +137,8 @@ class TestSQLiteAdjustmentsWriter(
             ix += len(dividends)
             dividends[col] = extra_dates
 
-        self.writer_from_close(close).write(dividends=dividends)
+        with self.assertLogs("zipline", logging.WARNING) as logs:
+            self.writer_from_close(close).write(dividends=dividends)
         dfs = self.component_dataframes()
         dividend_payouts = dfs.pop("dividend_payouts")
         dividend_ratios = dfs.pop("dividends")
@@ -167,35 +166,22 @@ class TestSQLiteAdjustmentsWriter(
         dividend_ratios = dividend_ratios.reset_index(drop=True)
         assert_equal(dividend_ratios, expected_dividend_ratios)
 
-        self.assertTrue(
-            self.log_handler.has_warning(
-                "Couldn't compute ratio for dividend sid=2, ex_date=1990-10-18,"
-                " amount=10.000",
-            )
-        )
-        self.assertTrue(
-            self.log_handler.has_warning(
-                "Couldn't compute ratio for dividend sid=2, ex_date=1990-10-19,"
-                " amount=0.100",
-            )
-        )
-        self.assertTrue(
-            self.log_handler.has_warning(
-                "Couldn't compute ratio for dividend sid=2, ex_date=1990-11-01,"
-                " amount=0.100",
-            )
-        )
-        self.assertTrue(
-            self.log_handler.has_warning(
-                "Dividend ratio <= 0 for dividend sid=1, ex_date=1990-10-17,"
-                " amount=0.510",
-            )
-        )
-        self.assertTrue(
-            self.log_handler.has_warning(
-                "Dividend ratio <= 0 for dividend sid=1, ex_date=1990-10-18,"
-                " amount=0.400",
-            )
+        assert_equal(
+            sorted(record.getMessage() for record in logs.records),
+            sorted(
+                [
+                    "Couldn't compute ratio for dividend sid=2, ex_date=1990-10-18,"
+                    " amount=10.000",
+                    "Couldn't compute ratio for dividend sid=2, ex_date=1990-10-19,"
+                    " amount=0.100",
+                    "Couldn't compute ratio for dividend sid=2, ex_date=1990-11-01,"
+                    " amount=0.100",
+                    "Dividend ratio <= 0 for dividend sid=1, ex_date=1990-10-17,"
+                    " amount=0.510",
+                    "Dividend ratio <= 0 for dividend sid=1, ex_date=1990-10-18,"
+                    " amount=0.400",
+                ]
+            ),
         )
 
     def _test_identity(self, name):
