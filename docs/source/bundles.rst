@@ -343,10 +343,15 @@ Ingesting Data from .csv Files
 
 Zipline provides a bundle called ``csvdir``, which allows users to ingest data
 from ``.csv`` files. Put one file per asset, named ``<SYMBOL>.csv``, in a
-``daily`` (or ``minute``) subdirectory of your data directory. The format of the
-files should be in OHLCV format, with dates, dividends, and splits. A sample is
-provided below. There are other samples for testing purposes in
-``tests/resources/csvdir_samples``.
+``daily`` or ``minute`` subdirectory of your data directory, or in both. The
+format of the files should be in OHLCV format, with dates, dividends, and
+splits. A sample is provided below. There are other samples for testing
+purposes in ``tests/resources/csvdir_samples``. Minute files are indexed by UTC
+timestamps.
+
+Each symbol gets one sid, whether it has daily files, minute files or both, and
+its lifetime covers all of its bars. Splits and dividends are read from the
+daily files, or from the minute files if there are no daily ones.
 
 .. code-block:: text
 
@@ -397,11 +402,10 @@ To finally ingest our data, we can run:
 .. code-block:: bash
 
 	 $ zipline ingest -b custom-csvdir-bundle
-	 Loading custom pricing data:   [############------------------------]   33% | FAKE: sid 0
-	 Loading custom pricing data:   [########################------------]   66% | FAKE1: sid 1
-	 Loading custom pricing data:   [####################################]  100% | FAKE2: sid 2
-	 Loading custom pricing data:   [####################################]  100%
-	 Merging daily equity files:  [####################################]
+	 [2018-01-03 04:30:51,843] INFO: zipline.data.bundles.core: Ingesting custom-csvdir-bundle.
+	 [2018-01-03 04:30:51,845] INFO: zipline.data.bundles.csvdir: FAKE: sid 0
+	 [2018-01-03 04:30:51,849] INFO: zipline.data.bundles.csvdir: FAKE1: sid 1
+	 [2018-01-03 04:30:51,851] INFO: zipline.data.bundles.csvdir: FAKE2: sid 2
 
 	 # optionally, we can pass the location of our csvs via the command line
 	 $ CSVDIR=/path/to/your/csvs zipline ingest -b custom-csvdir-bundle

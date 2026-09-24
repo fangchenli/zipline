@@ -148,6 +148,12 @@ Enhancements
 Bug Fixes
 ~~~~~~~~~
 
+- The ``csvdir`` bundle can ingest a directory with both ``daily`` and
+  ``minute`` files; it used to fail writing the asset database twice. Each
+  symbol gets one sid across both, its lifetime spans all of its bars (as
+  sessions, also for minute-only data), and splits and dividends are read from
+  one time frame only. Files are matched to symbols by name rather than by
+  substring, which could give the symbol ``PL`` the file ``AAPL.csv``.
 - Daily bars resampled from minute bars (e.g. futures' daily history) summed
   volume in uint32, which overflowed for sessions with more than 2 ** 32
   shares or contracts traded.
