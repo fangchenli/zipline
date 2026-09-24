@@ -43,13 +43,8 @@ ext_modules = [
     window_specialization("int64"),
     window_specialization("uint8"),
     window_specialization("label"),
-    Extension("zipline.data._equities", ["zipline/data/_equities.pyx"]),
     Extension("zipline._protocol", ["zipline/_protocol.pyx"]),
     Extension("zipline.finance._finance_ext", ["zipline/finance/_finance_ext.pyx"]),
-    Extension(
-        "zipline.data._minute_bar_internal",
-        ["zipline/data/_minute_bar_internal.pyx"],
-    ),
 ]
 
 for ext in ext_modules:
