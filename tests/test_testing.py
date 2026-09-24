@@ -6,7 +6,7 @@ from itertools import product
 from unittest import TestCase
 
 import pandas as pd
-from numpy import array, empty
+from numpy import array, datetime64, empty
 
 from zipline._protocol import BarData
 from zipline.finance.asset_restrictions import NoRestrictions
@@ -24,7 +24,7 @@ from zipline.testing.fixtures import (
     WithTmpDir,
     ZiplineTestCase,
 )
-from zipline.testing.predicates import instance_of, wildcard
+from zipline.testing.predicates import assert_equal, instance_of, wildcard
 from zipline.testing.slippage import TestingSlippage
 from zipline.utils.numpy_utils import bool_dtype
 
@@ -160,6 +160,23 @@ class TestTestingSlippage(
 
 
 class TestPredicates(ZiplineTestCase):
+    def test_assert_equal_dispatch(self):
+        # Mismatched types are compared with ==.
+        with self.assertRaises(AssertionError):
+            assert_equal(1.0, "1.0")
+        # Implementations registered for a pair of types, or tuples of types,
+        # apply to their subclasses.
+        assert_equal(pd.Timestamp("2020-01-02"), pd.Timestamp("2020-01-02"))
+        with self.assertRaises(AssertionError):
+            assert_equal(pd.Timestamp("2020-01-02"), datetime64("2020-01-02"))
+        assert_equal(
+            pd.Timestamp("2020-01-02"),
+            datetime64("2020-01-02"),
+            allow_datetime_coercions=True,
+        )
+        # Floats are compared with a tolerance.
+        assert_equal(0.1 + 0.2, 0.3)
+
     def test_wildcard(self):
         for obj in 1, object(), "foo", {}:
             self.assertEqual(obj, wildcard)
