@@ -207,3 +207,23 @@ class CmdLineTestCase(WithTmpDir, ZiplineTestCase):
         assert_equal(spec.benchmark_sid, None)
         assert_equal(spec.benchmark_symbol, None)
         assert_equal(spec.no_benchmark, False)
+
+    def test_convert(self):
+        runner = CliRunner()
+        with mock.patch.object(
+            main.bundles_module, "convert", return_value=["/root/a.parquet"]
+        ) as convert:
+            result = runner.invoke(
+                main.main,
+                ["convert", "-b", "quandl", "--delete-bcolz", "--no-show-progress"],
+                catch_exceptions=False,
+            )
+        assert_equal(result.exit_code, 0)
+        convert.assert_called_once_with(
+            "quandl", mock.ANY, delete_bcolz=True, show_progress=False
+        )
+        assert_equal(result.output, "Converted /root/a.parquet\n")
+
+        with mock.patch.object(main.bundles_module, "convert", return_value=[]):
+            result = runner.invoke(main.main, ["convert", "-b", "quandl"])
+        assert_equal(result.output, "No bcolz data to convert for bundle 'quandl'.\n")

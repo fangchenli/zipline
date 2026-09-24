@@ -21,7 +21,7 @@ import matplotlib
 import pandas as pd
 
 from zipline import examples
-from zipline.data.bundles import register, unregister
+from zipline.data.bundles import convert, register, unregister
 from zipline.testing import parameter_space, test_resource_path
 from zipline.testing.fixtures import (
     WithTmpDir,
@@ -134,3 +134,13 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             expected_perf["positions"].apply(sorted, key=itemgetter("sid")),
             actual_perf["positions"].apply(sorted, key=itemgetter("sid")),
         )
+
+
+class ConvertedExamplesTests(ExamplesTests):
+    """The examples, on the example bundle converted from bcolz to Parquet."""
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super().init_class_fixtures()
+        environ = {"ZIPLINE_ROOT": cls.tmpdir.getpath("example_data/root")}
+        assert_equal(len(convert("test", environ, delete_bcolz=True)), 2)

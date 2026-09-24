@@ -103,6 +103,9 @@ Enhancements
   backtests run as fast as with bcolz, and loading minute windows for many
   assets is about 3x faster. Bundles ingest minute bars into this format;
   bundles ingested by earlier versions, with bcolz minute bars, still load.
+- New ``zipline convert`` command and :func:`zipline.data.bundles.convert`
+  function, which rewrite the bcolz daily and minute bars of bundles ingested
+  by earlier versions as Parquet.
 
 Bug Fixes
 ~~~~~~~~~

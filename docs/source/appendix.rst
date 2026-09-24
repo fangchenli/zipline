@@ -429,6 +429,8 @@ Bundles
 
 .. autofunction:: zipline.data.bundles.unregister
 
+.. autofunction:: zipline.data.bundles.convert
+
 .. data:: zipline.data.bundles.bundles
 
    The bundles that have been registered as a mapping from bundle name to bundle

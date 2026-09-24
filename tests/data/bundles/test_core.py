@@ -23,6 +23,7 @@ from zipline.data.bundles.core import (
     asset_db_path,
     bcolz_daily_equity_relative,
     bcolz_minute_equity_relative,
+    convert,
     daily_equity_path,
     minute_equity_path,
     to_bundle_ingest_dirname,
@@ -387,16 +388,19 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             reader.last_available_dt, calendar.session_last_minute(sessions[-1])
         )
 
-    def test_load_bcolz_ingestion(self):
-        """Bundles ingested before bars moved to Parquet still load."""
-        bundle, sids, sessions = self._ingest_daily()
+    def _make_bcolz_ingestion(self):
+        """Ingest a bundle, then store its bars with bcolz, as zipline did
+        before 2.0.
+
+        Returns the sids, sessions, minutes and equities of the bundle.
+        """
+        _, sids, sessions = self._ingest_daily()
         (timestr,) = ingestions_for_bundle("bundle", environ=self.environ)
         timestr = to_bundle_ingest_dirname(timestr)
         calendar = get_calendar("XNYS")
         minutes = calendar.sessions_minutes(sessions[0], sessions[-1])
         equities = make_simple_equity_info(sids, self.START_DATE, self.END_DATE)
 
-        # Replace the Parquet datasets with bcolz in the old locations.
         shutil.rmtree(daily_equity_path("bundle", timestr, environ=self.environ))
         BcolzDailyBarWriter(
             pth.data_path(
@@ -418,18 +422,54 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             sessions[-1],
             US_EQUITIES_MINUTES_PER_DAY,
         ).write(make_bar_data(equities, minutes))
+        return sids, sessions, minutes, equities
+
+    def _check_bars(self, bundle, sids, sessions, minutes, equities):
+        (close,) = bundle.equity_daily_bar_reader.load_raw_arrays(
+            ["close"], sessions[0], sessions[-1], sids
+        )
+        assert_equal(close, expected_bar_values_2d(sessions, sids, equities, "close"))
+        (close,) = bundle.equity_minute_bar_reader.load_raw_arrays(
+            ["close"], minutes[0], minutes[-1], sids
+        )
+        assert_equal(close, expected_bar_values_2d(minutes, sids, equities, "close"))
+
+    def test_load_bcolz_ingestion(self):
+        """Bundles ingested before bars moved to Parquet still load."""
+        sids, sessions, minutes, equities = self._make_bcolz_ingestion()
 
         bundle = self.load("bundle", environ=self.environ)
         self.add_instance_callback(bundle.close)
-        reader = bundle.equity_daily_bar_reader
-        assert_is_instance(reader, BcolzDailyBarReader)
-        (close,) = reader.load_raw_arrays(["close"], sessions[0], sessions[-1], sids)
-        assert_equal(close, expected_bar_values_2d(sessions, sids, equities, "close"))
+        assert_is_instance(bundle.equity_daily_bar_reader, BcolzDailyBarReader)
+        assert_is_instance(bundle.equity_minute_bar_reader, BcolzMinuteBarReader)
+        self._check_bars(bundle, sids, sessions, minutes, equities)
 
-        reader = bundle.equity_minute_bar_reader
-        assert_is_instance(reader, BcolzMinuteBarReader)
-        (close,) = reader.load_raw_arrays(["close"], minutes[0], minutes[-1], sids)
-        assert_equal(close, expected_bar_values_2d(minutes, sids, equities, "close"))
+    @parameterized.expand([(False,), (True,)])
+    def test_convert(self, delete_bcolz):
+        sids, sessions, minutes, equities = self._make_bcolz_ingestion()
+        (timestr,) = ingestions_for_bundle("bundle", environ=self.environ)
+        timestr = to_bundle_ingest_dirname(timestr)
+
+        converted = convert("bundle", self.environ, delete_bcolz=delete_bcolz)
+        assert_equal(
+            converted,
+            [
+                daily_equity_path("bundle", timestr, environ=self.environ),
+                minute_equity_path("bundle", timestr, environ=self.environ),
+            ],
+        )
+        for relative in (bcolz_daily_equity_relative, bcolz_minute_equity_relative):
+            path = pth.data_path(relative("bundle", timestr), environ=self.environ)
+            assert_equal(os.path.exists(path), not delete_bcolz)
+
+        bundle = self.load("bundle", environ=self.environ)
+        self.add_instance_callback(bundle.close)
+        assert_is_instance(bundle.equity_daily_bar_reader, ParquetDailyBarReader)
+        assert_is_instance(bundle.equity_minute_bar_reader, ParquetMinuteBarReader)
+        self._check_bars(bundle, sids, sessions, minutes, equities)
+
+        # Converting again finds nothing to do.
+        assert_equal(convert("bundle", self.environ), [])
 
     def test_ingest_assets_versions(self):
         versions = (1, 2)
