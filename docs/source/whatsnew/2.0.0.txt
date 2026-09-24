@@ -171,6 +171,9 @@ Bug Fixes
 - ``Factor.top`` and ``bottom`` with ``groupby`` compared floats by their
   bytes, which gets negative values backwards, and ranks of int64 factors
   had the same problem with negative values.
+- Daily bars resampled from minute bars (e.g. futures' daily history) had a
+  high of NaN, or of -1, for sessions whose prices were all below -1, as for
+  crude oil futures in April 2020.
 - The ``csvdir`` bundle can ingest a directory with both ``daily`` and
   ``minute`` files; it used to fail writing the asset database twice. Each
   symbol gets one sid across both, its lifetime spans all of its bars (as

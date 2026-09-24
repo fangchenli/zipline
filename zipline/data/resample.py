@@ -18,13 +18,6 @@ from functools import cached_property
 import numpy as np
 import pandas as pd
 
-from zipline.data._resample import (
-    _minute_to_session_close,
-    _minute_to_session_high,
-    _minute_to_session_low,
-    _minute_to_session_open,
-    _minute_to_session_volume,
-)
 from zipline.data.bar_reader import NoDataOnDate
 from zipline.data.minute_bars import MinuteBarReader
 from zipline.data.session_bars import SessionBarReader
@@ -90,16 +83,35 @@ def minute_to_session(column, close_locs, data, out):
     out : array[float64]
         The output array into which to write the sampled sessions.
     """
-    if column == "open":
-        _minute_to_session_open(close_locs, data, out)
-    elif column == "high":
-        _minute_to_session_high(close_locs, data, out)
+    if not len(close_locs):
+        return out
+    data = data[: close_locs[-1] + 1]
+    # Each session runs from the minute after the previous close.
+    starts = np.concatenate(([0], close_locs[:-1] + 1))
+    if column == "high":
+        # fmax and fmin ignore NaN, and give NaN for sessions without data.
+        out[:] = np.fmax.reduceat(data, starts)
     elif column == "low":
-        _minute_to_session_low(close_locs, data, out)
-    elif column == "close":
-        _minute_to_session_close(close_locs, data, out)
+        out[:] = np.fmin.reduceat(data, starts)
     elif column == "volume":
-        _minute_to_session_volume(close_locs, data, out)
+        out[:] = np.add.reduceat(data, starts)
+    elif column in ("open", "close"):
+        # The first or last minute of each session with a price.
+        priced = np.flatnonzero(~np.isnan(data))
+        out[:] = np.nan
+        if not len(priced):
+            return out
+        if column == "open":
+            index = np.searchsorted(priced, starts)
+            found = index < len(priced)
+            minute = priced[np.minimum(index, len(priced) - 1)]
+            found &= minute <= close_locs
+        else:
+            index = np.searchsorted(priced, close_locs, side="right") - 1
+            found = index >= 0
+            minute = priced[np.maximum(index, 0)]
+            found &= minute >= starts
+        out[found] = data[minute[found]]
     return out
 
 
