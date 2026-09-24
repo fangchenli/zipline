@@ -54,7 +54,7 @@ from zipline.testing.fixtures import (
 )
 from zipline.utils.classproperty import classproperty
 
-TestOrder = namedtuple("TestOrder", "limit direction")
+FakeOrder = namedtuple("FakeOrder", "limit direction")
 
 
 class SlippageTestCase(
@@ -140,9 +140,9 @@ class SlippageTestCase(
         self.assertEqual(MyCustomModel.allowed_asset_types, (SomeType,))
 
     def test_fill_price_worse_than_limit_price(self):
-        non_limit_order = TestOrder(limit=None, direction=1)
-        limit_buy = TestOrder(limit=1.5, direction=1)
-        limit_sell = TestOrder(limit=1.5, direction=-1)
+        non_limit_order = FakeOrder(limit=None, direction=1)
+        limit_buy = FakeOrder(limit=1.5, direction=1)
+        limit_sell = FakeOrder(limit=1.5, direction=-1)
 
         for price in [1, 1.5, 2]:
             self.assertFalse(fill_price_worse_than_limit_price(price, non_limit_order))

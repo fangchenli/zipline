@@ -1016,10 +1016,12 @@ class SyntheticBcolzTestCase(
         # Shift back the raw inputs by a trading day because we expect our
         # computed results to be computed using values anchored on the
         # **previous** day's data.
+        sessions = self.trading_calendar.sessions
+        previous_sessions = sessions[sessions.get_indexer(dates) - 1]
         expected_raw = (
             DataFrame(
                 expected_bar_values_2d(
-                    dates - self.trading_calendar.day,
+                    previous_sessions,
                     asset_ids,
                     self.equity_info,
                     "close",

@@ -7,6 +7,7 @@ from numpy import (
     average,
     clip,
     copyto,
+    errstate,
     exp,
     fmax,
     full,
@@ -87,7 +88,9 @@ class PercentChange(SingleInputMixin, CustomFactor):
             )
 
     def compute(self, today, assets, out, values):
-        out[:] = (values[-1] - values[0]) / abs(values[0])
+        # A zero first value gives inf or NaN.
+        with errstate(divide="ignore", invalid="ignore"):
+            out[:] = (values[-1] - values[0]) / abs(values[0])
 
 
 class DailyReturns(Returns):
@@ -130,7 +133,9 @@ class WeightedAverageValue(CustomFactor):
     """
 
     def compute(self, today, assets, out, base, weight):
-        out[:] = nansum(base * weight, axis=0) / nansum(weight, axis=0)
+        # No weight gives NaN.
+        with errstate(divide="ignore", invalid="ignore"):
+            out[:] = nansum(base * weight, axis=0) / nansum(weight, axis=0)
 
 
 class VWAP(WeightedAverageValue):

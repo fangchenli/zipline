@@ -2,6 +2,7 @@
 Tests for Downsampled Filters/Factors/Classifiers
 """
 
+import numpy as np
 import pandas as pd
 
 from zipline.errors import NoFurtherDataError
@@ -698,7 +699,7 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine, ZiplineTestCas
             missing_value = -1
 
             def compute(self, today, assets, out, floats):
-                out[:] = floats.sum(axis=0).astype(int) % 4
+                out[:] = np.nansum(floats, axis=0).astype(int) % 4
 
         self.check_downsampled_term(IntSumClassifier())
 

@@ -201,7 +201,11 @@ def make_jagged_equity_info(
 
     # Explicitly pass None to disable setting the auto_close_date column.
     if auto_close_delta is not None:
-        frame["auto_close_date"] = frame["end_date"] + auto_close_delta
+        # Business-day offsets such as a calendar's ``day`` only apply to
+        # one date at a time.
+        frame["auto_close_date"] = frame["end_date"].map(
+            lambda end_date: end_date + auto_close_delta
+        )
 
     return frame
 
