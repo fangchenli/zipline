@@ -159,7 +159,10 @@ on OSX):
      -e, --end DATE                  The end date of the simulation.
      -o, --output FILENAME           The location to write the perf data. If this
                                      is '-' the perf will be written to stdout.
-                                     [default: -]
+                                     Files ending in '.parquet' are written as
+                                     Parquet (read them with
+                                     zipline.utils.results.read_results); other
+                                     files are pickled.  [default: -]
      --trading-calendar TRADING-CALENDAR
                                      The calendar you want to use e.g. XLON. XNYS
                                      is the default.
@@ -178,14 +181,15 @@ always use the option (``--no-benchmark``) that uses zero returns as a benchmark
 alpha, beta and benchmark metrics are not calculated in this case).
 Finally, you'll want to save the performance metrics of your algorithm so that you can
 analyze how it performed. This is done via the ``--output`` flag and will cause
-it to write the performance ``DataFrame`` in the pickle Python file format.
+it to write the performance ``DataFrame`` to a file: in the Parquet format if its
+name ends in ``.parquet``, or else as a Python pickle.
 
 Thus, to execute our algorithm from above and save the results to
-``buyapple_out.pickle``, we call ``zipline run`` as follows:
+``buyapple_out.parquet``, we call ``zipline run`` as follows:
 
 .. code-block:: bash
 
-    zipline run -f ../zipline/examples/buyapple.py --start 2016-1-1 --end 2018-1-1 -o buyapple_out.pickle --no-benchmark
+    zipline run -f ../zipline/examples/buyapple.py --start 2016-1-1 --end 2018-1-1 -o buyapple_out.parquet --no-benchmark
 
 .. parsed-literal::
 
@@ -218,8 +222,8 @@ it.
 
 .. code-block:: python
 
-    import pandas as pd
-    perf = pd.read_pickle('buyapple_out.pickle') # read in perf DataFrame
+    from zipline.utils.results import read_results
+    perf = read_results('buyapple_out.parquet') # read in perf DataFrame
     perf.head()
 
 .. raw:: html
@@ -845,7 +849,7 @@ Let's look at the strategy which should make this clear:
 
 .. code-block:: python
 
-   %%zipline --start 2014-1-1 --end 2018-1-1 -o dma.pickle
+   %%zipline --start 2014-1-1 --end 2018-1-1 -o dma.parquet
 
 
    from zipline.api import order_target, record, symbol

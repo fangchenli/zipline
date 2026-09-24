@@ -21,6 +21,7 @@ from zipline.testing import (
 from zipline.testing.fixtures import (
     WithConstantEquityMinuteBarData,
     WithDataPortal,
+    WithTmpDir,
     ZiplineTestCase,
 )
 from zipline.testing.predicates import instance_of, wildcard
@@ -199,3 +200,16 @@ class TestAssertTimestampEqual(TestCase):
         assert "context" in str(e.exception)
         with self.assertRaises(AssertionError):
             assert_timestamp_equal(pd.NaT, pd.NaT, compare_nat_equal=False)
+
+
+class TestDebugMROFailure(TestCase):
+    def test_reports_cycle(self):
+        # WithDataPortal subclasses WithTmpDir, so it can't come after it.
+        with self.assertRaises(TypeError) as e:
+
+            class _Unlinearizable(WithTmpDir, WithDataPortal, ZiplineTestCase):
+                pass
+
+        message = str(e.exception)
+        assert "Cycle found when trying to compute MRO for _Unlinearizable" in message
+        assert "WithTmpDir comes before WithDataPortal" in message

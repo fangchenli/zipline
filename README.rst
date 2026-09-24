@@ -92,10 +92,11 @@ algorithm:
 .. code:: bash
 
     $ QUANDL_API_KEY=<your key> zipline ingest
-    $ zipline run -f dual_moving_average.py --start 2014-1-1 --end 2018-1-1 -o dma.pickle --no-benchmark
+    $ zipline run -f dual_moving_average.py --start 2014-1-1 --end 2018-1-1 -o dma.parquet --no-benchmark
 
-The resulting performance DataFrame is saved in ``dma.pickle``, which you
-can load and analyze from within Python. To backtest on your own data, write
+The resulting performance DataFrame is saved in ``dma.parquet``, which you
+can load with ``zipline.utils.results.read_results`` and analyze from within
+Python. To backtest on your own data, write
 daily OHLCV CSV files and ingest them with the ``csvdir`` bundle; see the
 data bundles documentation in ``docs/source/bundles.rst``.
 
