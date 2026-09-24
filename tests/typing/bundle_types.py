@@ -5,11 +5,18 @@ Like ``api_types.py``, this module isn't run: CI type-checks it.
 """
 
 from collections.abc import Mapping
-from typing import assert_type
+from typing import Literal, assert_type
 
 import pandas as pd
 
-from zipline.assets import AssetDBWriter, AssetFinder
+from zipline.assets import (
+    Asset,
+    AssetDBWriter,
+    AssetFinder,
+    ContinuousFuture,
+    Equity,
+    Future,
+)
 from zipline.data.adjustments import SQLiteAdjustmentReader, SQLiteAdjustmentWriter
 from zipline.data.bundles import (
     bundles,
@@ -73,3 +80,23 @@ def use_bundle() -> None:
         assert_type(data.adjustment_reader, SQLiteAdjustmentReader)
     assert_type(ingestions_for_bundle("my-bundle"), list[pd.Timestamp])
     assert_type(clean("my-bundle", keep_last=1), set[str])
+
+
+def use_asset_finder(finder: AssetFinder, session: pd.Timestamp) -> None:
+    aapl = finder.lookup_symbol("AAPL", as_of_date=session)
+    assert_type(aapl, Equity)
+    assert_type(finder.lookup_symbols(["AAPL", "MSFT"], session), list[Equity])
+    assert_type(finder.lookup_future_symbol("CLF16"), Future)
+    # A sid may belong to a continuous future made by create_continuous_future.
+    assert_type(finder.retrieve_asset(24), Asset | ContinuousFuture)
+    assert_type(
+        finder.retrieve_asset(24, default_none=True), Asset | ContinuousFuture | None
+    )
+    assert_type(finder.retrieve_equities([24]), dict[int, Equity])
+    cl = finder.create_continuous_future("CL", 0, "calendar", "mul")
+    assert_type(cl, ContinuousFuture)
+    assert_type(cl.roll_style, Literal["calendar", "volume"])
+    assert_type(
+        finder.lookup_generic("AAPL", session, "US")[0], Asset | ContinuousFuture
+    )
+    assert_type(finder.sids, tuple[int, ...])

@@ -12,10 +12,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    import pandas as pd
+
+    from zipline.assets import Future
     from zipline.assets.assets import AssetFinder
     from zipline.utils.calendar_utils import ExchangeCalendar
 
@@ -25,6 +30,15 @@ if TYPE_CHECKING:
 ROLL_DAYS_FOR_CURRENT_CONTRACT = 90
 
 
+def _auto_close_date(contract: Future) -> pd.Timestamp:
+    """The auto close date of a contract in an OrderedContracts chain, which
+    only holds contracts that have one."""
+    auto_close_date = contract.auto_close_date
+    if auto_close_date is None:
+        raise ValueError(f"{contract} has no auto close date.")
+    return auto_close_date
+
+
 class RollFinder(ABC):
     """
     Abstract base class for calculating when futures contracts are the active
@@ -32,8 +46,8 @@ class RollFinder(ABC):
     """
 
     # Set by subclasses.
-    trading_calendar: "ExchangeCalendar"
-    asset_finder: "AssetFinder"
+    trading_calendar: ExchangeCalendar
+    asset_finder: AssetFinder
 
     @abstractmethod
     def _active_contract(self, oc, front, back, dt):
@@ -138,7 +152,7 @@ class RollFinder(ABC):
             while session > start:
                 prev = session - freq
                 if prev_c is not None:
-                    if prev < prev_c.contract.auto_close_date:
+                    if prev < _auto_close_date(prev_c.contract):
                         break
                 if back != self._active_contract(oc, front, back, prev):
                     # TODO: Instead of listing each contract with its roll date
@@ -149,7 +163,7 @@ class RollFinder(ABC):
                 session = prev
             curr = curr.prev
             if curr is not None:
-                session = min(session, curr.contract.auto_close_date + freq)
+                session = min(session, _auto_close_date(curr.contract) + freq)
 
         return rolls
 
