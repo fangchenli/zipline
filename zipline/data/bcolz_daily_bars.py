@@ -13,7 +13,7 @@
 # limitations under the License.
 import warnings
 from collections.abc import Hashable
-from functools import partial
+from functools import cached_property, partial
 
 import numpy as np
 from bcolz import carray, ctable
@@ -41,7 +41,6 @@ from zipline.data.session_bars import CurrencyAwareSessionBarReader
 from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.cli import maybe_show_progress
 from zipline.utils.input_validation import expect_element
-from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import float64_dtype, iNaT, uint32_dtype
 
 from ._equities import _compute_row_slices, _read_bcolz_data
@@ -437,14 +436,14 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
         self.PRICE_ADJUSTMENT_FACTOR = 0.001
         self._read_all_threshold = read_all_threshold
 
-    @lazyval
+    @cached_property
     def _table(self):
         maybe_table_rootdir = self._maybe_table_rootdir
         if isinstance(maybe_table_rootdir, ctable):
             return maybe_table_rootdir
         return ctable(rootdir=maybe_table_rootdir, mode="r")
 
-    @lazyval
+    @cached_property
     def sessions(self):
         if "calendar" in self._table.attrs.attrs:
             # backwards compatibility with old formats, will remove
@@ -461,28 +460,28 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
 
             return sessions
 
-    @lazyval
+    @cached_property
     def _first_rows(self):
         return {
             int(asset_id): start_index
             for asset_id, start_index in self._table.attrs["first_row"].items()
         }
 
-    @lazyval
+    @cached_property
     def _last_rows(self):
         return {
             int(asset_id): end_index
             for asset_id, end_index in self._table.attrs["last_row"].items()
         }
 
-    @lazyval
+    @cached_property
     def _calendar_offsets(self):
         return {
             int(id_): offset
             for id_, offset in self._table.attrs["calendar_offset"].items()
         }
 
-    @lazyval
+    @cached_property
     def first_trading_day(self):
         try:
             return Timestamp(
@@ -492,7 +491,7 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
         except KeyError:
             return None
 
-    @lazyval
+    @cached_property
     def trading_calendar(self):
         if "calendar_name" in self._table.attrs.attrs:
             return get_calendar(self._table.attrs["calendar_name"])

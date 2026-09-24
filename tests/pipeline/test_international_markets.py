@@ -96,6 +96,11 @@ class WithInternationalDailyBarData(zf.WithAssetFinder):
     def init_class_fixtures(cls):
         super().init_class_fixtures()
 
+        cls.assets_by_calendar = {}
+        for asset in cls.asset_finder.retrieve_all(cls.asset_finder.sids):
+            calendar = get_calendar(asset.exchange)
+            cls.assets_by_calendar.setdefault(calendar, []).append(asset)
+
         cls.daily_bar_sessions = {}
         cls.daily_bar_data = {}
         cls.daily_bar_readers = {}

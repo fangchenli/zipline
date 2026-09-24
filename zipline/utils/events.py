@@ -16,6 +16,7 @@ import datetime
 import warnings
 from abc import ABC, abstractmethod
 from collections import namedtuple
+from functools import cached_property
 from zoneinfo import ZoneInfo
 
 import numpy as np
@@ -27,7 +28,6 @@ from zipline.utils.calendar_utils import (
     execution_time_from_open,
 )
 from zipline.utils.input_validation import get_timezone, preprocess
-from zipline.utils.memoize import lazyval
 from zipline.utils.sentinel import sentinel
 
 from .context_tricks import nop_context
@@ -476,7 +476,7 @@ class TradingDayOfWeekRule(StatelessRule):
         val = self.cal.minute_to_session(dt, direction="none").value
         return val in self.execution_period_values
 
-    @lazyval
+    @cached_property
     def execution_period_values(self):
         # calculate the list of periods that match the given criteria
         sessions = self.cal.sessions
@@ -523,7 +523,7 @@ class TradingDayOfMonthRule(StatelessRule):
         value = self.cal.minute_to_session(dt, direction="none").value
         return value in self.execution_period_values
 
-    @lazyval
+    @cached_property
     def execution_period_values(self):
         # calculate the list of periods that match the given criteria
         sessions = self.cal.sessions

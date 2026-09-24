@@ -13,10 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
+from functools import cached_property
 
 from numpy import full, int64, nan, zeros
-
-from zipline.utils.memoize import lazyval
 
 
 class AssetDispatchBarReader(ABC):
@@ -76,14 +75,14 @@ class AssetDispatchBarReader(ABC):
     def trading_calendar(self):
         return self._trading_calendar
 
-    @lazyval
+    @cached_property
     def last_available_dt(self):
         if self._last_available_dt is not None:
             return self._last_available_dt
         else:
             return max(r.last_available_dt for r in self._readers.values())
 
-    @lazyval
+    @cached_property
     def first_trading_day(self):
         return min(r.first_trading_day for r in self._readers.values())
 
@@ -135,7 +134,7 @@ class AssetDispatchSessionBarReader(AssetDispatchBarReader):
     def _dt_window_size(self, start_dt, end_dt):
         return len(self.trading_calendar.sessions_in_range(start_dt, end_dt))
 
-    @lazyval
+    @cached_property
     def sessions(self):
         return self.trading_calendar.sessions_in_range(
             self.first_trading_day, self.last_available_dt

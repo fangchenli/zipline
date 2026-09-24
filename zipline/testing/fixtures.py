@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import responses
 from pandas.errors import PerformanceWarning
-from toolz import flip, groupby, merge
+from toolz import flip, merge
 
 import zipline
 from zipline.algorithm import TradingAlgorithm
@@ -30,7 +30,6 @@ from zipline.utils.calendar_utils import (
     get_calendar,
     register_calendar_alias,
 )
-from zipline.utils.memoize import classlazyval
 from zipline.utils.paths import ensure_directory
 
 from ..data.adjustments import (
@@ -448,27 +447,6 @@ class WithAssetFinder(WithDefaultDateBounds):
     def init_class_fixtures(cls):
         super().init_class_fixtures()
         cls.asset_finder = cls.make_asset_finder()
-
-    @classlazyval
-    def all_assets(cls):
-        """A list of Assets for all sids in cls.asset_finder."""
-        return cls.asset_finder.retrieve_all(cls.asset_finder.sids)
-
-    @classlazyval
-    def exchange_names(cls):
-        """A list of canonical exchange names for all exchanges in this suite."""
-        infos = cls.asset_finder.exchange_info.values()
-        return sorted(i.canonical_name for i in infos)
-
-    @classlazyval
-    def assets_by_calendar(cls):
-        """A dict from calendar -> list of assets with that calendar."""
-        return groupby(lambda a: get_calendar(a.exchange), cls.all_assets)
-
-    @classlazyval
-    def all_calendars(cls):
-        """A list of all calendars for assets in this test suite."""
-        return list(cls.assets_by_calendar)
 
 
 # TODO_SS: The API here doesn't make sense in a multi-country test scenario.

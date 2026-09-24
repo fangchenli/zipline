@@ -15,6 +15,7 @@ import json
 import logging
 import os
 from abc import ABC, abstractmethod
+from functools import cached_property
 from glob import glob
 from os.path import join
 from textwrap import dedent
@@ -46,7 +47,6 @@ from zipline.gens.sim_engine import NANOS_IN_MINUTE
 from zipline.utils.cache import LRUCache
 from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.cli import maybe_show_progress
-from zipline.utils.memoize import lazyval
 
 logger = logging.getLogger(__name__)
 
@@ -956,7 +956,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
     def trading_calendar(self):
         return self.calendar
 
-    @lazyval
+    @cached_property
     def last_available_dt(self):
         _, close = self.calendar.session_first_last_minute(self._end_session)
         return close
@@ -1000,7 +1000,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
         ]
         return minutes
 
-    @lazyval
+    @cached_property
     def _minute_exclusion_tree(self):
         """
         Build an interval tree keyed by the start and end of each range

@@ -17,6 +17,7 @@ Currently, this means that a domain defines two things:
 
 import datetime
 from abc import ABC, abstractmethod
+from functools import cached_property
 from textwrap import dedent
 from zoneinfo import ZoneInfo
 
@@ -28,7 +29,6 @@ from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.date_utils import to_session_label, to_session_labels
 from zipline.utils.formatting import bulleted_list
 from zipline.utils.input_validation import expect_types, optional
-from zipline.utils.memoize import lazyval
 from zipline.utils.pandas_utils import days_at_time
 
 
@@ -192,7 +192,7 @@ class EquityCalendarDomain(Domain):
     def country_code(self):
         return self._country_code
 
-    @lazyval
+    @cached_property
     def calendar(self):
         return get_calendar(self.calendar_name)
 

@@ -17,7 +17,7 @@ import binascii
 import struct
 from abc import ABC
 from collections import deque, namedtuple
-from functools import partial
+from functools import cached_property, partial
 from numbers import Integral
 from operator import attrgetter
 
@@ -51,7 +51,6 @@ from zipline.errors import (
     ValueNotFoundForField,
 )
 from zipline.utils.functional import invert
-from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import as_column
 from zipline.utils.preprocess import preprocess
 from zipline.utils.sqlite_utils import coerce_string_to_eng, group_into_chunks
@@ -354,7 +353,7 @@ class AssetFinder:
         # Populated on first call to `lifetimes`.
         self._asset_lifetimes = {}
 
-    @lazyval
+    @cached_property
     def exchange_info(self):
         es = _fetchall(self.engine, sa.select(self.exchanges))
         return {
@@ -362,7 +361,7 @@ class AssetFinder:
             for name, canonical_name, country_code in es
         }
 
-    @lazyval
+    @cached_property
     def symbol_ownership_map(self):
         out = {}
         for mappings in self.symbol_ownership_maps_by_country_code.values():
@@ -371,7 +370,7 @@ class AssetFinder:
 
         return out
 
-    @lazyval
+    @cached_property
     def symbol_ownership_maps_by_country_code(self):
         sid_to_country_code = dict(
             _fetchall(
@@ -391,7 +390,7 @@ class AssetFinder:
             group_key=lambda row: sid_to_country_code[row.sid],
         )
 
-    @lazyval
+    @cached_property
     def country_codes(self):
         return tuple(self.symbol_ownership_maps_by_country_code)
 
@@ -407,18 +406,18 @@ class AssetFinder:
             fuzzy_owners.sort()
         return fuzzy_mappings
 
-    @lazyval
+    @cached_property
     def fuzzy_symbol_ownership_map(self):
         return self._fuzzify_symbol_ownership_map(self.symbol_ownership_map)
 
-    @lazyval
+    @cached_property
     def fuzzy_symbol_ownership_maps_by_country_code(self):
         return valmap(
             self._fuzzify_symbol_ownership_map,
             self.symbol_ownership_maps_by_country_code,
         )
 
-    @lazyval
+    @cached_property
     def equity_supplementary_map(self):
         return build_ownership_map(
             engine=self.engine,
@@ -427,7 +426,7 @@ class AssetFinder:
             value_from_row=lambda row: row.value,
         )
 
-    @lazyval
+    @cached_property
     def equity_supplementary_map_by_sid(self):
         return build_ownership_map(
             engine=self.engine,

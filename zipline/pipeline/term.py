@@ -5,6 +5,7 @@ Base class for Filters, Factors and Classifiers
 from abc import ABC, abstractmethod
 from bisect import insort
 from collections.abc import Mapping
+from functools import cached_property
 from typing import Any
 from weakref import WeakValueDictionary
 
@@ -32,7 +33,6 @@ from zipline.errors import (
 from zipline.lib.adjusted_array import can_represent_dtype
 from zipline.lib.labelarray import LabelArray
 from zipline.utils.input_validation import expect_types
-from zipline.utils.memoize import classlazyval, lazyval
 from zipline.utils.numpy_utils import (
     bool_dtype,
     categorical_dtype,
@@ -472,7 +472,7 @@ class LoadableTerm(Term):
     windowed = False
     inputs = ()
 
-    @lazyval
+    @cached_property
     def dependencies(self):
         return {self.mask: 0}
 
@@ -644,7 +644,7 @@ class ComputableTerm(Term):
         """
         raise NotImplementedError("_principal_computable_term_type")
 
-    @lazyval
+    @cached_property
     def windowed(self):
         """
         Whether or not this term represents a trailing window computation.
@@ -657,7 +657,7 @@ class ComputableTerm(Term):
         """
         return self.window_length is not NotSpecified and self.window_length > 0
 
-    @lazyval
+    @cached_property
     def dependencies(self):
         """
         The number of extra rows needed for each of our inputs to compute this
@@ -869,25 +869,15 @@ class ComputableTerm(Term):
                     f"Coercion attempt failed with: {e}"
                 ) from e
 
-            if_false = self._constant_type(
+            from .mixins import ConstantMixin
+
+            if_false = self._with_mixin(ConstantMixin)(
                 const=fill_value,
                 dtype=self.dtype,
                 missing_value=self.missing_value,
             )
 
         return self.notnull().if_else(if_true=self, if_false=if_false)
-
-    @classlazyval
-    def _constant_type(cls):
-        from .mixins import ConstantMixin
-
-        return cls._with_mixin(ConstantMixin)
-
-    @classlazyval
-    def _if_else_type(cls):
-        from .mixins import IfElseMixin
-
-        return cls._with_mixin(IfElseMixin)
 
     def __repr__(self):
         return ("{type}([{inputs}], {window_length})").format(

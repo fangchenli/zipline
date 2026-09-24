@@ -21,7 +21,6 @@ from zipline.errors import (
     WindowLengthTooLong,
 )
 from zipline.lib.labelarray import LabelArray
-from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import (
     datetime64ns_dtype,
     float64_dtype,
@@ -258,14 +257,14 @@ class AdjustedArray:
         """
         return self._data.view(**self._view_kwargs)
 
-    @lazyval
+    @property
     def dtype(self):
         """
         The dtype of the data stored in this array.
         """
         return self._view_kwargs.get("dtype") or self._data.dtype
 
-    @lazyval
+    @property
     def _iterator_type(self):
         """
         The iterator produced when `traverse` is called on this Array.

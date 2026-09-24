@@ -3,11 +3,11 @@ Dependency-Graph representation of Pipeline API terms.
 """
 
 import uuid
+from functools import cached_property
 
 import networkx as nx
 
 from zipline.pipeline.visualize import display_graph
-from zipline.utils.memoize import lazyval
 
 from .term import LoadableTerm
 
@@ -143,19 +143,19 @@ class TermGraph:
     def ordered(self):
         return iter(nx.topological_sort(self.graph))
 
-    @lazyval
+    @cached_property
     def loadable_terms(self):
         return {term for term in self.graph if isinstance(term, LoadableTerm)}
 
-    @lazyval
+    @cached_property
     def jpeg(self):
         return display_graph(self, "jpeg")
 
-    @lazyval
+    @cached_property
     def png(self):
         return display_graph(self, "png")
 
-    @lazyval
+    @cached_property
     def svg(self):
         return display_graph(self, "svg")
 
@@ -275,7 +275,7 @@ class ExecutionPlan(TermGraph):
         # At this point the graph still contains un-specialized loadable terms,
         # and this is where we're actually going through and specializing all
         # of them. We don't want use self.loadable_terms because it's a
-        # lazyval, and we don't want its result to be cached until after we've
+        # cached property, and we don't want its result to be cached until after we've
         # specialized.
         specializations = {
             t: t.specialize(domain) for t in self.graph if isinstance(t, LoadableTerm)
@@ -325,7 +325,7 @@ class ExecutionPlan(TermGraph):
                 min_extra_rows=extra_rows_for_term + additional_extra_rows,
             )
 
-    @lazyval
+    @cached_property
     def offset(self):
         """
         For all pairs (term, input) such that `input` is an input to `term`,
@@ -407,7 +407,7 @@ class ExecutionPlan(TermGraph):
 
         return out
 
-    @lazyval
+    @cached_property
     def extra_rows(self):
         """
         A dict mapping `term` -> `# of extra rows to load/compute of `term`.
