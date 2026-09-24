@@ -1,6 +1,11 @@
+from __future__ import annotations
+
 import os
 import sys
 import warnings
+from collections.abc import Callable, Iterable, Mapping
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Literal
 
 import click
 
@@ -32,6 +37,10 @@ from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.date_utils import to_session_label
 from zipline.utils.results import write_results
+
+if TYPE_CHECKING:
+    from zipline._protocol import BarData
+    from zipline.utils.calendar_utils import ExchangeCalendar
 
 log = logging.getLogger(__name__)
 
@@ -300,25 +309,25 @@ def load_extensions(default, extensions, strict, environ, reload=False):
 
 
 def run_algorithm(
-    start,
-    end,
-    initialize,
-    capital_base,
-    handle_data=None,
-    before_trading_start=None,
-    analyze=None,
-    data_frequency="daily",
-    bundle="massive",
-    bundle_timestamp=None,
-    trading_calendar=None,
-    metrics_set="default",
-    benchmark_returns=None,
-    default_extension=True,
-    extensions=(),
-    strict_extensions=True,
-    environ=os.environ,
-    blotter="default",
-):
+    start: datetime | str,
+    end: datetime | str,
+    initialize: Callable[[Any], object] | None,
+    capital_base: float,
+    handle_data: Callable[[Any, BarData], object] | None = None,
+    before_trading_start: Callable[[Any, BarData], object] | None = None,
+    analyze: Callable[[Any, pd.DataFrame], object] | None = None,
+    data_frequency: Literal["daily", "minute"] = "daily",
+    bundle: str = "massive",
+    bundle_timestamp: datetime | None = None,
+    trading_calendar: ExchangeCalendar | None = None,
+    metrics_set: str | Iterable[object] = "default",
+    benchmark_returns: pd.Series | None = None,
+    default_extension: bool = True,
+    extensions: Iterable[str] = (),
+    strict_extensions: bool = True,
+    environ: Mapping[str, str] = os.environ,
+    blotter: str | Blotter = "default",
+) -> pd.DataFrame:
     """
     Run a trading algorithm.
 
@@ -328,10 +337,11 @@ def run_algorithm(
         The start date of the backtest.
     end : datetime
         The end date of the backtest..
-    initialize : callable[context -> None]
+    initialize : callable[context -> None] or None
         The initialize function to use for the algorithm. This is called once
-        at the very begining of the backtest and should be used to set up
-        any state needed by the algorithm.
+        at the very beginning of the backtest and should be used to set up
+        any state needed by the algorithm. None means there is nothing to set
+        up.
     capital_base : float
         The starting capital for the backtest.
     handle_data : callable[(context, BarData) -> None], optional

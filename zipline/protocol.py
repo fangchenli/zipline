@@ -12,13 +12,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 from enum import IntEnum, auto
+from typing import TYPE_CHECKING
 from warnings import warn
 
 import pandas as pd
 
 from ._protocol import BarData, InnerPosition  # noqa
 from .assets import Asset
+
+if TYPE_CHECKING:
+    from zipline.finance.order import ORDER_STATUS
 
 
 class MutableView:
@@ -136,6 +142,46 @@ def _deprecated_getitem_method(name, attrs):
 
 
 class Order(Event):
+    """An order, as returned by ``get_order`` and ``get_open_orders``.
+
+    Attributes
+    ----------
+    id : str
+        The order's id, as returned by the order functions.
+    sid : zipline.assets.Asset
+        The asset ordered.
+    amount : int
+        The number of shares or contracts ordered; negative to sell.
+    filled : int
+        How many of them have been filled.
+    commission : float
+        The commission charged so far.
+    limit, stop : float or None
+        The limit and stop prices, if any.
+    limit_reached, stop_reached : bool
+        Whether the limit and stop prices have been reached.
+    status : zipline.finance.order.ORDER_STATUS
+        Open, filled, cancelled, rejected or held.
+    reason : str or None
+        Why the order was rejected or held, if it was.
+    created, dt : pd.Timestamp
+        When the order was placed, and last changed.
+    """
+
+    id: str
+    sid: Asset
+    amount: int
+    filled: int
+    commission: float
+    limit: float | None
+    stop: float | None
+    limit_reached: bool
+    stop_reached: bool
+    status: ORDER_STATUS
+    reason: str | None
+    created: pd.Timestamp
+    dt: pd.Timestamp
+
     # If you are adding new attributes, don't update this set. This method
     # is deprecated to normal attribute access so we don't want to encourage
     # new usages.
@@ -189,7 +235,7 @@ class Portfolio:
     pnl: float
     returns: float
     cash: float
-    positions: "Positions"
+    positions: Positions
     start_date: pd.Timestamp | None
     positions_value: float
     positions_exposure: float
