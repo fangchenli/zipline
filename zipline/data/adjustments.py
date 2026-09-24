@@ -231,7 +231,7 @@ class SQLiteAdjustmentReader:
         c = self.conn.cursor()
 
         divs = []
-        for chunk in group_into_chunks(assets):
+        for chunk in group_into_chunks(assets, other_params=1):
             query = UNPAID_QUERY_TEMPLATE.format(",".join(["?" for _ in chunk]))
             t = (seconds,) + tuple(map(lambda x: int(x), chunk))
 
@@ -254,7 +254,7 @@ class SQLiteAdjustmentReader:
         c = self.conn.cursor()
 
         stock_divs = []
-        for chunk in group_into_chunks(assets):
+        for chunk in group_into_chunks(assets, other_params=1):
             query = UNPAID_STOCK_DIVIDEND_QUERY_TEMPLATE.format(
                 ",".join(["?" for _ in chunk])
             )
@@ -819,14 +819,16 @@ def _adjustment_rows(db, table, assets, start, end):
         )
     }
     rows = []
-    for chunk in group_into_chunks([sid for sid in assets if sid in table_sids]):
+    requested = [sid for sid in assets if sid in table_sids]
+    # Each statement also binds the start and end.
+    for chunk in group_into_chunks(requested, other_params=2):
         placeholders = ",".join("?" * len(chunk))
         rows.extend(
             db.execute(
                 f"SELECT sid, ratio, effective_date FROM {table}"
                 f" WHERE sid IN ({placeholders})"
                 " AND effective_date >= ? AND effective_date <= ?",
-                [*(str(sid) for sid in chunk), start, end],
+                [*(int(sid) for sid in chunk), start, end],
             )
         )
     return rows

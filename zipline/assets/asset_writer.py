@@ -45,7 +45,7 @@ from zipline.assets.asset_db_schema import (
 from zipline.errors import AssetDBVersionError
 from zipline.utils.preprocess import preprocess
 from zipline.utils.range import from_tuple, intersecting_ranges
-from zipline.utils.sqlite_utils import coerce_string_to_eng
+from zipline.utils.sqlite_utils import SQLITE_MAX_VARIABLE_NUMBER, coerce_string_to_eng
 
 # Define a namedtuple for use with the load_data and _load_data methods
 AssetData = namedtuple(
@@ -60,7 +60,6 @@ AssetData = namedtuple(
     ),
 )
 
-SQLITE_MAX_VARIABLE_NUMBER = 999
 
 symbol_columns = frozenset(
     {

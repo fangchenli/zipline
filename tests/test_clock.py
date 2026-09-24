@@ -26,6 +26,17 @@ class TestClock(TestCase):
         cls.opens = cls.nyse_calendar.first_minutes.loc[cls.sessions]
         cls.closes = cls.nyse_calendar.last_minutes.loc[cls.sessions]
 
+    def test_mismatched_lengths(self):
+        clock = MinuteSimulationClock(
+            self.sessions,
+            self.opens,
+            self.closes,
+            days_at_time(self.sessions[:-1], time(8, 45), "US/Eastern"),
+            False,
+        )
+        with self.assertRaises(ValueError):
+            list(clock)
+
     def test_bts_before_session(self):
         clock = MinuteSimulationClock(
             self.sessions,

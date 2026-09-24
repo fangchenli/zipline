@@ -986,6 +986,19 @@ class MinuteToSessionTestCase(ZiplineTestCase):
         np.testing.assert_array_equal(self.resample("high", data), [-3, 3, -1])
         np.testing.assert_array_equal(self.resample("low", data), [-5, -2, -2.5])
 
+    def test_sessions_without_minutes(self):
+        close_locs = np.array([-1, 2, 2, 4, 4], dtype=np.intp)
+        data = np.array([1.0, 3.0, 2.0, 5.0, 4.0])
+
+        def resample(column):
+            return minute_to_session(column, close_locs, data, np.empty(5))
+
+        np.testing.assert_array_equal(resample("open"), [nan, 1, nan, 5, nan])
+        np.testing.assert_array_equal(resample("high"), [nan, 3, nan, 5, nan])
+        np.testing.assert_array_equal(resample("low"), [nan, 1, nan, 4, nan])
+        np.testing.assert_array_equal(resample("close"), [nan, 2, nan, 4, nan])
+        np.testing.assert_array_equal(resample("volume"), [0, 6, 0, 9, 0])
+
     def test_volume(self):
         data = [1.0, 2.0, 3.0, 0.0, 0.0, 0.0, 2.0**32, 2.0**32, 1.0]
         np.testing.assert_array_equal(self.resample("volume", data), [6, 0, 2**33 + 1])

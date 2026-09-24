@@ -88,13 +88,16 @@ def minute_to_session(column, close_locs, data, out):
     data = data[: close_locs[-1] + 1]
     # Each session runs from the minute after the previous close.
     starts = np.concatenate(([0], close_locs[:-1] + 1))
-    if column == "high":
-        # fmax and fmin ignore NaN, and give NaN for sessions without data.
-        out[:] = np.fmax.reduceat(data, starts)
-    elif column == "low":
-        out[:] = np.fmin.reduceat(data, starts)
-    elif column == "volume":
-        out[:] = np.add.reduceat(data, starts)
+    if column in ("high", "low", "volume"):
+        # reduceat reduces from each start to the next, so leave out sessions
+        # without minutes, which would get the next session's first minute.
+        has_minutes = starts <= close_locs
+        reduce = {"high": np.fmax, "low": np.fmin, "volume": np.add}[column]
+        out[:] = 0.0 if column == "volume" else np.nan
+        if has_minutes.any():
+            # fmax and fmin ignore NaN, and give NaN for sessions without
+            # prices.
+            out[has_minutes] = reduce.reduceat(data, starts[has_minutes])
     elif column in ("open", "close"):
         # The first or last minute of each session with a price.
         priced = np.flatnonzero(~np.isnan(data))
