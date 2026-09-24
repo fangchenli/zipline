@@ -21,7 +21,7 @@ from numpy import dtype
 from toolz import compose, valmap
 
 from zipline.utils.functional import getattrs
-from zipline.utils.preprocess import call, preprocess
+from zipline.utils.preprocess import Decorator, call, preprocess
 
 _qualified_name = attrgetter("__qualname__")
 
@@ -200,7 +200,7 @@ def ensure_timestamp(func, argname, arg):
         ) from e
 
 
-def expect_dtypes(__funcname=_qualified_name, **named):
+def expect_dtypes(__funcname=_qualified_name, **named) -> Decorator:
     """
     Preprocessing decorator that verifies inputs have expected numpy dtypes.
 
@@ -268,7 +268,7 @@ def expect_dtypes(__funcname=_qualified_name, **named):
     return preprocess(**valmap(_expect_dtype, named))
 
 
-def expect_kinds(**named):
+def expect_kinds(**named) -> Decorator:
     """
     Preprocessing decorator that verifies inputs have expected dtype kinds.
 
@@ -330,7 +330,7 @@ def expect_kinds(**named):
     return preprocess(**valmap(_expect_kind, named))
 
 
-def expect_types(__funcname=_qualified_name, **named):
+def expect_types(__funcname=_qualified_name, **named) -> Decorator:
     """
     Preprocessing decorator that verifies inputs have expected types.
 
@@ -457,7 +457,7 @@ def optional(type_):
     return (type_, type(None))
 
 
-def expect_element(__funcname=_qualified_name, **named):
+def expect_element(__funcname=_qualified_name, **named) -> Decorator:
     """
     Preprocessing decorator that verifies inputs are elements of some
     expected collection.
@@ -513,7 +513,7 @@ def expect_element(__funcname=_qualified_name, **named):
     return preprocess(**valmap(_expect_element, named))
 
 
-def expect_bounded(__funcname=_qualified_name, **named):
+def expect_bounded(__funcname=_qualified_name, **named) -> Decorator:
     """
     Preprocessing decorator verifying that inputs fall INCLUSIVELY between
     bounds.
@@ -599,7 +599,7 @@ def expect_bounded(__funcname=_qualified_name, **named):
     return _expect_bounded(_make_bounded_check, **named)
 
 
-def expect_strictly_bounded(__funcname=_qualified_name, **named):
+def expect_strictly_bounded(__funcname=_qualified_name, **named) -> Decorator:
     """
     Preprocessing decorator verifying that inputs fall EXCLUSIVELY between
     bounds.
@@ -685,7 +685,7 @@ def expect_strictly_bounded(__funcname=_qualified_name, **named):
     return _expect_bounded(_make_bounded_check, **named)
 
 
-def _expect_bounded(make_bounded_check, **named):
+def _expect_bounded(make_bounded_check, **named) -> Decorator:
     def valid_bounds(t):
         return isinstance(t, tuple) and len(t) == 2 and t != (None, None)
 
@@ -699,7 +699,7 @@ def _expect_bounded(make_bounded_check, **named):
     return preprocess(**valmap(make_bounded_check, named))
 
 
-def expect_dimensions(__funcname=_qualified_name, **dimensions):
+def expect_dimensions(__funcname=_qualified_name, **dimensions) -> Decorator:
     """
     Preprocessing decorator that verifies inputs are numpy arrays with a
     specific dimensionality.
@@ -786,7 +786,7 @@ def coerce(from_, to, **to_kwargs):
     return preprocessor
 
 
-def coerce_types(**kwargs):
+def coerce_types(**kwargs) -> Decorator:
     """
     Preprocessing decorator that applies type coercions.
 

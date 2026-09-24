@@ -60,6 +60,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
 
     # Used by RestrictedDTypeMixin
     ALLOWED_DTYPES = CLASSIFIER_DTYPES
+    missing_value: int | str | bytes | None
     categories = NotSpecified
 
     # We explicitly don't support classifier to classifier comparisons, since
@@ -418,7 +419,7 @@ class Everything(Classifier):
     dtype = int64_dtype
     window_length = 0
     inputs = ()
-    missing_value = -1
+    missing_value: int = -1
 
     def _compute(self, arrays, dates, assets, mask):
         return where(

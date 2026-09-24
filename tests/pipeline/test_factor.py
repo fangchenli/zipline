@@ -1514,6 +1514,23 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             mask=self.build_mask(self.ones_mask(shape=shape)),
         )
 
+    def test_clip_mask(self):
+        shape = (5, 5)
+        input_array = np.arange(25, dtype=float).reshape(shape) - 12
+        eyemask = np.eye(*shape, dtype=bool)
+
+        f = F()
+        m = Mask()
+
+        # Values outside the mask come out missing.
+        expected = np.where(eyemask, np.clip(input_array, -5.0, 5.0), np.nan)
+        self.check_terms(
+            terms={"clip": f.clip(-5.0, 5.0, mask=m)},
+            initial_workspace={f: input_array, m: eyemask},
+            expected={"clip": expected},
+            mask=self.build_mask(self.ones_mask(shape=shape)),
+        )
+
 
 class ReprTestCase(TestCase):
     """

@@ -35,7 +35,7 @@ from .downsample_helpers import (
     expect_downsample_frequency,
     select_sampling_indices,
 )
-from .sentinels import NotSpecified
+from .sentinels import NotSpecified, NotSpecifiedType
 from .term import Term
 
 
@@ -46,7 +46,7 @@ class PositiveWindowLengthMixin(Term):
 
     # Provided by ComputableTerm. (Annotation only: a class attribute here
     # would shadow ComputableTerm's default in the MRO.)
-    window_length: Any
+    window_length: int
 
     def _validate(self):
         super()._validate()
@@ -75,7 +75,7 @@ class StandardOutputs(Term):
     """
 
     # Provided by ComputableTerm (annotation only; see PositiveWindowLengthMixin).
-    outputs: Any
+    outputs: tuple[str, ...] | NotSpecifiedType
 
     def _validate(self):
         super()._validate()
@@ -125,8 +125,8 @@ class CustomTermMixin(Term):
     """
 
     # Provided by ComputableTerm (annotation only; see PositiveWindowLengthMixin).
-    outputs: Any
-    window_length: Any
+    outputs: tuple[str, ...] | NotSpecifiedType
+    window_length: int
 
     ctx = nop_context
 

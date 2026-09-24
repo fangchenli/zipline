@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Literal
+
 from zipline.errors import UnsupportedPipelineOutput
 from zipline.utils.input_validation import (
     expect_element,
@@ -9,6 +13,9 @@ from .domain import GENERIC, Domain, infer_domain
 from .filters import Filter
 from .graph import SCREEN_NAME, ExecutionPlan, TermGraph
 from .term import AssetExists, ComputableTerm, Term
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
 class Pipeline:
@@ -38,7 +45,12 @@ class Pipeline:
     __slots__ = ("_columns", "_screen", "_domain", "__weakref__")
 
     @expect_types(columns=optional(dict), screen=optional(Filter), domain=Domain)
-    def __init__(self, columns=None, screen=None, domain=GENERIC):
+    def __init__(
+        self,
+        columns: dict[str, ComputableTerm] | None = None,
+        screen: Filter | None = None,
+        domain: Domain = GENERIC,
+    ) -> None:
         if columns is None:
             columns = {}
 
@@ -56,7 +68,7 @@ class Pipeline:
         self._domain = domain
 
     @property
-    def columns(self):
+    def columns(self) -> dict[str, ComputableTerm]:
         """The output columns of this pipeline.
 
         Returns
@@ -67,7 +79,7 @@ class Pipeline:
         return self._columns
 
     @property
-    def screen(self):
+    def screen(self) -> Filter | None:
         """
         The screen of this pipeline.
 
@@ -90,7 +102,7 @@ class Pipeline:
         return self._screen
 
     @expect_types(term=Term, name=str)
-    def add(self, term, name, overwrite=False):
+    def add(self, term: ComputableTerm, name: str, overwrite: bool = False) -> None:
         """Add a column.
 
         The results of computing ``term`` will show up as a column in the
@@ -124,7 +136,7 @@ class Pipeline:
         self._columns[name] = term
 
     @expect_types(name=str)
-    def remove(self, name):
+    def remove(self, name: str) -> ComputableTerm:
         """Remove a column.
 
         Parameters
@@ -145,7 +157,7 @@ class Pipeline:
         return self.columns.pop(name)
 
     @expect_types(screen=Filter, overwrite=(bool, int))
-    def set_screen(self, screen, overwrite=False):
+    def set_screen(self, screen: Filter, overwrite: bool = False) -> None:
         """Set a screen on this Pipeline.
 
         Parameters
@@ -167,7 +179,13 @@ class Pipeline:
             )
         self._screen = screen
 
-    def to_execution_plan(self, domain, default_screen, start_date, end_date):
+    def to_execution_plan(
+        self,
+        domain: Domain,
+        default_screen: Term,
+        start_date: pd.Timestamp,
+        end_date: pd.Timestamp,
+    ) -> ExecutionPlan:
         """
         Compile into an ExecutionPlan.
 
@@ -205,7 +223,7 @@ class Pipeline:
             end_date=end_date,
         )
 
-    def to_simple_graph(self, default_screen):
+    def to_simple_graph(self, default_screen: Term) -> TermGraph:
         """
         Compile into a simple TermGraph with no extra row metadata.
 
@@ -221,9 +239,9 @@ class Pipeline:
         """
         return TermGraph(self._prepare_graph_terms(default_screen))
 
-    def _prepare_graph_terms(self, default_screen):
+    def _prepare_graph_terms(self, default_screen: Term) -> dict[str, Term]:
         """Helper for to_graph and to_execution_plan."""
-        columns = self.columns.copy()
+        columns: dict[str, Term] = dict(self.columns)
         screen = self.screen
         if screen is None:
             screen = default_screen
@@ -231,7 +249,7 @@ class Pipeline:
         return columns
 
     @expect_element(format=("svg", "png", "jpeg"))
-    def show_graph(self, format="svg"):
+    def show_graph(self, format: Literal["svg", "png", "jpeg"] = "svg"):
         """
         Render this Pipeline as a DAG.
 
@@ -254,26 +272,26 @@ class Pipeline:
 
     @staticmethod
     @expect_types(term=Term, column_name=str)
-    def validate_column(column_name, term):
+    def validate_column(column_name: str, term: Term) -> None:
         if term.ndim == 1:
             raise UnsupportedPipelineOutput(column_name=column_name, term=term)
 
     @property
-    def _output_terms(self):
+    def _output_terms(self) -> list[Term]:
         """
         A list of terms that are outputs of this pipeline.
 
         Includes all terms registered as data outputs of the pipeline, plus the
         screen, if present.
         """
-        terms = list(self._columns.values())
+        terms: list[Term] = list(self._columns.values())
         screen = self.screen
         if screen is not None:
             terms.append(screen)
         return terms
 
     @expect_types(default=Domain)
-    def domain(self, default):
+    def domain(self, default: Domain) -> Domain:
         """
         Get the domain for this pipeline.
 

@@ -2,15 +2,18 @@
 Base class for Filters, Factors and Classifiers
 """
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from bisect import insort
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from functools import cached_property
-from typing import Any
+from inspect import get_annotations
+from typing import TYPE_CHECKING, Any
 from weakref import WeakValueDictionary
 
 from numpy import (
     array,
+    datetime64,
     ndarray,
 )
 from numpy import (
@@ -48,7 +51,15 @@ from zipline.utils.sharedoc import (
 
 from .domain import GENERIC, Domain, infer_domain
 from .downsample_helpers import expect_downsample_frequency
-from .sentinels import NotSpecified
+from .sentinels import NotSpecified, NotSpecifiedType
+
+if TYPE_CHECKING:
+    from .filters import Filter
+
+#: The type of a term's missing value, the fill for asset/date pairs with no
+#: data: NaN or another number for numeric terms, NaT for datetimes, False for
+#: filters, and None, a string or bytes for string classifiers.
+type MissingValue = bool | int | float | datetime64 | str | bytes | None
 
 
 class Term(ABC):
@@ -84,9 +95,18 @@ class Term(ABC):
        attributes of a term after construction.
     """
 
-    # These are NotSpecified because a subclass is required to provide them.
-    dtype = NotSpecified
-    missing_value = NotSpecified
+    # Subclasses provide dtype, as a class attribute or constructor argument.
+    # missing_value defaults to the dtype's default missing value.
+    dtype: dtype_class
+    missing_value: MissingValue
+
+    #: The other Terms needed as inputs for ``self``.
+    inputs: Sequence[Term]
+
+    #: A :class:`~zipline.pipeline.Filter` representing asset/date pairs to
+    #: include while computing this Term (True means include, False means
+    #: exclude), or None for terms that are computed for every asset.
+    mask: Filter | None
 
     # Subclasses aren't required to provide `params`.  The default behavior is
     # no params. On a class, ``params`` names the term's parameters (a tuple of
@@ -131,9 +151,9 @@ class Term(ABC):
         if domain is NotSpecified:
             domain = cls.domain
         if dtype is NotSpecified:
-            dtype = cls.dtype
+            dtype = getattr(cls, "dtype", NotSpecified)
         if missing_value is NotSpecified:
-            missing_value = cls.missing_value
+            missing_value = getattr(cls, "missing_value", NotSpecified)
         if ndim is NotSpecified:
             ndim = cls.ndim
         if window_safe is NotSpecified:
@@ -353,28 +373,11 @@ class Term(ABC):
 
     @property
     @abstractmethod
-    def inputs(self):
-        """
-        A tuple of other Terms needed as inputs for ``self``.
-        """
-        raise NotImplementedError("inputs")
-
-    @property
-    @abstractmethod
     def windowed(self):
         """
         Boolean indicating whether this term is a trailing-window computation.
         """
         raise NotImplementedError("windowed")
-
-    @property
-    @abstractmethod
-    def mask(self):
-        """
-        A :class:`~zipline.pipeline.Filter` representing asset/date pairs to
-        while computing this Term. True means include; False means exclude.
-        """
-        raise NotImplementedError("mask")
 
     @property
     @abstractmethod
@@ -485,24 +488,26 @@ class ComputableTerm(Term):
     :class:`zipline.pipeline.Filter`, and :class:`zipline.pipeline.Classifier`.
     """
 
-    inputs = NotSpecified
-    outputs = NotSpecified
-    window_length = NotSpecified
-    mask = NotSpecified
+    # Subclasses provide inputs and window_length, as class attributes or
+    # constructor arguments. outputs is NotSpecified for terms with a single
+    # unnamed output.
+    outputs: tuple[str, ...] | NotSpecifiedType = NotSpecified
+    window_length: int
+    mask: Filter
     domain = NotSpecified
 
     def __new__(
         cls,
-        inputs=inputs,
-        outputs=outputs,
-        window_length=window_length,
-        mask=mask,
-        domain=domain,
+        inputs=NotSpecified,
+        outputs=NotSpecified,
+        window_length=NotSpecified,
+        mask=NotSpecified,
+        domain=NotSpecified,
         **kwargs,
     ):
 
         if inputs is NotSpecified:
-            inputs = cls.inputs
+            inputs = getattr(cls, "inputs", NotSpecified)
 
         # Having inputs = NotSpecified is an error, but we handle it later
         # in self._validate rather than here.
@@ -526,12 +531,12 @@ class ComputableTerm(Term):
             outputs = tuple(outputs)
 
         if mask is NotSpecified:
-            mask = cls.mask
+            mask = getattr(cls, "mask", NotSpecified)
         if mask is NotSpecified:
             mask = AssetExists()
 
         if window_length is NotSpecified:
-            window_length = cls.window_length
+            window_length = getattr(cls, "window_length", NotSpecified)
 
         return super().__new__(
             cls,
@@ -581,13 +586,17 @@ class ComputableTerm(Term):
         else:
             # Raise an exception if there are any naming conflicts between the
             # term's output names and certain attributes.
-            disallowed_names = [
-                attr for attr in dir(ComputableTerm) if not attr.startswith("_")
-            ]
-
-            # The name 'compute' is an added special case that is disallowed.
-            # Use insort to add it to the list in alphabetical order.
-            insort(disallowed_names, "compute")
+            # Attributes that are only declared, like ``inputs``, aren't in
+            # dir(), so take the annotated names too. The name 'compute' is
+            # an added special case that is disallowed.
+            annotated = {
+                name for cls in ComputableTerm.__mro__ for name in get_annotations(cls)
+            }
+            disallowed_names = sorted(
+                name
+                for name in {*dir(ComputableTerm), *annotated, "compute"}
+                if not name.startswith("_")
+            )
 
             for output in self.outputs:
                 if output.startswith("_") or output in disallowed_names:

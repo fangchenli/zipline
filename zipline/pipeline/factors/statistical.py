@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any
 
 import numpy as np
@@ -10,9 +12,9 @@ from scipy.stats import (
 
 from zipline.assets import Asset
 from zipline.errors import IncompatibleTerms
-from zipline.pipeline.factors import CustomFactor
+from zipline.pipeline.factors import CustomFactor, Factor
 from zipline.pipeline.filters import SingleAsset
-from zipline.pipeline.mixins import StandardOutputs
+from zipline.pipeline.mixins import SliceMixin, StandardOutputs
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import AssetExists
 from zipline.utils.input_validation import (
@@ -173,6 +175,13 @@ class RollingLinearRegression(CustomFactor):
     """
 
     outputs = ["alpha", "beta", "r_value", "p_value", "stderr"]
+
+    # The outputs, each a Factor (see CustomFactor.__getattribute__).
+    alpha: Factor
+    beta: Factor
+    r_value: Factor
+    p_value: Factor
+    stderr: Factor
 
     @expect_dtypes(dependent=ALLOWED_DTYPES, independent=ALLOWED_DTYPES)
     @expect_bounded(regression_length=(2, None))
@@ -484,6 +493,7 @@ class SimpleBeta(CustomFactor, StandardOutputs):
         NaN. Default behavior is that 25% of inputs can be missing.
     """
 
+    inputs: tuple[Factor, SliceMixin]
     window_safe = True
     dtype = float64_dtype
     params: Any = ("allowed_missing_count",)  # see Term.params
