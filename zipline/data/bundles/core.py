@@ -3,13 +3,14 @@ import logging
 import os
 import shutil
 import warnings
-from collections import namedtuple
+from collections.abc import Callable, Iterable, Mapping
 from contextlib import ExitStack
 from types import MappingProxyType
+from typing import Literal, NamedTuple, Protocol, Self, overload
 
 import click
 import pandas as pd
-from toolz import complement, curry, take
+from toolz import complement, take
 
 import zipline.utils.paths as pth
 from zipline.assets import ASSET_DB_VERSION, AssetDBWriter, AssetFinder
@@ -19,86 +20,103 @@ from zipline.utils.cache import (
     working_dir,
     working_file,
 )
-from zipline.utils.calendar_utils import get_calendar
+from zipline.utils.calendar_utils import ExchangeCalendar, get_calendar
 from zipline.utils.input_validation import ensure_timestamp, optionally
 from zipline.utils.preprocess import preprocess
 from zipline.utils.sqlite_utils import check_and_create_engine
 
 from ..adjustments import SQLiteAdjustmentReader, SQLiteAdjustmentWriter
+from ..minute_bars import MinuteBarReader
 from ..parquet_daily_bars import ParquetDailyBarReader, ParquetDailyBarWriter
 from ..parquet_minute_bars import ParquetMinuteBarReader, ParquetMinuteBarWriter
+from ..session_bars import CurrencyAwareSessionBarReader
 
 log = logging.getLogger(__name__)
 
 
-def asset_db_path(bundle_name, timestr, environ=None, db_version=None):
+def asset_db_path(
+    bundle_name: str,
+    timestr: str,
+    environ: Mapping[str, str] | None = None,
+    db_version: int | None = None,
+) -> str:
     return pth.data_path(
         asset_db_relative(bundle_name, timestr, db_version),
         environ=environ,
     )
 
 
-def minute_equity_path(bundle_name, timestr, environ=None):
+def minute_equity_path(
+    bundle_name: str, timestr: str, environ: Mapping[str, str] | None = None
+) -> str:
     return pth.data_path(
         minute_equity_relative(bundle_name, timestr),
         environ=environ,
     )
 
 
-def daily_equity_path(bundle_name, timestr, environ=None):
+def daily_equity_path(
+    bundle_name: str, timestr: str, environ: Mapping[str, str] | None = None
+) -> str:
     return pth.data_path(
         daily_equity_relative(bundle_name, timestr),
         environ=environ,
     )
 
 
-def adjustment_db_path(bundle_name, timestr, environ=None):
+def adjustment_db_path(
+    bundle_name: str, timestr: str, environ: Mapping[str, str] | None = None
+) -> str:
     return pth.data_path(
         adjustment_db_relative(bundle_name, timestr),
         environ=environ,
     )
 
 
-def cache_path(bundle_name, environ=None):
+def cache_path(bundle_name: str, environ: Mapping[str, str] | None = None) -> str:
     return pth.data_path(
         cache_relative(bundle_name),
         environ=environ,
     )
 
 
-def adjustment_db_relative(bundle_name, timestr):
+def adjustment_db_relative(bundle_name: str, timestr: str) -> tuple[str, str, str]:
     return bundle_name, timestr, "adjustments.sqlite"
 
 
-def cache_relative(bundle_name):
+def cache_relative(bundle_name: str) -> tuple[str, str]:
     return bundle_name, ".cache"
 
 
-def daily_equity_relative(bundle_name, timestr):
+def daily_equity_relative(bundle_name: str, timestr: str) -> tuple[str, str, str]:
     return bundle_name, timestr, "daily_equities.parquet"
 
 
-def bcolz_daily_equity_relative(bundle_name, timestr):
+def bcolz_daily_equity_relative(bundle_name: str, timestr: str) -> tuple[str, str, str]:
     """Where ingestions made before zipline 2.0 stored their daily bars."""
     return bundle_name, timestr, "daily_equities.bcolz"
 
 
-def minute_equity_relative(bundle_name, timestr):
+def minute_equity_relative(bundle_name: str, timestr: str) -> tuple[str, str, str]:
     return bundle_name, timestr, "minute_equities.parquet"
 
 
-def bcolz_minute_equity_relative(bundle_name, timestr):
+def bcolz_minute_equity_relative(
+    bundle_name: str, timestr: str
+) -> tuple[str, str, str]:
     """Where ingestions made before zipline 2.0 stored their minute bars."""
     return bundle_name, timestr, "minute_equities.bcolz"
 
 
-def asset_db_relative(bundle_name, timestr, db_version=None):
+def asset_db_relative(
+    bundle_name: str, timestr: str, db_version: int | None = None
+) -> tuple[str, str, str]:
     db_version = ASSET_DB_VERSION if db_version is None else db_version
 
     return bundle_name, timestr, f"assets-{db_version}.sqlite"
 
 
-def to_bundle_ingest_dirname(ts):
+def to_bundle_ingest_dirname(ts: pd.Timestamp) -> str:
     """Convert a pandas Timestamp into the name of the directory for the
     ingestion.
 
@@ -115,7 +133,7 @@ def to_bundle_ingest_dirname(ts):
     return ts.isoformat().replace(":", ";")
 
 
-def from_bundle_ingest_dirname(cs):
+def from_bundle_ingest_dirname(cs: str) -> pd.Timestamp:
     """Read a bundle ingestion directory name into a pandas Timestamp.
 
     Parameters
@@ -131,7 +149,9 @@ def from_bundle_ingest_dirname(cs):
     return pd.Timestamp(cs.replace(";", ":"))
 
 
-def ingestions_for_bundle(bundle, environ=None):
+def ingestions_for_bundle(
+    bundle: str, environ: Mapping[str, str] | None = None
+) -> list[pd.Timestamp]:
     return sorted(
         (
             from_bundle_ingest_dirname(ing)
@@ -142,7 +162,7 @@ def ingestions_for_bundle(bundle, environ=None):
     )
 
 
-def _require_bcolz(bundle):
+def _require_bcolz(bundle: str) -> None:
     """Check that the optional bcolz support, for ``bundle``'s ingestions made
     before zipline 2.0, is installed.
     """
@@ -157,7 +177,12 @@ def _require_bcolz(bundle):
         ) from e
 
 
-def convert(bundle, environ=None, delete_bcolz=False, show_progress=False):
+def convert(
+    bundle: str,
+    environ: Mapping[str, str] | None = None,
+    delete_bcolz: bool = False,
+    show_progress: bool = False,
+) -> list[str]:
     """Convert a bundle's bcolz daily and minute bars to Parquet.
 
     Bundles ingested before zipline 2.0 stored their bars with bcolz. This
@@ -211,49 +236,78 @@ def convert(bundle, environ=None, delete_bcolz=False, show_progress=False):
     return converted
 
 
-RegisteredBundle = namedtuple(
-    "RegisteredBundle",
+#: An ingest function: ``register`` passes it, positionally, the environment,
+#: the writers for the asset db, minute bars, daily bars and adjustments, the
+#: calendar, the first and last sessions to ingest, a cache for
+#: intermediate results, whether to show progress, and the ingestion's
+#: output directory.
+type IngestFunction = Callable[
     [
-        "calendar_name",
-        "start_session",
-        "end_session",
-        "minutes_per_day",
-        "ingest",
-        "create_writers",
+        Mapping[str, str],
+        AssetDBWriter,
+        ParquetMinuteBarWriter,
+        ParquetDailyBarWriter,
+        SQLiteAdjustmentWriter,
+        ExchangeCalendar,
+        pd.Timestamp,
+        pd.Timestamp,
+        dataframe_cache,
+        bool,
+        str,
     ],
-)
+    object,
+]
+
+#: An ingest function registered with ``create_writers=False``, which gets
+#: None for each writer.
+type WriterlessIngestFunction = Callable[
+    [
+        Mapping[str, str],
+        None,
+        None,
+        None,
+        None,
+        ExchangeCalendar,
+        pd.Timestamp,
+        pd.Timestamp,
+        dataframe_cache,
+        bool,
+        str,
+    ],
+    object,
+]
 
 
-class BundleData(
-    namedtuple(
-        "BundleData",
-        "asset_finder equity_minute_bar_reader equity_daily_bar_reader "
-        "adjustment_reader",
-    )
-):
+class RegisteredBundle(NamedTuple):
+    calendar_name: str
+    start_session: pd.Timestamp | None
+    end_session: pd.Timestamp | None
+    minutes_per_day: int | None
+    ingest: Callable[..., object]
+    create_writers: bool
+
+
+class BundleData(NamedTuple):
     """The readers for an ingested bundle.
 
     Call :meth:`close` (or use the bundle as a context manager) to release the
     database connections held by the asset finder and adjustment reader.
     """
 
-    __slots__ = ()
+    asset_finder: AssetFinder
+    equity_minute_bar_reader: MinuteBarReader
+    equity_daily_bar_reader: CurrencyAwareSessionBarReader
+    adjustment_reader: SQLiteAdjustmentReader
 
-    def close(self):
+    def close(self) -> None:
         self.asset_finder.engine.dispose()
         self.adjustment_reader.close()
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, *exc_info):
+    def __exit__(self, *exc_info: object) -> None:
         self.close()
-
-
-BundleCore = namedtuple(
-    "BundleCore",
-    "bundles register unregister ingest load clean",
-)
 
 
 class UnknownBundle(click.ClickException, LookupError):
@@ -296,41 +350,90 @@ class BadClean(click.ClickException, ValueError):
         return self.message
 
 
-def _make_bundle_core():
-    """Create a family of data bundle functions that read from the same
-    bundle mapping.
+class _IngestDecorator(Protocol):
+    """What ``register(name)`` returns: a decorator registering an ingest
+    function."""
 
-    Returns
-    -------
-    bundles : MappingProxyType
-        The mapping of bundles to bundle payloads.
-    register : callable
-        The function which registers new bundles in the ``bundles`` mapping.
-    unregister : callable
-        The function which deregisters bundles from the ``bundles`` mapping.
-    ingest : callable
-        The function which downloads and write data for a given data bundle.
-    load : callable
-        The function which loads the ingested bundles back into memory.
-    clean : callable
-        The function which cleans up data written with ``ingest``.
+    def __call__[F: IngestFunction](self, f: F, /) -> F: ...
+
+
+class _WriterlessIngestDecorator(Protocol):
+    """What ``register(name, create_writers=False)`` returns."""
+
+    def __call__[F: WriterlessIngestFunction](self, f: F, /) -> F: ...
+
+
+class BundleCore:
+    """A family of data bundle functions that read from the same mapping of
+    registered bundles.
+
+    zipline's own is at module level: :data:`bundles`, :func:`register`,
+    :func:`unregister`, :func:`ingest`, :func:`load` and :func:`clean`.
     """
-    _bundles = {}  # the registered bundles
-    # Expose _bundles through a proxy so that users cannot mutate this
-    # accidentally. Users may go through `register` to update this which will
-    # warn when trampling another bundle.
-    bundles = MappingProxyType(_bundles)
 
-    @curry
+    def __init__(self) -> None:
+        self._bundles: dict[str, RegisteredBundle] = {}
+        # Expose _bundles through a proxy so that users cannot mutate this
+        # accidentally. Users may go through `register` to update this which
+        # will warn when trampling another bundle.
+        self.bundles: Mapping[str, RegisteredBundle] = MappingProxyType(self._bundles)
+
+    @overload
+    def register[F: IngestFunction](
+        self,
+        name: str,
+        f: F,
+        calendar_name: str = "NYSE",
+        start_session: pd.Timestamp | None = None,
+        end_session: pd.Timestamp | None = None,
+        minutes_per_day: int | None = None,
+        create_writers: Literal[True] = True,
+    ) -> F: ...
+    @overload
+    def register[F: WriterlessIngestFunction](
+        self,
+        name: str,
+        f: F,
+        calendar_name: str = "NYSE",
+        start_session: pd.Timestamp | None = None,
+        end_session: pd.Timestamp | None = None,
+        minutes_per_day: int | None = None,
+        *,
+        create_writers: Literal[False],
+    ) -> F: ...
+    @overload
     def register(
-        name,
-        f,
-        calendar_name="NYSE",
-        start_session=None,
-        end_session=None,
-        minutes_per_day=None,
-        create_writers=True,
-    ):
+        self,
+        name: str,
+        f: None = None,
+        calendar_name: str = "NYSE",
+        start_session: pd.Timestamp | None = None,
+        end_session: pd.Timestamp | None = None,
+        minutes_per_day: int | None = None,
+        create_writers: Literal[True] = True,
+    ) -> _IngestDecorator: ...
+    @overload
+    def register(
+        self,
+        name: str,
+        f: None = None,
+        calendar_name: str = "NYSE",
+        start_session: pd.Timestamp | None = None,
+        end_session: pd.Timestamp | None = None,
+        minutes_per_day: int | None = None,
+        *,
+        create_writers: Literal[False],
+    ) -> _WriterlessIngestDecorator: ...
+    def register(
+        self,
+        name: str,
+        f: Callable[..., object] | None = None,
+        calendar_name: str = "NYSE",
+        start_session: pd.Timestamp | None = None,
+        end_session: pd.Timestamp | None = None,
+        minutes_per_day: int | None = None,
+        create_writers: bool = True,
+    ) -> Callable[..., object]:
         """Register a data bundle ingest function.
 
         Parameters
@@ -384,7 +487,8 @@ def _make_bundle_core():
 
         Notes
         -----
-        This function my be used as a decorator, for example:
+        Without ``f``, this returns a decorator that registers the function it
+        decorates, for example:
 
         .. code-block:: python
 
@@ -396,7 +500,37 @@ def _make_bundle_core():
         --------
         zipline.data.bundles.bundles
         """
-        if name in bundles:
+        options = (
+            calendar_name,
+            start_session,
+            end_session,
+            minutes_per_day,
+            create_writers,
+        )
+        if f is None:
+
+            def decorator(f: Callable[..., object]) -> Callable[..., object]:
+                self._add(name, f, *options)
+                return f
+
+            return decorator
+
+        self._add(name, f, *options)
+        return f
+
+    def _add(
+        self,
+        name: str,
+        f: Callable[..., object],
+        calendar_name: str,
+        start_session: pd.Timestamp | None,
+        end_session: pd.Timestamp | None,
+        minutes_per_day: int | None,
+        create_writers: bool,
+    ) -> None:
+        # Called from register or the decorator it returns, so stacklevel 3
+        # is register's caller either way.
+        if name in self.bundles:
             warnings.warn(
                 f"Overwriting bundle with name {name!r}",
                 stacklevel=3,
@@ -413,7 +547,7 @@ def _make_bundle_core():
         # `register` is called at module scope in zipline, and creating a
         # calendar currently takes between 0.5 and 1 seconds, which causes a
         # noticeable delay on the zipline CLI.
-        _bundles[name] = RegisteredBundle(
+        self._bundles[name] = RegisteredBundle(
             calendar_name=calendar_name,
             start_session=start_session,
             end_session=end_session,
@@ -421,9 +555,8 @@ def _make_bundle_core():
             ingest=f,
             create_writers=create_writers,
         )
-        return f
 
-    def unregister(name):
+    def unregister(self, name: str) -> None:
         """Unregister a bundle.
 
         Parameters
@@ -441,17 +574,18 @@ def _make_bundle_core():
         zipline.data.bundles.bundles
         """
         try:
-            del _bundles[name]
+            del self._bundles[name]
         except KeyError:
             raise UnknownBundle(name) from None
 
     def ingest(
-        name,
-        environ=os.environ,
-        timestamp=None,
-        assets_versions=(),
-        show_progress=False,
-    ):
+        self,
+        name: str,
+        environ: Mapping[str, str] = os.environ,
+        timestamp: pd.Timestamp | None = None,
+        assets_versions: Iterable[int] = (),
+        show_progress: bool = False,
+    ) -> None:
         """Ingest data for a given bundle.
 
         Parameters
@@ -468,8 +602,10 @@ def _make_bundle_core():
         show_progress : bool, optional
             Tell the ingest function to display the progress where possible.
         """
+        # A list, since an iterator would always test true.
+        downgrade_versions = sorted(set(assets_versions), reverse=True)
         try:
-            bundle = bundles[name]
+            bundle = self.bundles[name]
         except KeyError:
             raise UnknownBundle(name) from None
 
@@ -533,7 +669,7 @@ def _make_bundle_core():
                 minute_bar_writer = None
                 asset_db_writer = None
                 adjustment_db_writer = None
-                if assets_versions:
+                if downgrade_versions:
                     raise ValueError(
                         "Need to ingest a bundle that creates "
                         "writers in order to downgrade the assets"
@@ -559,7 +695,7 @@ def _make_bundle_core():
                 if writer is not None and not writer.exists:
                     writer.write(())
 
-            for version in sorted(set(assets_versions), reverse=True):
+            for version in downgrade_versions:
                 version_path = wd.getpath(
                     *asset_db_relative(
                         name,
@@ -575,7 +711,12 @@ def _make_bundle_core():
                     finally:
                         engine.dispose()
 
-    def most_recent_data(bundle_name, timestamp, environ=None):
+    def most_recent_data(
+        self,
+        bundle_name: str,
+        timestamp: pd.Timestamp,
+        environ: Mapping[str, str] | None = None,
+    ) -> str:
         """Get the path to the most recent data after ``date``for the
         given bundle.
 
@@ -588,7 +729,7 @@ def _make_bundle_core():
         environ : dict, optional
             An environment dict to forward to zipline_root.
         """
-        if bundle_name not in bundles:
+        if bundle_name not in self.bundles:
             raise UnknownBundle(bundle_name)
 
         try:
@@ -613,7 +754,12 @@ def _make_bundle_core():
                 f"maybe you need to run: $ zipline ingest -b {bundle_name}",
             ) from e
 
-    def load(name, environ=os.environ, timestamp=None):
+    def load(
+        self,
+        name: str,
+        environ: Mapping[str, str] = os.environ,
+        timestamp: pd.Timestamp | None = None,
+    ) -> BundleData:
         """Loads a previously ingested bundle.
 
         Parameters
@@ -633,7 +779,7 @@ def _make_bundle_core():
         """
         if timestamp is None:
             timestamp = pd.Timestamp.now("UTC")
-        timestr = most_recent_data(name, timestamp, environ=environ)
+        timestr = self.most_recent_data(name, timestamp, environ=environ)
         daily_path = daily_equity_path(name, timestr, environ=environ)
         minute_path = minute_equity_path(name, timestr, environ=environ)
         if not (os.path.exists(daily_path) and os.path.exists(minute_path)):
@@ -681,7 +827,14 @@ def _make_bundle_core():
         before=optionally(ensure_timestamp),
         after=optionally(ensure_timestamp),
     )
-    def clean(name, before=None, after=None, keep_last=None, environ=os.environ):
+    def clean(
+        self,
+        name: str,
+        before: pd.Timestamp | None = None,
+        after: pd.Timestamp | None = None,
+        keep_last: int | None = None,
+        environ: Mapping[str, str] = os.environ,
+    ) -> set[str]:
         """Clean up data that was created with ``ingest`` or
         ``$ python -m zipline ingest``
 
@@ -758,7 +911,12 @@ def _make_bundle_core():
 
         return cleaned
 
-    return BundleCore(bundles, register, unregister, ingest, load, clean)
 
-
-bundles, register, unregister, ingest, load, clean = _make_bundle_core()
+_core = BundleCore()
+#: The registered bundles, by name.
+bundles = _core.bundles
+register = _core.register
+unregister = _core.unregister
+ingest = _core.ingest
+load = _core.load
+clean = _core.clean

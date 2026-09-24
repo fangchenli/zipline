@@ -11,7 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 from abc import abstractmethod
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    import numpy as np
+    import pandas as pd
 
 from zipline.data.bar_reader import BarReader
 
@@ -22,12 +30,12 @@ class SessionBarReader(BarReader):
     """
 
     @property
-    def data_frequency(self):
+    def data_frequency(self) -> Literal["session"]:
         return "session"
 
     @property
     @abstractmethod
-    def sessions(self):
+    def sessions(self) -> pd.DatetimeIndex:
         """
         Returns
         -------
@@ -39,7 +47,7 @@ class SessionBarReader(BarReader):
 
 class CurrencyAwareSessionBarReader(SessionBarReader):
     @abstractmethod
-    def currency_codes(self, sids):
+    def currency_codes(self, sids: Sequence[int] | np.ndarray) -> np.ndarray:
         """
         Get currencies in which prices are quoted for the requested sids.
 

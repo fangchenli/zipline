@@ -1,73 +1,109 @@
-from typing import Any
+from collections.abc import Mapping
+from typing import ClassVar, Self, SupportsIndex
+
+import numpy as np
+import pandas as pd
+
+from zipline.assets.exchange_info import ExchangeInfo
 
 class Asset:
-    def __eq__(self, value, /) -> Any: ...
-    def __ge__(self, value, /) -> Any: ...
-    def __gt__(self, value, /) -> Any: ...
-    def __hash__(self, /) -> Any: ...
+    """Base class for entities that can be owned by a trading algorithm."""
+
+    _kwargnames: ClassVar[frozenset[str]]
+
     def __init__(
         self,
         sid: int,
-        exchange_info,
-        symbol="",
-        asset_name="",
-        start_date=None,
-        end_date=None,
-        first_traded=None,
-        auto_close_date=None,
-        tick_size=0.01,
+        exchange_info: ExchangeInfo,
+        symbol: str = "",
+        asset_name: str = "",
+        start_date: pd.Timestamp | None = None,
+        end_date: pd.Timestamp | None = None,
+        first_traded: pd.Timestamp | None = None,
+        auto_close_date: pd.Timestamp | None = None,
+        tick_size: float = 0.01,
         multiplier: float = 1.0,
     ) -> None: ...
-    def __le__(self, value, /) -> Any: ...
-    def __lt__(self, value, /) -> Any: ...
-    def __ne__(self, value, /) -> Any: ...
-    _kwargnames: Any
-    asset_name: Any
-    auto_close_date: Any
-    country_code: Any
-    end_date: Any
-    exchange: Any
-    exchange_full: Any
-    exchange_info: Any
-    first_traded: Any
+    @property
+    def sid(self) -> int: ...
+    @property
+    def exchange_info(self) -> ExchangeInfo: ...
+    @property
+    def symbol(self) -> str: ...
+    @property
+    def asset_name(self) -> str: ...
+    @property
+    def start_date(self) -> pd.Timestamp | None: ...
+    @property
+    def end_date(self) -> pd.Timestamp | None: ...
+    first_traded: pd.Timestamp | None
+    @property
+    def auto_close_date(self) -> pd.Timestamp | None: ...
+    @property
+    def tick_size(self) -> float: ...
+    @property
+    def price_multiplier(self) -> float: ...
+    @property
+    def exchange(self) -> str: ...
+    @property
+    def exchange_full(self) -> str: ...
+    @property
+    def country_code(self) -> str: ...
+
+    # Assets compare and hash as their sids, so they compare with ints too.
+    def __int__(self) -> int: ...
+    def __index__(self) -> int: ...
+    def __hash__(self) -> int: ...
+    def __eq__(self, value: object, /) -> bool: ...
+    def __ne__(self, value: object, /) -> bool: ...
+    def __lt__(self, value: SupportsIndex, /) -> bool: ...
+    def __le__(self, value: SupportsIndex, /) -> bool: ...
+    def __gt__(self, value: SupportsIndex, /) -> bool: ...
+    def __ge__(self, value: SupportsIndex, /) -> bool: ...
+    def to_dict(self) -> dict[str, object]: ...
     @classmethod
-    def from_dict(cls, dict_) -> Any: ...
-    def is_alive_for_session(self, session_label) -> Any: ...
-    def is_exchange_open(self, dt_minute) -> Any: ...
-    price_multiplier: float
-    sid: int
-    start_date: Any
-    symbol: Any
-    tick_size: Any
-    def to_dict(self) -> Any: ...
+    def from_dict(cls, dict_: Mapping[str, object]) -> Self: ...
+    def is_alive_for_session(self, session_label: pd.Timestamp) -> bool: ...
+    def is_exchange_open(self, dt_minute: pd.Timestamp) -> bool: ...
 
 class Equity(Asset):
-    security_end_date: Any
-    security_name: Any
-    security_start_date: Any
+    """Asset subclass representing partial ownership of a company, trust, or
+    partnership."""
+
+    @property
+    def security_start_date(self) -> pd.Timestamp | None: ...
+    @property
+    def security_end_date(self) -> pd.Timestamp | None: ...
+    @property
+    def security_name(self) -> str: ...
 
 class Future(Asset):
+    """Asset subclass representing ownership of a futures contract."""
+
     def __init__(
         self,
         sid: int,
-        exchange_info,
-        symbol="",
-        root_symbol="",
-        asset_name="",
-        start_date=None,
-        end_date=None,
-        notice_date=None,
-        expiration_date=None,
-        auto_close_date=None,
-        first_traded=None,
-        tick_size=0.001,
+        exchange_info: ExchangeInfo,
+        symbol: str = "",
+        root_symbol: str = "",
+        asset_name: str = "",
+        start_date: pd.Timestamp | None = None,
+        end_date: pd.Timestamp | None = None,
+        notice_date: pd.Timestamp | None = None,
+        expiration_date: pd.Timestamp | None = None,
+        auto_close_date: pd.Timestamp | None = None,
+        first_traded: pd.Timestamp | None = None,
+        tick_size: float = 0.001,
         multiplier: float = 1.0,
     ) -> None: ...
-    _kwargnames: Any
-    expiration_date: Any
-    multiplier: Any
-    notice_date: Any
-    root_symbol: Any
-    def to_dict(self) -> Any: ...
+    @property
+    def root_symbol(self) -> str: ...
+    @property
+    def notice_date(self) -> pd.Timestamp | None: ...
+    @property
+    def expiration_date(self) -> pd.Timestamp | None: ...
+    @property
+    def multiplier(self) -> float:
+        """Deprecated: use ``price_multiplier``."""
 
-def make_asset_array(size: int, asset: Asset) -> Any: ...
+def make_asset_array(size: int, asset: Asset) -> np.ndarray: ...
