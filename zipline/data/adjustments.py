@@ -1,17 +1,21 @@
+from __future__ import annotations
+
 import logging
 import sqlite3
-from collections import namedtuple
+from collections.abc import Iterable, Sequence
 from errno import ENOENT
 from os import remove
+from typing import TYPE_CHECKING, Literal, NamedTuple, Self
 
 import numpy as np
 import pandas as pd
 from numpy import integer as any_integer
 from pandas import Timestamp
 
-from zipline.lib.adjustment import Float64Multiply
+from zipline.assets import Asset
+from zipline.assets.assets import expect_asset_type
+from zipline.lib.adjustment import Adjustment, Float64Multiply
 from zipline.utils.functional import keysorted
-from zipline.utils.input_validation import preprocess
 from zipline.utils.numpy_utils import (
     datetime64ns_dtype,
     float64_dtype,
@@ -20,7 +24,16 @@ from zipline.utils.numpy_utils import (
     uint64_dtype,
 )
 from zipline.utils.pandas_utils import empty_dataframe
-from zipline.utils.sqlite_utils import coerce_string_to_conn, group_into_chunks
+from zipline.utils.sqlite_utils import check_and_create_connection, group_into_chunks
+
+if TYPE_CHECKING:
+    from zipline.assets import AssetFinder
+
+#: Which adjustments to load: to prices, to volumes, or both.
+type AdjustmentType = Literal["price", "volume", "all"]
+
+#: Adjustments by the position of the date from which they apply.
+type AdjustmentsByDate = dict[int, list[Adjustment]]
 
 log = logging.getLogger(__name__)
 
@@ -32,17 +45,28 @@ SELECT sid, amount, pay_date from dividend_payouts
 WHERE ex_date=? AND sid IN ({0})
 """
 
-Dividend = namedtuple("Dividend", ["asset", "amount", "pay_date"])
+
+class Dividend(NamedTuple):
+    """A cash dividend going ex on a date."""
+
+    asset: Asset
+    amount: float
+    pay_date: pd.Timestamp
+
 
 UNPAID_STOCK_DIVIDEND_QUERY_TEMPLATE = """
 SELECT sid, payment_sid, ratio, pay_date from stock_dividend_payouts
 WHERE ex_date=? AND sid IN ({0})
 """
 
-StockDividend = namedtuple(
-    "StockDividend",
-    ["asset", "payment_asset", "ratio", "pay_date"],
-)
+
+class StockDividend(NamedTuple):
+    """A stock dividend going ex on a date, paid in ``payment_asset``."""
+
+    asset: Asset
+    payment_asset: Asset
+    ratio: float
+    pay_date: pd.Timestamp
 
 
 SQLITE_ADJUSTMENT_COLUMN_DTYPES = {
@@ -132,28 +156,29 @@ class SQLiteAdjustmentReader:
         ),
     }
 
-    @preprocess(conn=coerce_string_to_conn(require_exists=True))
-    def __init__(self, conn):
+    def __init__(self, conn: str | sqlite3.Connection) -> None:
+        if isinstance(conn, str):
+            conn = check_and_create_connection(conn, require_exists=True)
         self.conn = conn
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, *exc_info):
+    def __exit__(self, *exc_info: object) -> None:
         self.close()
 
-    def close(self):
-        return self.conn.close()
+    def close(self) -> None:
+        self.conn.close()
 
     def load_adjustments(
         self,
-        dates,
-        assets,
-        should_include_splits,
-        should_include_mergers,
-        should_include_dividends,
-        adjustment_type,
-    ):
+        dates: pd.DatetimeIndex,
+        assets: pd.Index,
+        should_include_splits: bool,
+        should_include_mergers: bool,
+        should_include_dividends: bool,
+        adjustment_type: AdjustmentType,
+    ) -> dict[str, AdjustmentsByDate]:
         """
         Load collection of Adjustment objects from underlying adjustments db.
 
@@ -189,7 +214,9 @@ class SQLiteAdjustmentReader:
             adjustment_type,
         )
 
-    def load_pricing_adjustments(self, columns, dates, assets):
+    def load_pricing_adjustments(
+        self, columns: Sequence[str], dates: pd.DatetimeIndex, assets: pd.Index
+    ) -> list[AdjustmentsByDate | None]:
         if "volume" not in set(columns):
             adjustment_type = "price"
         elif len(set(columns)) == 1:
@@ -213,7 +240,9 @@ class SQLiteAdjustmentReader:
             for column in columns
         ]
 
-    def get_adjustments_for_sid(self, table_name, sid):
+    def get_adjustments_for_sid(
+        self, table_name: str, sid: int
+    ) -> list[list[pd.Timestamp | float]]:
         t = (sid,)
         c = self.conn.cursor()
         adjustments_for_sid = c.execute(
@@ -226,7 +255,9 @@ class SQLiteAdjustmentReader:
             for adjustment in adjustments_for_sid
         ]
 
-    def get_dividends_with_ex_date(self, assets, date, asset_finder):
+    def get_dividends_with_ex_date(
+        self, assets: Iterable[int], date: pd.Timestamp, asset_finder: AssetFinder
+    ) -> list[Dividend]:
         seconds = date.value / int(1e9)
         c = self.conn.cursor()
 
@@ -240,7 +271,7 @@ class SQLiteAdjustmentReader:
             rows = c.fetchall()
             for row in rows:
                 div = Dividend(
-                    asset_finder.retrieve_asset(row[0]),
+                    expect_asset_type(asset_finder.retrieve_asset(row[0]), Asset),
                     row[1],
                     Timestamp(row[2], unit="s"),
                 )
@@ -249,7 +280,9 @@ class SQLiteAdjustmentReader:
 
         return divs
 
-    def get_stock_dividends_with_ex_date(self, assets, date, asset_finder):
+    def get_stock_dividends_with_ex_date(
+        self, assets: Iterable[int], date: pd.Timestamp, asset_finder: AssetFinder
+    ) -> list[StockDividend]:
         seconds = date.value / int(1e9)
         c = self.conn.cursor()
 
@@ -266,8 +299,8 @@ class SQLiteAdjustmentReader:
 
             for row in rows:
                 stock_div = StockDividend(
-                    asset_finder.retrieve_asset(row[0]),  # asset
-                    asset_finder.retrieve_asset(row[1]),  # payment_asset
+                    expect_asset_type(asset_finder.retrieve_asset(row[0]), Asset),
+                    expect_asset_type(asset_finder.retrieve_asset(row[1]), Asset),
                     row[2],
                     Timestamp(row[3], unit="s"),
                 )
@@ -276,7 +309,9 @@ class SQLiteAdjustmentReader:
 
         return stock_divs
 
-    def unpack_db_to_component_dfs(self, convert_dates=False):
+    def unpack_db_to_component_dfs(
+        self, convert_dates: bool = False
+    ) -> dict[str, pd.DataFrame]:
         """Returns the set of known tables in the adjustments file in DataFrame
         form.
 
@@ -299,7 +334,9 @@ class SQLiteAdjustmentReader:
             for t_name in self._datetime_int_cols
         }
 
-    def get_df_from_table(self, table_name, convert_dates=False):
+    def get_df_from_table(
+        self, table_name: str, convert_dates: bool = False
+    ) -> pd.DataFrame:
         try:
             date_cols = self._datetime_int_cols[table_name]
         except KeyError:

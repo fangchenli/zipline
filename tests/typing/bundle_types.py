@@ -27,6 +27,7 @@ from zipline.data.bundles import (
     register,
 )
 from zipline.data.bundles.core import BundleData, RegisteredBundle
+from zipline.data.data_portal import DataPortal, SpotValue
 from zipline.data.minute_bars import MinuteBarReader
 from zipline.data.parquet_daily_bars import ParquetDailyBarWriter
 from zipline.data.parquet_minute_bars import ParquetMinuteBarWriter
@@ -100,3 +101,24 @@ def use_asset_finder(finder: AssetFinder, session: pd.Timestamp) -> None:
         finder.lookup_generic("AAPL", session, "US")[0], Asset | ContinuousFuture
     )
     assert_type(finder.sids, tuple[int, ...])
+
+
+def use_data_portal(
+    data: BundleData, calendar: ExchangeCalendar, aapl: Equity, now: pd.Timestamp
+) -> None:
+    portal = DataPortal(
+        data.asset_finder,
+        calendar,
+        data.equity_daily_bar_reader.first_trading_day,
+        equity_daily_reader=data.equity_daily_bar_reader,
+        equity_minute_reader=data.equity_minute_bar_reader,
+        adjustment_reader=data.adjustment_reader,
+    )
+    history = portal.get_history_window([aapl], now, 20, "1d", "close", "daily")
+    assert_type(history, pd.DataFrame)
+    assert_type(portal.get_spot_value([aapl], "close", now, "daily"), list[SpotValue])
+    assert_type(portal.get_splits([aapl], now), list[tuple[Asset, float]])
+    dividends = data.adjustment_reader.get_dividends_with_ex_date(
+        [aapl.sid], now, data.asset_finder
+    )
+    assert_type(dividends[0].pay_date, pd.Timestamp)

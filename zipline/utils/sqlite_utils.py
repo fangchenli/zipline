@@ -39,7 +39,7 @@ def verify_sqlite_path_exists(path):
         raise ValueError(f"SQLite file {path!r} doesn't exist.")
 
 
-def check_and_create_connection(path, require_exists):
+def check_and_create_connection(path: str, require_exists: bool) -> sqlite3.Connection:
     if require_exists:
         verify_sqlite_path_exists(path)
     return sqlite3.connect(path)
