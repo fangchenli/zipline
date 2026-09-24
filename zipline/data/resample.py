@@ -714,7 +714,7 @@ class ReindexMinuteBarReader(ReindexBarReader, MinuteBarReader):
         return self._trading_calendar.minutes_in_range(start_dt, end_dt)
 
     def _inner_dts(self, start_dt, end_dt):
-        return self._reader.calendar.minutes_in_range(start_dt, end_dt)
+        return self._reader.trading_calendar.minutes_in_range(start_dt, end_dt)
 
 
 class ReindexSessionBarReader(ReindexBarReader, SessionBarReader):

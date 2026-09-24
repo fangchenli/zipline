@@ -68,6 +68,10 @@ from ..data.parquet_daily_bars import (
     ParquetDailyBarReader,
     ParquetDailyBarWriter,
 )
+from ..data.parquet_minute_bars import (
+    ParquetMinuteBarReader,
+    ParquetMinuteBarWriter,
+)
 from ..data.resample import (
     MinuteResampleSessionBarReader,
     minute_frame_to_session_frame,
@@ -1572,18 +1576,81 @@ class WithBcolzEquityMinuteBarReader(WithEquityMinuteBarData, WithTmpDir):
         cls.bcolz_equity_minute_bar_path = p = (
             cls.make_bcolz_equity_minute_bar_rootdir_path()
         )
-        days = cls.equity_minute_bar_days
+        cls.bcolz_equity_minute_bar_reader = _write_equity_minute_bars(cls, "bcolz", p)
 
-        writer = BcolzMinuteBarWriter(
-            p,
-            cls.trading_calendars[Equity],
-            days[0],
-            days[-1],
-            US_EQUITIES_MINUTES_PER_DAY,
+
+class WithParquetEquityMinuteBarReader(WithEquityMinuteBarData, WithTmpDir):
+    """
+    ZiplineTestCase mixin providing cls.parquet_equity_minute_bar_path and
+    cls.parquet_equity_minute_bar_reader class level fixtures.
+
+    After init_class_fixtures has been called:
+    - `cls.parquet_equity_minute_bar_path` is the dataset's root directory, a
+      subdirectory PARQUET_EQUITY_MINUTE_BAR_PATH of the shared temp directory.
+    - `cls.parquet_equity_minute_bar_reader` reads the data returned from
+      `cls.make_equity_minute_bar_data`.
+
+    Attributes
+    ----------
+    PARQUET_EQUITY_MINUTE_BAR_PATH : str
+        The path inside the tmpdir where the dataset will be written.
+    """
+
+    PARQUET_EQUITY_MINUTE_BAR_PATH = "minute_equity_pricing.parquet"
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super().init_class_fixtures()
+        cls.parquet_equity_minute_bar_path = path = cls.tmpdir.getpath(
+            cls.PARQUET_EQUITY_MINUTE_BAR_PATH
         )
-        writer.write(cls.make_equity_minute_bar_data())
+        cls.parquet_equity_minute_bar_reader = _write_equity_minute_bars(
+            cls, "parquet", path
+        )
 
-        cls.bcolz_equity_minute_bar_reader = BcolzMinuteBarReader(p)
+
+class WithEquityMinuteBarReader(WithEquityMinuteBarData, WithTmpDir):
+    """
+    ZiplineTestCase mixin providing cls.equity_minute_bar_reader, a reader of
+    the data returned by `cls.make_equity_minute_bar_data` stored in the format
+    EQUITY_MINUTE_BAR_FORMAT.
+
+    WithDataPortal uses this reader, so setting EQUITY_MINUTE_BAR_FORMAT runs
+    a data portal test class against another storage format.
+
+    Attributes
+    ----------
+    EQUITY_MINUTE_BAR_FORMAT : {'bcolz', 'parquet'}
+        The storage format. Defaults to 'bcolz'.
+    """
+
+    EQUITY_MINUTE_BAR_FORMAT = "bcolz"
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super().init_class_fixtures()
+        fmt = cls.EQUITY_MINUTE_BAR_FORMAT
+        cls.equity_minute_bar_reader = _write_equity_minute_bars(
+            cls, fmt, cls.tmpdir.getpath(f"equity_minute_bars.{fmt}")
+        )
+
+
+def _write_equity_minute_bars(cls, fmt, path):
+    """Write `cls.make_equity_minute_bar_data` to ``path``; return a reader."""
+    calendar = cls.trading_calendars[Equity]
+    days = cls.equity_minute_bar_days
+    if fmt == "bcolz":
+        os.makedirs(path, exist_ok=True)
+        BcolzMinuteBarWriter(
+            path, calendar, days[0], days[-1], US_EQUITIES_MINUTES_PER_DAY
+        ).write(cls.make_equity_minute_bar_data())
+        return BcolzMinuteBarReader(path)
+    if fmt == "parquet":
+        ParquetMinuteBarWriter(path, calendar, days[0], days[-1]).write(
+            cls.make_equity_minute_bar_data()
+        )
+        return ParquetMinuteBarReader(path)
+    raise ValueError(f"unknown equity minute bar format {fmt!r}")
 
 
 class WithBcolzFutureMinuteBarReader(WithFutureMinuteBarData, WithTmpDir):
@@ -1951,8 +2018,7 @@ class WithSeededRandomPipelineEngine(WithTradingSessions, WithAssetFinder):
 
 class WithDataPortal(
     WithAdjustmentReader,
-    # Ordered so that bcolz minute reader is used first.
-    WithBcolzEquityMinuteBarReader,
+    WithEquityMinuteBarReader,
     WithBcolzFutureMinuteBarReader,
 ):
     """
@@ -1961,7 +2027,8 @@ class WithDataPortal(
 
     After init_instance_fixtures has been called, `self.data_portal` will be
     populated with a new data portal created by passing in the class's
-    trading env, `cls.bcolz_equity_minute_bar_reader`,
+    trading env, `cls.equity_minute_bar_reader` (see
+    WithEquityMinuteBarReader),
     `cls.bcolz_equity_daily_bar_reader`, and `cls.adjustment_reader`.
 
     Attributes
@@ -1997,7 +2064,7 @@ class WithDataPortal(
         if self.DATA_PORTAL_FIRST_TRADING_DAY is None:
             if self.DATA_PORTAL_USE_MINUTE_DATA:
                 self.DATA_PORTAL_FIRST_TRADING_DAY = (
-                    self.bcolz_equity_minute_bar_reader.first_trading_day
+                    self.equity_minute_bar_reader.first_trading_day
                 )
             elif self.DATA_PORTAL_USE_DAILY_DATA:
                 self.DATA_PORTAL_FIRST_TRADING_DAY = (
@@ -2014,7 +2081,7 @@ class WithDataPortal(
                 else None
             ),
             equity_minute_reader=(
-                self.bcolz_equity_minute_bar_reader
+                self.equity_minute_bar_reader
                 if self.DATA_PORTAL_USE_MINUTE_DATA
                 else None
             ),

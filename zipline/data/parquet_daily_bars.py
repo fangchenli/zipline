@@ -2,8 +2,8 @@
 
 On-disk layout, under a root directory::
 
-    metadata.json           format version, calendar and session range
-    assets.parquet          per-asset first/last session and currency
+    _metadata.json          format version, calendar and session range
+    _assets.parquet         per-asset first/last session and currency
     year=2021/data.parquet  the bars of each calendar year
     year=2022/data.parquet
     ...
@@ -22,9 +22,7 @@ and looking up single values, are then numpy indexing on cached blocks, and
 memory stays bounded by the cache size rather than the dataset size.
 """
 
-import json
 import os
-import warnings
 from collections import OrderedDict
 from functools import cached_property
 
@@ -33,6 +31,17 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from zipline.data._parquet import (
+    FIELDS,
+    PRICE_FIELDS,
+    as_sids,
+    assets_path,
+    directory_has_files,
+    epoch_nanos,
+    handle_invalid,
+    read_metadata,
+    write_metadata,
+)
 from zipline.data.bar_reader import NoDataAfterDate, NoDataBeforeDate, NoDataOnDate
 from zipline.data.session_bars import CurrencyAwareSessionBarReader
 from zipline.utils.calendar_utils import get_calendar
@@ -41,9 +50,6 @@ from zipline.utils.date_utils import to_session_label
 
 FORMAT_NAME = "zipline.daily_bars.parquet"
 FORMAT_VERSION = 1
-
-PRICE_FIELDS = ("open", "high", "low", "close")
-FIELDS = PRICE_FIELDS + ("volume",)
 
 BARS_SCHEMA = pa.schema(
     [("sid", pa.int64()), ("day", pa.date32())]
@@ -67,14 +73,6 @@ DEFAULT_BLOCK_CACHE_SIZE = 16
 DEFAULT_CURRENCY = "USD"
 
 NANOS_PER_DAY = 86_400 * 10**9
-
-
-def _metadata_path(rootdir):
-    return os.path.join(rootdir, "metadata.json")
-
-
-def _assets_path(rootdir):
-    return os.path.join(rootdir, "assets.parquet")
 
 
 def _year_path(rootdir, year):
@@ -124,7 +122,7 @@ class ParquetDailyBarWriter:
         self._sessions = sessions = calendar.sessions_in_range(
             start_session, end_session
         )
-        self._session_nanos = _nanos(sessions)
+        self._session_nanos = epoch_nanos(sessions)
         self._session_days = (self._session_nanos // NANOS_PER_DAY).astype("int32")
         # Positions in ``sessions`` at which each calendar year starts.
         years = sessions.year.to_numpy()
@@ -139,8 +137,8 @@ class ParquetDailyBarWriter:
 
     @property
     def exists(self):
-        """Whether ``rootdir`` already holds a dataset."""
-        return os.path.exists(_metadata_path(self._rootdir))
+        """Whether ``rootdir`` already holds files, e.g. a dataset."""
+        return directory_has_files(self._rootdir)
 
     def write(
         self,
@@ -171,7 +169,7 @@ class ParquetDailyBarWriter:
             Map from sid to the asset's listing currency. Defaults to USD.
         """
         if self.exists:
-            raise ValueError(f"{self._rootdir} already contains a dataset")
+            raise ValueError(f"{self._rootdir} is not empty")
         os.makedirs(self._rootdir, exist_ok=True)
 
         expected = set(assets) if assets is not None else None
@@ -254,7 +252,7 @@ class ParquetDailyBarWriter:
         index = pd.DatetimeIndex(frame.index)
         if index.tz is not None:
             index = index.tz_convert("UTC").tz_localize(None)
-        nanos = _nanos(index.normalize())
+        nanos = epoch_nanos(index.normalize())
         raw = frame[list(FIELDS)].to_numpy(dtype="float64")
         if not (np.diff(nanos) > 0).all():
             # Sort by date, keeping the last of any duplicated dates.
@@ -282,7 +280,7 @@ class ParquetDailyBarWriter:
 
         invalid = np.isinf(values) | (values < 0)
         if invalid.any():
-            _handle_invalid(
+            handle_invalid(
                 sid, self._sessions[first:], values, invalid, invalid_data_behavior
             )
             values[invalid] = np.nan
@@ -326,7 +324,7 @@ class ParquetDailyBarWriter:
             },
             schema=ASSETS_SCHEMA,
         )
-        pq.write_table(table, _assets_path(self._rootdir))
+        pq.write_table(table, assets_path(self._rootdir))
 
     def _days_array(self, positions):
         return pa.array(
@@ -345,29 +343,7 @@ class ParquetDailyBarWriter:
                 None if first_trading_day is None else str(first_trading_day.date())
             ),
         }
-        with open(_metadata_path(self._rootdir), "w") as f:
-            json.dump(metadata, f, indent=2)
-
-
-def _handle_invalid(sid, sessions, values, invalid, invalid_data_behavior):
-    if invalid_data_behavior == "ignore":
-        return
-    rows = invalid.any(axis=1)
-    bad = pd.DataFrame(
-        values[rows], index=sessions[: len(values)][rows], columns=list(FIELDS)
-    )
-    message = (
-        f"Ignoring {int(invalid.sum())} negative or infinite values for sid {sid}:"
-        f"\n{bad}"
-    )
-    if invalid_data_behavior == "raise":
-        raise ValueError(message)
-    warnings.warn(message, stacklevel=4)
-
-
-def _nanos(index):
-    """Nanoseconds since the epoch of a DatetimeIndex, as int64."""
-    return index.as_unit("ns").to_numpy().view("int64")
+        write_metadata(self._rootdir, metadata)
 
 
 def _group_sids(sids):
@@ -382,15 +358,6 @@ def _group_sids(sids):
         cols = np.cumsum(np.concatenate([[0], np.diff(sids) != 0]))
         return columns, cols
     return np.unique(sids, return_inverse=True)
-
-
-def _as_sids(assets):
-    """Integer sids for a sequence of sids or Asset objects.
-
-    Callers such as the DataPortal pass Assets, which hash and compare like
-    their sids but aren't matched against integer pandas indexes.
-    """
-    return np.fromiter((int(asset) for asset in assets), dtype="int64")
 
 
 class _Block:
@@ -438,17 +405,9 @@ class ParquetDailyBarReader(CurrencyAwareSessionBarReader):
 
     @cached_property
     def _metadata(self):
-        rootdir = self._rootdir
-        with open(_metadata_path(rootdir)) as f:
-            metadata = json.load(f)
-        if metadata.get("format") != FORMAT_NAME:
-            raise ValueError(f"{rootdir} is not a Parquet daily bar dataset")
-        if metadata["version"] > FORMAT_VERSION:
-            raise ValueError(
-                f"{rootdir} was written with format version {metadata['version']}"
-                f", but this version of zipline reads up to {FORMAT_VERSION}"
-            )
-        return metadata
+        return read_metadata(
+            self._rootdir, FORMAT_NAME, FORMAT_VERSION, "Parquet daily bar"
+        )
 
     @property
     def data_frequency(self):
@@ -468,7 +427,7 @@ class ParquetDailyBarReader(CurrencyAwareSessionBarReader):
 
     @cached_property
     def _session_nanos(self):
-        return _nanos(self.sessions)
+        return epoch_nanos(self.sessions)
 
     @property
     def last_available_dt(self):
@@ -482,11 +441,11 @@ class ParquetDailyBarReader(CurrencyAwareSessionBarReader):
 
     @cached_property
     def _assets(self):
-        table = pq.read_table(_assets_path(self._rootdir))
+        table = pq.read_table(assets_path(self._rootdir))
         frame = table.to_pandas()
         # Store lifetimes as positions in ``sessions``.
         for column in ("start_session", "end_session"):
-            nanos = _nanos(pd.DatetimeIndex(frame[column]))
+            nanos = epoch_nanos(pd.DatetimeIndex(frame[column]))
             frame[column] = np.searchsorted(self._session_nanos, nanos)
         return frame.set_index("sid")
 
@@ -512,7 +471,7 @@ class ParquetDailyBarReader(CurrencyAwareSessionBarReader):
     @cached_property
     def _day_to_position(self):
         """Lookup table from days since the epoch to positions in sessions."""
-        days = _nanos(self.sessions) // NANOS_PER_DAY
+        days = epoch_nanos(self.sessions) // NANOS_PER_DAY
         table = np.full(days[-1] - days[0] + 1, -1, dtype="int64")
         table[days - days[0]] = np.arange(len(days))
         return days[0], table
@@ -572,7 +531,7 @@ class ParquetDailyBarReader(CurrencyAwareSessionBarReader):
     def load_raw_arrays(self, columns, start_date, end_date, assets):
         start_pos = self._session_position(start_date)
         end_pos = self._session_position(end_date)
-        sids = _as_sids(assets)
+        sids = as_sids(assets)
         if not (self._assets.index.get_indexer(sids) >= 0).any():
             raise ValueError("At least one valid asset id is required.")
         n_days = end_pos - start_pos + 1
@@ -653,7 +612,7 @@ class ParquetDailyBarReader(CurrencyAwareSessionBarReader):
 
     def currency_codes(self, sids):
         assets = self._assets
-        known = assets.index.get_indexer(_as_sids(sids))
+        known = assets.index.get_indexer(as_sids(sids))
         currencies = assets["currency"].to_numpy()
         out = np.full(len(known), None, dtype=object)
         out[known >= 0] = currencies[known[known >= 0]]

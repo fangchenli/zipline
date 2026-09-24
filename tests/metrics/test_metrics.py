@@ -1408,7 +1408,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
                 else None
             ),
             equity_minute_reader=(
-                self.bcolz_equity_minute_bar_reader
+                self.equity_minute_bar_reader
                 if self.DATA_PORTAL_USE_MINUTE_DATA
                 else None
             ),
