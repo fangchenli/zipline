@@ -104,9 +104,12 @@ If you haven't ingested the data, then run:
    $ zipline ingest [-b <bundle>]
 
 where ``<bundle>`` is the name of the bundle to ingest, defaulting to
-``quandl``. The ``quandl`` bundle needs a free API key from
-https://data.nasdaq.com in the ``QUANDL_API_KEY`` environment variable; see
-:ref:`quandl-data-bundle`.
+``massive``. The ``massive`` bundle needs a free API key from
+https://massive.com in the ``MASSIVE_API_KEY`` environment variable, and its
+free plan covers the last two years; see :ref:`massive-data-bundle`. The
+examples in this tutorial backtest 2016 and 2017, which the ``quandl`` bundle
+covers (see :ref:`quandl-data-bundle`); with the ``massive`` bundle, pick dates
+from the last two years instead.
 
 
 you can check out the :ref:`ingesting data <ingesting-data>` section for
@@ -143,7 +146,7 @@ on OSX):
      --capital-base FLOAT            The starting capital for the simulation.
                                      [default: 10000000.0]
      -b, --bundle BUNDLE-NAME        The data bundle to use for the simulation.
-                                     [default: quandl]
+                                     [default: massive]
      --bundle-timestamp TIMESTAMP    The date to lookup data on or before.
                                      [default: <current-time>]
      -bf, --benchmark-file FILE      The csv file that contains the benchmark
@@ -174,7 +177,7 @@ on OSX):
 
 As you can see there are a couple of flags that specify where to find your
 algorithm (``-f``) as well as parameters specifying which data to use,
-defaulting to ``quandl``. There are also arguments for
+defaulting to ``massive``. There are also arguments for
 the date range to run the algorithm over (``--start`` and ``--end``). To use a
 benchmark, you need to choose one of the benchmark options listed before. You can
 always use the option (``--no-benchmark``) that uses zero returns as a benchmark (

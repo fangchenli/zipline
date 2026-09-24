@@ -20,21 +20,25 @@ new bundles. To see which bundles we have available, we may run the
 
    $ zipline bundles
    csvdir <no ingestions>
-   my-custom-bundle 2024-05-05 20:35:19.809398
-   my-custom-bundle 2024-05-05 20:34:53.654082
-   my-custom-bundle 2024-05-05 20:34:48.401767
-   quandl 2024-05-05 20:06:40.894956
+   massive 2026-09-22 21:35:19.809398
+   my-custom-bundle 2026-09-20 20:35:19.809398
+   my-custom-bundle 2026-09-20 20:34:53.654082
+   my-custom-bundle 2026-09-20 20:34:48.401767
+   quandl <no ingestions>
 
-The output here shows that there are 3 bundles available:
+The output here shows that there are 4 bundles available:
 
 - ``csvdir`` (provided by zipline, see :ref:`csvdir_bundle`)
+- ``massive`` (provided by zipline, the default bundle, see
+  :ref:`massive-data-bundle`)
 - ``my-custom-bundle`` (added by the user)
-- ``quandl`` (provided by zipline, the default bundle)
+- ``quandl`` (provided by zipline, see :ref:`quandl-data-bundle`)
 
 The dates and times next to the name show the times when the data for this
 bundle was ingested. We have run three different ingestions for
-``my-custom-bundle``, and one for ``quandl``. We have never ingested any data
-for the ``csvdir`` bundle so it just shows ``<no ingestions>`` instead.
+``my-custom-bundle``, and one for ``massive``. We have never ingested any data
+for the ``csvdir`` and ``quandl`` bundles so they just show
+``<no ingestions>`` instead.
 
 .. _ingesting-data:
 
@@ -52,7 +56,7 @@ To ingest a bundle, run:
    $ zipline ingest [-b <bundle>]
 
 
-where ``<bundle>`` is the name of the bundle to ingest, defaulting to ``quandl``.
+where ``<bundle>`` is the name of the bundle to ingest, defaulting to ``massive``.
 
 Old Data
 ~~~~~~~~
@@ -133,25 +137,88 @@ the current day to use the most recent data.
 Default Data Bundles
 ~~~~~~~~~~~~~~~~~~~~
 
+.. _massive-data-bundle:
+
+Massive Bundle
+``````````````
+
+The default ``massive`` bundle downloads US equities from `Massive
+<https://massive.com>`_ (formerly Polygon.io): unadjusted daily bars for the
+whole market, splits, cash dividends, and asset metadata for common stocks,
+ADRs and ETFs, including delisted ones. Downloading needs an API key, which is
+free: create an account at https://massive.com and pass the key in the
+``MASSIVE_API_KEY`` environment variable:
+
+.. code-block:: bash
+
+   $ MASSIVE_API_KEY=<your key> zipline ingest
+
+Massive's free plan allows 5 requests a minute and two years of history. The
+bundle downloads one session of bars per request, so the first ingestion takes
+about two hours. Downloaded bars are kept in ``$ZIPLINE_ROOT/cache/massive``
+and later ingestions only download the sessions they are missing, which takes
+a few minutes. Reference data, splits and dividends are downloaded again each
+time. A session's bars are downloaded once they are final, four hours after
+the session's close.
+
+Paid plans allow unlimited requests and more history. Tell the bundle about
+them with environment variables:
+
+``MASSIVE_CALLS_PER_MINUTE``
+   The plan's rate limit, 5 by default. 0 means unlimited.
+
+``MASSIVE_START_DATE``
+   The first session to ingest, two years ago by default.
+
+To ingest other security types, or to set these in code, register a bundle
+with :func:`zipline.data.bundles.massive.massive_equities` in your
+``extension.py``:
+
+.. code-block:: python
+
+   import pandas as pd
+
+   from zipline.data.bundles import register
+   from zipline.data.bundles.massive import massive_equities
+
+   register(
+       "massive-long",
+       massive_equities(
+           start_session=pd.Timestamp("2006-01-03"),
+           calls_per_minute=0,
+           types=("CS", "ADRC", "ETF", "PFD"),
+       ),
+       calendar_name="XNYS",
+   )
+
+Securities are identified by their composite FIGI, so a company that changes
+its ticker (e.g. FB to META) keeps one sid, found by either ticker on the
+dates it used it, and a ticker reused by another company gets a new sid. A
+security keeps its sid in every ingestion. Assets list their primary exchange
+(``XNYS``, ``XNAS``, ``ARCX``, ...) and trade on that exchange's calendar.
+
+.. note::
+
+   Massive's terms allow individual use only. The bundle stores what it
+   downloads on your machine; don't share it.
+
 .. _quandl-data-bundle:
 
 Quandl WIKI Bundle
 ``````````````````
 
-By default zipline comes with the ``quandl`` data bundle, which uses Quandl's
-WIKI Prices dataset, now hosted by `Nasdaq Data Link <https://data.nasdaq.com>`_.
+The ``quandl`` data bundle uses Quandl's WIKI Prices dataset, now hosted by
+`Nasdaq Data Link <https://data.nasdaq.com>`_.
 The quandl data bundle includes daily pricing data, splits, cash dividends, and
 asset metadata for US equities.
 
 The dataset is free, but downloading it requires an API key: create a free
 account at https://data.nasdaq.com and pass the key in the ``QUANDL_API_KEY``
-environment variable. To ingest the ``quandl`` data bundle, run either of the
-following commands:
+environment variable. To ingest the ``quandl`` data bundle, run:
 
 .. code-block:: bash
 
    $ QUANDL_API_KEY=<your key> zipline ingest -b quandl
-   $ QUANDL_API_KEY=<your key> zipline ingest
 
 The ingestion downloads a file of roughly 450MB and processes it, so it takes
 a few minutes. ``QUANDL_DOWNLOAD_ATTEMPTS`` sets how many times to retry the

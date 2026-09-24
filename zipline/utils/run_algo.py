@@ -308,7 +308,7 @@ def run_algorithm(
     before_trading_start=None,
     analyze=None,
     data_frequency="daily",
-    bundle="quandl",
+    bundle="massive",
     bundle_timestamp=None,
     trading_calendar=None,
     metrics_set="default",
@@ -349,7 +349,7 @@ def run_algorithm(
         The data frequency to run the algorithm at.
     bundle : str, optional
         The name of the data bundle to use to load the data to run the backtest
-        with. This defaults to 'quandl'.
+        with. This defaults to 'massive'.
     bundle_timestamp : datetime, optional
         The datetime to lookup the bundle data for. This defaults to the
         current time.
