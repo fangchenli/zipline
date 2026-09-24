@@ -207,7 +207,10 @@ Maintenance and Refactorings
 - Removed ``pandas.Panel`` and other APIs removed from pandas, numpy and Python.
 - Removed the ``lru-dict``, ``multipledispatch`` and ``python-dateutil``
   dependencies, which the standard library, numpy and pandas cover.
-- ``zipline.lib.rank`` is written with numpy and scipy instead of Cython.
+- Cython extensions whose work numpy, scipy or plain Python now does as fast
+  are Python modules: ranking (``zipline.lib.rank``), resampling minutes into
+  sessions, the simulation clock (``zipline.gens.sim_engine``) and loading
+  adjustments from SQLite.
 - Replaced ``zipline.utils.memoize.lazyval`` and ``classlazyval`` with
   :func:`functools.cached_property`, and removed the unused
   ``zipline.utils.compat`` and ``zipline.utils.pool`` modules.

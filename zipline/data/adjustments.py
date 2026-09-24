@@ -9,6 +9,7 @@ import pandas as pd
 from numpy import integer as any_integer
 from pandas import Timestamp
 
+from zipline.lib.adjustment import Float64Multiply
 from zipline.utils.functional import keysorted
 from zipline.utils.input_validation import preprocess
 from zipline.utils.numpy_utils import (
@@ -20,8 +21,6 @@ from zipline.utils.numpy_utils import (
 )
 from zipline.utils.pandas_utils import empty_dataframe
 from zipline.utils.sqlite_utils import coerce_string_to_conn, group_into_chunks
-
-from ._adjustments import load_adjustments_from_sqlite
 
 log = logging.getLogger(__name__)
 
@@ -710,3 +709,124 @@ class SQLiteAdjustmentWriter:
             "CREATE INDEX IF NOT EXISTS stock_dividends_payouts_ex_date "
             "ON stock_dividend_payouts(ex_date)"
         )
+
+
+def load_adjustments_from_sqlite(
+    adjustments_db,
+    dates,
+    assets,
+    should_include_splits,
+    should_include_mergers,
+    should_include_dividends,
+    adjustment_type,
+):
+    """
+    Load a dictionary of Adjustment objects from adjustments_db.
+
+    Parameters
+    ----------
+    adjustments_db : sqlite3.Connection
+        Connection to a sqlite3 table in the format written by
+        SQLiteAdjustmentWriter.
+    dates : pd.DatetimeIndex
+        Dates for which adjustments are needed.
+    assets : pd.Index[int64]
+        Assets for which adjustments are needed.
+    should_include_splits : bool
+        Whether split adjustments should be included.
+    should_include_mergers : bool
+        Whether merger adjustments should be included.
+    should_include_dividends : bool
+        Whether dividend adjustments should be included.
+    adjustment_type : str
+        Whether price adjustments, volume adjustments, or both, should be
+        included in the output.
+
+    Returns
+    -------
+    adjustments : dict[str -> dict[int -> Adjustment]]
+        A dictionary containing price and/or volume adjustment mappings from
+        index to adjustment objects to apply at that index.
+    """
+    if adjustment_type not in ("price", "volume", "all"):
+        raise ValueError(
+            f"{adjustment_type} is not a valid adjustment type.\n"
+            "Valid adjustment types are 'price', 'volume', and 'all'.\n"
+        )
+    include_price = adjustment_type in ("all", "price")
+    include_volume = adjustment_type in ("all", "volume")
+    if not include_price:
+        should_include_mergers = False
+        should_include_dividends = False
+
+    # Seconds since the epoch; Timestamp.value is UTC whether or not dates
+    # are tz-aware.
+    start = dates[0].value // 1_000_000_000
+    end = dates[-1].value // 1_000_000_000
+
+    def rows(table, include):
+        return (
+            _adjustment_rows(adjustments_db, table, assets, start, end)
+            if include
+            else []
+        )
+
+    splits = rows("splits", should_include_splits)
+    price_only = rows("mergers", should_include_mergers) + rows(
+        "dividends", should_include_dividends
+    )
+
+    dates_seconds = dates.to_numpy(dtype="datetime64[s]").view("int64")
+    price_adjustments = {}
+    volume_adjustments = {}
+
+    def add(adjustments, sid, ratio, effective_date):
+        # Adjustments apply from the first date on or after they take effect.
+        date_loc = int(dates_seconds.searchsorted(effective_date))
+        asset_ix = assets.get_loc(sid)
+        adjustments.setdefault(date_loc, []).append(
+            Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
+        )
+
+    # Splits affect prices and, inversely, volumes; mergers and dividends
+    # only prices.
+    for sid, ratio, effective_date in splits:
+        if include_price:
+            add(price_adjustments, sid, ratio, effective_date)
+        if include_volume:
+            add(volume_adjustments, sid, 1.0 / ratio, effective_date)
+    for sid, ratio, effective_date in price_only:
+        add(price_adjustments, sid, ratio, effective_date)
+
+    result = {}
+    if include_price:
+        result["price"] = price_adjustments
+    if include_volume:
+        result["volume"] = volume_adjustments
+    return result
+
+
+def _adjustment_rows(db, table, assets, start, end):
+    """The ``(sid, ratio, effective_date)`` rows of ``table`` for ``assets``
+    in effect from ``start`` to ``end`` (seconds since the epoch).
+    """
+    table_sids = {
+        sid
+        for (sid,) in db.execute(
+            f"SELECT DISTINCT sid FROM {table}"
+            " WHERE effective_date >= ? AND effective_date <= ?",
+            (start, end),
+        )
+    }
+    rows = []
+    for chunk in group_into_chunks([sid for sid in assets if sid in table_sids]):
+        placeholders = ",".join("?" * len(chunk))
+        rows.extend(
+            db.execute(
+                f"SELECT sid, ratio, effective_date FROM {table}"
+                f" WHERE sid IN ({placeholders})"
+                " AND effective_date >= ? AND effective_date <= ?",
+                [*(str(sid) for sid in chunk), start, end],
+            )
+        )
+    return rows
