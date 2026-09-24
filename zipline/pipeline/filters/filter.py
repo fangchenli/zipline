@@ -13,7 +13,6 @@ from numpy import (
     float64,
     nan,
     nanpercentile,
-    uint8,
 )
 
 from zipline.errors import (
@@ -46,7 +45,6 @@ from zipline.pipeline.term import ComputableTerm, Term
 from zipline.utils.input_validation import expect_types
 from zipline.utils.numpy_utils import (
     bool_dtype,
-    int64_dtype,
     is_missing,
     repeat_first_axis,
     same,
@@ -726,17 +724,9 @@ class MaximumFilter(Filter, StandardOutputs):
             mask
             & (group_labels != null_label)
             & ~is_missing(data, self.inputs[0].missing_value)
-        ).view(uint8)
-
-        return grouped_masked_is_maximal(
-            # Unconditionally view the data as int64.
-            # This is safe because casting from float64 to int64 is an
-            # order-preserving operation.
-            data.view(int64_dtype),
-            # PERF: Consider supporting different sizes of group labels.
-            group_labels.astype(int64_dtype),
-            effective_mask,
         )
+
+        return grouped_masked_is_maximal(data, group_labels, effective_mask)
 
     def __repr__(self):
         return (

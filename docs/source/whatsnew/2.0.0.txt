@@ -164,6 +164,13 @@ Enhancements
 Bug Fixes
 ~~~~~~~~~
 
+- ``Factor.rank`` with ``method`` other than ``'ordinal'``, and ranks with
+  ``groupby``, gave every asset a rank of NaN on days when any asset's value
+  was missing (scipy's ``rankdata`` changed its handling of NaN). Missing
+  values are now left out of the ranks again.
+- ``Factor.top`` and ``bottom`` with ``groupby`` compared floats by their
+  bytes, which gets negative values backwards, and ranks of int64 factors
+  had the same problem with negative values.
 - The ``csvdir`` bundle can ingest a directory with both ``daily`` and
   ``minute`` files; it used to fail writing the asset database twice. Each
   symbol gets one sid across both, its lifetime spans all of its bars (as
@@ -200,6 +207,7 @@ Maintenance and Refactorings
 - Removed ``pandas.Panel`` and other APIs removed from pandas, numpy and Python.
 - Removed the ``lru-dict``, ``multipledispatch`` and ``python-dateutil``
   dependencies, which the standard library, numpy and pandas cover.
+- ``zipline.lib.rank`` is written with numpy and scipy instead of Cython.
 - Replaced ``zipline.utils.memoize.lazyval`` and ``classlazyval`` with
   :func:`functools.cached_property`, and removed the unused
   ``zipline.utils.compat`` and ``zipline.utils.pool`` modules.
