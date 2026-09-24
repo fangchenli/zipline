@@ -12,14 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import array
 import binascii
 import struct
 from abc import ABC
 from collections import deque, namedtuple
+from collections.abc import Iterable, Mapping, Sequence
 from functools import cached_property, partial
 from numbers import Integral
 from operator import attrgetter
+from typing import TYPE_CHECKING, Literal, overload
 
 import numpy as np
 import pandas as pd
@@ -52,8 +56,7 @@ from zipline.errors import (
 )
 from zipline.utils.functional import invert
 from zipline.utils.numpy_utils import as_column
-from zipline.utils.preprocess import preprocess
-from zipline.utils.sqlite_utils import coerce_string_to_eng, group_into_chunks
+from zipline.utils.sqlite_utils import check_and_create_engine, group_into_chunks
 
 from . import (
     Asset,
@@ -75,6 +78,14 @@ from .continuous_futures import (
     OrderedContracts,
 )
 from .exchange_info import ExchangeInfo
+
+if TYPE_CHECKING:
+    # Type aliases in the continuous_futures stub.
+    from .continuous_futures import AdjustmentStyle, ChainPredicate, RollStyle
+
+#: What ``lookup_generic`` resolves: a sid, a ticker, or an asset (returned
+#: as is).
+type AssetLike = int | str | Asset | ContinuousFuture
 
 # A set of fields that need to be converted to strings before building an
 # Asset to avoid unicode fields
@@ -289,6 +300,14 @@ def _encode_continuous_future_sid(root_symbol, offset, roll_style, adjustment_st
 Lifetimes = namedtuple("Lifetimes", "sid start end")
 
 
+def _expect_type[T: Asset](asset: Asset | ContinuousFuture | None, type_: type[T]) -> T:
+    """Check that an asset retrieved by sid, e.g. of a symbol's owner, is the
+    kind of asset its table holds."""
+    if not isinstance(asset, type_):
+        raise AssertionError(f"Expected a {type_.__name__}, got {asset!r}.")
+    return asset
+
+
 class AssetFinder:
     """
     An AssetFinder is an interface to a database of Asset metadata written by
@@ -322,8 +341,13 @@ class AssetFinder:
     asset_router: sa.Table
     version_info: sa.Table
 
-    @preprocess(engine=coerce_string_to_eng(require_exists=True))
-    def __init__(self, engine, future_chain_predicates=CHAIN_PREDICATES):
+    def __init__(
+        self,
+        engine: str | sa.Engine,
+        future_chain_predicates: Mapping[str, ChainPredicate] | None = CHAIN_PREDICATES,
+    ) -> None:
+        if isinstance(engine, str):
+            engine = check_and_create_engine(engine, require_exists=True)
         self.engine = engine
         metadata = sa.MetaData()
         metadata.reflect(bind=engine, only=sorted(asset_db_table_names))
@@ -354,7 +378,7 @@ class AssetFinder:
         self._asset_lifetimes = {}
 
     @cached_property
-    def exchange_info(self):
+    def exchange_info(self) -> dict[str, ExchangeInfo]:
         es = _fetchall(self.engine, sa.select(self.exchanges))
         return {
             name: ExchangeInfo(name, canonical_name, country_code)
@@ -391,7 +415,7 @@ class AssetFinder:
         )
 
     @cached_property
-    def country_codes(self):
+    def country_codes(self) -> tuple[str, ...]:
         return tuple(self.symbol_ownership_maps_by_country_code)
 
     @staticmethod
@@ -435,7 +459,7 @@ class AssetFinder:
             value_from_row=lambda row: row.value,
         )
 
-    def lookup_asset_types(self, sids):
+    def lookup_asset_types(self, sids: Iterable[int]) -> dict[int, str | None]:
         """
         Retrieve asset types for a list of sids.
 
@@ -475,7 +499,7 @@ class AssetFinder:
 
         return found
 
-    def group_by_type(self, sids):
+    def group_by_type(self, sids: Iterable[int]) -> dict[str | None, list[int]]:
         """
         Group a list of sids by asset type.
 
@@ -491,9 +515,22 @@ class AssetFinder:
         """
         return invert(self.lookup_asset_types(sids))
 
-    def retrieve_asset(self, sid, default_none=False):
+    @overload
+    def retrieve_asset(
+        self, sid: int, default_none: Literal[False] = False
+    ) -> Asset | ContinuousFuture: ...
+    @overload
+    def retrieve_asset(
+        self, sid: int, default_none: bool
+    ) -> Asset | ContinuousFuture | None: ...
+    def retrieve_asset(
+        self, sid: int, default_none: bool = False
+    ) -> Asset | ContinuousFuture | None:
         """
         Retrieve the Asset for a given sid.
+
+        This is a ContinuousFuture for the sid of one made by
+        ``create_continuous_future``.
         """
         try:
             asset = self._asset_cache[sid]
@@ -503,7 +540,17 @@ class AssetFinder:
         except KeyError:
             return self.retrieve_all((sid,), default_none=default_none)[0]
 
-    def retrieve_all(self, sids, default_none=False):
+    @overload
+    def retrieve_all(
+        self, sids: Iterable[int], default_none: Literal[False] = False
+    ) -> list[Asset | ContinuousFuture]: ...
+    @overload
+    def retrieve_all(
+        self, sids: Iterable[int], default_none: bool
+    ) -> list[Asset | ContinuousFuture | None]: ...
+    def retrieve_all(
+        self, sids: Iterable[int], default_none: bool = False
+    ) -> list[Asset | ContinuousFuture] | list[Asset | ContinuousFuture | None]:
         """
         Retrieve all assets in `sids`.
 
@@ -567,7 +614,7 @@ class AssetFinder:
 
         return [hits[sid] for sid in sids]
 
-    def retrieve_equities(self, sids):
+    def retrieve_equities(self, sids: Iterable[int]) -> dict[int, Equity]:
         """
         Retrieve Equity objects for a list of sids.
 
@@ -590,10 +637,10 @@ class AssetFinder:
         """
         return self._retrieve_assets(sids, self.equities, Equity)
 
-    def _retrieve_equity(self, sid):
+    def _retrieve_equity(self, sid: int) -> Equity:
         return self.retrieve_equities((sid,))[sid]
 
-    def retrieve_futures_contracts(self, sids):
+    def retrieve_futures_contracts(self, sids: Iterable[int]) -> dict[int, Future]:
         """
         Retrieve Future objects for an iterable of sids.
 
@@ -607,11 +654,11 @@ class AssetFinder:
 
         Returns
         -------
-        equities : dict[int -> Equity]
+        futures : dict[int -> Future]
 
         Raises
         ------
-        EquitiesNotFound
+        FutureContractsNotFound
             When any requested asset isn't found.
         """
         return self._retrieve_assets(sids, self.futures_contracts, Future)
@@ -862,7 +909,7 @@ class AssetFinder:
         for start, end, sid, _ in owners:
             if start <= as_of_date < end:
                 # find the equity that owned it on the given asof date
-                asset = self.retrieve_asset(sid)
+                asset = _expect_type(self.retrieve_asset(sid), Equity)
 
                 # if this asset owned the symbol on this asof date and we are
                 # only searching one country, return that asset
@@ -970,7 +1017,13 @@ class AssetFinder:
 
         return self.symbol_ownership_maps_by_country_code.get(country_code)
 
-    def lookup_symbol(self, symbol, as_of_date, fuzzy=False, country_code=None):
+    def lookup_symbol(
+        self,
+        symbol: str,
+        as_of_date: pd.Timestamp | None,
+        fuzzy: bool = False,
+        country_code: str | None = None,
+    ) -> Equity:
         """Lookup an equity by symbol.
 
         Parameters
@@ -1030,7 +1083,13 @@ class AssetFinder:
             as_of_date,
         )
 
-    def lookup_symbols(self, symbols, as_of_date, fuzzy=False, country_code=None):
+    def lookup_symbols(
+        self,
+        symbols: Sequence[str],
+        as_of_date: pd.Timestamp | None,
+        fuzzy: bool = False,
+        country_code: str | None = None,
+    ) -> list[Equity]:
         """
         Lookup a list of equities by symbol.
 
@@ -1087,7 +1146,7 @@ class AssetFinder:
                 append_output(equity)
         return out
 
-    def lookup_future_symbol(self, symbol):
+    def lookup_future_symbol(self, symbol: str) -> Future:
         """Lookup a future contract by symbol.
 
         Parameters
@@ -1115,9 +1174,11 @@ class AssetFinder:
         # If no data found, raise an exception
         if not data:
             raise SymbolNotFound(symbol=symbol)
-        return self.retrieve_asset(data.sid)
+        return _expect_type(self.retrieve_asset(data.sid), Future)
 
-    def lookup_by_supplementary_field(self, field_name, value, as_of_date):
+    def lookup_by_supplementary_field(
+        self, field_name: str, value: str, as_of_date: pd.Timestamp | None
+    ) -> Equity:
         try:
             owners = self.equity_supplementary_map[
                 field_name,
@@ -1144,18 +1205,20 @@ class AssetFinder:
                 )
             # exactly one equity has ever held this value, we may resolve
             # without the date
-            return self.retrieve_asset(owners[0].sid)
+            return _expect_type(self.retrieve_asset(owners[0].sid), Equity)
 
         as_of_date = _as_naive_date(as_of_date)
         for start, end, sid, _ in owners:
             if start <= as_of_date < end:
                 # find the equity that owned it on the given asof date
-                return self.retrieve_asset(sid)
+                return _expect_type(self.retrieve_asset(sid), Equity)
 
         # no equity held the value on the given asof date
         raise ValueNotFoundForField(field=field_name, value=value)
 
-    def get_supplementary_field(self, sid, field_name, as_of_date):
+    def get_supplementary_field(
+        self, sid: int, field_name: str, as_of_date: pd.Timestamp | None
+    ) -> str:
         """Get the value of a supplementary field for an asset.
 
         Parameters
@@ -1240,18 +1303,27 @@ class AssetFinder:
         else:
             raise SymbolNotFound(symbol=root_symbol)
 
-    def get_ordered_contracts(self, root_symbol):
+    def get_ordered_contracts(self, root_symbol: str) -> OrderedContracts:
         try:
             return self._ordered_contracts[root_symbol]
         except KeyError:
             contract_sids = self._get_contract_sids(root_symbol)
-            contracts = deque(self.retrieve_all(contract_sids))
+            contracts = deque(
+                _expect_type(asset, Future)
+                for asset in self.retrieve_all(contract_sids)
+            )
             chain_predicate = self._future_chain_predicates.get(root_symbol, None)
             oc = OrderedContracts(root_symbol, contracts, chain_predicate)
             self._ordered_contracts[root_symbol] = oc
             return oc
 
-    def create_continuous_future(self, root_symbol, offset, roll_style, adjustment):
+    def create_continuous_future(
+        self,
+        root_symbol: str,
+        offset: int,
+        roll_style: RollStyle,
+        adjustment: AdjustmentStyle,
+    ) -> ContinuousFuture:
         if adjustment not in ADJUSTMENT_STYLES:
             raise ValueError(
                 f"Invalid adjustment style {adjustment!r}. Allowed adjustment styles "
@@ -1286,21 +1358,21 @@ class AssetFinder:
 
         return {None: cf, "mul": mul_cf, "add": add_cf}[adjustment]
 
-    def _all_sids(self, table):
+    def _all_sids(self, table: sa.Table) -> tuple[int, ...]:
         return tuple(row.sid for row in _fetchall(self.engine, sa.select(table.c.sid)))
 
     @property
-    def sids(self):
+    def sids(self) -> tuple[int, ...]:
         """All the sids in the asset finder."""
         return self._all_sids(self.asset_router)
 
     @property
-    def equities_sids(self):
+    def equities_sids(self) -> tuple[int, ...]:
         """All of the sids for equities in the asset finder."""
         return self._all_sids(self.equities)
 
     @property
-    def futures_sids(self):
+    def futures_sids(self) -> tuple[int, ...]:
         """All of the sids for futures contracts in the asset finder."""
         return self._all_sids(self.futures_contracts)
 
@@ -1348,7 +1420,28 @@ class AssetFinder:
 
         raise NotAssetConvertible(f"Input was {obj}, not AssetConvertible.")
 
-    def lookup_generic(self, obj, as_of_date, country_code):
+    @overload
+    def lookup_generic(
+        self,
+        obj: AssetLike,
+        as_of_date: pd.Timestamp | None,
+        country_code: str | None,
+    ) -> tuple[Asset | ContinuousFuture, list[AssetLike]]: ...
+    @overload
+    def lookup_generic(
+        self,
+        obj: Iterable[AssetLike],
+        as_of_date: pd.Timestamp | None,
+        country_code: str | None,
+    ) -> tuple[list[Asset | ContinuousFuture], list[AssetLike]]: ...
+    def lookup_generic(
+        self,
+        obj: AssetLike | Iterable[AssetLike],
+        as_of_date: pd.Timestamp | None,
+        country_code: str | None,
+    ) -> tuple[
+        Asset | ContinuousFuture | list[Asset | ContinuousFuture], list[AssetLike]
+    ]:
         """
         Convert an object into an Asset or sequence of Assets.
 
@@ -1398,16 +1491,14 @@ class AssetFinder:
                     raise SymbolNotFound(symbol=obj) from None
 
         # Interpret input as iterable.
-        try:
-            iterator = iter(obj)
-        except TypeError as err:
+        if not isinstance(obj, Iterable):
             raise NotAssetConvertible(
                 "Input was not a AssetConvertible or iterable of AssetConvertible."
-            ) from err
+            )
 
-        for obj in iterator:
+        for item in obj:
             self._lookup_generic_scalar(
-                obj=obj,
+                obj=item,
                 as_of_date=as_of_date,
                 country_code=country_code,
                 matches=matches,
@@ -1444,7 +1535,12 @@ class AssetFinder:
         end[np.isnan(end)] = np.iinfo(int).max  # convert missing end to INTMAX
         return Lifetimes(sid, start.astype("i8"), end.astype("i8"))
 
-    def lifetimes(self, dates, include_start_date, country_codes):
+    def lifetimes(
+        self,
+        dates: pd.DatetimeIndex,
+        include_start_date: bool,
+        country_codes: Iterable[str],
+    ) -> pd.DataFrame:
         """
         Compute a DataFrame representing asset lifetimes for the specified date
         range.
@@ -1504,7 +1600,7 @@ class AssetFinder:
 
         return pd.DataFrame(mask, index=dates, columns=lifetimes.sid)
 
-    def equities_sids_for_country_code(self, country_code):
+    def equities_sids_for_country_code(self, country_code: str) -> tuple[int, ...]:
         """Return all of the sids for a given country.
 
         Parameters

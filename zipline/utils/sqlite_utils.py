@@ -45,7 +45,7 @@ def check_and_create_connection(path, require_exists):
     return sqlite3.connect(path)
 
 
-def check_and_create_engine(path, require_exists):
+def check_and_create_engine(path: str, require_exists: bool) -> sa.Engine:
     if require_exists:
         verify_sqlite_path_exists(path)
     return sa.create_engine("sqlite:///" + path)
