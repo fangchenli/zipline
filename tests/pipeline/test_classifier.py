@@ -9,7 +9,6 @@ from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Classifier
 from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.expression import methods_to_ops
-from zipline.testing import parameter_space
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import assert_equal
 from zipline.utils.numpy_utils import (
@@ -24,7 +23,7 @@ unicode_dtype = np.dtype("U3")
 
 
 class ClassifierTestCase(BaseUSEquityPipelineTestCase):
-    @parameter_space(mv=[-1, 0, 1, 999])
+    @pytest.mark.parametrize("mv", [-1, 0, 1, 999])
     def test_integral_isnull(self, mv):
 
         class C(Classifier):
@@ -52,7 +51,7 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             mask=self.build_mask(self.ones_mask(shape=data.shape)),
         )
 
-    @parameter_space(mv=["0", None])
+    @pytest.mark.parametrize("mv", ["0", None])
     def test_string_isnull(self, mv):
 
         class C(Classifier):
@@ -86,7 +85,7 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             mask=self.build_mask(self.ones_mask(shape=data.shape)),
         )
 
-    @parameter_space(compval=[0, 1, 999])
+    @pytest.mark.parametrize("compval", [0, 1, 999])
     def test_eq(self, compval):
 
         class C(Classifier):
@@ -115,10 +114,9 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             mask=self.build_mask(self.ones_mask(shape=data.shape)),
         )
 
-    @parameter_space(
-        __fail_fast=True,
-        compval=["a", "ab", "not in the array"],
-        labelarray_dtype=(bytes_dtype, categorical_dtype, unicode_dtype),
+    @pytest.mark.parametrize("compval", ["a", "ab", "not in the array"])
+    @pytest.mark.parametrize(
+        "labelarray_dtype", (bytes_dtype, categorical_dtype, unicode_dtype)
     )
     def test_string_eq(self, compval, labelarray_dtype):
 
@@ -158,10 +156,8 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             mask=self.build_mask(self.ones_mask(shape=data.shape)),
         )
 
-    @parameter_space(
-        missing=[-1, 0, 1],
-        dtype_=[int64_dtype, categorical_dtype],
-    )
+    @pytest.mark.parametrize("missing", [-1, 0, 1])
+    @pytest.mark.parametrize("dtype_", [int64_dtype, categorical_dtype])
     def test_disallow_comparison_to_missing_value(self, missing, dtype_):
         if dtype_ == categorical_dtype:
             missing = str(missing)
@@ -183,7 +179,8 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             "Use the isnull() method to check for missing values."
         )
 
-    @parameter_space(compval=[0, 1, 999], missing=[-1, 0, 999])
+    @pytest.mark.parametrize("compval", [0, 1, 999])
+    @pytest.mark.parametrize("missing", [-1, 0, 999])
     def test_not_equal(self, compval, missing):
 
         class C(Classifier):
@@ -212,11 +209,10 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             mask=self.build_mask(self.ones_mask(shape=data.shape)),
         )
 
-    @parameter_space(
-        __fail_fast=True,
-        compval=["a", "ab", "", "not in the array"],
-        missing=["a", "ab", "", "not in the array"],
-        labelarray_dtype=(bytes_dtype, unicode_dtype, categorical_dtype),
+    @pytest.mark.parametrize("compval", ["a", "ab", "", "not in the array"])
+    @pytest.mark.parametrize("missing", ["a", "ab", "", "not in the array"])
+    @pytest.mark.parametrize(
+        "labelarray_dtype", (bytes_dtype, unicode_dtype, categorical_dtype)
     )
     def test_string_not_equal(self, compval, missing, labelarray_dtype):
 
@@ -260,11 +256,10 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             mask=self.build_mask(self.ones_mask(shape=data.shape)),
         )
 
-    @parameter_space(
-        __fail_fast=True,
-        compval=["a", "b", "ab", "not in the array"],
-        missing=["a", "ab", "", "not in the array"],
-        labelarray_dtype=(categorical_dtype, bytes_dtype, unicode_dtype),
+    @pytest.mark.parametrize("compval", ["a", "b", "ab", "not in the array"])
+    @pytest.mark.parametrize("missing", ["a", "ab", "", "not in the array"])
+    @pytest.mark.parametrize(
+        "labelarray_dtype", (categorical_dtype, bytes_dtype, unicode_dtype)
     )
     def test_string_elementwise_predicates(self, compval, missing, labelarray_dtype):
         if labelarray_dtype == bytes_dtype:
@@ -327,10 +322,9 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             mask=self.build_mask(self.ones_mask(shape=data.shape)),
         )
 
-    @parameter_space(
-        __fail_fast=True,
-        container_type=(set, list, tuple, frozenset),
-        labelarray_dtype=(categorical_dtype, bytes_dtype, unicode_dtype),
+    @pytest.mark.parametrize("container_type", (set, list, tuple, frozenset))
+    @pytest.mark.parametrize(
+        "labelarray_dtype", (categorical_dtype, bytes_dtype, unicode_dtype)
     )
     def test_element_of_strings(self, container_type, labelarray_dtype):
 
@@ -446,7 +440,7 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             )
             assert errmsg == expected
 
-    @parameter_space(dtype_=Classifier.ALLOWED_DTYPES)
+    @pytest.mark.parametrize("dtype_", Classifier.ALLOWED_DTYPES)
     def test_element_of_rejects_unhashable_type(self, dtype_):
 
         class C(Classifier):
@@ -475,10 +469,12 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
         )
         assert errmsg == expected
 
-    @parameter_space(
-        __fail_fast=True,
-        labelarray_dtype=(categorical_dtype, bytes_dtype, unicode_dtype),
-        relabel_func=[
+    @pytest.mark.parametrize(
+        "labelarray_dtype", (categorical_dtype, bytes_dtype, unicode_dtype)
+    )
+    @pytest.mark.parametrize(
+        "relabel_func",
+        [
             lambda s: str(s[0]),
             lambda s: str(len(s)),
             lambda s: str(len([c for c in s if c == "a"])),
@@ -522,10 +518,7 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             mask=self.build_mask(self.ones_mask(shape=data.shape)),
         )
 
-    @parameter_space(
-        __fail_fast=True,
-        missing_value=[None, "M"],
-    )
+    @pytest.mark.parametrize("missing_value", [None, "M"])
     def test_relabel_missing_value_interactions(self, missing_value):
 
         mv = missing_value
@@ -597,9 +590,9 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
         )
         assert result == expected
 
-    @parameter_space(
-        compare_op=[op.gt, op.ge, op.le, op.lt],
-        dtype_and_missing=[(int64_dtype, 0), (categorical_dtype, "")],
+    @pytest.mark.parametrize("compare_op", [op.gt, op.ge, op.le, op.lt])
+    @pytest.mark.parametrize(
+        "dtype_and_missing", [(int64_dtype, 0), (categorical_dtype, "")]
     )
     def test_bad_compare(self, compare_op, dtype_and_missing):
         class C(Classifier):
@@ -615,10 +608,10 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             methods_to_ops[f"__{compare_op.__name__}__"],
         )
 
-    @parameter_space(
-        dtype_and_missing=[(int64_dtype, -1), (categorical_dtype, None)],
-        use_mask=[True, False],
+    @pytest.mark.parametrize(
+        "dtype_and_missing", [(int64_dtype, -1), (categorical_dtype, None)]
     )
+    @pytest.mark.parametrize("use_mask", [True, False])
     def test_peer_count(self, dtype_and_missing, use_mask):
         class C(Classifier):
             dtype = dtype_and_missing[0]

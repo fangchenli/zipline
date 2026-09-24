@@ -5,12 +5,12 @@ Tests for zipline/utils/pandas_utils.py
 import pandas as pd
 import pytest
 
-from zipline.testing import ZiplineTestCase, parameter_space
+from zipline.testing import ZiplineTestCase
 from zipline.utils.pandas_utils import nearest_unequal_elements
 
 
 class TestNearestUnequalElements(ZiplineTestCase):
-    @parameter_space(tz=["UTC", "US/Eastern"], __fail_fast=True)
+    @pytest.mark.parametrize("tz", ["UTC", "US/Eastern"])
     def test_nearest_unequal_elements(self, tz):
 
         dts = pd.to_datetime(
@@ -39,7 +39,7 @@ class TestNearestUnequalElements(ZiplineTestCase):
             expected = (t(before), t(after))
             assert computed == expected
 
-    @parameter_space(tz=["UTC", "US/Eastern"], __fail_fast=True)
+    @pytest.mark.parametrize("tz", ["UTC", "US/Eastern"])
     def test_nearest_unequal_elements_short_dts(self, tz):
 
         # Length 1.

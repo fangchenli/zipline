@@ -19,7 +19,6 @@ import numpy as np
 import pandas as pd
 import pytest
 from numpy import nan
-from parameterized import parameterized
 
 import zipline.testing.fixtures as zf
 from zipline._protocol import BarData, handle_non_market_minutes
@@ -766,7 +765,8 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
 
                     np.testing.assert_array_equal(np.full(10, np.nan), asset3_series)
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "name, field, sid",
         [
             ("open_sid_2", "open", 2),
             ("high_sid_2", "high", 2),
@@ -778,7 +778,7 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
             ("low_sid_3", "low", 3),
             ("close_sid_3", "close", 3),
             ("volume_sid_3", "volume", 3),
-        ]
+        ],
     )
     def test_minute_regular(self, name, field, sid):
         # asset2 and asset3 both started on 1/5/2015, but asset3 trades every
@@ -1402,7 +1402,7 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
 
                 np.testing.assert_equal(window.iloc[-1], last_val)
 
-    @parameterized.expand(ALL_FIELDS)
+    @pytest.mark.parametrize("field", ALL_FIELDS)
     def test_daily_history_blended_gaps(self, field):
         # daily history windows that end mid-day use minute values for the
         # last day
@@ -1514,7 +1514,9 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
                 err_msg=f"field={field} minute={minute}",
             )
 
-    @parameterized.expand([((f"bar_count{x}"), x) for x in [1, 2, 3]])
+    @pytest.mark.parametrize(
+        "test_name, bar_count", [((f"bar_count{x}"), x) for x in [1, 2, 3]]
+    )
     def test_daily_history_minute_gaps_price_ffill(self, test_name, bar_count):
         # Make sure we use the previous day's value when there's been no volume
         # yet today.

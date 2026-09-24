@@ -1,6 +1,5 @@
 import pytest
 from pandas import Timestamp
-from parameterized import parameterized
 
 from zipline.testing import ZiplineTestCase
 from zipline.utils.calendar_utils import get_calendar
@@ -20,7 +19,8 @@ class TestDateUtils(ZiplineTestCase):
         super().init_class_fixtures()
         cls.calendar = get_calendar("XNYS")
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "chunksize, expected",
         [
             (None, [(T("2017-01-03"), T("2017-01-31"))]),
             (
@@ -37,7 +37,7 @@ class TestDateUtils(ZiplineTestCase):
                     (T("2017-01-25"), T("2017-01-31")),
                 ],
             ),
-        ]
+        ],
     )
     def test_compute_date_range_chunks(self, chunksize, expected):
         # This date range results in 20 business days

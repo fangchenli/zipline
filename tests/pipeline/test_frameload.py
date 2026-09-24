@@ -2,7 +2,6 @@
 Tests for zipline.pipeline.loaders.frame.DataFrameLoader.
 """
 
-from unittest import TestCase
 from unittest.mock import patch
 
 import pytest
@@ -28,8 +27,8 @@ from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.utils.calendar_utils import get_calendar
 
 
-class DataFrameLoaderTestCase(TestCase):
-    def setUp(self):
+class DataFrameLoaderTestCase:
+    def setup_method(self):
         self.trading_day = get_calendar("NYSE").day
 
         self.nsids = 5
@@ -44,7 +43,7 @@ class DataFrameLoaderTestCase(TestCase):
 
         self.mask = ones((len(self.dates), len(self.sids)), dtype=bool)
 
-    def tearDown(self):
+    def teardown_method(self):
         pass
 
     def test_bad_input(self):

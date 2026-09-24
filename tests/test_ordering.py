@@ -1,6 +1,5 @@
 import pandas as pd
 import pytest
-from parameterized import parameterized
 
 import zipline.api as api
 import zipline.errors as ze
@@ -63,7 +62,8 @@ class TestOrderMethods(
         cls.EQUITY = cls.asset_finder.retrieve_asset(1)
         cls.FUTURE = cls.asset_finder.retrieve_asset(2)
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "order_method, amount",
         [
             ("order", 1),
             ("order_value", 1000),
@@ -71,7 +71,7 @@ class TestOrderMethods(
             ("order_target_value", 1000),
             ("order_percent", 1),
             ("order_target_percent", 1),
-        ]
+        ],
     )
     def test_cannot_order_in_before_trading_start(self, order_method, amount):
         algotext = f"""
@@ -88,13 +88,14 @@ def before_trading_start(context, data):
         with pytest.raises(ze.OrderInBeforeTradingStart):
             algo.run()
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "order_method, amount",
         [
             # These should all be orders for the same amount.
             ("order", 5000),  # 5000 shares times $2 per share
             ("order_value", 10000),  # $10000
             ("order_percent", 1),  # 100% on a $10000 capital base.
-        ]
+        ],
     )
     def test_order_equity_non_targeted(self, order_method, amount):
         # Every day, place an order for $10000 worth of sid(1)
@@ -129,13 +130,14 @@ def do_order(context, data):
             assert_equal(positions[0]["amount"], 5000.0 * i)
             assert_equal(positions[0]["sid"], self.EQUITY)
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "order_method, amount",
         [
             # These should all be orders for the same amount.
             ("order_target", 5000),  # 5000 shares times $2 per share
             ("order_target_value", 10000),  # $10000
             ("order_target_percent", 1),  # 100% on a $10000 capital base.
-        ]
+        ],
     )
     def test_order_equity_targeted(self, order_method, amount):
         # Every day, place an order for a target of $10000 worth of sid(1).
@@ -172,14 +174,15 @@ def do_order(context, data):
             assert_equal(positions[0]["amount"], 5000.0)
             assert_equal(positions[0]["sid"], self.EQUITY)
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "order_method, amount",
         [
             # These should all be orders for the same amount.
             ("order", 500),  # 500 contracts times $2 per contract * 10x
             # multiplier.
             ("order_value", 10000),  # $10000
             ("order_percent", 1),  # 100% on a $10000 capital base.
-        ]
+        ],
     )
     def test_order_future_non_targeted(self, order_method, amount):
         # Every day, place an order for $10000 worth of sid(2)
@@ -214,14 +217,15 @@ def do_order(context, data):
             assert_equal(positions[0]["amount"], 500.0 * i)
             assert_equal(positions[0]["sid"], self.FUTURE)
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "order_method, amount",
         [
             # These should all be orders targeting the same amount.
             ("order_target", 500),  # 500 contracts * $2 per contract * 10x
             # multiplier.
             ("order_target_value", 10000),  # $10000
             ("order_target_percent", 1),  # 100% on a $10000 capital base.
-        ]
+        ],
     )
     def test_order_future_targeted(self, order_method, amount):
         # Every day, place an order for a target of $10000 worth of sid(2).
@@ -260,7 +264,8 @@ def do_order(context, data):
             assert_equal(positions[0]["amount"], 500.0)
             assert_equal(positions[0]["sid"], self.FUTURE)
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "order_method, order_param",
         [
             (api.order, 5000),
             (api.order_value, 10000),
@@ -268,7 +273,7 @@ def do_order(context, data):
             (api.order_target, 5000),
             (api.order_target_value, 10000),
             (api.order_target_percent, 1.0),
-        ]
+        ],
     )
     def test_order_method_style_forwarding(self, order_method, order_param):
         # Test that we correctly forward values passed via `style` to Order

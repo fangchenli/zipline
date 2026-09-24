@@ -3,7 +3,6 @@ import pandas as pd
 import pytest
 import talib
 from numpy.random import RandomState
-from parameterized import parameterized
 
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.pipeline.data import USEquityPricing
@@ -19,7 +18,7 @@ from zipline.pipeline.factors import (
     RateOfChangePercentage,
     TrueRange,
 )
-from zipline.testing import check_allclose, parameter_space
+from zipline.testing import check_allclose
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import assert_equal
 
@@ -71,12 +70,9 @@ class BollingerBandsTestCase(BaseUSEquityPipelineTestCase):
         lowers = np.column_stack(lower_cols)[where]
         return uppers, middles, lowers
 
-    @parameter_space(
-        window_length={5, 10, 20},
-        k={1.5, 2, 2.5},
-        mask_last_sid={True, False},
-        __fail_fast=True,
-    )
+    @pytest.mark.parametrize("window_length", {5, 10, 20})
+    @pytest.mark.parametrize("k", {1.5, 2, 2.5})
+    @pytest.mark.parametrize("mask_last_sid", {True, False})
     def test_bollinger_bands(self, window_length, k, mask_last_sid):
         closes = self.closes(mask_last_sid=mask_last_sid)
         mask = ~np.isnan(closes)
@@ -118,7 +114,8 @@ class AroonTestCase(ZiplineTestCase):
     nassets = 5
     dtype = [("down", "f8"), ("up", "f8")]
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "lows, highs, expected_out",
         [
             (
                 np.arange(window_length),
@@ -147,7 +144,7 @@ class AroonTestCase(ZiplineTestCase):
                     buf=np.array([100 * 3 / 9, 100 * 5 / 9] * nassets, dtype="f8"),
                 ),
             ),
-        ]
+        ],
     )
     def test_aroon_basic(self, lows, highs, expected_out):
         aroon = Aroon(window_length=self.window_length)
@@ -187,7 +184,7 @@ class TestFastStochasticOscillator(ZiplineTestCase):
         # Expected %K
         assert_equal(out, np.full((3,), 200, dtype=np.float64))
 
-    @parameter_space(seed=range(5))
+    @pytest.mark.parametrize("seed", list(range(5)))
     def test_fso_expected_with_talib(self, seed):
         """
         Test the output that is returned from the fast stochastic oscillator
@@ -340,8 +337,8 @@ class IchimokuKinkoHyoTestCase(ZiplineTestCase):
             msg="chikou_span",
         )
 
-    @parameter_space(
-        arg={"tenkan_sen_length", "kijun_sen_length", "chikou_span_length"},
+    @pytest.mark.parametrize(
+        "arg", ["tenkan_sen_length", "kijun_sen_length", "chikou_span_length"]
     )
     def test_input_validation(self, arg):
         window_length = 52
@@ -356,13 +353,14 @@ class IchimokuKinkoHyoTestCase(ZiplineTestCase):
 
 
 class TestRateOfChangePercentage(ZiplineTestCase):
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "test_name, data, expected",
         [
             ("constant", [2.0] * 10, 0.0),
             ("step", [2.0] + [1.0] * 9, -50.0),
             ("linear", [2.0 + x for x in range(10)], 450.0),
             ("quadratic", [2.0 + x**2 for x in range(10)], 4050.0),
-        ]
+        ],
     )
     def test_rate_of_change_percentage(self, test_name, data, expected):
         window_length = len(data)
@@ -438,7 +436,7 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
             lambda sub: pd.DataFrame(sub).ewm(span=window).mean().iloc[-1, 0]
         )
 
-    @parameter_space(seed=range(5))
+    @pytest.mark.parametrize("seed", list(range(5)))
     def test_MACD_window_length_generation(self, seed):
         rng = RandomState(seed)
 
@@ -484,13 +482,10 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
         )
         assert expected == str(e.value)
 
-    @parameter_space(
-        seed=range(2),
-        fast_period=[3, 5],
-        slow_period=[8, 10],
-        signal_period=[3, 9],
-        __fail_fast=True,
-    )
+    @pytest.mark.parametrize("seed", list(range(2)))
+    @pytest.mark.parametrize("fast_period", [3, 5])
+    @pytest.mark.parametrize("slow_period", [8, 10])
+    @pytest.mark.parametrize("signal_period", [3, 9])
     def test_moving_average_convergence_divergence(
         self, seed, fast_period, slow_period, signal_period
     ):
@@ -541,7 +536,8 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
 
 
 class RSITestCase(ZiplineTestCase):
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "seed_value, expected",
         [
             # Test cases computed by doing:
             # from numpy.random import seed, randn
@@ -552,7 +548,7 @@ class RSITestCase(ZiplineTestCase):
             (100, np.array([41.032913785966, 51.553585468393, 51.022005016446])),
             (101, np.array([43.506969935466, 46.145367530182, 50.57407044197])),
             (102, np.array([46.610102205934, 47.646892444315, 52.13182788538])),
-        ]
+        ],
     )
     def test_rsi(self, seed_value, expected):
 

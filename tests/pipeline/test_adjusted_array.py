@@ -6,7 +6,6 @@ from collections import namedtuple
 from itertools import chain, product, zip_longest
 from string import ascii_lowercase, ascii_uppercase
 from textwrap import dedent
-from unittest import TestCase
 
 import pytest
 from numpy import (
@@ -16,7 +15,6 @@ from numpy import (
     dtype,
     full,
 )
-from parameterized import parameterized
 from toolz import curry
 
 from zipline.errors import WindowLengthNotPositive, WindowLengthTooLong
@@ -437,7 +435,7 @@ def _gen_expectations(
         )
 
 
-class AdjustedArrayTestCase(TestCase):
+class AdjustedArrayTestCase:
     def test_traverse_invalidating(self):
         data = arange(5 * 3, dtype="f8").reshape(5, 3)
         original_data = data.copy()
@@ -483,59 +481,70 @@ class AdjustedArrayTestCase(TestCase):
         assert_equal(clean_copy.data, original_data)
         assert_equal(adjusted_array.data, original_data * 2)
 
-    @parameterized.expand(
-        chain(
-            _gen_unadjusted_cases(
-                "float",
-                make_input=as_dtype(float64_dtype),
-                make_expected_output=as_dtype(float64_dtype),
-                missing_value=default_missing_value_for_dtype(float64_dtype),
-            ),
-            _gen_unadjusted_cases(
-                "datetime",
-                make_input=as_dtype(datetime64ns_dtype),
-                make_expected_output=as_dtype(datetime64ns_dtype),
-                missing_value=default_missing_value_for_dtype(datetime64ns_dtype),
-            ),
-            # Test passing an array of strings to AdjustedArray.
-            _gen_unadjusted_cases(
-                "bytes_ndarray",
-                make_input=as_dtype(bytes_dtype),
-                make_expected_output=as_labelarray(bytes_dtype, b""),
-                missing_value=b"",
-            ),
-            _gen_unadjusted_cases(
-                "unicode_ndarray",
-                make_input=as_dtype(unicode_dtype),
-                make_expected_output=as_labelarray(unicode_dtype, ""),
-                missing_value="",
-            ),
-            _gen_unadjusted_cases(
-                "object_ndarray",
-                make_input=lambda a: a.astype(str).astype(object),
-                make_expected_output=as_labelarray(unicode_dtype, ""),
-                missing_value="",
-            ),
-            # Test passing a LabelArray directly to AdjustedArray.
-            _gen_unadjusted_cases(
-                "bytes_labelarray",
-                make_input=as_labelarray(bytes_dtype, b""),
-                make_expected_output=as_labelarray(bytes_dtype, b""),
-                missing_value=b"",
-            ),
-            _gen_unadjusted_cases(
-                "unicode_labelarray",
-                make_input=as_labelarray(unicode_dtype, None),
-                make_expected_output=as_labelarray(unicode_dtype, None),
-                missing_value="",
-            ),
-            _gen_unadjusted_cases(
-                "object_labelarray",
-                make_input=(lambda a: LabelArray(a.astype(str).astype(object), "")),
-                make_expected_output=as_labelarray(unicode_dtype, ""),
-                missing_value="",
-            ),
-        )
+    @pytest.mark.parametrize(
+        (
+            "name",
+            "data",
+            "lookback",
+            "adjustments",
+            "missing_value",
+            "perspective_offset",
+            "expected_output",
+        ),
+        list(
+            chain(
+                _gen_unadjusted_cases(
+                    "float",
+                    make_input=as_dtype(float64_dtype),
+                    make_expected_output=as_dtype(float64_dtype),
+                    missing_value=default_missing_value_for_dtype(float64_dtype),
+                ),
+                _gen_unadjusted_cases(
+                    "datetime",
+                    make_input=as_dtype(datetime64ns_dtype),
+                    make_expected_output=as_dtype(datetime64ns_dtype),
+                    missing_value=default_missing_value_for_dtype(datetime64ns_dtype),
+                ),
+                # Test passing an array of strings to AdjustedArray.
+                _gen_unadjusted_cases(
+                    "bytes_ndarray",
+                    make_input=as_dtype(bytes_dtype),
+                    make_expected_output=as_labelarray(bytes_dtype, b""),
+                    missing_value=b"",
+                ),
+                _gen_unadjusted_cases(
+                    "unicode_ndarray",
+                    make_input=as_dtype(unicode_dtype),
+                    make_expected_output=as_labelarray(unicode_dtype, ""),
+                    missing_value="",
+                ),
+                _gen_unadjusted_cases(
+                    "object_ndarray",
+                    make_input=lambda a: a.astype(str).astype(object),
+                    make_expected_output=as_labelarray(unicode_dtype, ""),
+                    missing_value="",
+                ),
+                # Test passing a LabelArray directly to AdjustedArray.
+                _gen_unadjusted_cases(
+                    "bytes_labelarray",
+                    make_input=as_labelarray(bytes_dtype, b""),
+                    make_expected_output=as_labelarray(bytes_dtype, b""),
+                    missing_value=b"",
+                ),
+                _gen_unadjusted_cases(
+                    "unicode_labelarray",
+                    make_input=as_labelarray(unicode_dtype, None),
+                    make_expected_output=as_labelarray(unicode_dtype, None),
+                    missing_value="",
+                ),
+                _gen_unadjusted_cases(
+                    "object_labelarray",
+                    make_input=(lambda a: LabelArray(a.astype(str).astype(object), "")),
+                    make_expected_output=as_labelarray(unicode_dtype, ""),
+                    missing_value="",
+                ),
+            )
+        ),
     )
     def test_no_adjustments(
         self,
@@ -554,7 +563,18 @@ class AdjustedArrayTestCase(TestCase):
             for yielded, expected_yield in in_out:
                 check_arrays(yielded, expected_yield)
 
-    @parameterized.expand(_gen_multiplicative_adjustment_cases(float64_dtype))
+    @pytest.mark.parametrize(
+        (
+            "name",
+            "data",
+            "lookback",
+            "adjustments",
+            "missing_value",
+            "perspective_offset",
+            "expected",
+        ),
+        list(_gen_multiplicative_adjustment_cases(float64_dtype)),
+    )
     def test_multiplicative_adjustments(
         self,
         name,
@@ -575,63 +595,74 @@ class AdjustedArrayTestCase(TestCase):
             for yielded, expected_yield in zip_longest(window_iter, expected):
                 check_arrays(yielded, expected_yield)
 
-    @parameterized.expand(
-        chain(
-            _gen_overwrite_adjustment_cases(bool_dtype),
-            _gen_overwrite_adjustment_cases(int64_dtype),
-            _gen_overwrite_adjustment_cases(float64_dtype),
-            _gen_overwrite_adjustment_cases(datetime64ns_dtype),
-            _gen_overwrite_1d_array_adjustment_case(float64_dtype),
-            _gen_overwrite_1d_array_adjustment_case(datetime64ns_dtype),
-            _gen_overwrite_1d_array_adjustment_case(bool_dtype),
-            # There are six cases here:
-            # Using np.bytes/np.unicode/object arrays as inputs.
-            # Passing np.bytes/np.unicode/object arrays to LabelArray,
-            # and using those as input.
-            #
-            # The outputs should always be LabelArrays.
-            _gen_unadjusted_cases(
-                "bytes_ndarray",
-                make_input=as_dtype(bytes_dtype),
-                make_expected_output=as_labelarray(bytes_dtype, b""),
-                missing_value=b"",
-            ),
-            _gen_unadjusted_cases(
-                "unicode_ndarray",
-                make_input=as_dtype(unicode_dtype),
-                make_expected_output=as_labelarray(unicode_dtype, ""),
-                missing_value="",
-            ),
-            _gen_unadjusted_cases(
-                "object_ndarray",
-                make_input=lambda a: a.astype(str).astype(object),
-                make_expected_output=as_labelarray(unicode_dtype, ""),
-                missing_value="",
-            ),
-            _gen_unadjusted_cases(
-                "bytes_labelarray",
-                make_input=as_labelarray(bytes_dtype, b""),
-                make_expected_output=as_labelarray(bytes_dtype, b""),
-                missing_value=b"",
-            ),
-            _gen_unadjusted_cases(
-                "unicode_labelarray",
-                make_input=as_labelarray(unicode_dtype, ""),
-                make_expected_output=as_labelarray(unicode_dtype, ""),
-                missing_value="",
-            ),
-            _gen_unadjusted_cases(
-                "object_labelarray",
-                make_input=(
-                    lambda a: LabelArray(
-                        a.astype(str).astype(object),
-                        None,
-                    )
+    @pytest.mark.parametrize(
+        (
+            "name",
+            "baseline",
+            "lookback",
+            "adjustments",
+            "missing_value",
+            "perspective_offset",
+            "expected",
+        ),
+        list(
+            chain(
+                _gen_overwrite_adjustment_cases(bool_dtype),
+                _gen_overwrite_adjustment_cases(int64_dtype),
+                _gen_overwrite_adjustment_cases(float64_dtype),
+                _gen_overwrite_adjustment_cases(datetime64ns_dtype),
+                _gen_overwrite_1d_array_adjustment_case(float64_dtype),
+                _gen_overwrite_1d_array_adjustment_case(datetime64ns_dtype),
+                _gen_overwrite_1d_array_adjustment_case(bool_dtype),
+                # There are six cases here:
+                # Using np.bytes/np.unicode/object arrays as inputs.
+                # Passing np.bytes/np.unicode/object arrays to LabelArray,
+                # and using those as input.
+                #
+                # The outputs should always be LabelArrays.
+                _gen_unadjusted_cases(
+                    "bytes_ndarray",
+                    make_input=as_dtype(bytes_dtype),
+                    make_expected_output=as_labelarray(bytes_dtype, b""),
+                    missing_value=b"",
                 ),
-                make_expected_output=as_labelarray(unicode_dtype, ""),
-                missing_value=None,
-            ),
-        )
+                _gen_unadjusted_cases(
+                    "unicode_ndarray",
+                    make_input=as_dtype(unicode_dtype),
+                    make_expected_output=as_labelarray(unicode_dtype, ""),
+                    missing_value="",
+                ),
+                _gen_unadjusted_cases(
+                    "object_ndarray",
+                    make_input=lambda a: a.astype(str).astype(object),
+                    make_expected_output=as_labelarray(unicode_dtype, ""),
+                    missing_value="",
+                ),
+                _gen_unadjusted_cases(
+                    "bytes_labelarray",
+                    make_input=as_labelarray(bytes_dtype, b""),
+                    make_expected_output=as_labelarray(bytes_dtype, b""),
+                    missing_value=b"",
+                ),
+                _gen_unadjusted_cases(
+                    "unicode_labelarray",
+                    make_input=as_labelarray(unicode_dtype, ""),
+                    make_expected_output=as_labelarray(unicode_dtype, ""),
+                    missing_value="",
+                ),
+                _gen_unadjusted_cases(
+                    "object_labelarray",
+                    make_input=(
+                        lambda a: LabelArray(
+                            a.astype(str).astype(object),
+                            None,
+                        )
+                    ),
+                    make_expected_output=as_labelarray(unicode_dtype, ""),
+                    missing_value=None,
+                ),
+            )
+        ),
     )
     def test_overwrite_adjustment_cases(
         self,
@@ -816,7 +847,13 @@ last_col=0, value=4.000000)]}
     H = Float64Multiply(0, 4, 2, 2, 0.99)
     S = Float64Multiply(0, 1, 4, 4, 5.06)
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        (
+            "initial_adjustments",
+            "adjustments_to_add",
+            "expected_adjustments_with_append",
+            "expected_adjustments_with_prepend",
+        ),
         [
             (
                 # Initial adjustments
@@ -846,7 +883,7 @@ last_col=0, value=4.000000)]}
                     4: [D],
                 },
             )
-        ]
+        ],
     )
     def test_update_adjustments(
         self,

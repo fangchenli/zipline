@@ -1,7 +1,6 @@
-import unittest
-
 import numpy as np
 import pandas as pd
+import pytest
 
 from zipline import api
 from zipline.assets import Equity, Future
@@ -9,7 +8,6 @@ from zipline.assets.synthetic import make_commodity_future_info
 from zipline.data.data_portal import DataPortal
 from zipline.data.resample import MinuteResampleSessionBarReader
 from zipline.testing import (
-    parameter_space,
     prices_generating_returns,
     simulate_minutes_for_day,
 )
@@ -173,14 +171,8 @@ class TestConstantPrice(
                 msg=field,
             )
 
-    @parameter_space(
-        direction=["long", "short"],
-        # checking the portfolio forces a sync; we want to ensure that the
-        # perf packets are correct even without explicitly requesting the
-        # portfolio every day. we also want to test that ``context.portfolio``
-        # produces the expected values when queried mid-simulation
-        check_portfolio_during_simulation=[True, False],
-    )
+    @pytest.mark.parametrize("direction", ["long", "short"])
+    @pytest.mark.parametrize("check_portfolio_during_simulation", [True, False])
     def test_equity_slippage(self, direction, check_portfolio_during_simulation):
         if direction not in ("long", "short"):
             raise ValueError(
@@ -348,14 +340,8 @@ class TestConstantPrice(
             check_names=False,
         )
 
-    @parameter_space(
-        direction=["long", "short"],
-        # checking the portfolio forces a sync; we want to ensure that the
-        # perf packets are correct even without explicitly requesting the
-        # portfolio every day. we also want to test that ``context.portfolio``
-        # produces the expected values when queried mid-simulation
-        check_portfolio_during_simulation=[True, False],
-    )
+    @pytest.mark.parametrize("direction", ["long", "short"])
+    @pytest.mark.parametrize("check_portfolio_during_simulation", [True, False])
     def test_equity_commissions(self, direction, check_portfolio_during_simulation):
         if direction not in ("long", "short"):
             raise ValueError(
@@ -531,14 +517,8 @@ class TestConstantPrice(
             check_names=False,
         )
 
-    @parameter_space(
-        direction=["long", "short"],
-        # checking the portfolio forces a sync; we want to ensure that the
-        # perf packets are correct even without explicitly requesting the
-        # portfolio every day. we also want to test that ``context.portfolio``
-        # produces the expected values when queried mid-simulation
-        check_portfolio_during_simulation=[True, False],
-    )
+    @pytest.mark.parametrize("direction", ["long", "short"])
+    @pytest.mark.parametrize("check_portfolio_during_simulation", [True, False])
     def test_equity_single_position(self, direction, check_portfolio_during_simulation):
         if direction not in ("long", "short"):
             raise ValueError(
@@ -939,15 +919,9 @@ class TestConstantPrice(
             check_names=False,
         )
 
-    @unittest.skip("Needs fix to calendar mismatch.")
-    @parameter_space(
-        direction=["long", "short"],
-        # checking the portfolio forces a sync; we want to ensure that the
-        # perf packets are correct even without explicitly requesting the
-        # portfolio every day. we also want to test that ``context.portfolio``
-        # produces the expected values when queried mid-simulation
-        check_portfolio_during_simulation=[True, False],
-    )
+    @pytest.mark.skip(reason="Needs fix to calendar mismatch.")
+    @pytest.mark.parametrize("direction", ["long", "short"])
+    @pytest.mark.parametrize("check_portfolio_during_simulation", [True, False])
     def test_future_single_position(self, direction, check_portfolio_during_simulation):
         if direction not in ("long", "short"):
             raise ValueError(
@@ -1494,14 +1468,8 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             cls.asset_finder.futures_sids,
         )
 
-    @parameter_space(
-        direction=["long", "short"],
-        # checking the portfolio forces a sync; we want to ensure that the
-        # perf packets are correct even without explicitly requesting the
-        # portfolio every day. we also want to test that ``context.portfolio``
-        # produces the expected values when queried mid-simulation
-        check_portfolio_during_simulation=[True, False],
-    )
+    @pytest.mark.parametrize("direction", ["long", "short"])
+    @pytest.mark.parametrize("check_portfolio_during_simulation", [True, False])
     def test_equity_single_position(self, direction, check_portfolio_during_simulation):
         if direction not in ("long", "short"):
             raise ValueError(
@@ -1882,15 +1850,9 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
                 msg=field,
             )
 
-    @unittest.skip("Needs fix to calendar mismatch.")
-    @parameter_space(
-        direction=["long", "short"],
-        # checking the portfolio forces a sync; we want to ensure that the
-        # perf packets are correct even without explicitly requesting the
-        # portfolio every day. we also want to test that ``context.portfolio``
-        # produces the expected values when queried mid-simulation
-        check_portfolio_during_simulation=[True, False],
-    )
+    @pytest.mark.skip(reason="Needs fix to calendar mismatch.")
+    @pytest.mark.parametrize("direction", ["long", "short"])
+    @pytest.mark.parametrize("check_portfolio_during_simulation", [True, False])
     def test_future_single_position(self, direction, check_portfolio_during_simulation):
         if direction not in ("long", "short"):
             raise ValueError(

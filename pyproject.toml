@@ -68,7 +68,6 @@ test = [
     "bcolz-zipline>=1.13",
     "intervaltree>=3.1",
     "matplotlib>=3.9",
-    "parameterized>=0.9",
     "pytest>=8.3",
     "pytest-cov>=6",
     "pytest-xdist>=3.6",
@@ -120,6 +119,8 @@ testpaths = ["tests"]
 # loadscope keeps each test class on one xdist worker, so class-level
 # fixtures are built once and class-scoped assertions see every test.
 addopts = ["-ra", "--strict-markers", "--dist=loadscope"]
+# The suite's test classes are named Test*, *Test, *TestCase or *Tests.
+python_classes = ["Test", "*Test", "*TestCase", "*Tests"]
 
 [tool.coverage.run]
 source = ["zipline"]

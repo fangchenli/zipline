@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import pytest
 from numpy.testing import assert_almost_equal, assert_array_equal
-from parameterized import parameterized
 from toolz import merge
 
 from zipline.pipeline import CustomFactor, Pipeline, SimplePipelineEngine
@@ -256,7 +255,7 @@ class WithOneDayPipeline(WithEstimates):
         assert_frame_equal(results, self.expected_out)
 
 
-class PreviousWithOneDayPipeline(WithOneDayPipeline, ZiplineTestCase):
+class TestPreviousWithOneDayPipeline(WithOneDayPipeline, ZiplineTestCase):
     """
     Tests that previous quarter loader correctly breaks if an incorrect
     number of quarters is passed.
@@ -282,7 +281,7 @@ class PreviousWithOneDayPipeline(WithOneDayPipeline, ZiplineTestCase):
         ).sort_index(axis=1)  # pandas < 0.23 sorted dict keys
 
 
-class NextWithOneDayPipeline(WithOneDayPipeline, ZiplineTestCase):
+class TestNextWithOneDayPipeline(WithOneDayPipeline, ZiplineTestCase):
     """
     Tests that next quarter loader correctly breaks if an incorrect
     number of quarters is passed.
@@ -380,7 +379,7 @@ class WithWrongLoaderDefinition(WithEstimates):
             )
 
 
-class PreviousWithWrongNumQuarters(WithWrongLoaderDefinition, ZiplineTestCase):
+class TestPreviousWithWrongNumQuarters(WithWrongLoaderDefinition, ZiplineTestCase):
     """
     Tests that previous quarter loader correctly breaks if an incorrect
     number of quarters is passed.
@@ -391,7 +390,7 @@ class PreviousWithWrongNumQuarters(WithWrongLoaderDefinition, ZiplineTestCase):
         return PreviousEarningsEstimatesLoader(events, columns)
 
 
-class NextWithWrongNumQuarters(WithWrongLoaderDefinition, ZiplineTestCase):
+class TestNextWithWrongNumQuarters(WithWrongLoaderDefinition, ZiplineTestCase):
     """
     Tests that next quarter loader correctly breaks if an incorrect
     number of quarters is passed.
@@ -409,7 +408,7 @@ options = [
 ]
 
 
-class WrongSplitsLoaderDefinition(WithEstimates, ZiplineTestCase):
+class TestWrongSplitsLoaderDefinition(WithEstimates, ZiplineTestCase):
     """
     Test class that tests that loaders break correctly when incorrectly
     instantiated.
@@ -425,13 +424,12 @@ class WrongSplitsLoaderDefinition(WithEstimates, ZiplineTestCase):
     def init_class_fixtures(cls):
         super(WithEstimates, cls).init_class_fixtures()
 
-    @parameterized.expand(
-        itertools.product(
-            (
-                NextSplitAdjustedEarningsEstimatesLoader,
-                PreviousSplitAdjustedEarningsEstimatesLoader,
-            ),
-        )
+    @pytest.mark.parametrize(
+        "loader",
+        [
+            NextSplitAdjustedEarningsEstimatesLoader,
+            PreviousSplitAdjustedEarningsEstimatesLoader,
+        ],
     )
     def test_extra_splits_columns_passed(self, loader):
         columns = {
@@ -644,7 +642,7 @@ class WithEstimatesTimeZero(WithEstimates):
                 assert_equal(all_expected[sid_estimates.columns], sid_estimates)
 
 
-class NextEstimate(WithEstimatesTimeZero, ZiplineTestCase):
+class TestNextEstimate(WithEstimatesTimeZero, ZiplineTestCase):
     @classmethod
     def make_loader(cls, events, columns):
         return NextEarningsEstimatesLoader(events, columns)
@@ -670,7 +668,7 @@ class NextEstimate(WithEstimatesTimeZero, ZiplineTestCase):
         return q1_knowledge.iloc[:0].reindex([comparable_date])
 
 
-class PreviousEstimate(WithEstimatesTimeZero, ZiplineTestCase):
+class TestPreviousEstimate(WithEstimatesTimeZero, ZiplineTestCase):
     @classmethod
     def make_loader(cls, events, columns):
         return PreviousEarningsEstimatesLoader(events, columns)
@@ -794,7 +792,7 @@ class WithEstimateMultipleQuarters(WithEstimates):
         )
 
 
-class NextEstimateMultipleQuarters(WithEstimateMultipleQuarters, ZiplineTestCase):
+class TestNextEstimateMultipleQuarters(WithEstimateMultipleQuarters, ZiplineTestCase):
     @classmethod
     def make_loader(cls, events, columns):
         return NextEarningsEstimatesLoader(events, columns)
@@ -836,7 +834,9 @@ class NextEstimateMultipleQuarters(WithEstimateMultipleQuarters, ZiplineTestCase
         return expected
 
 
-class PreviousEstimateMultipleQuarters(WithEstimateMultipleQuarters, ZiplineTestCase):
+class TestPreviousEstimateMultipleQuarters(
+    WithEstimateMultipleQuarters, ZiplineTestCase
+):
     @classmethod
     def make_loader(cls, events, columns):
         return PreviousEarningsEstimatesLoader(events, columns)
@@ -952,7 +952,7 @@ class WithVaryingNumEstimates(WithEstimates):
         )
 
 
-class PreviousVaryingNumEstimates(WithVaryingNumEstimates, ZiplineTestCase):
+class TestPreviousVaryingNumEstimates(WithVaryingNumEstimates, ZiplineTestCase):
     def assert_compute(self, estimate, today):
         if today == pd.Timestamp("2015-01-13"):
             assert_array_equal(estimate[:, 0], np.array([np.nan, np.nan, 12]))
@@ -966,7 +966,7 @@ class PreviousVaryingNumEstimates(WithVaryingNumEstimates, ZiplineTestCase):
         return PreviousEarningsEstimatesLoader(events, columns)
 
 
-class NextVaryingNumEstimates(WithVaryingNumEstimates, ZiplineTestCase):
+class TestNextVaryingNumEstimates(WithVaryingNumEstimates, ZiplineTestCase):
     def assert_compute(self, estimate, today):
         if today == pd.Timestamp("2015-01-13"):
             assert_array_equal(estimate[:, 0], np.array([11, 12, 12]))
@@ -1127,7 +1127,7 @@ class WithEstimateWindows(WithEstimates):
             end_date,
         )
 
-    @parameterized.expand(window_test_cases)
+    @pytest.mark.parametrize("start_date, num_announcements_out", window_test_cases)
     def test_estimate_windows_at_quarter_boundaries(
         self, start_date, num_announcements_out
     ):
@@ -1168,7 +1168,7 @@ class WithEstimateWindows(WithEstimates):
         )
 
 
-class PreviousEstimateWindows(WithEstimateWindows, ZiplineTestCase):
+class TestPreviousEstimateWindows(WithEstimateWindows, ZiplineTestCase):
     @classmethod
     def make_loader(cls, events, columns):
         return PreviousEarningsEstimatesLoader(events, columns)
@@ -1273,7 +1273,7 @@ class PreviousEstimateWindows(WithEstimateWindows, ZiplineTestCase):
         return {1: oneq_previous, 2: twoq_previous}
 
 
-class NextEstimateWindows(WithEstimateWindows, ZiplineTestCase):
+class TestNextEstimateWindows(WithEstimateWindows, ZiplineTestCase):
     @classmethod
     def make_loader(cls, events, columns):
         return NextEarningsEstimatesLoader(events, columns)
@@ -1642,7 +1642,7 @@ class WithSplitAdjustedWindows(WithEstimateWindows):
         )
 
 
-class PreviousWithSplitAdjustedWindows(WithSplitAdjustedWindows, ZiplineTestCase):
+class TestPreviousWithSplitAdjustedWindows(WithSplitAdjustedWindows, ZiplineTestCase):
     @classmethod
     def make_loader(cls, events, columns):
         return PreviousSplitAdjustedEarningsEstimatesLoader(
@@ -1836,7 +1836,7 @@ class PreviousWithSplitAdjustedWindows(WithSplitAdjustedWindows, ZiplineTestCase
         return {1: oneq_previous, 2: twoq_previous}
 
 
-class NextWithSplitAdjustedWindows(WithSplitAdjustedWindows, ZiplineTestCase):
+class TestNextWithSplitAdjustedWindows(WithSplitAdjustedWindows, ZiplineTestCase):
     @classmethod
     def make_loader(cls, events, columns):
         return NextSplitAdjustedEarningsEstimatesLoader(
@@ -2293,7 +2293,7 @@ class WithSplitAdjustedMultipleEstimateColumns(WithEstimates):
         )
 
 
-class PreviousWithSplitAdjustedMultipleEstimateColumns(
+class TestPreviousWithSplitAdjustedMultipleEstimateColumns(
     WithSplitAdjustedMultipleEstimateColumns, ZiplineTestCase
 ):
     @classmethod
@@ -2358,7 +2358,7 @@ class PreviousWithSplitAdjustedMultipleEstimateColumns(
         }
 
 
-class NextWithSplitAdjustedMultipleEstimateColumns(
+class TestNextWithSplitAdjustedMultipleEstimateColumns(
     WithSplitAdjustedMultipleEstimateColumns, ZiplineTestCase
 ):
     @classmethod
@@ -2429,7 +2429,7 @@ class WithAdjustmentBoundaries(WithEstimates):
         A split-adjusted-asof-date before the start date of the test.
     split_adjusted_after_end : pd.Timestamp
         A split-adjusted-asof-date before the end date of the test.
-    split_adjusted_asof_dates : list of tuples of pd.Timestamp
+    split_adjusted_asof_dates : list of pd.Timestamp
         All the split-adjusted-asof-dates over which we want to parameterize
         the test.
 
@@ -2451,10 +2451,10 @@ class WithAdjustmentBoundaries(WithEstimates):
     # Must parametrize over this because there can only be 1 such date for
     # each set of data.
     split_adjusted_asof_dates = [
-        (test_start_date,),
-        (test_end_date,),
-        (split_adjusted_before_start,),
-        (split_adjusted_after_end,),
+        test_start_date,
+        test_end_date,
+        split_adjusted_before_start,
+        split_adjusted_after_end,
     ]
 
     @classmethod
@@ -2618,7 +2618,7 @@ class WithAdjustmentBoundaries(WithEstimates):
             split_adjusted_asof=split_adjusted_asof,
         )
 
-    @parameterized.expand(split_adjusted_asof_dates)
+    @pytest.mark.parametrize("split_date", split_adjusted_asof_dates)
     def test_boundaries(self, split_date):
         dataset = QuartersEstimates(1)
         loader = self.make_split_adjusted_loader(split_date)
@@ -2637,7 +2637,7 @@ class WithAdjustmentBoundaries(WithEstimates):
         return {}
 
 
-class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase):
+class TestPreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase):
     loader_type = PreviousSplitAdjustedEarningsEstimatesLoader
 
     @classmethod
@@ -2779,7 +2779,7 @@ class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase
         }
 
 
-class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase):
+class TestNextWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase):
     loader_type = NextSplitAdjustedEarningsEstimatesLoader
 
     @classmethod

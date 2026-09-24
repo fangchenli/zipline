@@ -3,7 +3,7 @@ from collections import OrderedDict
 from textwrap import dedent
 
 import numpy as np
-from parameterized import parameterized
+import pytest
 
 from zipline.pipeline.data import (
     Column,
@@ -89,9 +89,10 @@ class TestDataSetFamily(ZiplineTestCase):
             ]
 
     def spec(*cs):
-        return (cs,)
+        return cs
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "dims_spec",
         [
             spec(("dim_0", range(10))),
             spec(
@@ -109,7 +110,7 @@ class TestDataSetFamily(ZiplineTestCase):
                 ("dim_2", range(5, 15)),
                 ("dim_3", {"b", "c", "e"}),
             ),
-        ]
+        ],
     )
     def test_valid_slice(self, dims_spec):
         class MD(DataSetFamily):

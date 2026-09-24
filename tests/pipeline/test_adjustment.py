@@ -2,22 +2,20 @@
 Tests for zipline.lib.adjustment
 """
 
-from unittest import TestCase
-
 import pytest
-from parameterized import parameterized
 
 from zipline.lib import adjustment as adj
 from zipline.utils.numpy_utils import make_datetime64ns
 
 
-class AdjustmentTestCase(TestCase):
-    @parameterized.expand(
+class AdjustmentTestCase:
+    @pytest.mark.parametrize(
+        "name, adj_type",
         [
             ("add", adj.ADD),
             ("multiply", adj.MULTIPLY),
             ("overwrite", adj.OVERWRITE),
-        ]
+        ],
     )
     def test_make_float_adjustment(self, name, adj_type):
         expected_types = {
@@ -79,7 +77,7 @@ class AdjustmentTestCase(TestCase):
         )
         assert result == expected
 
-    @parameterized.expand([("some text",), (b"some text",), (None,)])
+    @pytest.mark.parametrize("value", ["some text", b"some text", None])
     def test_make_object_adjustment(self, value):
         result = adj.make_adjustment_from_indices(
             1,

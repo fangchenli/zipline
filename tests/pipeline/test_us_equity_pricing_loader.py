@@ -33,7 +33,6 @@ from pandas import (
     Timestamp,
     concat,
 )
-from parameterized import parameterized
 from toolz.curried.operator import getitem
 
 from zipline.errors import WindowLengthTooLong
@@ -349,14 +348,15 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
 
         return output
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "tables, adjustment_type",
         [
             ([SPLITS, MERGERS, DIVIDENDS_EXPECTED], "all"),
             ([SPLITS, MERGERS, DIVIDENDS_EXPECTED], "price"),
             ([SPLITS, MERGERS, DIVIDENDS_EXPECTED], "volume"),
             ([SPLITS, MERGERS, None], "all"),
             ([SPLITS, MERGERS, None], "price"),
-        ]
+        ],
     )
     def test_load_adjustments(self, tables, adjustment_type):
         query_days = self.calendar_days_between(
@@ -403,7 +403,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
                     assert adj.last_col == expected.last_col
                     assert_allclose(adj.value, expected.value)
 
-    @parameterized.expand([(True,), (False,)])
+    @pytest.mark.parametrize("convert_dts", [True, False])
     def test_load_adjustments_to_df(self, convert_dts):
         reader = self.adjustment_reader
         adjustment_dfs = reader.unpack_db_to_component_dfs(convert_dates=convert_dts)

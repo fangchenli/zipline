@@ -45,7 +45,7 @@ from zipline.pipeline.filters import (
     StaticAssets,
     StaticSids,
 )
-from zipline.testing import ZiplineTestCase, parameter_space, permute_rows
+from zipline.testing import ZiplineTestCase, permute_rows
 from zipline.testing.fixtures import WithSeededRandomPipelineEngine
 from zipline.testing.predicates import assert_equal
 from zipline.utils.numpy_utils import (
@@ -811,7 +811,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             mask=self.build_mask(ones(shape=data.shape)),
         )
 
-    @parameter_space(factor_len=[2, 3, 4])
+    @pytest.mark.parametrize("factor_len", [2, 3, 4])
     def test_window_safe(self, factor_len):
         # all true data set of (days, securities)
         data = full(self.default_shape, True, dtype=bool)
@@ -859,9 +859,8 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         filter_ = TestFactor() > 3
         assert filter_.window_safe
 
-    @parameter_space(
-        dtype=("float64", "datetime64[ns]"), seed=(1, 2, 3), __fail_fast=True
-    )
+    @pytest.mark.parametrize("dtype", ("float64", "datetime64[ns]"))
+    @pytest.mark.parametrize("seed", (1, 2, 3))
     def test_top_with_groupby(self, dtype, seed):
         permute = partial(permute_rows, seed)
         permuted_array = compose(permute, partial(array, dtype=int64_dtype))
@@ -946,9 +945,8 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             mask=self.build_mask(self.ones_mask(shape=shape)),
         )
 
-    @parameter_space(
-        dtype=("float64", "datetime64[ns]"), seed=(1, 2, 3), __fail_fast=True
-    )
+    @pytest.mark.parametrize("dtype", ("float64", "datetime64[ns]"))
+    @pytest.mark.parametrize("seed", (1, 2, 3))
     def test_top_and_bottom_with_groupby(self, dtype, seed):
         permute = partial(permute_rows, seed)
         permuted_array = compose(permute, partial(array, dtype=int64_dtype))
@@ -1082,11 +1080,8 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             mask=self.build_mask(self.ones_mask(shape=shape)),
         )
 
-    @parameter_space(
-        dtype=("float64", "datetime64[ns]"),
-        seed=(1, 2, 3),
-        __fail_fast=True,
-    )
+    @pytest.mark.parametrize("dtype", ("float64", "datetime64[ns]"))
+    @pytest.mark.parametrize("seed", (1, 2, 3))
     def test_top_and_bottom_with_groupby_and_mask(self, dtype, seed):
         permute = partial(permute_rows, seed)
         permuted_array = compose(permute, partial(array, dtype=int64_dtype))
@@ -1278,7 +1273,7 @@ class IfElseTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             cls.asset_finder.equities_sids,
         )
 
-    @parameter_space(seed=[1, 2, 3])
+    @pytest.mark.parametrize("seed", [1, 2, 3])
     def test_if_then_else_factor(self, seed):
         f = SomeFactor()
         g = SomeOtherFactor()
@@ -1309,7 +1304,7 @@ class IfElseTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             mask=self.build_mask(self.ones_mask()),
         )
 
-    @parameter_space(seed=[1000, 2000, 3000])
+    @pytest.mark.parametrize("seed", [1000, 2000, 3000])
     def test_if_then_else_datetime_factor(self, seed):
         class SomeOtherDatetimeFactor(Factor):
             dtype = datetime64ns_dtype
@@ -1345,7 +1340,7 @@ class IfElseTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             mask=self.build_mask(self.ones_mask()),
         )
 
-    @parameter_space(seed=[10, 11, 12])
+    @pytest.mark.parametrize("seed", [10, 11, 12])
     def test_if_then_else_filter(self, seed):
         class Filter1(Filter):
             inputs = ()
@@ -1384,7 +1379,7 @@ class IfElseTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             mask=self.build_mask(self.ones_mask()),
         )
 
-    @parameter_space(seed=[100, 101, 102])
+    @pytest.mark.parametrize("seed", [100, 101, 102])
     def test_if_then_else_string_classifier(self, seed):
         class Classifier1(Classifier):
             inputs = ()
@@ -1429,7 +1424,7 @@ class IfElseTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             mask=self.build_mask(self.ones_mask()),
         )
 
-    @parameter_space(seed=[200, 300, 400])
+    @pytest.mark.parametrize("seed", [200, 300, 400])
     def test_if_then_else_int_classifier(self, seed):
 
         class Classifier1(Classifier):

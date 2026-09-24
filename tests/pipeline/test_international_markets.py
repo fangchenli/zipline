@@ -5,7 +5,6 @@ from itertools import cycle, islice
 import numpy as np
 import pandas as pd
 import pytest
-from parameterized import parameterized
 
 import zipline.testing.fixtures as zf
 from zipline.assets.synthetic import make_rotating_equity_info
@@ -20,7 +19,7 @@ from zipline.pipeline.domain import (
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.loaders.equity_pricing_loader import EquityPricingLoader
 from zipline.pipeline.loaders.synthetic import NullAdjustmentReader
-from zipline.testing.core import parameter_space, random_tick_prices
+from zipline.testing.core import random_tick_prices
 from zipline.testing.predicates import assert_equal
 from zipline.utils.calendar_utils import get_calendar
 
@@ -233,7 +232,7 @@ class InternationalEquityTestCase(
     def make_exchanges_info(cls, equities, futures, root_symbols):
         return cls.EXCHANGE_INFO
 
-    @parameter_space(domain=[CA_EQUITIES, US_EQUITIES, GB_EQUITIES])
+    @pytest.mark.parametrize("domain", [CA_EQUITIES, US_EQUITIES, GB_EQUITIES])
     def test_generic_pipeline_with_explicit_domain(self, domain):
         calendar = domain.calendar
         pipe = Pipeline(
@@ -300,12 +299,13 @@ class InternationalEquityTestCase(
                         value,
                     )
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "name, domain, calendar_name",
         [
             ("US", US_EQUITIES, "XNYS"),
             ("CA", CA_EQUITIES, "XTSE"),
             ("GB", GB_EQUITIES, "XLON"),
-        ]
+        ],
     )
     def test_currency_convert_prices(self, name, domain, calendar_name):
         # Test running a pipeline on a domain whose assets are all denominated
@@ -364,12 +364,13 @@ class InternationalEquityTestCase(
 
             assert_equal(result_2d, expected_result_2d)
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "name, domain, calendar_name",
         [
             ("US", US_EQUITIES, "XNYS"),
             ("CA", CA_EQUITIES, "XTSE"),
             ("GB", GB_EQUITIES, "XLON"),
-        ]
+        ],
     )
     def test_only_currency_converted_data(self, name, domain, calendar_name):
         # Test running a pipeline on a domain whose assets are all denominated

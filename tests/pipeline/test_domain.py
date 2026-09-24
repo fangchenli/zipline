@@ -65,7 +65,7 @@ from zipline.pipeline.domain import (
     infer_domain,
 )
 from zipline.pipeline.factors import CustomFactor
-from zipline.testing.core import parameter_space, powerset
+from zipline.testing.core import powerset
 from zipline.testing.predicates import assert_equal, assert_messages_equal
 from zipline.utils.pandas_utils import days_at_time
 
@@ -117,7 +117,7 @@ class MixedGenericsTestCase(zf.WithSeededRandomPipelineEngine, zf.ZiplineTestCas
 
 
 class SpecializeTestCase(zf.ZiplineTestCase):
-    @parameter_space(domain=BUILT_IN_DOMAINS)
+    @pytest.mark.parametrize("domain", BUILT_IN_DOMAINS)
     def test_specialize(self, domain):
         class MyData(DataSet):
             col1 = Column(dtype=float)
@@ -165,7 +165,7 @@ class SpecializeTestCase(zf.ZiplineTestCase):
         do_checks(MyData, ["col1", "col2", "col3"])
         do_checks(MyDataSubclass, ["col1", "col2", "col3", "col4"])
 
-    @parameter_space(domain=BUILT_IN_DOMAINS)
+    @pytest.mark.parametrize("domain", BUILT_IN_DOMAINS)
     def test_unspecialize(self, domain):
 
         class MyData(DataSet):
@@ -197,7 +197,7 @@ class SpecializeTestCase(zf.ZiplineTestCase):
         do_checks(MyData, ["col1", "col2", "col3"])
         do_checks(MyDataSubclass, ["col1", "col2", "col3", "col4"])
 
-    @parameter_space(domain_param=[BE_EQUITIES, CA_EQUITIES, CH_EQUITIES])
+    @pytest.mark.parametrize("domain_param", [BE_EQUITIES, CA_EQUITIES, CH_EQUITIES])
     def test_specialized_root(self, domain_param):
         different_domain = GB_EQUITIES
 
@@ -274,7 +274,7 @@ class InferDomainTestCase(zf.ZiplineTestCase):
         self.check([D.c1, D.c2, D.c3], GENERIC)
         self.check([D.c1.latest, D.c2.latest, D.c3.latest], GENERIC)
 
-    @parameter_space(domain=[US_EQUITIES, GB_EQUITIES])
+    @pytest.mark.parametrize("domain", [US_EQUITIES, GB_EQUITIES])
     def test_all_non_generic(self, domain):
         D_s = D.specialize(domain)
         self.check([D_s.c1], domain)
@@ -282,7 +282,7 @@ class InferDomainTestCase(zf.ZiplineTestCase):
         self.check([D_s.c1, D_s.c2, D_s.c3], domain)
         self.check([D_s.c1, D_s.c2, D_s.c3.latest], domain)
 
-    @parameter_space(domain=[US_EQUITIES, GB_EQUITIES])
+    @pytest.mark.parametrize("domain", [US_EQUITIES, GB_EQUITIES])
     def test_mix_generic_and_specialized(self, domain):
         D_s = D.specialize(domain)
         self.check([D.c1, D_s.c3], domain)
@@ -447,7 +447,7 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
             expected_cutoff_date_offset=-7,
         )
 
-    @parameter_space(domain=BUILT_IN_DOMAINS)
+    @pytest.mark.parametrize("domain", BUILT_IN_DOMAINS)
     def test_equity_calendar_not_aligned(self, domain):
         valid_sessions = domain.all_sessions()[:50]
         sessions = pd.date_range(valid_sessions[0], valid_sessions[-1])
@@ -465,8 +465,9 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
 
     Case = namedtuple("Case", "time date_offset expected_timedelta")
 
-    @parameter_space(
-        parameters=(
+    @pytest.mark.parametrize(
+        "parameters",
+        (
             Case(
                 time=datetime.time(8, 45, tzinfo=ZoneInfo("UTC")),
                 date_offset=0,
@@ -504,7 +505,7 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
                     ["4 hours 30 minutes"] * 93 + ["3 hours 30 minutes"] * 60,
                 ),
             ),
-        )
+        ),
     )
     def test_equity_session_domain(self, parameters):
         time, date_offset, expected_timedelta = parameters

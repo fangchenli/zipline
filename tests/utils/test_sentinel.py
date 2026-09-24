@@ -1,7 +1,6 @@
 import sys
 from copy import copy, deepcopy
 from pickle import dumps, loads
-from unittest import TestCase
 from weakref import ref
 
 import pytest
@@ -10,8 +9,8 @@ from zipline.utils import sentinel as sentinel_module
 from zipline.utils.sentinel import sentinel
 
 
-class SentinelTestCase(TestCase):
-    def tearDown(self):
+class SentinelTestCase:
+    def teardown_method(self):
         sentinel_module._cache.clear()  # don't pollute cache.
 
     def test_name(self):

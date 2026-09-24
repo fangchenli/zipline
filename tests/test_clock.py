@@ -1,5 +1,4 @@
 from datetime import time
-from unittest import TestCase
 
 import pandas as pd
 import pytest
@@ -14,9 +13,9 @@ from zipline.gens.sim_engine import (
 from zipline.utils.calendar_utils import days_at_time, get_calendar
 
 
-class TestClock(TestCase):
+class TestClock:
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         cls.nyse_calendar = get_calendar("NYSE")
 
         # july 15 is friday, so there are 3 sessions in this range (15, 18, 19)

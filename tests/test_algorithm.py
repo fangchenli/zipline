@@ -25,7 +25,6 @@ import pandas as pd
 import pytest
 import toolz
 from pandas.errors import PerformanceWarning
-from parameterized import parameterized
 from testfixtures import TempDirectory
 
 import zipline.api
@@ -106,8 +105,8 @@ from zipline.testing import (
     create_daily_df_for_asset,
     create_data_portal_from_trade_history,
     create_minute_df_for_asset,
+    log_records,
     make_trade_data_for_asset_info,
-    parameter_space,
     str_to_seconds,
     to_utc,
 )
@@ -321,11 +320,12 @@ def handle_data(context, data):
         with pytest.raises(TypeError):
             algo.run()
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "cap_base, name",
         [
             (-1000, "invalid_base"),
             (0, "invalid_base"),
-        ]
+        ],
     )
     def test_invalid_capital_base(self, cap_base, name):
         """
@@ -585,11 +585,12 @@ def log_nyse_close(context, data):
                 f" but got {f.__name__}"
             )
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "mode",
         [
-            ("daily",),
+            "daily",
             ("minute"),
-        ]
+        ],
     )
     def test_schedule_function_rule_creation(self, mode):
         def nop(*args, **kwargs):
@@ -1552,7 +1553,8 @@ def handle_data(context, data):
         assert 9850 == results.capital_used.iloc[1]
         assert 100 == results["orders"].iloc[1][0]["commission"]
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "name, minimum_commission",
         [
             (
                 "no_minimum_commission",
@@ -1566,7 +1568,7 @@ def handle_data(context, data):
                 "alternate_minimum_commission",
                 2,
             ),
-        ]
+        ],
     )
     def test_volshare_slippage(self, name, minimum_commission):
         tempdir = TempDirectory()
@@ -1857,11 +1859,12 @@ def handle_data(context, data):
         )
         self.run_algorithm(script=call_with_kwargs, sim_params=params)
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "name, algo_text",
         [
             ("history", call_with_bad_kwargs_history),
             ("current", call_with_bad_kwargs_current),
-        ]
+        ],
     )
     def test_bad_kwargs(self, name, algo_text):
         """
@@ -1878,7 +1881,7 @@ def handle_data(context, data):
             == cm.value.args[0]
         )
 
-    @parameterized.expand(ARG_TYPE_TEST_CASES)
+    @pytest.mark.parametrize("name, inputs", ARG_TYPE_TEST_CASES)
     def test_arg_types(self, name, inputs):
 
         keyword = name.split("__")[1]
@@ -1911,12 +1914,13 @@ def handle_data(context, data):
             sim_params=params,
         )
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "name, script",
         [
             ("bad_kwargs", call_with_bad_kwargs_get_open_orders),
             ("good_kwargs", call_with_good_kwargs_get_open_orders),
             ("no_kwargs", call_with_no_kwargs_get_open_orders),
-        ]
+        ],
     )
     def test_get_open_orders_kwargs(self, name, script):
         algo = self.make_algo(script=script)
@@ -2077,7 +2081,9 @@ class TestCapitalChanges(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         yield cls.DAILY_SID, frame
 
-    @parameterized.expand([("target", 151000.0), ("delta", 50000.0)])
+    @pytest.mark.parametrize(
+        "change_type, value", [("target", 151000.0), ("delta", 50000.0)]
+    )
     def test_capital_changes_daily_mode(self, change_type, value):
         capital_changes = {
             pd.Timestamp("2006-01-06"): {"type": change_type, "value": value}
@@ -2238,7 +2244,8 @@ def order_stuff(context, data):
 
         assert algo.capital_change_deltas == {pd.Timestamp("2006-01-06"): 50000.0}
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "change, values",
         [
             ("interday_target", [("2006-01-04", 2388.0)]),
             ("interday_delta", [("2006-01-04", 1000.0)]),
@@ -2250,7 +2257,7 @@ def order_stuff(context, data):
                 "intraday_delta",
                 [("2006-01-04 17:00", 500.0), ("2006-01-04 18:00", 500.0)],
             ),
-        ]
+        ],
     )
     def test_capital_changes_minute_mode_daily_emission(self, change, values):
         change_loc, change_type = change.split("_")
@@ -2416,7 +2423,8 @@ def order_stuff(context, data):
                 pd.Timestamp("2006-01-04 18:00", tz="UTC"): 500.0,
             }
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "change, values",
         [
             ("interday_target", [("2006-01-04", 2388.0)]),
             ("interday_delta", [("2006-01-04", 1000.0)]),
@@ -2428,7 +2436,7 @@ def order_stuff(context, data):
                 "intraday_delta",
                 [("2006-01-04 17:00", 500.0), ("2006-01-04 18:00", 500.0)],
             ),
-        ]
+        ],
     )
     def test_capital_changes_minute_mode_minute_emission(self, change, values):
         change_loc, change_type = change.split("_")
@@ -2691,7 +2699,8 @@ class TestGetDatetime(zf.WithMakeAlgo, zf.ZiplineTestCase):
     # FIXME: Pass a benchmark source explicitly here.
     BENCHMARK_SID = None
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "name, tz",
         [
             (
                 "default",
@@ -2705,7 +2714,7 @@ class TestGetDatetime(zf.WithMakeAlgo, zf.ZiplineTestCase):
                 "us_east",
                 "US/Eastern",
             ),
-        ]
+        ],
     )
     def test_get_datetime(self, name, tz):
         algo = dedent(
@@ -2850,7 +2859,7 @@ class TestTradingControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         self.check_algo_fails(algo, 0)
 
-    def test_set_asset_restrictions(self):
+    def test_set_asset_restrictions(self, caplog):
 
         def initialize(algo, sid, restrictions, on_error):
             algo.order_count = 0
@@ -2901,9 +2910,9 @@ class TestTradingControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
             initialize=initialize,
             handle_data=handle_data,
         )
-        with self.assertLogs("zipline", logging.ERROR) as log_catcher:
+        with caplog.at_level(logging.ERROR, logger="zipline"):
             self.check_algo_succeeds(algo)
-        logs = [r.getMessage() for r in log_catcher.records]
+        logs = [r.getMessage() for r in log_records(caplog, logging.ERROR)]
         assert (
             "Order for 100 shares of Equity(133 [A]) at "
             "2006-01-03 21:00:00+00:00 violates trading constraint "
@@ -2930,8 +2939,9 @@ class TestTradingControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
         self.check_algo_succeeds(algo)
         assert algo.could_trade
 
-    @parameterized.expand(
-        [("order_first_restricted_sid", 0), ("order_second_restricted_sid", 1)]
+    @pytest.mark.parametrize(
+        "name, to_order_idx",
+        [("order_first_restricted_sid", 0), ("order_second_restricted_sid", 1)],
     )
     def test_set_multiple_asset_restrictions(self, name, to_order_idx):
 
@@ -3685,11 +3695,9 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
             ),
         )
 
-    @parameter_space(
-        direction=[1, -1],
-        minute_emission=[True, False],
-    )
-    def test_eod_order_cancel_minute(self, direction, minute_emission):
+    @pytest.mark.parametrize("direction", [1, -1])
+    @pytest.mark.parametrize("minute_emission", [True, False])
+    def test_eod_order_cancel_minute(self, caplog, direction, minute_emission):
         """
         Test that EOD order cancel works in minute mode for both shorts and
         longs, and both daily emission and minute emission
@@ -3702,7 +3710,7 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
             minute_emission=minute_emission,
         )
 
-        with self.assertLogs("zipline", logging.WARNING) as log_catcher:
+        with caplog.at_level(logging.WARNING, logger="zipline"):
             results = algo.run()
 
             for daily_positions in results.positions:
@@ -3725,7 +3733,7 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
             warnings = [
                 record
-                for record in log_catcher.records
+                for record in log_records(caplog, logging.WARNING)
                 if record.levelno == logging.WARNING
             ]
 
@@ -3746,10 +3754,10 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
                     "were canceled." == warnings[0].getMessage()
                 )
 
-    def test_default_cancelation_policy(self):
+    def test_default_cancelation_policy(self, caplog):
         algo = self.prep_algo("")
 
-        with self.assertNoLogs("zipline", logging.WARNING):
+        with caplog.at_level(logging.WARNING, logger="zipline"):
             results = algo.run()
 
             # order stays open throughout simulation
@@ -3761,12 +3769,13 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
             np.testing.assert_array_equal(
                 [389, 390, 221], list(map(len, results.transactions))
             )
+        assert not log_records(caplog, logging.WARNING)
 
-    def test_eod_order_cancel_daily(self):
+    def test_eod_order_cancel_daily(self, caplog):
         # in daily mode, EODCancel does nothing.
         algo = self.prep_algo("set_cancel_policy(cancel_policy.EODCancel())", "daily")
 
-        with self.assertNoLogs("zipline", logging.WARNING):
+        with caplog.at_level(logging.WARNING, logger="zipline"):
             results = algo.run()
 
             # order stays open throughout simulation
@@ -3776,6 +3785,7 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
             np.testing.assert_array_equal(
                 [0, 1, 1], list(map(len, results.transactions))
             )
+        assert not log_records(caplog, logging.WARNING)
 
 
 class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
@@ -3878,11 +3888,8 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         return handle_data
 
-    @parameter_space(
-        order_size=[10, -10],
-        capital_base=[1, 100000],
-        __fail_fast=True,
-    )
+    @pytest.mark.parametrize("order_size", [10, -10])
+    @pytest.mark.parametrize("capital_base", [1, 100000])
     def test_daily_delisted_equities(self, order_size, capital_base):
         """
         Make sure that after an equity gets delisted, our portfolio holds the
@@ -4366,13 +4373,14 @@ class TestOrderAfterDelist(zf.WithMakeAlgo, zf.ZiplineTestCase):
         super().init_instance_fixtures()
         self.data_portal = FakeDataPortal(self.asset_finder)
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "name, sid",
         [
             ("auto_close_after_end_date", 1),
             ("auto_close_before_end_date", 2),
-        ]
+        ],
     )
-    def test_order_in_quiet_period(self, name, sid):
+    def test_order_in_quiet_period(self, caplog, name, sid):
         asset = self.asset_finder.retrieve_asset(sid)
 
         algo_code = dedent("""
@@ -4408,10 +4416,14 @@ class TestOrderAfterDelist(zf.WithMakeAlgo, zf.ZiplineTestCase):
                 data_frequency="minute",
             ),
         )
-        with self.assertLogs("zipline", logging.WARNING) as log_catcher:
+        with caplog.at_level(logging.WARNING, logger="zipline"):
             algo.run()
 
-            warnings = [r for r in log_catcher.records if r.levelno == logging.WARNING]
+            warnings = [
+                r
+                for r in log_records(caplog, logging.WARNING)
+                if r.levelno == logging.WARNING
+            ]
 
             # one warning per order on the second day
             assert 6 * 390 == len(warnings)

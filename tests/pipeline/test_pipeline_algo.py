@@ -28,7 +28,6 @@ from pandas import (
     date_range,
     read_csv,
 )
-from parameterized import parameterized
 
 from zipline.api import (
     attach_pipeline,
@@ -78,7 +77,7 @@ def rolling_vwap(df, length):
     return Series(out, index=df.index)
 
 
-class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
+class TestClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
     START_DATE = pd.Timestamp("2014-01-01")
     END_DATE = pd.Timestamp("2014-02-01")
     dates = date_range(START_DATE, END_DATE, freq=get_calendar("NYSE").day)
@@ -182,7 +181,7 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
 
     def make_algo_kwargs(self, **overrides):
         return self.merge_with_inherited_algo_kwargs(
-            ClosesAndVolumes,
+            TestClosesAndVolumes,
             suite_overrides=dict(
                 sim_params=self.default_sim_params,
                 get_pipeline_loader=lambda column: self.pipeline_close_loader,
@@ -309,7 +308,8 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
         with pytest.raises(NoSuchPipeline):
             algo.run()
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "test_name, chunks",
         [
             ("default", None),
             ("day", 1),
@@ -317,7 +317,7 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
             ("year", 252),
             ("all_but_one_day", "all_but_one_day"),
             ("custom_iter", "custom_iter"),
-        ]
+        ],
     )
     def test_assets_appear_on_correct_days(self, test_name, chunks):
         """
@@ -605,11 +605,12 @@ class PipelineAlgorithmTestCase(
 
         return vwaps
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "set_screen",
         [
-            (True,),
-            (False,),
-        ]
+            True,
+            False,
+        ],
     )
     def test_handle_adjustment(self, set_screen):
         AAPL, MSFT, BRK_A = assets = self.assets

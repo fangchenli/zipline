@@ -12,13 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest import TestCase
 
 from zipline.finance.cancel_policy import EODCancel, NeverCancel
 from zipline.gens.sim_engine import BAR, SESSION_END
 
 
-class CancelPolicyTestCase(TestCase):
+class CancelPolicyTestCase:
     def test_eod_cancel(self):
         cancel_policy = EODCancel()
         assert cancel_policy.should_cancel(SESSION_END)

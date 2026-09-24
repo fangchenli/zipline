@@ -1,6 +1,5 @@
 import gzip
-import inspect
-import json
+import logging
 import operator
 import os
 import shutil
@@ -9,14 +8,11 @@ import tempfile
 from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
 from contextlib import contextmanager
-from functools import wraps
 from itertools import (
     combinations,
-    count,
     product,
 )
 from os.path import abspath, dirname, join, realpath
-from traceback import format_exception
 from unittest.mock import patch
 
 import numpy as np
@@ -789,112 +785,6 @@ def empty_asset_finder():
     return tmp_asset_finder(equities=None)
 
 
-class SubTestFailures(AssertionError):
-    def __init__(self, *failures):
-        self.failures = failures
-
-    @staticmethod
-    def _format_exc(exc_info):
-        # we need to do this weird join-split-join to ensure that the full
-        # message is indented by 4 spaces
-        return "\n    ".join("".join(format_exception(*exc_info)).splitlines())
-
-    def __str__(self):
-        return "failures:\n  {}".format(
-            "\n  ".join(
-                "\n    ".join(
-                    (
-                        ", ".join("{}={!r}".format(*item) for item in scope.items()),
-                        self._format_exc(exc_info),
-                    )
-                )
-                for scope, exc_info in self.failures
-            )
-        )
-
-
-def subtest(iterator, *_names):
-    """
-    Construct a subtest in a unittest.
-
-    Consider using ``zipline.testing.parameter_space`` when subtests
-    are constructed over a single input or over the cross-product of multiple
-    inputs.
-
-    ``subtest`` works by decorating a function as a subtest. The decorated
-    function will be run by iterating over the ``iterator`` and *unpacking the
-    values into the function. If any of the runs fail, the result will be put
-    into a set and the rest of the tests will be run. Finally, if any failed,
-    all of the results will be dumped as one failure.
-
-    Parameters
-    ----------
-    iterator : iterable[iterable]
-        The iterator of arguments to pass to the function.
-    *name : iterator[str]
-        The names to use for each element of ``iterator``. These will be used
-        to print the scope when a test fails. If not provided, it will use the
-        integer index of the value as the name.
-
-    Examples
-    --------
-
-    ::
-
-       class MyTest(TestCase):
-           def test_thing(self):
-               # Example usage inside another test.
-               @subtest(([n] for n in range(100000)), 'n')
-               def subtest(n):
-                   self.assertEqual(n % 2, 0, 'n was not even')
-               subtest()
-
-           @subtest(([n] for n in range(100000)), 'n')
-           def test_decorated_function(self, n):
-               # Example usage to parameterize an entire function.
-               self.assertEqual(n % 2, 1, 'n was not odd')
-
-    Notes
-    -----
-    We use this when we:
-
-    * Will never want to run each parameter individually.
-    * Have a large parameter space we are testing
-      (see tests/utils/test_events.py).
-
-    ``parameterized.expand`` will create a test for each parameter
-    combination which bloats the test output and makes the travis pages slow.
-
-    We cannot use ``unittest2.TestCase.subTest`` because nose, pytest, and
-    nose2 do not support ``addSubTest``.
-
-    See Also
-    --------
-    zipline.testing.parameter_space
-    """
-
-    def dec(f):
-        @wraps(f)
-        def wrapped(*args, **kwargs):
-            names = _names
-            failures = []
-            for scope in iterator:
-                scope = tuple(scope)
-                try:
-                    f(*args + scope, **kwargs)
-                except Exception:
-                    info = sys.exc_info()
-                    if not names:
-                        names = count()
-                    failures.append((dict(zip(names, scope)), info))
-            if failures:
-                raise SubTestFailures(*failures)
-
-        return wrapped
-
-    return dec
-
-
 class MockDailyBarReader:
     def __init__(self, dates):
         self.sessions = pd.DatetimeIndex(dates)
@@ -911,6 +801,21 @@ class MockDailyBarReader:
 
     def get_value(self, col, sid, dt):
         return 100.0
+
+
+def log_records(caplog, level=logging.NOTSET, logger="zipline"):
+    """The records pytest's ``caplog`` captured from ``logger`` or its
+    children at ``level`` or above, like unittest's ``assertLogs``.
+
+    Use it after, or within, ``caplog.at_level(level, logger=logger)``.
+    """
+    prefix = logger + "."
+    return [
+        record
+        for record in caplog.records
+        if record.levelno >= level
+        and (record.name == logger or record.name.startswith(prefix))
+    ]
 
 
 def create_mock_adjustment_data(splits=None, dividends=None, mergers=None):
@@ -1017,131 +922,6 @@ def temp_pipeline_engine(calendar, sids, random_seed, symbols=None):
 
     with tmp_asset_finder(equities=equity_info) as finder:
         yield SimplePipelineEngine(get_loader, calendar, finder)
-
-
-def bool_from_envvar(name, default=False, env=None):
-    """
-    Get a boolean value from the environment, making a reasonable attempt to
-    convert "truthy" values to True and "falsey" values to False.
-
-    Strings are coerced to bools using ``json.loads(s.lower())``.
-
-    Parameters
-    ----------
-    name : str
-        Name of the environment variable.
-    default : bool, optional
-        Value to use if the environment variable isn't set. Default is False
-    env : dict-like, optional
-        Mapping in which to look up ``name``. This is a parameter primarily for
-        testing purposes. Default is os.environ.
-
-    Returns
-    -------
-    value : bool
-        ``env[name]`` coerced to a boolean, or ``default`` if ``name`` is not
-        in ``env``.
-    """
-    if env is None:
-        env = os.environ
-
-    value = env.get(name)
-    if value is None:
-        return default
-
-    try:
-        # Try to parse as JSON. This makes strings like "0", "False", and
-        # "null" evaluate as falsey values.
-        value = json.loads(value.lower())
-    except ValueError:
-        # If the value can't be parsed as json, assume it should be treated as
-        # a string for the purpose of evaluation.
-        pass
-
-    return bool(value)
-
-
-_FAIL_FAST_DEFAULT = bool_from_envvar("PARAMETER_SPACE_FAIL_FAST")
-
-
-def parameter_space(__fail_fast=_FAIL_FAST_DEFAULT, **params):
-    """
-    Wrapper around subtest that allows passing keywords mapping names to
-    iterables of values.
-
-    The decorated test function will be called with the cross-product of all
-    possible inputs
-
-    Examples
-    --------
-    >>> from unittest import TestCase
-    >>> class SomeTestCase(TestCase):
-    ...     @parameter_space(x=[1, 2], y=[2, 3])
-    ...     def test_some_func(self, x, y):
-    ...         # Will be called with every possible combination of x and y.
-    ...         self.assertEqual(somefunc(x, y), expected_result(x, y))
-
-    See Also
-    --------
-    zipline.testing.subtest
-    """
-
-    def decorator(f):
-
-        argspec = inspect.getfullargspec(f)
-        if argspec.varargs:
-            raise AssertionError("parameter_space() doesn't support *args")
-        if argspec.varkw:
-            raise AssertionError("parameter_space() doesn't support **kwargs")
-        if argspec.defaults:
-            raise AssertionError("parameter_space() doesn't support defaults.")
-
-        # Skip over implicit self.
-        argnames = argspec.args
-        if argnames[0] == "self":
-            argnames = argnames[1:]
-
-        extra = set(params) - set(argnames)
-        if extra:
-            raise AssertionError(
-                f"Keywords {extra} supplied to parameter_space() are "
-                "not in function signature."
-            )
-
-        unspecified = set(argnames) - set(params)
-        if unspecified:
-            raise AssertionError(
-                f"Function arguments {unspecified} were not "
-                "supplied to parameter_space()."
-            )
-
-        def make_param_sets():
-            return product(*(params[name] for name in argnames))
-
-        def clean_f(self, *args, **kwargs):
-            try:
-                f(self, *args, **kwargs)
-            finally:
-                self.tearDown()
-                self.setUp()
-
-        if __fail_fast:
-
-            @wraps(f)
-            def wrapped(self):
-                for args in make_param_sets():
-                    clean_f(self, *args)
-
-            return wrapped
-        else:
-
-            @wraps(f)
-            def wrapped(*args, **kwargs):
-                subtest(make_param_sets(), *argnames)(clean_f)(*args, **kwargs)
-
-        return wrapped
-
-    return decorator
 
 
 def create_empty_dividends_frame():

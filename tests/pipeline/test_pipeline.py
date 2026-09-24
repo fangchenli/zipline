@@ -3,7 +3,6 @@ Tests for zipline.pipeline.Pipeline
 """
 
 import inspect
-from unittest import TestCase
 from unittest.mock import patch
 
 import pytest
@@ -43,7 +42,7 @@ class SomeOtherFilter(Filter):
     inputs = [USEquityPricing.close, USEquityPricing.high]
 
 
-class PipelineTestCase(TestCase):
+class PipelineTestCase:
     def test_construction(self):
         p0 = Pipeline()
         assert p0.columns == {}

@@ -14,7 +14,6 @@
 # limitations under the License.
 import pandas as pd
 import pytest
-from parameterized import parameterized
 
 from zipline.errors import BadOrderParameters
 from zipline.finance.execution import (
@@ -43,12 +42,12 @@ class ExecutionStyleTestCase(WithConstantFutureMinuteBarData, ZiplineTestCase):
     epsilon = 0.000001
 
     INVALID_PRICES = [
-        (-1,),
-        (-1.0,),
-        (0 - epsilon,),
-        (float("nan"),),
-        (float("inf"),),
-        (ArbitraryObject(),),
+        -1,
+        -1.0,
+        0 - epsilon,
+        float("nan"),
+        float("inf"),
+        ArbitraryObject(),
     ]
 
     # Input, expected on limit buy/stop sell, expected on limit sell/stop buy.
@@ -145,7 +144,7 @@ class ExecutionStyleTestCase(WithConstantFutureMinuteBarData, ZiplineTestCase):
     def init_class_fixtures(cls):
         super().init_class_fixtures()
 
-    @parameterized.expand(INVALID_PRICES)
+    @pytest.mark.parametrize("price", INVALID_PRICES)
     def test_invalid_prices(self, price):
         """
         Test that execution styles throw appropriate exceptions upon receipt
@@ -173,7 +172,15 @@ class ExecutionStyleTestCase(WithConstantFutureMinuteBarData, ZiplineTestCase):
         assert_equal(style.get_stop_price(is_buy=True), None)
         assert_equal(style.get_stop_price(is_buy=False), None)
 
-    @parameterized.expand(FINAL_PARAMETER_SET)
+    @pytest.mark.parametrize(
+        (
+            "price",
+            "expected_limit_buy_or_stop_sell",
+            "expected_limit_sell_or_stop_buy",
+            "asset",
+        ),
+        FINAL_PARAMETER_SET,
+    )
     def test_limit_order_prices(
         self,
         price,
@@ -196,7 +203,15 @@ class ExecutionStyleTestCase(WithConstantFutureMinuteBarData, ZiplineTestCase):
         assert_equal(None, style.get_stop_price(is_buy=True))
         assert_equal(None, style.get_stop_price(is_buy=False))
 
-    @parameterized.expand(FINAL_PARAMETER_SET)
+    @pytest.mark.parametrize(
+        (
+            "price",
+            "expected_limit_buy_or_stop_sell",
+            "expected_limit_sell_or_stop_buy",
+            "asset",
+        ),
+        FINAL_PARAMETER_SET,
+    )
     def test_stop_order_prices(
         self,
         price,
@@ -218,7 +233,15 @@ class ExecutionStyleTestCase(WithConstantFutureMinuteBarData, ZiplineTestCase):
         )
         assert_equal(expected_limit_sell_or_stop_buy, style.get_stop_price(is_buy=True))
 
-    @parameterized.expand(FINAL_PARAMETER_SET)
+    @pytest.mark.parametrize(
+        (
+            "price",
+            "expected_limit_buy_or_stop_sell",
+            "expected_limit_sell_or_stop_buy",
+            "asset",
+        ),
+        FINAL_PARAMETER_SET,
+    )
     def test_stop_limit_order_prices(
         self,
         price,

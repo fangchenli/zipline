@@ -32,7 +32,6 @@ from pandas import (
     concat,
     read_parquet,
 )
-from parameterized import parameterized
 from toolz import merge
 
 from zipline.data.bar_reader import (
@@ -239,13 +238,14 @@ class _DailyBarsTestCase(
                 ),
             )
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "columns",
         [
-            (["open"],),
-            (["close", "volume"],),
-            (["volume", "high", "low"],),
-            (["open", "high", "low", "close", "volume"],),
-        ]
+            ["open"],
+            ["close", "volume"],
+            ["volume", "high", "low"],
+            ["open", "high", "low", "close", "volume"],
+        ],
     )
     def test_read(self, columns):
         self._check_read_results(
@@ -347,13 +347,14 @@ class _DailyBarsTestCase(
             end_date=TEST_QUERY_STOP,
         )
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "query_assets",
         [
             # Query for only even sids, only odd ids are valid.
-            ([],),
-            ([2],),
-            ([2, 4, 800],),
-        ]
+            [],
+            [2],
+            [2, 4, 800],
+        ],
     )
     def test_read_only_unknown_sids(self, query_assets):
         columns = [CLOSE, VOLUME]

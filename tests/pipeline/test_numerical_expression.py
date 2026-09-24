@@ -13,7 +13,6 @@ from operator import (
     sub,
 )
 from string import ascii_uppercase
-from unittest import TestCase
 
 import numpy
 import pytest
@@ -38,7 +37,7 @@ from zipline.pipeline.expression import (
     NumericalExpression,
 )
 from zipline.pipeline.factors.factor import NumExprFactor
-from zipline.testing import check_allclose, parameter_space
+from zipline.testing import check_allclose
 from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
 
 
@@ -71,8 +70,8 @@ class DateFactor(Factor):
     window_length = 0
 
 
-class NumericalExpressionTestCase(TestCase):
-    def setUp(self):
+class NumericalExpressionTestCase:
+    def setup_method(self):
         self.dates = date_range("2014-01-01", periods=5, freq="D")
         self.assets = Index(range(5), dtype="int64")
         self.f = F()
@@ -152,7 +151,7 @@ class NumericalExpressionTestCase(TestCase):
         with pytest.raises(TypeError):
             _ = (f > f) > f
 
-    @parameter_space(num_new_inputs=[1, 4])
+    @pytest.mark.parametrize("num_new_inputs", [1, 4])
     def test_many_inputs(self, num_new_inputs):
         """
         Test adding NumericalExpressions with >=32 (NPY_MAXARGS) inputs.

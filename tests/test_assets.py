@@ -27,14 +27,12 @@ from collections import namedtuple
 from datetime import timedelta
 from functools import partial
 from types import GetSetDescriptorType
-from unittest import TestCase
 
 import numpy as np
 import pandas as pd
 import pytest
 import sqlalchemy as sa
 from numpy import full, int32, int64
-from parameterized import parameterized
 from toolz import concat, valmap
 
 from zipline.assets import (
@@ -77,7 +75,6 @@ from zipline.errors import (
 from zipline.testing import (
     all_subindices,
     empty_assets_db,
-    parameter_space,
     powerset,
     tmp_asset_finder,
     tmp_assets_db,
@@ -307,7 +304,7 @@ def build_lookup_generic_cases():
         )
 
 
-class AssetTestCase(TestCase):
+class AssetTestCase:
     # Dynamically list the Asset properties we want to test.
     asset_attrs = [
         name
@@ -1414,11 +1411,12 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
             results = finder.group_by_type(equity_sids + future_sids)
             assert results == {"equity": set(equity_sids), "future": set(future_sids)}
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "type_, lookup_name, failure_type",
         [
             (Equity, "retrieve_equities", EquitiesNotFound),
             (Future, "retrieve_futures_contracts", FutureContractsNotFound),
-        ]
+        ],
     )
     def test_retrieve_specific_type(self, type_, lookup_name, failure_type):
         equities = make_simple_equity_info(
@@ -1508,12 +1506,13 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
                 + list(futures.symbol.loc[future_sids])
             ) == list(asset.symbol for asset in results)
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "error_type, singular, plural",
         [
             (EquitiesNotFound, "equity", "equities"),
             (FutureContractsNotFound, "future contract", "future contracts"),
             (SidsNotFound, "asset", "assets"),
-        ]
+        ],
     )
     def test_error_message_plurality(self, error_type, singular, plural):
         try:
@@ -1526,7 +1525,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
             assert str(e) == f"No {plural} found for sids: [1, 2]."
 
 
-class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
+class TestAssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
     def write_assets(self, **kwargs):
         self._asset_writer.write(**kwargs)
 
@@ -2251,17 +2250,23 @@ class TestVectorizedSymbolLookup(WithAssetFinder, ZiplineTestCase):
         ]
         return pd.DataFrame.from_records(records)
 
-    @parameter_space(
-        as_of=pd.to_datetime(
-            [
-                "2014-01-02",
-                "2014-01-15",
-                "2014-01-17",
-                "2015-01-02",
-            ],
-            utc=True,
+    @pytest.mark.parametrize(
+        "as_of",
+        list(
+            pd.to_datetime(
+                [
+                    "2014-01-02",
+                    "2014-01-15",
+                    "2014-01-17",
+                    "2015-01-02",
+                ],
+                utc=True,
+            )
         ),
-        symbols=[
+    )
+    @pytest.mark.parametrize(
+        "symbols",
+        [
             [],
             ["A"],
             ["B"],
@@ -2305,7 +2310,7 @@ class TestVectorizedSymbolLookup(WithAssetFinder, ZiplineTestCase):
 
 class TestAssetFinderPreprocessors(WithTmpDir, ZiplineTestCase):
     def test_asset_finder_doesnt_silently_create_useless_empty_files(self):
-        nonexistent_path = self.tmpdir.getpath(self.id() + "__nothing_here")
+        nonexistent_path = self.tmpdir.getpath("__nothing_here")
 
         with pytest.raises(ValueError) as e:
             AssetFinder(nonexistent_path)

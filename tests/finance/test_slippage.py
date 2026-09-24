@@ -25,7 +25,6 @@ from zoneinfo import ZoneInfo
 import numpy as np
 import pandas as pd
 import pytest
-from parameterized import parameterized
 
 from zipline.assets import Equity, Future
 from zipline.data.data_portal import DataPortal
@@ -1146,11 +1145,14 @@ class OrdersStopTestCase(
         },
     }
 
-    @parameterized.expand(
-        sorted(
-            (name, case["order"], case["event"], case["expected"])
-            for name, case in STOP_ORDER_CASES.items()
-        )
+    @pytest.mark.parametrize(
+        "name, order_data, event_data, expected",
+        list(
+            sorted(
+                (name, case["order"], case["event"], case["expected"])
+                for name, case in STOP_ORDER_CASES.items()
+            )
+        ),
     )
     def test_orders_stop(self, name, order_data, event_data, expected):
         data = order_data
@@ -1250,7 +1252,15 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData, ZiplineTestCase):
         super().init_class_fixtures()
         cls.ASSET133 = cls.asset_finder.retrieve_asset(133)
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        (
+            "name",
+            "basis_points",
+            "volume_limit",
+            "order_amount",
+            "expected_price",
+            "expected_amount",
+        ),
         [
             # Volume limit of 10% on an order of 100 shares. Since the bar volume
             # is 200, we should hit the limit and only fill 20 shares.
@@ -1266,7 +1276,7 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData, ZiplineTestCase):
             ("10bps", 10, 0.1, 100, 3.003, 20),
             # Change the volume limit points value.
             ("20pct_volume_limit", 5, 0.2, 100, 3.0015, 40),
-        ]
+        ],
     )
     def test_fixed_bps_slippage(
         self,
@@ -1316,7 +1326,14 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData, ZiplineTestCase):
         assert txn is not None
         assert expected_txn == txn.__dict__
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        (
+            "name",
+            "first_order_amount",
+            "second_order_amount",
+            "first_order_fill_amount",
+            "second_order_fill_amount",
+        ),
         [
             # Volume limit for the bar is 20. We've ordered 10 total shares.
             # We should fill both orders completely.
@@ -1324,7 +1341,7 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData, ZiplineTestCase):
             # Volume limit for the bar is 20. We've ordered 21 total shares.
             # The second order should have one share remaining after fill.
             ("order_over_limit", -3, 18, -3, 17),
-        ]
+        ],
     )
     def test_volume_limit(
         self,

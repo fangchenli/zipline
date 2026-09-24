@@ -1,6 +1,7 @@
 from functools import partial
 
 import pandas as pd
+import pytest
 from pandas.testing import assert_series_equal
 from toolz import groupby
 
@@ -13,7 +14,6 @@ from zipline.finance.asset_restrictions import (
     StaticRestrictions,
     _UnionRestrictions,
 )
-from zipline.testing import parameter_space
 from zipline.testing.fixtures import (
     WithDataPortal,
     ZiplineTestCase,
@@ -55,19 +55,22 @@ class RestrictionsTestCase(WithDataPortal, ZiplineTestCase):
             pd.Series(index=pd.Index(assets), data=expected),
         )
 
-    @parameter_space(
-        date_offset=(
+    @pytest.mark.parametrize(
+        "date_offset",
+        (
             pd.Timedelta(0),
             pd.Timedelta("1 minute"),
             pd.Timedelta("15 hours 5 minutes"),
         ),
-        restriction_order=(
+    )
+    @pytest.mark.parametrize(
+        "restriction_order",
+        (
             list(range(6)),  # Keep restrictions in order.
             [0, 2, 1, 3, 5, 4],  # Re-order within asset.
             [0, 3, 1, 4, 2, 5],  # Scramble assets, maintain per-asset order.
             [0, 5, 2, 3, 1, 4],  # Scramble assets and per-asset order.
         ),
-        __fail_fast=True,
     )
     def test_historical_restrictions(self, date_offset, restriction_order):
         """

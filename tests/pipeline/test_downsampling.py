@@ -23,7 +23,7 @@ from zipline.pipeline.domain import (
 )
 from zipline.pipeline.factors import SimpleMovingAverage
 from zipline.pipeline.filters.smoothing import All
-from zipline.testing import ExplodingObject, ZiplineTestCase, parameter_space
+from zipline.testing import ExplodingObject, ZiplineTestCase
 from zipline.testing.fixtures import (
     WithAssetFinder,
     WithSeededRandomPipelineEngine,
@@ -88,14 +88,14 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
         classifier91,
     ]
 
-    @parameter_space(
-        calendar_name=TRADING_CALENDAR_STRS,
-        base_terms=[
+    @pytest.mark.parametrize("calendar_name", TRADING_CALENDAR_STRS)
+    @pytest.mark.parametrize(
+        "base_terms",
+        [
             (factor1, factor11, factor91),
             (filter1, filter11, filter91),
             (classifier1, classifier11, classifier91),
         ],
-        __fail_fast=True,
     )
     def test_yearly(self, base_terms, calendar_name):
         downsampled_terms = tuple(t.downsample("year_start") for t in base_terms)
@@ -216,14 +216,14 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
                 expected_extra_rows=i + 1,
             )
 
-    @parameter_space(
-        calendar_name=TRADING_CALENDAR_STRS,
-        base_terms=[
+    @pytest.mark.parametrize("calendar_name", TRADING_CALENDAR_STRS)
+    @pytest.mark.parametrize(
+        "base_terms",
+        [
             (factor1, factor11, factor91),
             (filter1, filter11, filter91),
             (classifier1, classifier11, classifier91),
         ],
-        __fail_fast=True,
     )
     def test_quarterly(self, calendar_name, base_terms):
         downsampled_terms = tuple(t.downsample("quarter_start") for t in base_terms)
@@ -321,14 +321,14 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
                 expected_extra_rows=i + 1,
             )
 
-    @parameter_space(
-        calendar_name=TRADING_CALENDAR_STRS,
-        base_terms=[
+    @pytest.mark.parametrize("calendar_name", TRADING_CALENDAR_STRS)
+    @pytest.mark.parametrize(
+        "base_terms",
+        [
             (factor1, factor11, factor91),
             (filter1, filter11, filter91),
             (classifier1, classifier11, classifier91),
         ],
-        __fail_fast=True,
     )
     def test_monthly(self, calendar_name, base_terms):
         downsampled_terms = tuple(t.downsample("month_start") for t in base_terms)
@@ -426,14 +426,14 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
                 expected_extra_rows=i + 1,
             )
 
-    @parameter_space(
-        calendar_name=TRADING_CALENDAR_STRS,
-        base_terms=[
+    @pytest.mark.parametrize("calendar_name", TRADING_CALENDAR_STRS)
+    @pytest.mark.parametrize(
+        "base_terms",
+        [
             (factor1, factor11, factor91),
             (filter1, filter11, filter91),
             (classifier1, classifier11, classifier91),
         ],
-        __fail_fast=True,
     )
     def test_weekly(self, calendar_name, base_terms):
         downsampled_terms = tuple(t.downsample("week_start") for t in base_terms)

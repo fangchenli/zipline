@@ -5,7 +5,6 @@ import pytest
 
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Classifier, Factor, Filter
-from zipline.testing import parameter_space
 from zipline.utils.numpy_utils import (
     NaTns,
     categorical_dtype,
@@ -80,8 +79,9 @@ class AltInts(Classifier):
 
 
 class FillNATestCase(BaseUSEquityPipelineTestCase):
-    @parameter_space(
-        null_locs=[
+    @pytest.mark.parametrize(
+        "null_locs",
+        [
             # No NaNs.
             np.zeros((4, 4), dtype=bool),
             # All NaNs.
@@ -90,7 +90,7 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
             np.eye(4, dtype=bool),
             # Nans every third element.
             (np.arange(16).reshape(4, 4) % 3) == 0,
-        ]
+        ],
     )
     def test_fillna_with_scalar(self, null_locs):
         shape = (4, 4)
@@ -152,8 +152,9 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
             mask=self.build_mask(self.ones_mask(shape=(4, 4))),
         )
 
-    @parameter_space(
-        null_locs=[
+    @pytest.mark.parametrize(
+        "null_locs",
+        [
             # No NaNs.
             np.zeros((4, 4), dtype=bool),
             # # All NaNs.
@@ -162,7 +163,7 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
             np.eye(4, dtype=bool),
             # Nans every third element.
             (np.arange(16).reshape((4, 4)) % 3) == 0,
-        ]
+        ],
     )
     def test_fillna_with_expression(self, null_locs):
         shape = (4, 4)
