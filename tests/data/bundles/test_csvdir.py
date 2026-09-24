@@ -1,15 +1,18 @@
+import os
+import shutil
+
 import numpy as np
 import pandas as pd
 
 from zipline.data.bundles import bundles, ingest, load
 from zipline.testing import test_resource_path
-from zipline.testing.fixtures import ZiplineTestCase
+from zipline.testing.fixtures import WithInstanceTmpDir, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
 from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.functional import apply
 
 
-class CSVDIRBundleTestCase(ZiplineTestCase):
+class CSVDIRBundleTestCase(WithInstanceTmpDir, ZiplineTestCase):
     symbols = "AAPL", "IBM", "KO", "MSFT"
     asset_start = pd.Timestamp("2012-01-03")
     asset_end = pd.Timestamp("2014-12-31")
@@ -260,8 +263,14 @@ class CSVDIRBundleTestCase(ZiplineTestCase):
 
         return pricing, adjustments
 
+    def environ(self, csvdir):
+        return {
+            "CSVDIR": csvdir,
+            "ZIPLINE_ROOT": self.instance_tmpdir.getpath("zipline_root"),
+        }
+
     def test_bundle(self):
-        environ = {"CSVDIR": test_resource_path("csvdir_samples", "csvdir")}
+        environ = self.environ(test_resource_path("csvdir_samples", "csvdir"))
 
         ingest("csvdir", environ=environ)
         bundle = load("csvdir", environ=environ)
@@ -294,3 +303,107 @@ class CSVDIRBundleTestCase(ZiplineTestCase):
         assert_equal(
             [sorted(adj.keys()) for adj in adjs_for_cols], expected_adjustments
         )
+
+    def test_daily_and_minute(self):
+        csvdir = self.instance_tmpdir.getpath("csvdir")
+        daily = os.path.join(csvdir, "daily")
+        minute = os.path.join(csvdir, "minute")
+        os.makedirs(daily)
+        os.makedirs(minute)
+        for symbol in "AAPL", "IBM":
+            shutil.copy(
+                test_resource_path(
+                    "csvdir_samples", "csvdir", "daily", symbol + ".csv.gz"
+                ),
+                daily,
+            )
+        # "PL.csv" is a substring of "AAPL.csv.gz".
+        with open(os.path.join(daily, "PL.csv"), "w") as f:
+            f.write(
+                "date,open,high,low,close,volume\n"
+                "2013-03-01,10,11,9,10.5,100\n"
+                "2013-03-04,11,12,10,11.5,200\n"
+            )
+        # Minute bars for IBM after its last daily bar. The split in them is
+        # ignored, since adjustments come from the daily files.
+        with open(os.path.join(minute, "IBM.csv"), "w") as f:
+            f.write(
+                "date,open,high,low,close,volume,dividend,split\n"
+                "2015-01-02 14:31:00,160,161,159,160.5,1000,0.0,1.0\n"
+                "2015-01-02 21:00:00,161,162,160,161.5,2000,0.0,2.0\n"
+            )
+        # A symbol with only minute bars.
+        with open(os.path.join(minute, "ZZZ.csv"), "w") as f:
+            f.write(
+                "date,open,high,low,close,volume\n"
+                "2014-06-02 13:31:00,20,21,19,20.5,300\n"
+                "2014-06-03 20:00:00,21,22,20,21.5,400\n"
+            )
+
+        environ = self.environ(csvdir)
+        ingest("csvdir", environ=environ)
+        bundle = load("csvdir", environ=environ)
+        self.add_instance_callback(bundle.close)
+
+        finder = bundle.asset_finder
+        aapl, ibm, pl, zzz = finder.retrieve_all([0, 1, 2, 3])
+        assert_equal(
+            [aapl.symbol, ibm.symbol, pl.symbol, zzz.symbol],
+            ["AAPL", "IBM", "PL", "ZZZ"],
+        )
+        # Lifetimes span both time frames, in sessions.
+        assert_equal(ibm.start_date, self.asset_start)
+        assert_equal(ibm.end_date, pd.Timestamp("2015-01-02"))
+        assert_equal(ibm.auto_close_date, pd.Timestamp("2015-01-03"))
+        assert_equal(pl.start_date, pd.Timestamp("2013-03-01"))
+        assert_equal(pl.end_date, pd.Timestamp("2013-03-04"))
+        assert_equal(zzz.start_date, pd.Timestamp("2014-06-02"))
+        assert_equal(zzz.end_date, pd.Timestamp("2014-06-03"))
+
+        daily_reader = bundle.equity_daily_bar_reader
+        assert_equal(
+            daily_reader.get_value(2, pd.Timestamp("2013-03-04"), "close"), 11.5
+        )
+        expected_aapl = pd.read_csv(
+            test_resource_path("csvdir_samples", "csvdir", "daily", "AAPL.csv.gz"),
+            parse_dates=["date"],
+            index_col="date",
+        )
+        assert_equal(
+            daily_reader.get_value(0, self.asset_end, "close"),
+            expected_aapl.loc[self.asset_end, "close"],
+        )
+
+        minute_reader = bundle.equity_minute_bar_reader
+        assert_equal(
+            minute_reader.get_value(
+                1, pd.Timestamp("2015-01-02 21:00", tz="UTC"), "close"
+            ),
+            161.5,
+        )
+        assert_equal(
+            minute_reader.get_value(
+                3, pd.Timestamp("2014-06-02 13:31", tz="UTC"), "volume"
+            ),
+            300,
+        )
+
+        # The adjustments are those in the daily files, written once.
+        adjustments = bundle.adjustment_reader.unpack_db_to_component_dfs()
+        expected_split_count = sum(
+            (
+                pd.read_csv(
+                    test_resource_path(
+                        "csvdir_samples", "csvdir", "daily", symbol + ".csv.gz"
+                    )
+                )["split"]
+                != 1.0
+            ).sum()
+            for symbol in ("AAPL", "IBM")
+        )
+        splits = adjustments["splits"]
+        assert_equal(len(splits), expected_split_count)
+        assert not (
+            (splits["sid"] == 1)
+            & (splits["effective_date"] == pd.Timestamp("2015-01-02"))
+        ).any()
