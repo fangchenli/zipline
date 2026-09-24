@@ -5,10 +5,13 @@ The ``massive`` bundle downloads, with the user's API key:
 - unadjusted daily bars for the whole US market, one request per session
   (Massive's "daily market summary"), cached so that later ingestions only
   download new sessions;
-- reference data for current and delisted tickers, to tell which security a
-  ticker meant on each session. Securities are identified by their composite
-  FIGI, so a ticker change (e.g. FB to META) keeps one sid, and a reused
-  ticker gets a new one;
+- reference data, to tell which security a ticker meant on each session:
+  the listings as of the first and last sessions and the first of each month
+  in between, cached, which show tickers that were later changed (Massive
+  lists FB as Meta's ticker in 2021, but not among delisted tickers), and the
+  delisted listings, for when securities were delisted. Securities are
+  identified by their composite FIGI and issuer, so a ticker change (e.g. FB
+  to META) keeps one sid, and a reused ticker gets a new one;
 - splits and cash dividends.
 
 Massive's free plan allows 5 requests a minute and 2 years of history; paid
@@ -19,6 +22,8 @@ so the downloaded data stays on the user's machine.
 import logging
 import os
 
+import networkx as nx
+import numpy as np
 import pandas as pd
 import requests
 
@@ -27,7 +32,7 @@ from zipline.utils.cli import maybe_show_progress
 
 from . import core as bundles
 from .vendor import (
-    DailyBarCache,
+    DailyCache,
     RateLimitedSession,
     SidMap,
     completed_sessions,
@@ -43,9 +48,11 @@ API_URL = "https://api.massive.com"
 #: ETFs. See Massive's ``/v3/reference/tickers/types`` for the others.
 DEFAULT_TYPES = ("CS", "ADRC", "ETF")
 
-#: The free plan's rate limit and history.
+#: The free plan's rate limit and history. The history is counted back from
+#: the current time, so by default the bundle starts a week later than that.
 FREE_PLAN_CALLS_PER_MINUTE = 5
 FREE_PLAN_HISTORY = pd.DateOffset(years=2)
+FREE_PLAN_MARGIN = pd.Timedelta(days=7)
 
 #: How long after a session's close its daily bars are taken to be final.
 SETTLE_DELAY = pd.Timedelta(hours=4)
@@ -53,9 +60,6 @@ SETTLE_DELAY = pd.Timedelta(hours=4)
 CALENDAR_NAME = "XNYS"
 
 PRICE_COLUMNS = {"o": "open", "h": "high", "l": "low", "c": "close", "v": "volume"}
-
-# The end of time for tickers that are still listed.
-_ACTIVE = pd.Timestamp.max.normalize()
 
 
 def massive_equities(
@@ -113,7 +117,9 @@ def massive_equities(
         if start is None and environ.get("MASSIVE_START_DATE"):
             start = pd.Timestamp(environ["MASSIVE_START_DATE"])
         if start is None:
-            start = now.tz_localize(None).normalize() - FREE_PLAN_HISTORY
+            start = (
+                now.tz_localize(None).normalize() - FREE_PLAN_HISTORY + FREE_PLAN_MARGIN
+            )
         start = max(start, first_session)
         rate = calls_per_minute
         if rate is None:
@@ -134,6 +140,7 @@ def massive_equities(
                 adjustment_writer,
                 calendar,
                 completed_sessions(calendar, start, last_session, now, SETTLE_DELAY),
+                now.tz_localize(None).normalize(),
                 types,
                 show_progress,
             )
@@ -151,21 +158,36 @@ def _ingest(
     adjustment_writer,
     calendar,
     sessions,
+    today,
     types,
     show_progress,
 ):
     if not len(sessions):
         raise ValueError("There are no completed sessions to ingest.")
-    bar_cache = DailyBarCache(os.path.join(cache_dir, "daily"))
+    bar_cache = DailyCache(os.path.join(cache_dir, "daily"))
     _download_bars(session, bar_cache, bar_cache.missing(sessions), show_progress)
     sessions = sessions.difference(bar_cache.missing(sessions))
     if not len(sessions):
         raise ValueError("Massive has no bars for any session to ingest yet.")
 
-    tickers = _tickers(session, types)
+    # Listings as of the first of each month, and of the first and last
+    # sessions, so that every bar is between two of them.
+    snapshot_dates = (
+        pd.date_range(sessions[0], sessions[-1], freq="MS")
+        .union(sessions[[0, -1]])
+        .as_unit("ns")
+    )
+    tickers = _tickers(
+        session,
+        DailyCache(os.path.join(cache_dir, "tickers")),
+        types,
+        snapshot_dates[snapshot_dates < today],
+        show_progress,
+    )
+    tickers["security"] = _securities(tickers)
     bars = bar_cache.get(sessions)
-    bars["key"] = _resolve(tickers, bars["ticker"], bars["date"])
-    unknown = bars["key"].isna()
+    bars["security"] = _resolve(tickers, bars["ticker"], bars["date"])
+    unknown = bars["security"].isna()
     if unknown.any():
         log.info(
             "Skipping %d tickers that aren't securities of types %s.",
@@ -173,26 +195,26 @@ def _ingest(
             ", ".join(types),
         )
         bars = bars[~unknown]
-    sids = SidMap(os.path.join(cache_dir, "sids.parquet")).assign(bars["key"].unique())
-    bars["sid"] = sids.loc[bars["key"]].to_numpy()
+    traded = tickers[tickers["security"].isin(bars["security"])]
+    sids = SidMap(os.path.join(cache_dir, "sids.parquet")).assign(
+        traded.drop_duplicates("key").set_index("key")["security"]
+    )
+    bars["sid"] = sids.loc[bars["security"]].to_numpy()
     # If a security traded under two tickers on one session, e.g. around a
     # ticker change, keep the busier one.
     bars = bars.sort_values("volume").drop_duplicates(["sid", "date"], keep="last")
     bars = bars.rename(columns={"ticker": "symbol"})
 
-    # The latest listing of each security names it.
-    latest = (
-        tickers[tickers["key"].isin(sids.index)]
-        .sort_values("until")
-        .drop_duplicates("key", keep="last")
+    # The latest listings of each security name it and its exchange;
+    # delisted listings often have no exchange.
+    info = (
+        traded.sort_values("seen")
+        .groupby("security")[["name", "exchange"]]
+        .last()
+        .rename(columns={"name": "asset_name"})
+        .fillna({"exchange": "UNKNOWN"})
     )
-    info = pd.DataFrame(
-        {
-            "asset_name": latest["name"].to_numpy(),
-            "exchange": latest["exchange"].to_numpy(),
-        },
-        index=sids.loc[latest["key"]].to_numpy(),
-    )
+    info.index = sids.loc[info.index].to_numpy()
     equities = equities_frame(bars, info)
     asset_db_writer.write(
         equities=equities,
@@ -208,6 +230,8 @@ def _ingest(
         show_progress=show_progress,
     )
 
+    # Splits and dividends on the first session only affect earlier prices
+    # and holdings, which the bundle doesn't have, so they are left out.
     start, end = sessions[0], sessions[-1]
     adjustment_writer.write(
         splits=_splits(session, tickers, sids, start, end),
@@ -262,70 +286,136 @@ def _paginate(session, url, params):
     return results
 
 
-def _tickers(session, types):
-    """Every listing of a security of one of ``types``, current or delisted.
+def _tickers(session, snapshot_cache, types, snapshot_dates, show_progress):
+    """Listings of securities of one of ``types``: as of ``snapshot_dates``,
+    which are cached, and delisted ones.
 
     Returns
     -------
     tickers : pd.DataFrame
-        Columns ``ticker``, ``key`` (the security), ``until`` (the date the
-        listing ended, or a date in the far future if it hasn't), ``name`` and
-        ``exchange``.
+        The columns of :func:`_listings`, and ``seen``: when the ticker was
+        known to mean the listed security (the snapshot date, or the delisting
+        date).
     """
-    records = []
-    for type_ in types:
-        for active in ("true", "false"):
+
+    def download(**params):
+        records = []
+        for type_ in types:
             records.extend(
                 _paginate(
                     session,
                     f"{API_URL}/v3/reference/tickers",
-                    {
-                        "market": "stocks",
-                        "type": type_,
-                        "active": active,
-                        "limit": 1000,
-                    },
+                    {"market": "stocks", "type": type_, "limit": 1000, **params},
                 )
             )
-    columns = [
-        "ticker",
-        "name",
-        "primary_exchange",
-        "active",
-        "composite_figi",
-        "share_class_figi",
-        "delisted_utc",
-        "last_updated_utc",
-    ]
-    tickers = pd.DataFrame(records).reindex(columns=columns)
+        return _listings(records)
+
+    missing = snapshot_cache.missing(snapshot_dates)
+    if len(missing):
+        log.info("Downloading ticker listings for %d dates.", len(missing))
+    with maybe_show_progress(
+        missing,
+        show_progress,
+        label="Downloading Massive ticker listings:",
+    ) as it:
+        for day in it:
+            listings = download(date=f"{day:%Y-%m-%d}", active="true")
+            snapshot_cache.put(day, listings.drop(columns="delisted"))
+    snapshots = snapshot_cache.get(snapshot_dates).rename(columns={"date": "seen"})
+
+    delisted = download(active="false")
+    delisted = delisted.assign(seen=delisted.pop("delisted"))
+    tickers = pd.concat([snapshots, delisted], ignore_index=True)
+    tickers["seen"] = tickers["seen"].astype("datetime64[ns]")
+    return tickers.dropna(subset=["ticker", "seen"])
+
+
+def _listings(records):
+    """Massive ticker records as a DataFrame with columns ``ticker``, ``key``
+    (an identifier of the security: its FIGI, or else its ticker and issuer),
+    ``figi``, ``share_class_figi``, ``cik``, ``name``, ``exchange`` and
+    ``delisted``.
+    """
+    records = pd.DataFrame(records).reindex(
+        columns=[
+            "ticker",
+            "name",
+            "cik",
+            "primary_exchange",
+            "composite_figi",
+            "share_class_figi",
+            "delisted_utc",
+            "last_updated_utc",
+        ]
+    )
 
     def dates(column):
-        return pd.to_datetime(tickers[column], utc=True).dt.tz_localize(None)
+        return pd.to_datetime(records[column], utc=True).dt.tz_localize(None)
 
-    # A delisted listing without a delisting date ended when it was last
-    # updated.
-    ended = dates("delisted_utc").fillna(dates("last_updated_utc")).dt.normalize()
-    until = ended.where(~tickers["active"].fillna(False).astype(bool), _ACTIVE)
-    fallback = tickers["ticker"] + ":" + until.dt.strftime("%Y-%m-%d")
-    key = tickers["composite_figi"].fillna(tickers["share_class_figi"])
-    tickers = pd.DataFrame(
+    # Securities without a FIGI are told apart by their issuer, or else name.
+    fallback = records["ticker"] + ":" + records["cik"].fillna(records["name"])
+    return pd.DataFrame(
         {
-            "ticker": tickers["ticker"],
-            "key": key.fillna(fallback),
-            "until": until.astype("datetime64[ns]"),
-            "name": tickers["name"],
-            "exchange": tickers["primary_exchange"].fillna("UNKNOWN"),
+            "ticker": records["ticker"],
+            "key": records["composite_figi"]
+            .fillna(records["share_class_figi"])
+            .fillna(fallback),
+            "figi": records["composite_figi"],
+            "share_class_figi": records["share_class_figi"],
+            "cik": records["cik"],
+            "name": records["name"],
+            "exchange": records["primary_exchange"],
+            # A delisted listing without a delisting date ended when it was
+            # last updated.
+            "delisted": dates("delisted_utc")
+            .fillna(dates("last_updated_utc"))
+            .dt.normalize(),
         }
     )
-    return tickers.dropna(subset=["ticker", "until"]).drop_duplicates(
-        ["ticker", "until"]
+
+
+def _securities(tickers):
+    """The security each listing is of, named by one of its keys.
+
+    Massive's identifiers aren't permanent: a security can get a new FIGI
+    (Oneok's changed in 2025) or issuer CIK, and delisted listings often have
+    no FIGI. So listings are linked into securities: those with the same key,
+    and consecutive listings of the same ticker with the same name, or else
+    with the same issuer (CIK) or, without issuers to compare, no different
+    FIGIs. A ticker reused by another company gets a new security.
+    """
+    graph = nx.Graph()
+    graph.add_nodes_from(tickers["key"])
+    has_both = tickers["figi"].notna() & tickers["share_class_figi"].notna()
+    graph.add_edges_from(
+        zip(tickers.loc[has_both, "figi"], tickers.loc[has_both, "share_class_figi"])
     )
+    ordered = tickers.sort_values(["ticker", "seen"])
+    previous = ordered.groupby("ticker").shift()
+    both_cik = ordered["cik"].notna() & previous["cik"].notna()
+    both_figi = ordered["figi"].notna() & previous["figi"].notna()
+    same = previous["key"].notna() & (
+        (ordered["name"] == previous["name"])
+        | np.where(
+            both_cik,
+            ordered["cik"] == previous["cik"],
+            ~both_figi | (ordered["figi"] == previous["figi"]),
+        )
+    )
+    graph.add_edges_from(zip(ordered.loc[same, "key"], previous.loc[same, "key"]))
+    security = {}
+    for component in nx.connected_components(graph):
+        name = min(component)
+        security.update(dict.fromkeys(component, name))
+    return tickers["key"].map(security)
 
 
 def _resolve(tickers, symbols, dates):
-    """The security each of ``symbols`` meant on the matching date: the
-    first listing of that ticker that hadn't ended by then. NaN where there
-    is none.
+    """The security each of ``symbols`` meant on the matching date.
+
+    That is the security the ticker was next seen to mean, or else, for a
+    ticker that was later changed, the one it was last seen to mean. NaN if
+    the ticker was never seen.
     """
     query = pd.DataFrame(
         {
@@ -333,27 +423,34 @@ def _resolve(tickers, symbols, dates):
             "date": pd.DatetimeIndex(dates).as_unit("ns"),
             "position": range(len(symbols)),
         }
-    )
-    listings = tickers[["ticker", "until", "key"]].sort_values("until")
-    matched = pd.merge_asof(
-        query.sort_values("date"),
-        listings,
-        left_on="date",
-        right_on="until",
-        by="ticker",
-        direction="forward",
-    )
-    return matched.set_index("position")["key"].sort_index().to_numpy()
+    ).sort_values("date")
+    listings = tickers[["ticker", "seen", "security"]].sort_values("seen")
+
+    def match(direction):
+        return (
+            pd.merge_asof(
+                query,
+                listings,
+                left_on="date",
+                right_on="seen",
+                by="ticker",
+                direction=direction,
+            )
+            .set_index("position")["security"]
+            .sort_index()
+        )
+
+    return match("forward").fillna(match("backward")).to_numpy()
 
 
 def _with_sids(frame, tickers, sids, date_column):
     """``frame`` with a ``sid`` column, keeping the rows for securities with
     bars.
     """
-    keys = pd.Series(
+    securities = pd.Series(
         _resolve(tickers, frame["ticker"], frame[date_column]), index=frame.index
     )
-    frame = frame.assign(sid=keys.map(sids))
+    frame = frame.assign(sid=securities.map(sids))
     return frame[frame["sid"].notna()].astype({"sid": "int64"})
 
 
@@ -362,7 +459,7 @@ def _splits(session, tickers, sids, start, end):
         session,
         f"{API_URL}/stocks/v1/splits",
         {
-            "execution_date.gte": f"{start:%Y-%m-%d}",
+            "execution_date.gt": f"{start:%Y-%m-%d}",
             "execution_date.lte": f"{end:%Y-%m-%d}",
             "limit": 5000,
         },
@@ -383,7 +480,7 @@ def _dividends(session, tickers, sids, start, end):
         session,
         f"{API_URL}/stocks/v1/dividends",
         {
-            "ex_dividend_date.gte": f"{start:%Y-%m-%d}",
+            "ex_dividend_date.gt": f"{start:%Y-%m-%d}",
             "ex_dividend_date.lte": f"{end:%Y-%m-%d}",
             "limit": 5000,
         },

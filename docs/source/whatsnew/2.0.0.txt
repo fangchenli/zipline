@@ -141,9 +141,9 @@ Enhancements
 - New ``massive`` bundle, the new default, with US equities from `Massive
   <https://massive.com>`__ (formerly Polygon.io): unadjusted daily bars,
   splits, dividends and asset metadata, including delisted securities, with a
-  free API key. Securities are identified by FIGI, so ticker changes keep one
-  sid, and each security keeps its sid across ingestions. Downloaded bars are
-  cached, so later ingestions only download new sessions. See
+  free API key. Ticker changes keep one sid, reused tickers get new ones, and
+  each security keeps its sid across ingestions. Downloaded bars and ticker
+  listings are cached, so later ingestions only download new sessions. See
   :ref:`massive-data-bundle`. ``zipline.data.bundles.vendor`` has the parts
   that don't depend on the vendor, for writing other such bundles.
 - Backtest results can be saved as Parquet: ``zipline run -o`` writes Parquet
