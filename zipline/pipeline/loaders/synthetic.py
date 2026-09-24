@@ -21,7 +21,6 @@ from zipline.data.adjustments import (
     SQLiteAdjustmentReader,
     SQLiteAdjustmentWriter,
 )
-from zipline.data.bcolz_daily_bars import US_EQUITY_PRICING_BCOLZ_COLUMNS
 from zipline.utils.date_utils import to_session_label
 from zipline.utils.numpy_utils import (
     bool_dtype,
@@ -35,6 +34,10 @@ from .base import PipelineLoader
 from .frame import DataFrameLoader
 
 UINT_32_MAX = iinfo(uint32).max
+
+
+# The columns of the frames make_bar_data generates.
+BAR_COLUMNS = ("open", "high", "low", "close", "volume", "day", "id")
 
 
 def nanos_to_seconds(nanos):
@@ -283,7 +286,7 @@ def make_bar_data(asset_info, calendar, holes=None):
         datetimes = calendar[calendar.slice_indexer(start, end)]
 
         data = full(
-            (len(datetimes), len(US_EQUITY_PRICING_BCOLZ_COLUMNS)),
+            (len(datetimes), len(BAR_COLUMNS)),
             asset_id * 100 * 1000,
             dtype=uint32,
         )
@@ -302,7 +305,7 @@ def make_bar_data(asset_info, calendar, holes=None):
         frame = DataFrame(
             data,
             index=datetimes,
-            columns=US_EQUITY_PRICING_BCOLZ_COLUMNS,
+            columns=BAR_COLUMNS,
         )
 
         if holes is not None and asset_id in holes:

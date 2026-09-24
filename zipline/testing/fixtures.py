@@ -39,10 +39,6 @@ from ..data.adjustments import (
     SQLiteAdjustmentReader,
     SQLiteAdjustmentWriter,
 )
-from ..data.bcolz_daily_bars import (
-    BcolzDailyBarReader,
-    BcolzDailyBarWriter,
-)
 from ..data.data_portal import (
     DEFAULT_DAILY_HISTORY_PREFETCH,
     DEFAULT_MINUTE_HISTORY_PREFETCH,
@@ -61,8 +57,6 @@ from ..data.hdf5_daily_bars import (
 from ..data.minute_bars import (
     FUTURES_MINUTES_PER_DAY,
     US_EQUITIES_MINUTES_PER_DAY,
-    BcolzMinuteBarReader,
-    BcolzMinuteBarWriter,
 )
 from ..data.parquet_daily_bars import (
     ParquetDailyBarReader,
@@ -1087,6 +1081,10 @@ class WithBcolzEquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
     @classmethod
     def init_class_fixtures(cls):
         super().init_class_fixtures()
+        from zipline.data.bcolz_daily_bars import (
+            BcolzDailyBarReader,
+            BcolzDailyBarWriter,
+        )
 
         cls.bcolz_daily_bar_path = p = cls.make_bcolz_daily_bar_rootdir_path()
 
@@ -1271,6 +1269,10 @@ class WithBcolzFutureDailyBarReader(WithFutureDailyBarData, WithTmpDir):
     @classmethod
     def init_class_fixtures(cls):
         super().init_class_fixtures()
+        from zipline.data.bcolz_daily_bars import (
+            BcolzDailyBarReader,
+            BcolzDailyBarWriter,
+        )
 
         p = cls.make_bcolz_future_daily_bar_rootdir_path()
         cls.future_bcolz_daily_bar_path = p
@@ -1684,6 +1686,11 @@ def _write_minute_bars(fmt, path, calendar, days, data, minutes_per_day, **kwarg
     ``kwargs`` go to the bcolz writer (e.g. ``ohlc_ratios_per_sid``).
     """
     if fmt == "bcolz":
+        from zipline.data.bcolz_minute_bars import (
+            BcolzMinuteBarReader,
+            BcolzMinuteBarWriter,
+        )
+
         os.makedirs(path, exist_ok=True)
         BcolzMinuteBarWriter(
             path, calendar, days[0], days[-1], minutes_per_day, **kwargs
@@ -1700,6 +1707,11 @@ def _write_daily_bars(
 ):
     """Write daily bars in the format ``fmt`` to ``path``; return a reader."""
     if fmt == "bcolz":
+        from zipline.data.bcolz_daily_bars import (
+            BcolzDailyBarReader,
+            BcolzDailyBarWriter,
+        )
+
         return BcolzDailyBarReader(
             BcolzDailyBarWriter(path, calendar, days[0], days[-1]).write(
                 data, invalid_data_behavior=invalid_data_behavior
@@ -1815,6 +1827,11 @@ class WithBcolzFutureMinuteBarReader(WithFutureMinuteBarData, WithTmpDir):
     @classmethod
     def init_class_fixtures(cls):
         super().init_class_fixtures()
+        from zipline.data.bcolz_minute_bars import (
+            BcolzMinuteBarReader,
+            BcolzMinuteBarWriter,
+        )
+
         trading_calendar = get_calendar("us_futures")
         cls.bcolz_future_minute_bar_path = p = (
             cls.make_bcolz_future_minute_bar_rootdir_path()

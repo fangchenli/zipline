@@ -375,7 +375,7 @@ Data API
 
 Writers
 ```````
-.. autoclass:: zipline.data.minute_bars.BcolzMinuteBarWriter
+.. autoclass:: zipline.data.bcolz_minute_bars.BcolzMinuteBarWriter
    :members:
 
 .. autoclass:: zipline.data.bcolz_daily_bars.BcolzDailyBarWriter
@@ -395,7 +395,7 @@ Writers
 
 Readers
 ```````
-.. autoclass:: zipline.data.minute_bars.BcolzMinuteBarReader
+.. autoclass:: zipline.data.bcolz_minute_bars.BcolzMinuteBarReader
    :members:
 
 .. autoclass:: zipline.data.bcolz_daily_bars.BcolzDailyBarReader

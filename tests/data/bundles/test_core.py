@@ -1,5 +1,7 @@
 import os
 import shutil
+import sys
+from unittest import mock
 
 import pandas as pd
 import sqlalchemy as sa
@@ -12,6 +14,11 @@ from zipline.assets import ASSET_DB_VERSION
 from zipline.assets.asset_writer import check_version_info
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.data.bcolz_daily_bars import BcolzDailyBarReader, BcolzDailyBarWriter
+from zipline.data.bcolz_minute_bars import (
+    US_EQUITIES_MINUTES_PER_DAY,
+    BcolzMinuteBarReader,
+    BcolzMinuteBarWriter,
+)
 from zipline.data.bundles import (
     UnknownBundle,
     from_bundle_ingest_dirname,
@@ -27,11 +34,6 @@ from zipline.data.bundles.core import (
     daily_equity_path,
     minute_equity_path,
     to_bundle_ingest_dirname,
-)
-from zipline.data.minute_bars import (
-    US_EQUITIES_MINUTES_PER_DAY,
-    BcolzMinuteBarReader,
-    BcolzMinuteBarWriter,
 )
 from zipline.data.parquet_daily_bars import ParquetDailyBarReader
 from zipline.data.parquet_minute_bars import ParquetMinuteBarReader
@@ -438,11 +440,23 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         """Bundles ingested before bars moved to Parquet still load."""
         sids, sessions, minutes, equities = self._make_bcolz_ingestion()
 
-        bundle = self.load("bundle", environ=self.environ)
+        with self.assertWarnsRegex(FutureWarning, "zipline convert -b bundle"):
+            bundle = self.load("bundle", environ=self.environ)
         self.add_instance_callback(bundle.close)
         assert_is_instance(bundle.equity_daily_bar_reader, BcolzDailyBarReader)
         assert_is_instance(bundle.equity_minute_bar_reader, BcolzMinuteBarReader)
         self._check_bars(bundle, sids, sessions, minutes, equities)
+
+    def test_bcolz_ingestion_without_bcolz(self):
+        """Without the optional bcolz support, old ingestions explain what to
+        install instead of failing on an import.
+        """
+        self._make_bcolz_ingestion()
+        with mock.patch.dict(sys.modules, {"bcolz": None}):
+            with self.assertRaisesRegex(ImportError, r"zipline\[bcolz\]"):
+                self.load("bundle", environ=self.environ)
+            with self.assertRaisesRegex(ImportError, r"zipline\[bcolz\]"):
+                convert("bundle", self.environ)
 
     @parameterized.expand([(False,), (True,)])
     def test_convert(self, delete_bcolz):

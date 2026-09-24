@@ -14,7 +14,7 @@ import pandas as pd
 
 from zipline.data._parquet import FIELDS
 from zipline.data.bcolz_daily_bars import BcolzDailyBarReader
-from zipline.data.minute_bars import BcolzMinuteBarReader
+from zipline.data.bcolz_minute_bars import BcolzMinuteBarReader
 from zipline.data.parquet_daily_bars import ParquetDailyBarWriter
 from zipline.data.parquet_minute_bars import ParquetMinuteBarWriter
 
