@@ -43,7 +43,6 @@ ext_modules = [
     window_specialization("int64"),
     window_specialization("uint8"),
     window_specialization("label"),
-    Extension("zipline.lib.rank", ["zipline/lib/rank.pyx"]),
     Extension("zipline.data._equities", ["zipline/data/_equities.pyx"]),
     Extension("zipline.data._adjustments", ["zipline/data/_adjustments.pyx"]),
     Extension("zipline._protocol", ["zipline/_protocol.pyx"]),

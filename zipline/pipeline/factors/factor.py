@@ -10,7 +10,6 @@ from textwrap import dedent
 from typing import Any
 
 from numpy import asarray, empty_like, errstate, inf, isnan, nan, where
-from scipy.stats import rankdata
 
 from zipline.errors import (
     BadPercentileBounds,
@@ -18,7 +17,11 @@ from zipline.errors import (
     UnsupportedDataType,
 )
 from zipline.lib.normalize import naive_grouped_rowwise_apply
-from zipline.lib.rank import masked_rankdata_2d, rankdata_1d_descending
+from zipline.lib.rank import (
+    masked_rankdata_2d,
+    rankdata_1d_ascending,
+    rankdata_1d_descending,
+)
 from zipline.pipeline.api_utils import restrict_to_dtype
 from zipline.pipeline.classifiers import Classifier, Everything, Quantiles
 from zipline.pipeline.dtypes import (
@@ -762,7 +765,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             return Rank(self, method=method, ascending=ascending, mask=mask)
 
         return GroupedRowTransform(
-            transform=rankdata if ascending else rankdata_1d_descending,
+            transform=rankdata_1d_ascending if ascending else rankdata_1d_descending,
             transform_args=(method,),
             factor=self,
             groupby=groupby,

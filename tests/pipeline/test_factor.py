@@ -766,7 +766,9 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         seed(seed_value)
         asfloat = randn(5, 5) * seed_value
-        asdatetime = (asfloat).copy().view("datetime64[ns]")
+        # The same values as datetimes, so the ranks should match; values are
+        # distinct once rounded to nanoseconds.
+        asdatetime = (asfloat * 1e9).astype("int64").view("datetime64[ns]")
 
         mask = eyemask if use_mask else nomask
         if set_missing:
