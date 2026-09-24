@@ -2,12 +2,8 @@
 Utilities for validating inputs to user-facing API functions.
 """
 
+import inspect
 from functools import wraps
-from inspect import getfullargspec
-from textwrap import dedent
-from uuid import uuid4
-
-NO_DEFAULT = object()
 
 
 def preprocess(*_unused, **processors):
@@ -58,44 +54,83 @@ def preprocess(*_unused, **processors):
         raise TypeError("preprocess() doesn't accept positional arguments")
 
     def _decorator(f):
-        argspec = getfullargspec(f)
-        args, varargs, varkw, defaults = (
-            argspec.args,
-            argspec.varargs,
-            argspec.varkw,
-            argspec.defaults,
-        )
-        if defaults is None:
-            defaults = ()
-        no_defaults = (NO_DEFAULT,) * (len(args) - len(defaults))
-        args_defaults = list(zip(args, no_defaults + defaults))
-        if varargs:
-            args_defaults.append((varargs, NO_DEFAULT))
-        if varkw:
-            args_defaults.append((varkw, NO_DEFAULT))
-
-        argset = set(args) | {varargs, varkw} - {None}
-
-        # Arguments can be declared as tuples in Python 2.
-        if not all(isinstance(arg, str) for arg in args):
-            raise TypeError(
-                f"Can't validate functions using tuple unpacking: {argspec}"
-            )
-
-        # Ensure that all processors map to valid names.
-        bad_names = processors.keys() - argset
+        signature = inspect.signature(f)
+        parameters = signature.parameters
+        bad_names = processors.keys() - parameters.keys()
         if bad_names:
             raise TypeError(f"Got processors for unknown arguments: {bad_names}.")
 
-        return _build_preprocessed_function(
-            f,
-            processors,
-            args_defaults,
-            varargs,
-            varkw,
-        )
+        if all(parameters[name].kind in _NAMED for name in processors):
+            return _process_named(f, parameters, processors)
+        return _process_bound(f, signature, processors)
 
     return _decorator
+
+
+# Kinds of parameters that can be passed by name.
+_NAMED = (
+    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+    inspect.Parameter.KEYWORD_ONLY,
+)
+_POSITIONAL = (
+    inspect.Parameter.POSITIONAL_ONLY,
+    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+)
+
+
+def _process_named(f, parameters, processors):
+    """Wrap ``f``, applying ``processors`` to arguments that can be passed by
+    name, wherever they are passed.
+
+    Each argument's position is worked out once, so a call only touches the
+    processed arguments. Calls that don't fit the signature reach ``f``,
+    which raises the usual TypeError.
+    """
+    positions = {
+        name: index
+        for index, (name, parameter) in enumerate(parameters.items())
+        if parameter.kind in _POSITIONAL
+    }
+    plan = [
+        (name, processor, positions.get(name), parameters[name].default)
+        for name, processor in processors.items()
+    ]
+    empty = inspect.Parameter.empty
+
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        args = list(args)
+        for name, processor, position, default in plan:
+            if position is not None and position < len(args):
+                args[position] = processor(f, name, args[position])
+            elif name in kwargs:
+                kwargs[name] = processor(f, name, kwargs[name])
+            elif default is not empty:
+                # Processors also see the defaults of arguments not passed.
+                kwargs[name] = processor(f, name, default)
+        return f(*args, **kwargs)
+
+    return wrapper
+
+
+def _process_bound(f, signature, processors):
+    """Wrap ``f``, applying ``processors`` to any of its arguments, e.g.
+    ``*args``, by binding each call to the signature.
+    """
+
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            bound = signature.bind(*args, **kwargs)
+        except TypeError as exc:
+            raise TypeError(f"{f.__name__}() {exc}") from None
+        # Processors also see the defaults of arguments not passed.
+        bound.apply_defaults()
+        for name, processor in processors.items():
+            bound.arguments[name] = processor(f, name, bound.arguments[name])
+        return f(*bound.args, **bound.kwargs)
+
+    return wrapper
 
 
 def call(f):
@@ -125,102 +160,3 @@ def call(f):
         return f(arg)
 
     return processor
-
-
-def _build_preprocessed_function(func, processors, args_defaults, varargs, varkw):
-    """
-    Build a preprocessed function with the same signature as `func`.
-
-    Uses `exec` internally to build a function that actually has the same
-    signature as `func.
-    """
-    format_kwargs = {"func_name": func.__name__}
-
-    def mangle(name):
-        return "a" + uuid4().hex + name
-
-    format_kwargs["mangled_func"] = mangled_funcname = mangle(func.__name__)
-
-    def make_processor_assignment(arg, processor_name):
-        template = "{arg} = {processor}({func}, '{arg}', {arg})"
-        return template.format(
-            arg=arg,
-            processor=processor_name,
-            func=mangled_funcname,
-        )
-
-    exec_globals = {mangled_funcname: func, "wraps": wraps}
-    defaults_seen = 0
-    default_name_template = "a" + uuid4().hex + "_%d"
-    signature = []
-    call_args = []
-    assignments = []
-    star_map = {
-        varargs: "*",
-        varkw: "**",
-    }
-
-    def name_as_arg(arg):
-        return star_map.get(arg, "") + arg
-
-    for arg, default in args_defaults:
-        if default is NO_DEFAULT:
-            signature.append(name_as_arg(arg))
-        else:
-            default_name = default_name_template % defaults_seen
-            exec_globals[default_name] = default
-            signature.append("=".join([name_as_arg(arg), default_name]))
-            defaults_seen += 1
-
-        if arg in processors:
-            procname = mangle("_processor_" + arg)
-            exec_globals[procname] = processors[arg]
-            assignments.append(make_processor_assignment(arg, procname))
-
-        call_args.append(name_as_arg(arg))
-
-    exec_str = dedent(
-        """\
-        @wraps({wrapped_funcname})
-        def {func_name}({signature}):
-            {assignments}
-            return {wrapped_funcname}({call_args})
-        """
-    ).format(
-        func_name=func.__name__,
-        signature=", ".join(signature),
-        assignments="\n    ".join(assignments),
-        wrapped_funcname=mangled_funcname,
-        call_args=", ".join(call_args),
-    )
-    compiled = compile(
-        exec_str,
-        func.__code__.co_filename,
-        mode="exec",
-    )
-
-    exec_locals = {}
-    exec(compiled, exec_globals, exec_locals)
-    new_func = exec_locals[func.__name__]
-
-    # Copy the firstlineno out of the underlying function so that exceptions
-    # get raised with the correct traceback.
-    # This also makes dynamic source inspection (like IPython `??` operator)
-    # work as intended.
-    try:
-        # Try to get the pycode object from the underlying function.
-        original_code = func.__code__
-    except AttributeError:
-        try:
-            # The underlying callable was not a function, try to grab the
-            # `__func__.__code__` which exists on method objects.
-            original_code = func.__func__.__code__
-        except AttributeError:
-            # The underlying callable does not have a `__code__`. There is
-            # nothing for us to correct.
-            return new_func
-
-    new_func.__code__ = new_func.__code__.replace(
-        co_firstlineno=original_code.co_firstlineno,
-    )
-    return new_func
