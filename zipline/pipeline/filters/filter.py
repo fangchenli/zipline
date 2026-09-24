@@ -2,9 +2,12 @@
 filter.py
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable
 from itertools import chain
 from operator import attrgetter
-from typing import Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from numpy import (
     any as np_any,
@@ -52,6 +55,10 @@ from zipline.utils.numpy_utils import (
 
 from ..sentinels import NotSpecified
 
+if TYPE_CHECKING:
+    from zipline.pipeline.classifiers import Classifier
+    from zipline.pipeline.factors import Factor
+
 
 def concat_tuples(*tuples):
     """
@@ -60,7 +67,7 @@ def concat_tuples(*tuples):
     return tuple(chain(*tuples))
 
 
-def binary_operator(op):
+def binary_operator(op: Literal["&", "|"]) -> Callable[[Filter, Term | int], Filter]:
     """
     Factory function for making binary operator methods on a Filter subclass.
 
@@ -110,7 +117,7 @@ def binary_operator(op):
     return binary_operator
 
 
-def unary_operator(op):
+def unary_operator(op: Literal["~"]) -> Callable[[Filter], Filter]:
     """
     Factory function for making unary operator methods for Filters.
     """
@@ -190,6 +197,7 @@ class Filter(RestrictedDTypeMixin, ComputableTerm):
     # Used by RestrictedDTypeMixin
     ALLOWED_DTYPES = FILTER_DTYPES
     dtype = bool_dtype
+    missing_value: bool
 
     # & and | are commutative, so the reflected methods are the same.
     __and__ = __rand__ = binary_operator("&")
@@ -701,6 +709,7 @@ class AllPresent(CustomFilter, SingleInputMixin, StandardOutputs):
 class MaximumFilter(Filter, StandardOutputs):
     """Pipeline filter that selects the top asset, possibly grouped and masked."""
 
+    inputs: tuple[Factor, Classifier]
     window_length = 0
 
     def __new__(cls, factor, groupby, mask):

@@ -3,10 +3,19 @@ Utilities for validating inputs to user-facing API functions.
 """
 
 import inspect
+from collections.abc import Callable
 from functools import wraps
+from typing import Protocol
 
 
-def preprocess(*_unused, **processors):
+class Decorator(Protocol):
+    """A decorator returning a function with the signature of the function it
+    decorates, like the ones built by :func:`preprocess`."""
+
+    def __call__[F: Callable[..., object]](self, f: F, /) -> F: ...
+
+
+def preprocess(*_unused, **processors) -> Decorator:
     """
     Decorator that applies pre-processors to the arguments of a function before
     calling the function.
@@ -53,7 +62,7 @@ def preprocess(*_unused, **processors):
     if _unused:
         raise TypeError("preprocess() doesn't accept positional arguments")
 
-    def _decorator(f):
+    def _decorator[F: Callable[..., object]](f: F) -> F:
         signature = inspect.signature(f)
         parameters = signature.parameters
         bad_names = processors.keys() - parameters.keys()

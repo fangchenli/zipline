@@ -2,14 +2,27 @@
 factor.py
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable, Iterator
 from functools import wraps
 from math import ceil
 from numbers import Number
 from operator import attrgetter
 from textwrap import dedent
-from typing import Any
+from types import FunctionType
+from typing import TYPE_CHECKING, Any, Literal, overload
 
-from numpy import asarray, empty_like, errstate, inf, isnan, nan, where
+from numpy import (
+    asarray,
+    datetime64,
+    empty_like,
+    errstate,
+    inf,
+    isnan,
+    nan,
+    where,
+)
 
 from zipline.errors import (
     BadPercentileBounds,
@@ -69,7 +82,19 @@ from zipline.utils.numpy_utils import (
     float64_dtype,
     is_missing,
 )
-from zipline.utils.sharedoc import templated_docstring
+from zipline.utils.sharedoc import FunctionDecorator, templated_docstring
+
+if TYPE_CHECKING:
+    from .statistical import RollingLinearRegression
+
+#: Operators whose result is a Factor.
+type ArithmeticOp = Literal["+", "-", "*", "/", "**", "%"]
+
+#: Operators whose result is a Filter.
+type ComparisonOp = Literal["<", "<=", "!=", ">=", ">", "=="]
+
+#: Methods for assigning ranks to tied values (see scipy.stats.rankdata).
+type RankMethod = Literal["ordinal", "min", "max", "dense", "average"]
 
 _RANK_METHODS = frozenset(["average", "min", "max", "dense", "ordinal"])
 
@@ -167,7 +192,11 @@ factor : zipline.pipeline.Factor
 """
 
 
-def binary_operator(op):
+@overload
+def binary_operator(op: ArithmeticOp) -> Callable[[Factor, Term | float], Factor]: ...
+@overload
+def binary_operator(op: ComparisonOp) -> Callable[[Factor, Term | float], Filter]: ...
+def binary_operator(op: str) -> Callable[[Factor, Term | float], Factor | Filter]:
     """
     Factory function for making binary operator methods on a Factor subclass.
 
@@ -243,7 +272,11 @@ def binary_operator(op):
     return binary_operator
 
 
-def reflected_binary_operator(op):
+# ``==`` is the ``eq`` method rather than ``__eq__`` (see Factor).
+factor_eq = binary_operator("==")
+
+
+def reflected_binary_operator(op: ArithmeticOp) -> Callable[[Factor, float], Factor]:
     """
     Factory function for making binary operator methods on a Factor.
 
@@ -277,7 +310,7 @@ def reflected_binary_operator(op):
     return reflected_binary_operator
 
 
-def unary_operator(op):
+def unary_operator(op: Literal["-"]) -> Callable[[Factor], Factor]:
     """
     Factory function for making unary operator methods for Factors.
     """
@@ -316,41 +349,40 @@ def unary_operator(op):
     return unary_operator
 
 
-def function_application(func):
-    """
-    Factory function for producing function application methods for Factor
-    subclasses.
-    """
+def apply_math_function(factor: Factor, func: str) -> Factor:
+    """Construct a Factor computing numexpr's ``func`` (one of
+    NUMEXPR_MATH_FUNCS) on each output of ``factor``."""
     if func not in NUMEXPR_MATH_FUNCS:
         raise ValueError(f"Unsupported mathematical function '{func}'")
+    if isinstance(factor, NumericalExpression):
+        return NumExprFactor(
+            f"{func}({factor._expr})",
+            factor.inputs,
+            dtype=float64_dtype,
+        )
+    return NumExprFactor(f"{func}(x_0)", (factor,), dtype=float64_dtype)
 
-    docstring = dedent(
-        f"""\
-        Construct a Factor that computes ``{func}()`` on each output of ``self``.
 
-        Returns
-        -------
-        factor : zipline.pipeline.Factor
-        """
-    )
+def docstring_from_template(template: str) -> FunctionDecorator:
+    """Make a decorator setting a function's docstring to ``template``
+    formatted with the function's name."""
 
-    @with_doc(docstring)
-    @with_name(func)
-    def mathfunc(self):
-        if isinstance(self, NumericalExpression):
-            return NumExprFactor(
-                f"{func}({self._expr})",
-                self.inputs,
-                dtype=float64_dtype,
-            )
-        else:
-            return NumExprFactor(
-                f"{func}(x_0)",
-                (self,),
-                dtype=float64_dtype,
-            )
+    def decorator[F: FunctionType](f: F) -> F:
+        f.__doc__ = template.format(f.__name__)
+        return f
 
-    return mathfunc
+    return decorator
+
+
+math_function_docstring = docstring_from_template(
+    """\
+Construct a Factor that computes ``{}()`` on each output of ``self``.
+
+Returns
+-------
+factor : zipline.pipeline.Factor
+"""
+)
 
 
 # Decorators for Factor methods.
@@ -419,36 +451,23 @@ class summary_funcs:
     names = {k for k in locals() if not k.startswith("_")}
 
 
-def summary_method(name):
-    func = getattr(summary_funcs, name)
+SUMMARY_METHOD_DOCSTRING = """\
+Create a 1-dimensional factor computing the {} of self, each day.
 
-    @expect_types(mask=(Filter, NotSpecifiedType))
-    @float64_only
-    def f(self, mask=NotSpecified):
-        """Create a 1-dimensional factor computing the {} of self, each day.
+Parameters
+----------
+mask : zipline.pipeline.Filter, optional
+   A Filter representing assets to consider when computing results.
+   If supplied, we ignore asset/date pairs where ``mask`` produces
+   ``False``.
 
-        Parameters
-        ----------
-        mask : zipline.pipeline.Filter, optional
-           A Filter representing assets to consider when computing results.
-           If supplied, we ignore asset/date pairs where ``mask`` produces
-           ``False``.
+Returns
+-------
+result : zipline.pipeline.Factor
+"""
 
-        Returns
-        -------
-        result : zipline.pipeline.Factor
-        """
-        return DailySummary(
-            func,
-            self,
-            mask=mask,
-            dtype=self.dtype,
-        )
 
-    f.__name__ = func.__name__
-    f.__doc__ = f.__doc__.format(f.__name__)
-
-    return f
+summary_docstring = docstring_from_template(SUMMARY_METHOD_DOCSTRING)
 
 
 class Factor(RestrictedDTypeMixin, ComputableTerm):
@@ -482,6 +501,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
     """
 
     ALLOWED_DTYPES = FACTOR_DTYPES  # Used by RestrictedDTypeMixin
+    missing_value: float | int | datetime64
 
     # Operators build NumExprFactor/NumExprFilter instances. (``__eq__`` is not
     # overridden because it breaks comparisons on tuples of Factors; use
@@ -507,27 +527,159 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
     __neg__ = unary_operator("-")
 
-    # Dynamically add the numexpr math functions (log, sqrt, ...).
-    clsdict = locals()
-    clsdict.update(
-        {funcname: function_application(funcname) for funcname in NUMEXPR_MATH_FUNCS}
-    )
+    def eq(self, other: Term | float) -> Filter:
+        """
+        Construct a :class:`~zipline.pipeline.Filter` computing
+        ``self == other``.
 
-    # Add summary functions.
-    clsdict.update(
-        {name: summary_method(name) for name in summary_funcs.names},
-    )
+        Parameters
+        ----------
+        other : zipline.pipeline.Factor, float
+            Right-hand side of the expression.
 
-    del clsdict  # don't pollute the class namespace with this.
+        Returns
+        -------
+        filter : zipline.pipeline.Filter
+            Filter computing ``self == other`` with the outputs of ``self`` and
+            ``other``.
+        """
+        return factor_eq(self, other)
 
-    eq = binary_operator("==")
+    # The numexpr math functions (NUMEXPR_MATH_FUNCS).
+    @math_function_docstring
+    def sin(self) -> Factor:
+        return apply_math_function(self, "sin")
+
+    @math_function_docstring
+    def cos(self) -> Factor:
+        return apply_math_function(self, "cos")
+
+    @math_function_docstring
+    def tan(self) -> Factor:
+        return apply_math_function(self, "tan")
+
+    @math_function_docstring
+    def arcsin(self) -> Factor:
+        return apply_math_function(self, "arcsin")
+
+    @math_function_docstring
+    def arccos(self) -> Factor:
+        return apply_math_function(self, "arccos")
+
+    @math_function_docstring
+    def arctan(self) -> Factor:
+        return apply_math_function(self, "arctan")
+
+    @math_function_docstring
+    def sinh(self) -> Factor:
+        return apply_math_function(self, "sinh")
+
+    @math_function_docstring
+    def cosh(self) -> Factor:
+        return apply_math_function(self, "cosh")
+
+    @math_function_docstring
+    def tanh(self) -> Factor:
+        return apply_math_function(self, "tanh")
+
+    @math_function_docstring
+    def arcsinh(self) -> Factor:
+        return apply_math_function(self, "arcsinh")
+
+    @math_function_docstring
+    def arccosh(self) -> Factor:
+        return apply_math_function(self, "arccosh")
+
+    @math_function_docstring
+    def arctanh(self) -> Factor:
+        return apply_math_function(self, "arctanh")
+
+    @math_function_docstring
+    def log(self) -> Factor:
+        return apply_math_function(self, "log")
+
+    @math_function_docstring
+    def log10(self) -> Factor:
+        return apply_math_function(self, "log10")
+
+    @math_function_docstring
+    def log1p(self) -> Factor:
+        return apply_math_function(self, "log1p")
+
+    @math_function_docstring
+    def exp(self) -> Factor:
+        return apply_math_function(self, "exp")
+
+    @math_function_docstring
+    def expm1(self) -> Factor:
+        return apply_math_function(self, "expm1")
+
+    @math_function_docstring
+    def sqrt(self) -> Factor:
+        return apply_math_function(self, "sqrt")
+
+    @math_function_docstring
+    def abs(self) -> Factor:
+        return apply_math_function(self, "abs")
+
+    # Summary methods (summary_funcs), producing 1-dimensional factors.
+    def _summary(
+        self, func: Callable[..., object], mask: Filter | NotSpecifiedType
+    ) -> Factor:
+        return DailySummary(func, self, mask=mask, dtype=self.dtype)
+
+    @expect_types(mask=(Filter, NotSpecifiedType))
+    @float64_only
+    @summary_docstring
+    def mean(self, mask: Filter | NotSpecifiedType = NotSpecified) -> Factor:
+        return self._summary(summary_funcs.mean, mask)
+
+    @expect_types(mask=(Filter, NotSpecifiedType))
+    @float64_only
+    @summary_docstring
+    def stddev(self, mask: Filter | NotSpecifiedType = NotSpecified) -> Factor:
+        return self._summary(summary_funcs.stddev, mask)
+
+    @expect_types(mask=(Filter, NotSpecifiedType))
+    @float64_only
+    @summary_docstring
+    def max(self, mask: Filter | NotSpecifiedType = NotSpecified) -> Factor:
+        return self._summary(summary_funcs.max, mask)
+
+    @expect_types(mask=(Filter, NotSpecifiedType))
+    @float64_only
+    @summary_docstring
+    def min(self, mask: Filter | NotSpecifiedType = NotSpecified) -> Factor:
+        return self._summary(summary_funcs.min, mask)
+
+    @expect_types(mask=(Filter, NotSpecifiedType))
+    @float64_only
+    @summary_docstring
+    def median(self, mask: Filter | NotSpecifiedType = NotSpecified) -> Factor:
+        return self._summary(summary_funcs.median, mask)
+
+    @expect_types(mask=(Filter, NotSpecifiedType))
+    @float64_only
+    @summary_docstring
+    def sum(self, mask: Filter | NotSpecifiedType = NotSpecified) -> Factor:
+        return self._summary(summary_funcs.sum, mask)
+
+    @expect_types(mask=(Filter, NotSpecifiedType))
+    @float64_only
+    @summary_docstring
+    def notnull_count(self, mask: Filter | NotSpecifiedType = NotSpecified) -> Factor:
+        return self._summary(summary_funcs.notnull_count, mask)
 
     @expect_types(
         mask=(Filter, NotSpecifiedType),
         groupby=(Classifier, NotSpecifiedType),
     )
     @float64_only
-    def demean(self, mask=NotSpecified, groupby=NotSpecified):
+    def demean(
+        self,
+        mask: Filter | NotSpecifiedType = NotSpecified,
+        groupby: Classifier | NotSpecifiedType = NotSpecified,
+    ) -> Factor:
         """
         Construct a Factor that computes ``self`` and subtracts the mean from
         row of the result.
@@ -656,7 +808,11 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         groupby=(Classifier, NotSpecifiedType),
     )
     @float64_only
-    def zscore(self, mask=NotSpecified, groupby=NotSpecified):
+    def zscore(
+        self,
+        mask: Filter | NotSpecifiedType = NotSpecified,
+        groupby: Classifier | NotSpecifiedType = NotSpecified,
+    ) -> Factor:
         """
         Construct a Factor that Z-Scores each day's results.
 
@@ -719,8 +875,12 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         )
 
     def rank(
-        self, method="ordinal", ascending=True, mask=NotSpecified, groupby=NotSpecified
-    ):
+        self,
+        method: RankMethod = "ordinal",
+        ascending: bool = True,
+        mask: Filter | NotSpecifiedType = NotSpecified,
+        groupby: Classifier | NotSpecifiedType = NotSpecified,
+    ) -> Factor:
         """
         Construct a new Factor representing the sorted rank of each column
         within each row.
@@ -781,7 +941,12 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         mask=(Filter, NotSpecifiedType),
     )
     @templated_docstring(CORRELATION_METHOD_NOTE=CORRELATION_METHOD_NOTE)
-    def pearsonr(self, target, correlation_length, mask=NotSpecified):
+    def pearsonr(
+        self,
+        target: Term,
+        correlation_length: int,
+        mask: Filter | NotSpecifiedType = NotSpecified,
+    ) -> Factor:
         """
         Construct a new Factor that computes rolling pearson correlation
         coefficients between ``target`` and the columns of ``self``.
@@ -850,7 +1015,12 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         mask=(Filter, NotSpecifiedType),
     )
     @templated_docstring(CORRELATION_METHOD_NOTE=CORRELATION_METHOD_NOTE)
-    def spearmanr(self, target, correlation_length, mask=NotSpecified):
+    def spearmanr(
+        self,
+        target: Term,
+        correlation_length: int,
+        mask: Filter | NotSpecifiedType = NotSpecified,
+    ) -> Factor:
         """
         Construct a new Factor that computes rolling spearman rank correlation
         coefficients between ``target`` and the columns of ``self``.
@@ -918,7 +1088,12 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         mask=(Filter, NotSpecifiedType),
     )
     @templated_docstring(CORRELATION_METHOD_NOTE=CORRELATION_METHOD_NOTE)
-    def linear_regression(self, target, regression_length, mask=NotSpecified):
+    def linear_regression(
+        self,
+        target: Term,
+        regression_length: int,
+        mask: Filter | NotSpecifiedType = NotSpecified,
+    ) -> RollingLinearRegression:
         """
         Construct a new Factor that performs an ordinary least-squares
         regression predicting the columns of `self` from `target`.
@@ -985,8 +1160,12 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
     )
     @float64_only
     def winsorize(
-        self, min_percentile, max_percentile, mask=NotSpecified, groupby=NotSpecified
-    ):
+        self,
+        min_percentile: float,
+        max_percentile: float,
+        mask: Filter | NotSpecifiedType = NotSpecified,
+        groupby: Classifier | NotSpecifiedType = NotSpecified,
+    ) -> Factor:
         """
         Construct a new factor that winsorizes the result of this factor.
 
@@ -1080,7 +1259,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         )
 
     @expect_types(bins=int, mask=(Filter, NotSpecifiedType))
-    def quantiles(self, bins, mask=NotSpecified):
+    def quantiles(
+        self, bins: int, mask: Filter | NotSpecifiedType = NotSpecified
+    ) -> Classifier:
         """
         Construct a Classifier computing quantiles of the output of ``self``.
 
@@ -1107,7 +1288,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         return Quantiles(inputs=(self,), bins=bins, mask=mask)
 
     @expect_types(mask=(Filter, NotSpecifiedType))
-    def quartiles(self, mask=NotSpecified):
+    def quartiles(self, mask: Filter | NotSpecifiedType = NotSpecified) -> Classifier:
         """
         Construct a Classifier computing quartiles over the output of ``self``.
 
@@ -1131,7 +1312,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         return self.quantiles(bins=4, mask=mask)
 
     @expect_types(mask=(Filter, NotSpecifiedType))
-    def quintiles(self, mask=NotSpecified):
+    def quintiles(self, mask: Filter | NotSpecifiedType = NotSpecified) -> Classifier:
         """
         Construct a Classifier computing quintile labels on ``self``.
 
@@ -1155,7 +1336,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         return self.quantiles(bins=5, mask=mask)
 
     @expect_types(mask=(Filter, NotSpecifiedType))
-    def deciles(self, mask=NotSpecified):
+    def deciles(self, mask: Filter | NotSpecifiedType = NotSpecified) -> Classifier:
         """
         Construct a Classifier computing decile labels on ``self``.
 
@@ -1178,7 +1359,12 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         """
         return self.quantiles(bins=10, mask=mask)
 
-    def top(self, N, mask=NotSpecified, groupby=NotSpecified):
+    def top(
+        self,
+        N: int,
+        mask: Filter | NotSpecifiedType = NotSpecified,
+        groupby: Classifier | NotSpecifiedType = NotSpecified,
+    ) -> Filter:
         """
         Construct a Filter matching the top N asset values of self each day.
 
@@ -1206,7 +1392,12 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             return self._maximum(mask=mask, groupby=groupby)
         return self.rank(ascending=False, mask=mask, groupby=groupby) <= N
 
-    def bottom(self, N, mask=NotSpecified, groupby=NotSpecified):
+    def bottom(
+        self,
+        N: int,
+        mask: Filter | NotSpecifiedType = NotSpecified,
+        groupby: Classifier | NotSpecifiedType = NotSpecified,
+    ) -> Filter:
         """
         Construct a Filter matching the bottom N asset values of self each day.
 
@@ -1230,10 +1421,19 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         """
         return self.rank(ascending=True, mask=mask, groupby=groupby) <= N
 
-    def _maximum(self, mask=NotSpecified, groupby=NotSpecified):
+    def _maximum(
+        self,
+        mask: Filter | NotSpecifiedType = NotSpecified,
+        groupby: Classifier | NotSpecifiedType = NotSpecified,
+    ) -> Filter:
         return MaximumFilter(self, groupby=groupby, mask=mask)
 
-    def percentile_between(self, min_percentile, max_percentile, mask=NotSpecified):
+    def percentile_between(
+        self,
+        min_percentile: float,
+        max_percentile: float,
+        mask: Filter | NotSpecifiedType = NotSpecified,
+    ) -> Filter:
         """
         Construct a Filter matching values of self that fall within the range
         defined by ``min_percentile`` and ``max_percentile``.
@@ -1264,7 +1464,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         )
 
     @if_not_float64_tell_caller_to_use_isnull
-    def isnan(self):
+    def isnan(self) -> Filter:
         """
         A Filter producing True for all values where this Factor is NaN.
 
@@ -1275,7 +1475,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         return self != self
 
     @if_not_float64_tell_caller_to_use_isnull
-    def notnan(self):
+    def notnan(self) -> Filter:
         """
         A Filter producing True for values where this Factor is not NaN.
 
@@ -1286,14 +1486,19 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         return ~self.isnan()
 
     @if_not_float64_tell_caller_to_use_isnull
-    def isfinite(self):
+    def isfinite(self) -> Filter:
         """
         A Filter producing True for values where this Factor is anything but
         NaN, inf, or -inf.
         """
         return (-inf < self) & (self < inf)
 
-    def clip(self, min_bound, max_bound, mask=NotSpecified):
+    def clip(
+        self,
+        min_bound: float,
+        max_bound: float,
+        mask: Filter | NotSpecifiedType = NotSpecified,
+    ) -> Factor:
         """
         Clip (limit) the values in a factor.
 
@@ -1330,6 +1535,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             inputs=[self],
             min_bound=min_bound,
             max_bound=max_bound,
+            mask=mask,
         )
 
     @classmethod
@@ -1395,6 +1601,7 @@ class GroupedRowTransform(Factor):
     zipline.pipeline.Factor.rank
     """
 
+    inputs: tuple[Factor, Classifier]
     window_length = 0
 
     def __new__(
@@ -1740,7 +1947,7 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
                     f"Possible choices are: {self.outputs}."
                 ) from None
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[RecarrayField]:
         if self.outputs is NotSpecified:
             raise ValueError(f"{type(self).__name__} does not have multiple outputs.")
         return (RecarrayField(self, attr) for attr in self.outputs)
@@ -1798,6 +2005,7 @@ class Latest(LatestMixin, CustomFactor):
 class DailySummary(SingleInputMixin, Factor):
     """1D Factor that computes a summary statistic across all assets."""
 
+    inputs: tuple[Factor]
     ndim = 1
     window_length = 0
     params: Any = ("func",)  # see Term.params

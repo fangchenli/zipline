@@ -1,5 +1,8 @@
 """Simple common factors."""
 
+from __future__ import annotations
+
+from collections.abc import Sequence
 from numbers import Number
 
 from numpy import (
@@ -21,6 +24,7 @@ from numpy import (
     sum as np_sum,
 )
 
+from zipline.pipeline.classifiers import Classifier
 from zipline.pipeline.data import EquityPricing
 from zipline.utils.input_validation import expect_types
 from zipline.utils.math_utils import (
@@ -508,6 +512,7 @@ class PeerCount(SingleInputMixin, CustomFactor):
     **Default Window Length:** 1
     """
 
+    inputs: Sequence[Classifier]
     window_length = 1
 
     def _validate(self):

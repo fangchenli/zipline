@@ -5,8 +5,17 @@ across different functions.
 
 import re
 from textwrap import dedent
+from types import FunctionType
+from typing import Protocol
 
 from toolz import curry
+
+
+class FunctionDecorator(Protocol):
+    """A decorator returning the function it decorates."""
+
+    def __call__[F: FunctionType](self, f: F, /) -> F: ...
+
 
 PIPELINE_DOWNSAMPLING_FREQUENCY_DOC = dedent(
     """\
@@ -81,7 +90,7 @@ def format_docstring(owner_name, docstring, formatters):
     return docstring.format(**format_params)
 
 
-def templated_docstring(**docs):
+def templated_docstring(**docs) -> FunctionDecorator:
     """
     Decorator allowing the use of templated docstrings.
 
@@ -95,7 +104,7 @@ def templated_docstring(**docs):
     'bar'
     """
 
-    def decorator(f):
+    def decorator[F: FunctionType](f: F) -> F:
         f.__doc__ = format_docstring(f.__name__, f.__doc__, docs)
         return f
 

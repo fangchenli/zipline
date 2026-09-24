@@ -16,7 +16,7 @@ from zipline.pipeline.factors import Factor
 from zipline.pipeline.factors import Latest as LatestFactor
 from zipline.pipeline.filters import Filter
 from zipline.pipeline.filters import Latest as LatestFilter
-from zipline.pipeline.sentinels import NotSpecified, sentinel
+from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import (
     AssetExists,
     LoadableTerm,
@@ -30,6 +30,7 @@ from zipline.utils.input_validation import (
 )
 from zipline.utils.numpy_utils import NoDefaultMissingValue, float64_dtype
 from zipline.utils.preprocess import preprocess
+from zipline.utils.sentinel import sentinel
 from zipline.utils.string_formatting import bulleted_list
 
 IsSpecialization = sentinel("IsSpecialization")
