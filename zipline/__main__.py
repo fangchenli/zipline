@@ -113,7 +113,7 @@ def ipython_only(option):
     return d
 
 
-DEFAULT_BUNDLE = "quandl"
+DEFAULT_BUNDLE = "massive"
 
 
 @main.command()

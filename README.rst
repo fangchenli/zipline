@@ -83,16 +83,18 @@ The following code implements a simple dual moving average algorithm.
                short_mavg=short_mavg,
                long_mavg=long_mavg)
 
-Backtests run against a *data bundle*. The default ``quandl`` bundle
-downloads Quandl's free WIKI Prices dataset (now hosted by Nasdaq Data Link),
-which covers US equities until March 2018. Create a free account at
-https://data.nasdaq.com to get an API key, then ingest the data and run the
-algorithm:
+Backtests run against a *data bundle*. The default ``massive`` bundle
+downloads US equities from `Massive <https://massive.com>`_ (formerly
+Polygon.io), whose free plan covers the last two years. Create a free account
+to get an API key, then ingest the data and run the algorithm:
 
 .. code:: bash
 
-    $ QUANDL_API_KEY=<your key> zipline ingest
-    $ zipline run -f dual_moving_average.py --start 2014-1-1 --end 2018-1-1 -o dma.parquet --no-benchmark
+    $ MASSIVE_API_KEY=<your key> zipline ingest
+    $ zipline run -f dual_moving_average.py --start 2025-6-1 --end 2026-6-1 -o dma.parquet --no-benchmark
+
+The first ingestion takes about two hours at the free plan's rate limit; later
+ones only download new sessions.
 
 The resulting performance DataFrame is saved in ``dma.parquet``, which you
 can load with ``zipline.utils.results.read_results`` and analyze from within
@@ -131,7 +133,8 @@ Upgrading from Zipline 1.x
   ``pd.Panel``, so ``history(...)['price']`` still gives a dates x assets
   frame.
 - The ``quantopian-quandl`` bundle is gone (its download mirror no longer
-  exists), and ``quandl`` is the default bundle.
+  exists), and the default bundle is ``massive``, since Quandl's WIKI data
+  stopped updating in 2018.
 
 .. |ci status| image:: https://github.com/fangchenli/zipline/actions/workflows/ci.yml/badge.svg
    :target: https://github.com/fangchenli/zipline/actions/workflows/ci.yml

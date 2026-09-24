@@ -35,6 +35,7 @@ __all__ = [
     "execution_time_from_close",
     "execution_time_from_open",
     "get_calendar",
+    "has_calendar",
     "register_calendar",
     "register_calendar_alias",
     "register_calendar_type",
@@ -72,6 +73,11 @@ def get_calendar(name, start=None, end=None, side=SIDE):
             start = bound_min
 
     return _xc_get_calendar(resolved, start=start, end=end, side=side)
+
+
+def has_calendar(name):
+    """Whether a calendar, or an alias of one, is registered as ``name``."""
+    return global_calendar_dispatcher.has_calendar(name)
 
 
 def execution_time_from_open(calendar, opens):

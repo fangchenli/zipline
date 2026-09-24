@@ -49,6 +49,8 @@ API and Behaviour Changes
 - ``data.history()`` with several assets *and* several fields returns a
   DataFrame with ``(field, asset)`` MultiIndex columns instead of the removed
   ``pandas.Panel``. ``history(...)[field]`` still gives a dates x assets frame.
+- The default bundle is ``massive`` instead of ``quandl``, whose WIKI dataset
+  stopped updating in 2018.
 - The ``quantopian-quandl`` bundle is removed because the Quantopian-hosted
   mirror it downloaded from no longer exists. ``quandl``, which downloads the
   WIKI Prices dataset from Nasdaq Data Link (formerly Quandl), is now the
@@ -136,6 +138,14 @@ Enhancements
 - New ``zipline convert`` command and :func:`zipline.data.bundles.convert`
   function, which rewrite the bcolz daily and minute bars of bundles ingested
   by earlier versions as Parquet.
+- New ``massive`` bundle, the new default, with US equities from `Massive
+  <https://massive.com>`__ (formerly Polygon.io): unadjusted daily bars,
+  splits, dividends and asset metadata, including delisted securities, with a
+  free API key. Securities are identified by FIGI, so ticker changes keep one
+  sid, and each security keeps its sid across ingestions. Downloaded bars are
+  cached, so later ingestions only download new sessions. See
+  :ref:`massive-data-bundle`. ``zipline.data.bundles.vendor`` has the parts
+  that don't depend on the vendor, for writing other such bundles.
 - Backtest results can be saved as Parquet: ``zipline run -o`` writes Parquet
   when the file name ends in ``.parquet`` (other names are still pickled), and
   :func:`~zipline.utils.results.write_results` and
