@@ -15,7 +15,7 @@ uv sync                      # create .venv, install deps + dev group, build the
 uv run python -c "import zipline"
 ```
 
-The project is installed in editable mode, but the Cython extensions are compiled at install time. `[tool.uv].cache-keys` in `pyproject.toml` makes `uv sync`/`uv run` rebuild them automatically when any `.pyx`/`.pxd`/`.pxi` changes. New extensions must be added to `ext_modules` in `setup.py`, which only holds the extension list. All metadata is in `pyproject.toml`, and the version comes from git tags via setuptools-scm, which writes the ignored `zipline/_version.py`.
+The project is installed in editable mode, but the Cython extensions are compiled at install time. `[tool.uv].cache-keys` in `pyproject.toml` makes `uv sync`/`uv run` rebuild them automatically when any `.pyx`/`.pxd`/`.pxi` changes. New extensions must be added to `ext_modules` in `setup.py`, which only holds the extension list. When an extension is replaced by a `.py` module, delete the build artifacts (`git clean -fX zipline && uv sync`, which rebuilds the remaining extensions): an untracked stale `.so` next to the `.py` is imported instead of it. All metadata is in `pyproject.toml`, and the version comes from git tags via setuptools-scm, which writes the ignored `zipline/_version.py`.
 
 Lint, types and tests:
 
