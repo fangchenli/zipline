@@ -5,7 +5,6 @@ from contextlib import ExitStack
 from typing import TYPE_CHECKING
 from unittest import TestCase
 
-import h5py
 import numpy as np
 import pandas as pd
 import responses
@@ -45,9 +44,9 @@ from ..data.data_portal import (
     DataPortal,
 )
 from ..data.fx import (
-    HDF5FXRateReader,
-    HDF5FXRateWriter,
     InMemoryFXRateReader,
+    ParquetFXRateReader,
+    ParquetFXRateWriter,
 )
 from ..data.minute_bars import (
     FUTURES_MINUTES_PER_DAY,
@@ -2279,7 +2278,6 @@ class WithFXRates(_FixtureMixin):
     FX_RATES_RATE_NAMES = ["mid"]
 
     # Default chunk size used for fx artifact compression.
-    HDF5_FX_CHUNK_SIZE = 75
 
     # Rate used by default for Pipeline API queries that don't specify a rate
     # explicitly.
@@ -2353,34 +2351,21 @@ class WithFXRates(_FixtureMixin):
         return out
 
     @classmethod
-    def write_h5_fx_rates(cls, path):
-        """Write cls.fx_rates to disk with an HDF5FXRateWriter.
+    def write_parquet_fx_rates(cls, path):
+        """Write cls.fx_rates to disk with a ParquetFXRateWriter.
 
-        Returns an HDF5FXRateReader that reader from written data.
+        Returns a ParquetFXRateReader that reads the written data.
         """
-        sessions = cls.fx_rates_sessions
-
-        # Write in-memory data to h5 file.
-        with h5py.File(path, "w") as h5_file:
-            writer = HDF5FXRateWriter(h5_file, cls.HDF5_FX_CHUNK_SIZE)
-            fx_data = (
+        ParquetFXRateWriter(path).write(
+            dts=cls.fx_rates_sessions,
+            currencies=np.array(cls.FX_RATES_CURRENCIES, dtype=object),
+            data=(
                 (rate, quote, quote_frame.values)
                 for rate, rate_dict in cls.fx_rates.items()
                 for quote, quote_frame in rate_dict.items()
-            )
-
-            writer.write(
-                dts=sessions.values,
-                currencies=np.array(cls.FX_RATES_CURRENCIES, dtype=object),
-                data=fx_data,
-            )
-
-        h5_file = cls.enter_class_context(h5py.File(path, "r"))
-
-        return HDF5FXRateReader(
-            h5_file,
-            default_rate=cls.FX_RATES_DEFAULT_RATE,
+            ),
         )
+        return ParquetFXRateReader(path, default_rate=cls.FX_RATES_DEFAULT_RATE)
 
     @classmethod
     def get_expected_fx_rate_scalar(cls, rate, quote, base, dt):

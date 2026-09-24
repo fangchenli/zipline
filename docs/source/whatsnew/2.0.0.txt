@@ -95,6 +95,12 @@ API and Behaviour Changes
   ``zipline.data.multi_country_daily_bars`` and now takes any readers that
   provide ``sids``, such as
   :class:`~zipline.data.parquet_daily_bars.ParquetDailyBarReader`.
+- FX rates are stored as Parquet: ``HDF5FXRateReader`` and
+  ``HDF5FXRateWriter`` are replaced by
+  :class:`~zipline.data.fx.ParquetFXRateReader` and
+  :class:`~zipline.data.fx.ParquetFXRateWriter`, which take the same data.
+  h5py is no longer a dependency, and PyTables is only needed with the
+  ``bcolz`` extra.
 
 Enhancements
 ~~~~~~~~~~~~

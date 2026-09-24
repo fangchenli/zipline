@@ -2,8 +2,9 @@ import subprocess
 import sys
 from textwrap import dedent
 
-# Run in a fresh interpreter, with imports of the optional bcolz support
-# failing as they would when the `bcolz` extra isn't installed.
+# Run in a fresh interpreter, with imports of the optional bcolz support (and
+# of h5py, which zipline no longer uses) failing as they would when the
+# `bcolz` extra isn't installed.
 SCRIPT = dedent(
     """
     import importlib.abc
@@ -11,7 +12,7 @@ SCRIPT = dedent(
 
     class BlockBcolz(importlib.abc.MetaPathFinder):
         def find_spec(self, name, path, target=None):
-            if name.split(".")[0] in ("bcolz", "intervaltree"):
+            if name.split(".")[0] in ("bcolz", "intervaltree", "tables", "h5py"):
                 raise ImportError(f"{name} is blocked")
 
     sys.meta_path.insert(0, BlockBcolz())

@@ -248,16 +248,29 @@ class InMemoryFXReaderTestCase(_FXReaderTestCase):
         return self.in_memory_fx_rate_reader
 
 
-class HDF5FXReaderTestCase(zp_fixtures.WithTmpDir, _FXReaderTestCase):
+class ParquetFXReaderTestCase(zp_fixtures.WithTmpDir, _FXReaderTestCase):
     @classmethod
     def init_class_fixtures(cls):
         super().init_class_fixtures()
-        path = cls.tmpdir.getpath("fx_rates.h5")
-        cls.h5_fx_reader = cls.write_h5_fx_rates(path)
+        path = cls.tmpdir.getpath("fx_rates.parquet")
+        cls.parquet_fx_reader = cls.write_parquet_fx_rates(path)
 
     @property
     def reader(self):
-        return self.h5_fx_reader
+        return self.parquet_fx_reader
+
+    def test_unknown_rate_or_quote(self):
+        dts = pd.DatetimeIndex([self.FX_RATES_START_DATE])
+        with self.assertRaisesRegex(ValueError, "rate=unknown_rate"):
+            self.reader.get_rates("unknown_rate", "USD", ["CAD"], dts)
+        with self.assertRaisesRegex(ValueError, "quote_currency=XYZ"):
+            self.reader.get_rates(self.FX_RATES_RATE_NAMES[0], "XYZ", ["CAD"], dts)
+
+    def test_readable_as_dataset(self):
+        frame = pd.read_parquet(self.tmpdir.getpath("fx_rates.parquet"))
+        n_pairs = len(self.FX_RATES_RATE_NAMES) * len(self.FX_RATES_CURRENCIES)
+        n_values = len(self.fx_rates_sessions) * len(self.FX_RATES_CURRENCIES)
+        assert_equal(len(frame), n_pairs * n_values)
 
 
 class FastGetLocTestCase(zp_fixtures.ZiplineTestCase):
