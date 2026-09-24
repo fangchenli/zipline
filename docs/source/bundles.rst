@@ -154,11 +154,12 @@ free: create an account at https://massive.com and pass the key in the
    $ MASSIVE_API_KEY=<your key> zipline ingest
 
 Massive's free plan allows 5 requests a minute and two years of history. The
-bundle downloads one session of bars per request, so the first ingestion takes
-about two hours. Downloaded bars are kept in ``$ZIPLINE_ROOT/cache/massive``
-and later ingestions only download the sessions they are missing, which takes
-a few minutes. Reference data, splits and dividends are downloaded again each
-time. A session's bars are downloaded once they are final, four hours after
+bundle downloads one session of bars per request, and the listed tickers as of
+the first of each month in about a dozen requests each, so the first ingestion
+takes about three hours. Downloaded bars and listings are kept in
+``$ZIPLINE_ROOT/cache/massive``, and later ingestions only download what they
+are missing, the delisted tickers, splits and dividends, which takes about five
+minutes. A session's bars are downloaded once they are final, four hours after
 the session's close.
 
 Paid plans allow unlimited requests and more history. Tell the bundle about
@@ -191,11 +192,17 @@ with :func:`zipline.data.bundles.massive.massive_equities` in your
        calendar_name="XNYS",
    )
 
-Securities are identified by their composite FIGI, so a company that changes
-its ticker (e.g. FB to META) keeps one sid, found by either ticker on the
-dates it used it, and a ticker reused by another company gets a new sid. A
-security keeps its sid in every ingestion. Assets list their primary exchange
-(``XNYS``, ``XNAS``, ``ARCX``, ...) and trade on that exchange's calendar.
+Each bar's ticker is matched to the security it meant that day, from the
+listings as of the first of each month and of the first and last sessions, and
+the delisting dates. A company that changes its ticker (e.g. FB to META) keeps
+one sid, found by either ticker on the dates it used it, and a ticker reused by
+another company gets a new sid. Massive's identifiers change now and then, so
+listings are linked into securities by composite FIGI, and consecutive
+listings of a ticker by name, issuer (CIK) or FIGI. A security that is
+reorganized under a new issuer and name, e.g. into a new holding company,
+gets a new sid. A security keeps its sid in every ingestion. Assets list their
+primary exchange (``XNYS``, ``XNAS``, ``ARCX``, ...) and trade on that
+exchange's calendar.
 
 .. note::
 

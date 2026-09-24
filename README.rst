@@ -93,8 +93,8 @@ to get an API key, then ingest the data and run the algorithm:
     $ MASSIVE_API_KEY=<your key> zipline ingest
     $ zipline run -f dual_moving_average.py --start 2025-6-1 --end 2026-6-1 -o dma.parquet --no-benchmark
 
-The first ingestion takes about two hours at the free plan's rate limit; later
-ones only download new sessions.
+The first ingestion takes about three hours at the free plan's rate limit;
+later ones only download what's new, in about five minutes.
 
 The resulting performance DataFrame is saved in ``dma.parquet``, which you
 can load with ``zipline.utils.results.read_results`` and analyze from within

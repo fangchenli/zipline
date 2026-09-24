@@ -7,9 +7,9 @@ has the parts that don't depend on the vendor:
 
 - :class:`RateLimitedSession` sends HTTP requests no faster than the vendor's
   rate limit allows, and retries rate-limited and failed requests.
-- :class:`DailyBarCache` keeps each session's bars for the whole market under
-  ``$ZIPLINE_ROOT/cache/<vendor>``, so each ingestion only downloads the
-  sessions earlier ones didn't.
+- :class:`DailyCache` keeps downloaded data, e.g. each session's bars for the
+  whole market, one file per date under ``$ZIPLINE_ROOT/cache/<vendor>``, so
+  each ingestion only downloads the dates earlier ones didn't.
 - :class:`SidMap` gives each security the same sid in every ingestion.
 - :func:`equities_frame` and :func:`exchanges_frame` build the asset metadata
   from bars labelled with a security and a ticker, with ticker changes as
@@ -126,9 +126,8 @@ def _retry_after(response, default):
         return default
 
 
-class DailyBarCache:
-    """Downloaded daily bars for the whole market, one Parquet file per
-    session.
+class DailyCache:
+    """Downloaded data, one Parquet file per date.
 
     Parameters
     ----------
@@ -142,38 +141,38 @@ class DailyBarCache:
     def _file(self, session):
         return os.path.join(self._path, f"{session:%Y-%m-%d}.parquet")
 
-    def missing(self, sessions):
-        """The sessions in ``sessions`` that aren't cached."""
-        return sessions[[not os.path.exists(self._file(s)) for s in sessions]]
+    def missing(self, dates):
+        """The dates in ``dates`` that aren't cached."""
+        return dates[[not os.path.exists(self._file(d)) for d in dates]]
 
-    def put(self, session, bars):
-        """Cache ``session``'s bars, a DataFrame with any columns."""
+    def put(self, date, frame):
+        """Cache ``date``'s data, a DataFrame with any columns."""
         os.makedirs(self._path, exist_ok=True)
-        path = self._file(session)
+        path = self._file(date)
         tmp = path + ".tmp"
         pq.write_table(
-            pa.Table.from_pandas(bars, preserve_index=False),
+            pa.Table.from_pandas(frame, preserve_index=False),
             tmp,
             compression="zstd",
         )
         os.replace(tmp, path)
 
-    def get(self, sessions):
-        """The cached bars for ``sessions``, with a ``date`` column holding
-        each bar's session.
+    def get(self, dates):
+        """The cached data for ``dates``, concatenated, with a ``date``
+        column.
 
         Raises
         ------
         KeyError
-            If a session isn't cached.
+            If a date isn't cached.
         """
         frames = []
-        for session in sessions:
-            path = self._file(session)
+        for date in dates:
+            path = self._file(date)
             if not os.path.exists(path):
-                raise KeyError(session)
+                raise KeyError(date)
             frame = pd.read_parquet(path)
-            frame.insert(0, "date", session)
+            frame.insert(0, "date", date)
             frames.append(frame)
         if not frames:
             return pd.DataFrame({"date": pd.DatetimeIndex([], dtype="datetime64[ns]")})
@@ -181,8 +180,12 @@ class DailyBarCache:
 
 
 class SidMap:
-    """Sids for security keys, kept in a file so that a security has the same
+    """Sids for securities, kept in a file so that a security has the same
     sid in every ingestion.
+
+    A security is known by one or more keys, e.g. identifiers a vendor gave it
+    at different times. The map remembers every key it has seen, so a
+    security keeps its sid when it gets a new key.
 
     Parameters
     ----------
@@ -193,38 +196,44 @@ class SidMap:
     def __init__(self, path):
         self._path = path
 
+    def _read(self):
+        if os.path.exists(self._path):
+            return pd.read_parquet(self._path)["sid"]
+        return pd.Series([], index=pd.Index([], dtype=object), dtype="int64")
+
     def assign(self, keys):
-        """The sids for ``keys``, giving new keys the next unused sids in
-        sorted order.
+        """The sids for securities.
+
+        Parameters
+        ----------
+        keys : pd.Series
+            The security known by each key, indexed by key.
 
         Returns
         -------
         sids : pd.Series
-            The sid for each key, indexed by key.
+            The sid of each security, indexed by security. A security gets the
+            lowest sid any of its keys had, or else, for new securities, the
+            next unused sids in sorted order.
         """
-        if os.path.exists(self._path):
-            known = pd.read_parquet(self._path)["sid"]
-        else:
-            known = pd.Series([], index=pd.Index([], dtype=object), dtype="int64")
-        new = sorted(set(keys).difference(known.index))
-        if new:
-            start = int(known.max()) + 1 if len(known) else 0
-            known = pd.concat(
-                [
-                    known,
-                    pd.Series(
-                        range(start, start + len(new)),
-                        index=pd.Index(new, dtype=object),
-                        dtype="int64",
-                    ),
-                ]
-            )
-            known.index.name = "key"
+        known = self._read()
+        securities = pd.Series(keys.to_numpy(), index=keys.index.astype(object))
+        sids = known.reindex(securities.index).groupby(securities.to_numpy()).min()
+        new = sids.index[sids.isna()].sort_values()
+        start = int(known.max()) + 1 if len(known) else 0
+        sids[new] = range(start, start + len(new))
+        sids = sids.astype("int64")
+
+        updated = pd.concat(
+            [known.drop(securities.index, errors="ignore"), securities.map(sids)]
+        ).sort_index()
+        updated.index.name = "key"
+        if not updated.equals(known.sort_index()):
             os.makedirs(os.path.dirname(self._path), exist_ok=True)
             tmp = self._path + ".tmp"
-            known.rename("sid").to_frame().to_parquet(tmp)
+            updated.rename("sid").to_frame().to_parquet(tmp)
             os.replace(tmp, self._path)
-        return known.loc[list(keys)]
+        return sids
 
 
 def equities_frame(bars, info):
