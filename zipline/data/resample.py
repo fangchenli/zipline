@@ -82,12 +82,12 @@ def minute_to_session(column, close_locs, data, out):
         The `open`, `high`, `low`, `close`, or `volume` column.
     close_locs : array[intp]
         The locations in `data` which are the market close minutes.
-    data : array[float64|uint32]
+    data : array[float64]
         The minute data to be sampled into session data.
         The first value should align with the market open of the first session,
         containing values for all minutes for all sessions. With the last value
         being the market close of the last session.
-    out : array[float64|uint32]
+    out : array[float64]
         The output array into which to write the sampled sessions.
     """
     if column == "open":
@@ -549,12 +549,13 @@ class MinuteResampleSessionBarReader(SessionBarReader):
             if col != "volume":
                 out = np.full(shape, np.nan)
             else:
-                out = np.zeros(shape, dtype=np.uint32)
+                out = np.zeros(shape)
             results.append(out)
 
         for i in range(len(assets)):
             for j, column in enumerate(columns):
-                data = minute_data[j][:, i]
+                # Readers may return volume as uint32 (bcolz) or float64.
+                data = np.asarray(minute_data[j][:, i], dtype=np.float64)
                 minute_to_session(column, close_ilocs, data, results[j][:, i])
 
         return results

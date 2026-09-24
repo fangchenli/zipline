@@ -215,6 +215,11 @@ class _DailyBarsTestCase(
         start, end = self.asset_start(asset_id), self.asset_end(asset_id)
         return self.trading_days_between(start, end)
 
+    def test_data_frequency(self):
+        # DataPortal only reindexes session readers onto its calendar when
+        # they report "session".
+        assert_equal(self.daily_bar_reader.data_frequency, "session")
+
     def test_read_first_trading_day(self):
         self.assertEqual(
             self.daily_bar_reader.first_trading_day,

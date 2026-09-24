@@ -42,7 +42,7 @@ from zipline.finance.slippage import (
 from zipline.protocol import DATASOURCE_TYPE, BarData
 from zipline.testing import (
     create_minute_bar_data,
-    tmp_bcolz_equity_minute_bar_reader,
+    tmp_equity_minute_bar_reader,
 )
 from zipline.testing.fixtures import (
     WithAssetFinder,
@@ -1179,7 +1179,7 @@ class OrdersStopTestCase(
             start=self.minutes[0].normalize().tz_localize(None),
             end=self.minutes[-1].normalize().tz_localize(None),
         )
-        with tmp_bcolz_equity_minute_bar_reader(
+        with tmp_equity_minute_bar_reader(
             self.trading_calendar, days, assets
         ) as reader:
             data_portal = DataPortal(

@@ -479,7 +479,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
         self.assertEqual(adjustments, [{}, {}])
 
         pricing_loader = USEquityPricingLoader.without_fx(
-            self.bcolz_equity_daily_bar_reader,
+            self.equity_daily_bar_reader,
             adjustment_reader,
         )
 
@@ -557,7 +557,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
         )
 
         pricing_loader = USEquityPricingLoader.without_fx(
-            self.bcolz_equity_daily_bar_reader,
+            self.equity_daily_bar_reader,
             self.adjustment_reader,
         )
 

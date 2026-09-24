@@ -29,11 +29,10 @@ from zipline.data.resample import (
 )
 from zipline.testing import parameter_space
 from zipline.testing.fixtures import (
-    WithBcolzEquityDailyBarReader,
-    WithBcolzEquityMinuteBarReader,
-    WithBcolzFutureMinuteBarReader,
+    WithEquityDailyBarReader,
     WithEquityMinuteBarData,
     WithEquityMinuteBarReader,
+    WithFutureMinuteBarReader,
     ZiplineTestCase,
 )
 
@@ -331,7 +330,7 @@ EXPECTED_SESSIONS = {
 
 
 class MinuteToDailyAggregationTestCase(
-    WithBcolzEquityMinuteBarReader, WithBcolzFutureMinuteBarReader, ZiplineTestCase
+    WithEquityMinuteBarReader, WithFutureMinuteBarReader, ZiplineTestCase
 ):
     #    March 2016
     # Su Mo Tu We Th Fr Sa
@@ -388,13 +387,13 @@ class MinuteToDailyAggregationTestCase(
         # needs to be tested.
         self.equity_daily_aggregator = DailyHistoryAggregator(
             self.nyse_calendar.first_minutes,
-            self.bcolz_equity_minute_bar_reader,
+            self.equity_minute_bar_reader,
             self.nyse_calendar,
         )
 
         self.future_daily_aggregator = DailyHistoryAggregator(
             self.us_futures_calendar.first_minutes,
-            self.bcolz_future_minute_bar_reader,
+            self.future_minute_bar_reader,
             self.us_futures_calendar,
         )
 
@@ -637,7 +636,7 @@ class TestMinuteToSession(WithEquityMinuteBarData, ZiplineTestCase):
             assert_almost_equal(expected.values, result.values, err_msg=f"sid={sid}")
 
 
-class TestResampleSessionBars(WithBcolzFutureMinuteBarReader, ZiplineTestCase):
+class TestResampleSessionBars(WithFutureMinuteBarReader, ZiplineTestCase):
     TRADING_CALENDAR_STRS = ("us_futures",)
     TRADING_CALENDAR_PRIMARY_CAL = "us_futures"
 
@@ -669,7 +668,7 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader, ZiplineTestCase):
     def init_instance_fixtures(self):
         super().init_instance_fixtures()
         self.session_bar_reader = MinuteResampleSessionBarReader(
-            self.trading_calendar, self.bcolz_future_minute_bar_reader
+            self.trading_calendar, self.future_minute_bar_reader
         )
 
     def test_resample(self):
@@ -696,7 +695,7 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader, ZiplineTestCase):
     def test_last_available_dt(self):
         calendar = self.trading_calendar
         session_bar_reader = MinuteResampleSessionBarReader(
-            calendar, self.bcolz_future_minute_bar_reader
+            calendar, self.future_minute_bar_reader
         )
 
         self.assertEqual(self.END_DATE, session_bar_reader.last_available_dt)
@@ -704,7 +703,7 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader, ZiplineTestCase):
     def test_get_value(self):
         calendar = self.trading_calendar
         session_bar_reader = MinuteResampleSessionBarReader(
-            calendar, self.bcolz_future_minute_bar_reader
+            calendar, self.future_minute_bar_reader
         )
         for sid in self.ASSET_FINDER_FUTURE_SIDS:
             expected = EXPECTED_SESSIONS[sid]
@@ -802,13 +801,7 @@ class TestReindexMinuteBars(WithEquityMinuteBarReader, ZiplineTestCase):
         )
 
 
-class TestReindexParquetMinuteBars(TestReindexMinuteBars):
-    """Reindexing a Parquet reader onto another calendar."""
-
-    EQUITY_MINUTE_BAR_FORMAT = "parquet"
-
-
-class TestReindexSessionBars(WithBcolzEquityDailyBarReader, ZiplineTestCase):
+class TestReindexSessionBars(WithEquityDailyBarReader, ZiplineTestCase):
     TRADING_CALENDAR_STRS = ("us_futures", "NYSE")
     TRADING_CALENDAR_PRIMARY_CAL = "us_futures"
 
@@ -831,7 +824,7 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader, ZiplineTestCase):
 
         self.reader = ReindexSessionBarReader(
             self.trading_calendar,
-            self.bcolz_equity_daily_bar_reader,
+            self.equity_daily_bar_reader,
             self.START_DATE,
             self.END_DATE,
         )
