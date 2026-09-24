@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from pandas import Timedelta, Timestamp
 
-from zipline.utils.cache import CachedObject, Expired, ExpiringCache
+from zipline.utils.cache import CachedObject, Expired, ExpiringCache, LRUCache
 
 
 class CachedObjectTestCase(TestCase):
@@ -63,3 +63,24 @@ class ExpiringCacheTestCase(TestCase):
         with self.assertRaises(KeyError) as e:
             self.assertEqual(cache.get("baz", expiry_3))
         self.assertEqual(e.exception.args, ("baz",))
+
+
+class LRUCacheTestCase(TestCase):
+    def test_evicts_least_recently_used(self):
+        cache = LRUCache(2)
+        cache["a"] = 1
+        cache["b"] = 2
+        # Reading "a" makes "b" the least recently used.
+        self.assertEqual(cache["a"], 1)
+        cache["c"] = 3
+        self.assertEqual(dict(cache), {"a": 1, "c": 3})
+        # So does overwriting it.
+        cache["a"] = 4
+        cache["d"] = 5
+        self.assertEqual(dict(cache), {"a": 4, "d": 5})
+        del cache["a"]
+        self.assertEqual(len(cache), 1)
+
+    def test_maxsize(self):
+        with self.assertRaises(ValueError):
+            LRUCache(0)

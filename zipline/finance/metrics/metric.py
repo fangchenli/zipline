@@ -19,7 +19,6 @@ from functools import partial
 import empyrical as ep
 import numpy as np
 import pandas as pd
-from dateutil.relativedelta import relativedelta
 
 from zipline.finance._finance_ext import minute_annual_volatility
 from zipline.utils.exploding_object import NamedExplodingObject
@@ -557,7 +556,7 @@ class _ClassicRiskMetrics:
         start_session = algorithm_returns.index[0]
         end_session = algorithm_returns.index[-1]
 
-        end = end_session.replace(day=1) + relativedelta(months=1)
+        end = end_session.replace(day=1) + pd.DateOffset(months=1)
         months = pd.date_range(
             start=start_session,
             # Ensure we have at least one month

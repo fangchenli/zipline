@@ -17,7 +17,6 @@ from abc import (
     abstractmethod,
 )
 
-from lru import LRU
 from numpy import concatenate
 from pandas import isnull
 from toolz import sliding_window
@@ -27,7 +26,7 @@ from zipline.assets.continuous_futures import ContinuousFuture
 from zipline.lib._float64window import AdjustedArrayWindow as Float64Window
 from zipline.lib._int64window import AdjustedArrayWindow as Int64Window
 from zipline.lib.adjustment import Float64Add, Float64Multiply
-from zipline.utils.cache import ExpiringCache
+from zipline.utils.cache import ExpiringCache, LRUCache
 from zipline.utils.math_utils import number_of_decimal_places
 from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import float64_dtype
@@ -303,7 +302,7 @@ class HistoryLoader(ABC):
                 )
             )
         self._window_blocks = {
-            field: ExpiringCache(LRU(sid_cache_size)) for field in self.FIELDS
+            field: ExpiringCache(LRUCache(sid_cache_size)) for field in self.FIELDS
         }
         self._prefetch_length = prefetch_length
 

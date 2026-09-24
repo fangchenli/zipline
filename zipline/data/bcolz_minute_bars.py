@@ -28,7 +28,6 @@ import tables
 from bcolz import ctable
 from bcolz.attrs import attrs as bcolz_attrs
 from intervaltree import IntervalTree
-from lru import LRU
 from pandas import HDFStore
 from toolz import keymap, valmap
 
@@ -44,6 +43,7 @@ from zipline.data.minute_bars import (
     MinuteBarReader,
 )
 from zipline.gens.sim_engine import NANOS_IN_MINUTE
+from zipline.utils.cache import LRUCache
 from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.cli import maybe_show_progress
 from zipline.utils.memoize import lazyval
@@ -934,7 +934,9 @@ class BcolzMinuteBarReader(MinuteBarReader):
 
         self._minutes_per_day = metadata.minutes_per_day
 
-        self._carrays = {field: LRU(sid_cache_sizes[field]) for field in self.FIELDS}
+        self._carrays = {
+            field: LRUCache(sid_cache_sizes[field]) for field in self.FIELDS
+        }
 
         self._last_get_value_dt_position = None
         self._last_get_value_dt_value = None

@@ -198,6 +198,8 @@ Maintenance and Refactorings
   :mod:`zoneinfo` in Zipline itself, and ``nose`` with ``pytest``. Removed
   ``six``, ``distutils`` and Python 2 compatibility code.
 - Removed ``pandas.Panel`` and other APIs removed from pandas, numpy and Python.
+- Removed the ``lru-dict``, ``multipledispatch`` and ``python-dateutil``
+  dependencies, which the standard library, numpy and pandas cover.
 - Ported the asset database to SQLAlchemy 2.
 - Removed the unused ``zipline.utils.tradingcalendar`` and
   ``zipline.utils.data`` modules.

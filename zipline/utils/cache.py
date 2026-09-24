@@ -5,6 +5,7 @@ Caching utilities for zipline
 import errno
 import os
 import pickle
+from collections import OrderedDict
 from collections.abc import MutableMapping
 from functools import partial
 from shutil import copytree, move, rmtree
@@ -82,6 +83,49 @@ class CachedObject:
     def _unsafe_get_value(self):
         """You almost certainly shouldn't use this."""
         return self._value
+
+
+class LRUCache(MutableMapping):
+    """A mapping of at most ``maxsize`` items, which drops the least
+    recently used one when it's full.
+
+    Examples
+    --------
+    >>> cache = LRUCache(2)
+    >>> cache["a"] = 1
+    >>> cache["b"] = 2
+    >>> cache["a"]
+    1
+    >>> cache["c"] = 3
+    >>> sorted(cache)
+    ['a', 'c']
+    """
+
+    def __init__(self, maxsize):
+        if maxsize < 1:
+            raise ValueError(f"maxsize must be positive, got {maxsize}")
+        self._maxsize = maxsize
+        self._data = OrderedDict()
+
+    def __getitem__(self, key):
+        value = self._data[key]
+        self._data.move_to_end(key)
+        return value
+
+    def __setitem__(self, key, value):
+        self._data[key] = value
+        self._data.move_to_end(key)
+        if len(self._data) > self._maxsize:
+            self._data.popitem(last=False)
+
+    def __delitem__(self, key):
+        del self._data[key]
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def __len__(self):
+        return len(self._data)
 
 
 class ExpiringCache:

@@ -4,8 +4,9 @@ import re
 import unittest
 from collections import OrderedDict
 from contextlib import contextmanager
-from functools import partial
-from itertools import zip_longest
+from functools import partial, update_wrapper
+from itertools import product, zip_longest
+from operator import itemgetter
 from types import MappingProxyType
 
 import numpy as np
@@ -18,7 +19,6 @@ from pandas.testing import (
 from toolz import keyfilter
 
 from zipline.assets import Asset
-from zipline.dispatch import dispatch
 from zipline.lib.adjustment import Adjustment
 from zipline.lib.labelarray import LabelArray
 from zipline.testing.core import ensure_doctest
@@ -381,7 +381,61 @@ def make_assert_equal_assertion_error(assertion_message, path, msg):
     )
 
 
-@dispatch(object, object)
+class _PairDispatcher:
+    """Calls the implementation registered for the types of a function's
+    first two arguments.
+
+    An implementation registered for ``(A, B)`` applies to arguments that
+    are instances of ``A`` and ``B``. When several apply, the one whose types
+    are nearest in the arguments' MROs is used.
+
+    Parameters
+    ----------
+    default : callable
+        The implementation for ``(object, object)``.
+    """
+
+    def __init__(self, default):
+        self._implementations = {(object, object): default}
+        self._resolved = {}
+        update_wrapper(self, default)
+
+    def register(self, left, right):
+        """Decorate an implementation for ``(left, right)``, where either
+        may be a tuple of types to register it for each of.
+        """
+        lefts = left if isinstance(left, tuple) else (left,)
+        rights = right if isinstance(right, tuple) else (right,)
+
+        def decorator(implementation):
+            for pair in product(lefts, rights):
+                self._implementations[pair] = implementation
+            self._resolved.clear()
+            return implementation
+
+        return decorator
+
+    def dispatch(self, left, right):
+        """The implementation for arguments of types ``left`` and ``right``."""
+        try:
+            return self._resolved[left, right]
+        except KeyError:
+            pass
+        candidates = [
+            (left.__mro__.index(a) + right.__mro__.index(b), implementation)
+            for (a, b), implementation in self._implementations.items()
+            if issubclass(left, a) and issubclass(right, b)
+        ]
+        implementation = min(candidates, key=itemgetter(0))[1]
+        self._resolved[left, right] = implementation
+        return implementation
+
+    def __call__(self, result, expected, *args, **kwargs):
+        implementation = self.dispatch(type(result), type(expected))
+        return implementation(result, expected, *args, **kwargs)
+
+
+@_PairDispatcher
 def assert_equal(result, expected, path=(), msg="", **kwargs):
     """Assert that two objects are equal using the ``==`` operator.
 
