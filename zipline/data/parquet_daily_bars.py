@@ -36,9 +36,9 @@ from zipline.data._parquet import (
     PRICE_FIELDS,
     as_sids,
     assets_path,
+    directory_has_files,
     epoch_nanos,
     handle_invalid,
-    metadata_path,
     read_metadata,
     write_metadata,
 )
@@ -137,8 +137,8 @@ class ParquetDailyBarWriter:
 
     @property
     def exists(self):
-        """Whether ``rootdir`` already holds a dataset."""
-        return os.path.exists(metadata_path(self._rootdir))
+        """Whether ``rootdir`` already holds files, e.g. a dataset."""
+        return directory_has_files(self._rootdir)
 
     def write(
         self,
@@ -169,7 +169,7 @@ class ParquetDailyBarWriter:
             Map from sid to the asset's listing currency. Defaults to USD.
         """
         if self.exists:
-            raise ValueError(f"{self._rootdir} already contains a dataset")
+            raise ValueError(f"{self._rootdir} is not empty")
         os.makedirs(self._rootdir, exist_ok=True)
 
         expected = set(assets) if assets is not None else None

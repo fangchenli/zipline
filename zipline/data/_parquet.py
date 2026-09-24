@@ -28,9 +28,20 @@ def write_metadata(rootdir, metadata):
         json.dump(metadata, f, indent=2)
 
 
+def directory_has_files(rootdir):
+    """Whether ``rootdir`` exists and contains anything."""
+    return os.path.isdir(rootdir) and any(os.scandir(rootdir))
+
+
 def read_metadata(rootdir, format_name, format_version, description):
     """Read a dataset's metadata, checking that this version can read it."""
-    with open(metadata_path(rootdir)) as f:
+    path = metadata_path(rootdir)
+    if not os.path.exists(path):
+        raise ValueError(
+            f"{rootdir} does not contain a {description} dataset: "
+            f"{os.path.basename(path)} is missing"
+        )
+    with open(path) as f:
         metadata = json.load(f)
     if metadata.get("format") != format_name:
         raise ValueError(f"{rootdir} is not a {description} dataset")

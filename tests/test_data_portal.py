@@ -28,7 +28,6 @@ from zipline.data.minute_bars import (
 from zipline.testing import parameter_space
 from zipline.testing.fixtures import (
     WithDataPortal,
-    WithParquetEquityMinuteBarReader,
     WithTradingSessions,
     ZiplineTestCase,
     alias,
@@ -623,8 +622,10 @@ class TestDataPortal(DataPortalTestBase, ZiplineTestCase):
     DATA_PORTAL_LAST_AVAILABLE_MINUTE = None
 
 
-class TestParquetDataPortal(WithParquetEquityMinuteBarReader, TestDataPortal):
+class TestParquetDataPortal(TestDataPortal):
     """The data portal tests, reading equity minute bars from Parquet."""
+
+    EQUITY_MINUTE_BAR_FORMAT = "parquet"
 
 
 class TestDataPortalExplicitLastAvailable(DataPortalTestBase, ZiplineTestCase):

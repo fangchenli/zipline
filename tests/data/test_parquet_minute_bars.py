@@ -1,4 +1,5 @@
 import json
+import os
 
 import numpy as np
 import pandas as pd
@@ -140,6 +141,46 @@ class ParquetMinuteBarReaderTestCase(
         assert self.reader.get_last_traded_dt(1000, minute) is pd.NaT
 
 
+class ParquetMinuteBarBreaksTestCase(
+    WithTradingCalendars, WithInstanceTmpDir, ZiplineTestCase
+):
+    """Hong Kong's lunch break."""
+
+    TRADING_CALENDAR_STRS = ("XHKG",)
+    TRADING_CALENDAR_PRIMARY_CAL = "XHKG"
+    START_DATE = pd.Timestamp("2016-01-04")
+    END_DATE = pd.Timestamp("2016-01-08")
+
+    def test_window_starting_in_break(self):
+        calendar = self.trading_calendar
+        minutes = calendar.sessions_minutes(self.START_DATE, self.END_DATE)
+        path = self.instance_tmpdir.getpath("minute_bars")
+        frame = ParquetMinuteBarWriterTestCase.frame(minutes)
+        ParquetMinuteBarWriter(path, calendar, self.START_DATE, self.END_DATE).write(
+            [(1, frame)]
+        )
+        reader = ParquetMinuteBarReader(path)
+
+        # 12:00 is the last minute before the break and 13:01 the first after
+        # it, 04:00 and 05:01 UTC. The daily history aggregator asks for the
+        # window after the last minute it saw, which starts in the break.
+        before = pd.Timestamp("2016-01-05 04:00", tz="UTC")
+        after = pd.Timestamp("2016-01-05 05:01", tz="UTC")
+        in_break = before + pd.Timedelta(minutes=1)
+        (close,) = reader.load_raw_arrays(["close"], in_break, after, [1])
+        assert_equal(close, np.array([[frame.loc[after, "close"]]]))
+
+        (close,) = reader.load_raw_arrays(["close"], before, after, [1])
+        assert_equal(close[:, 0], frame.loc[[before, after], "close"].to_numpy())
+
+        (close,) = reader.load_raw_arrays(
+            ["close"], in_break, in_break + pd.Timedelta(minutes=5), [1]
+        )
+        assert_equal(close.shape, (0, 1))
+        with self.assertRaises(NoDataOnDate):
+            reader.get_value(1, in_break, "close")
+
+
 class ParquetMinuteBarWriterTestCase(
     WithTradingCalendars, WithInstanceTmpDir, ZiplineTestCase
 ):
@@ -274,7 +315,7 @@ class ParquetMinuteBarWriterTestCase(
 
     def test_refuses_to_overwrite(self):
         self.write([(1, self.frame(self.minutes[:1]))])
-        with self.assertRaisesRegex(ValueError, "already contains a dataset"):
+        with self.assertRaisesRegex(ValueError, "is not empty"):
             self.write([(1, self.frame(self.minutes[:1]))])
 
     def test_newer_format_version(self):
@@ -292,6 +333,66 @@ class ParquetMinuteBarWriterTestCase(
         reader = ParquetMinuteBarReader(self.path)
         self.write([(1, self.frame(self.minutes[:1]))])
         assert_equal(reader.get_value(1, self.minutes[0], "close"), 10.0)
+
+    def test_failed_write_leaves_rootdir_unusable(self):
+        """A retry can't mix its months with a failed write's leftovers."""
+        good = self.frame(self.minutes[:5])
+        bad = self.frame(self.minutes[-5:])
+        bad.loc[self.minutes[-1], "close"] = -1.0
+        with self.assertRaises(ValueError):
+            self.write(
+                [(1, good), (2, bad)], row_group_size=1, invalid_data_behavior="raise"
+            )
+        with self.assertRaisesRegex(ValueError, "is not empty"):
+            self.write([(2, self.frame(self.minutes[-5:]))])
+
+    def test_missing_metadata(self):
+        self.write([(1, self.frame(self.minutes[:1]))])
+        os.rename(f"{self.path}/_metadata.json", f"{self.path}/metadata.json")
+        reader = ParquetMinuteBarReader(self.path)
+        with self.assertRaisesRegex(ValueError, "_metadata.json is missing"):
+            reader.get_value(1, self.minutes[0], "close")
+
+    def test_different_calendar(self):
+        """Bars at minutes the reader's calendar lacks raise a clear error."""
+        # Toronto is closed on Canada Day, when New York trades.
+        start, end = pd.Timestamp("2015-06-29"), pd.Timestamp("2015-07-02")
+        minutes = self.trading_calendar.sessions_minutes(start, end)
+        ParquetMinuteBarWriter(self.path, self.trading_calendar, start, end).write(
+            [(1, self.frame(minutes))]
+        )
+        with open(f"{self.path}/_metadata.json") as f:
+            metadata = json.load(f)
+        metadata["calendar_name"] = "XTSE"
+        with open(f"{self.path}/_metadata.json", "w") as f:
+            json.dump(metadata, f)
+        reader = ParquetMinuteBarReader(self.path)
+        # July's row group holds the Canada Day bars.
+        with self.assertRaisesRegex(ValueError, "not trading minutes"):
+            reader.get_value(1, minutes[-1], "close")
+
+    def test_small_cache_bounds_reads(self):
+        """Large reads stream through a small cache and stay correct."""
+        sids = list(range(1, 21))
+        self.write(
+            [(sid, self.frame(self.minutes, start=10.0 * sid)) for sid in sids],
+            row_group_size=len(self.minutes),
+        )
+        # Room for about two sids' bars per month.
+        budget = 2 * len(self.minutes) * 44
+        reader = ParquetMinuteBarReader(self.path, block_cache_bytes=budget)
+        (close,) = reader.load_raw_arrays(
+            ["close"], self.minutes[0], self.minutes[-1], sids
+        )
+        for i, sid in enumerate(sids):
+            assert_equal(close[:, i], 10.0 * sid + np.arange(len(self.minutes)))
+        assert reader._cached_bytes <= budget
+
+        for sid in sids:
+            assert_equal(
+                reader.get_value(sid, self.minutes[7], "close"), 10.0 * sid + 7
+            )
+        assert reader._cached_bytes <= budget
 
     def test_readable_as_dataset(self):
         self.write(

@@ -37,7 +37,6 @@ from zipline.testing import (
 from zipline.testing.fixtures import (
     WithCreateBarData,
     WithDataPortal,
-    WithParquetEquityMinuteBarReader,
     ZiplineTestCase,
 )
 from zipline.utils.calendar_utils import days_at_time, get_calendar
@@ -675,8 +674,10 @@ class TestMinuteBarData(
             self.assertEqual(bar_data.can_trade(self.ASSET1), info[1])
 
 
-class TestParquetMinuteBarData(WithParquetEquityMinuteBarReader, TestMinuteBarData):
+class TestParquetMinuteBarData(TestMinuteBarData):
     """The minute BarData tests, reading equity minute bars from Parquet."""
+
+    EQUITY_MINUTE_BAR_FORMAT = "parquet"
 
 
 class TestMinuteBarDataFuturesCalendar(

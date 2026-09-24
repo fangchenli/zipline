@@ -1605,19 +1605,21 @@ class NoPrefetchMinuteEquityHistoryTestCase(MinuteEquityHistoryTestCase):
     DATA_PORTAL_DAILY_HISTORY_PREFETCH = 0
 
 
-class ParquetMinuteEquityHistoryTestCase(
-    zf.WithParquetEquityMinuteBarReader, MinuteEquityHistoryTestCase
-):
+class ParquetMinuteEquityHistoryTestCase(MinuteEquityHistoryTestCase):
     """The minute history tests, reading equity minute bars from Parquet."""
+
+    EQUITY_MINUTE_BAR_FORMAT = "parquet"
 
     def test_data_portal_reads_parquet(self):
         assert_is_instance(self.equity_minute_bar_reader, ParquetMinuteBarReader)
 
 
 class ParquetNoPrefetchMinuteEquityHistoryTestCase(
-    zf.WithParquetEquityMinuteBarReader, NoPrefetchMinuteEquityHistoryTestCase
+    NoPrefetchMinuteEquityHistoryTestCase
 ):
     """The minute history tests without prefetching, reading from Parquet."""
+
+    EQUITY_MINUTE_BAR_FORMAT = "parquet"
 
 
 class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):

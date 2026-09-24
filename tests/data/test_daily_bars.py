@@ -826,7 +826,7 @@ class ParquetDailyBarWriterTestCase(WithTmpDir, WithTradingCalendars, ZiplineTes
 
     def test_refuses_to_overwrite(self):
         self.write([(1, self.frame(self.sessions))])
-        with self.assertRaisesRegex(ValueError, "already contains a dataset"):
+        with self.assertRaisesRegex(ValueError, "is not empty"):
             self.write([(1, self.frame(self.sessions))])
 
     def test_newer_format_version(self):

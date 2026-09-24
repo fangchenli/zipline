@@ -39,9 +39,9 @@ from zipline.data._parquet import (
     PRICE_FIELDS,
     as_sids,
     assets_path,
+    directory_has_files,
     epoch_nanos,
     handle_invalid,
-    metadata_path,
     read_metadata,
     write_metadata,
 )
@@ -80,7 +80,9 @@ NANOS_PER_MINUTE = 60 * 10**9
 FIELD_INDEX = {field: i for i, field in enumerate(FIELDS)}
 VOLUME = FIELD_INDEX["volume"]
 
-_NO_ROWS = (np.empty(0, dtype="int64"), np.empty((0, len(FIELDS))))
+_NO_ROWS = (np.empty(0, dtype="int32"), np.empty((0, len(FIELDS))))
+# Decoded size of a stored bar: an int32 minute position and five float64s.
+_DECODED_BYTES_PER_ROW = 4 + 8 * len(FIELDS)
 
 
 def _month_path(rootdir, year, month):
@@ -111,7 +113,6 @@ class _MinuteIndex:
         self.months = [
             (int(sessions[i].year), int(sessions[i].month)) for i in new_month
         ]
-        self._position_tables = {}
 
     def month_range(self, month):
         """The first and last minute positions of ``month``."""
@@ -123,22 +124,27 @@ class _MinuteIndex:
         return int(self.month_starts[month]), int(end) - 1
 
     def positions(self, month, nanos):
-        """Positions of trading minutes of ``month``, given as epoch nanos.
+        """Positions of minutes of ``month``, given as epoch nanos.
 
-        Uses a table indexed by wall-clock minute since the month's first
-        trading minute, which is much faster than a binary search.
+        Minutes that are not trading minutes of ``month`` get -1. Uses a table
+        indexed by wall-clock minute since the month's first trading minute,
+        which is much faster than a binary search; the table is small and
+        cheap to build, so it isn't kept.
         """
-        try:
-            first_nanos, table = self._position_tables[month]
-        except KeyError:
-            first, last = self.month_range(month)
-            month_nanos = self.nanos[first : last + 1]
-            first_nanos = month_nanos[0]
-            offsets = (month_nanos - first_nanos) // NANOS_PER_MINUTE
-            table = np.full(offsets[-1] + 1, -1, dtype="int64")
-            table[offsets] = np.arange(first, last + 1)
-            self._position_tables[month] = first_nanos, table
-        return table[(nanos - first_nanos) // NANOS_PER_MINUTE]
+        first, last = self.month_range(month)
+        month_nanos = self.nanos[first : last + 1]
+        first_nanos = month_nanos[0]
+        offsets = (month_nanos - first_nanos) // NANOS_PER_MINUTE
+        table = np.full(offsets[-1] + 1, -1, dtype="int32")
+        table[offsets] = np.arange(first, last + 1)
+
+        offsets = nanos - first_nanos
+        in_table = (offsets >= 0) & (offsets < len(table) * NANOS_PER_MINUTE)
+        out = np.full(len(nanos), -1, dtype="int32")
+        out[in_table] = table[offsets[in_table] // NANOS_PER_MINUTE]
+        # Stored minutes are whole minutes; anything else isn't a trading minute.
+        out[offsets % NANOS_PER_MINUTE != 0] = -1
+        return out
 
     def month_of(self, positions):
         """The month of each minute position, as an index into ``months``."""
@@ -201,8 +207,8 @@ class ParquetMinuteBarWriter:
 
     @property
     def exists(self):
-        """Whether ``rootdir`` already holds a dataset."""
-        return os.path.exists(metadata_path(self._rootdir))
+        """Whether ``rootdir`` already holds files, e.g. a dataset."""
+        return directory_has_files(self._rootdir)
 
     def write(self, data, show_progress=False, invalid_data_behavior="warn"):
         """Write minute bars.
@@ -221,7 +227,7 @@ class ParquetMinuteBarWriter:
             missing data.
         """
         if self.exists:
-            raise ValueError(f"{self._rootdir} already contains a dataset")
+            raise ValueError(f"{self._rootdir} is not empty")
         os.makedirs(self._rootdir, exist_ok=True)
 
         # Per month: buffered (sid, positions, values) chunks and their rows.
@@ -298,10 +304,7 @@ class ParquetMinuteBarWriter:
         if frame.empty:
             return None
 
-        index = pd.DatetimeIndex(frame.index)
-        if index.tz is None:
-            index = index.tz_localize("UTC")
-        nanos = epoch_nanos(index.tz_convert("UTC"))
+        nanos = epoch_nanos(pd.DatetimeIndex(frame.index))
         values = frame[list(FIELDS)].to_numpy(dtype="float64", copy=True)
         if not (np.diff(nanos) > 0).all():
             # Sort by minute, keeping the last of any duplicated minutes.
@@ -398,6 +401,7 @@ class _Block:
 
     __slots__ = (
         "first_pos",
+        "key",
         "lookups",
         "month_len",
         "nbytes",
@@ -406,7 +410,8 @@ class _Block:
         "values",
     )
 
-    def __init__(self, table, index, month):
+    def __init__(self, key, table, index):
+        self.key = month, _ = key
         self.first_pos, last_pos = index.month_range(month)
         self.month_len = last_pos - self.first_pos + 1
         # sid -> the row of each of the month's minutes; see add_lookup().
@@ -414,6 +419,13 @@ class _Block:
         sids = table.column("sid").to_numpy()
         nanos = table.column("dt").to_numpy().view("int64")
         positions = index.positions(month, nanos)
+        if (positions < 0).any():
+            bad = pd.Timestamp(nanos[np.argmax(positions < 0)], tz="UTC")
+            raise ValueError(
+                f"The dataset has bars at minutes that are not trading minutes "
+                f"of its calendar's sessions in {index.months[month]}, e.g. "
+                f"{bad}. Was it written with a different calendar?"
+            )
         values = np.column_stack(
             [
                 table.column(field).to_numpy(zero_copy_only=False)
@@ -554,7 +566,7 @@ class ParquetMinuteBarReader(MinuteBarReader):
 
     def _locate(self, dt):
         """The position and month of the trading minute ``dt``."""
-        value = dt.value if isinstance(dt, pd.Timestamp) else pd.Timestamp(dt).value
+        value = _nanos(dt)
         last_value, located = self._last_located
         if value == last_value:
             # Simulations look up many assets at the same minute.
@@ -599,29 +611,54 @@ class ParquetMinuteBarReader(MinuteBarReader):
         sids = np.asarray(sids)[:, None]
         return np.flatnonzero(((mins <= sids) & (maxs >= sids)).any(axis=0)).tolist()
 
-    def _cache_blocks(self, month, row_groups):
-        """Decode the uncached ``row_groups`` of ``month`` with one read."""
-        missing = [rg for rg in row_groups if (month, rg) not in self._blocks]
-        if missing:
-            parquet_file = self._month_file(month)[0]
-            table = parquet_file.read_row_groups(missing)
-            offset = 0
-            for rg in missing:
-                n_rows = parquet_file.metadata.row_group(rg).num_rows
-                self._insert_block(
-                    (month, rg),
-                    _Block(table.slice(offset, n_rows), self._index, month),
-                )
-                offset += n_rows
+    def _read_batches(self, month, row_groups):
+        """Split ``row_groups`` into reads whose decoded size fits the cache."""
+        metadata = self._month_file(month)[0].metadata
+        batch, batch_bytes = [], 0
         for rg in row_groups:
-            key = (month, rg)
-            if key in self._blocks:
-                self._blocks.move_to_end(key)
+            nbytes = metadata.row_group(rg).num_rows * _DECODED_BYTES_PER_ROW
+            if batch and batch_bytes + nbytes > self._block_cache_bytes:
+                yield batch
+                batch, batch_bytes = [], 0
+            batch.append(rg)
+            batch_bytes += nbytes
+        if batch:
+            yield batch
 
-    def _insert_block(self, key, block):
-        self._blocks[key] = block
-        self._cached_bytes += block.nbytes
-        # Evict least recently used blocks, but always keep the newest.
+    def _blocks_for(self, month, sids):
+        """Yield the blocks of ``month``'s row groups that may hold ``sids``.
+
+        Cached blocks come first. The rest are decoded in reads that fit the
+        cache, so a large request streams through the cache instead of
+        decoding everything at once.
+        """
+        row_groups = self._row_groups_for(month, sids)
+        missing = []
+        for rg in row_groups:
+            block = self._blocks.get((month, rg))
+            if block is None:
+                missing.append(rg)
+            else:
+                self._blocks.move_to_end(block.key)
+                yield block
+        if not missing:
+            return
+        parquet_file = self._month_file(month)[0]
+        for batch in self._read_batches(month, missing):
+            table = parquet_file.read_row_groups(batch)
+            blocks, offset = [], 0
+            for rg in batch:
+                n_rows = parquet_file.metadata.row_group(rg).num_rows
+                block = _Block((month, rg), table.slice(offset, n_rows), self._index)
+                offset += n_rows
+                self._blocks[block.key] = block
+                self._cached_bytes += block.nbytes
+                blocks.append(block)
+            self._evict()
+            yield from blocks
+
+    def _evict(self):
+        """Evict least recently used blocks, but always keep the newest."""
         while self._cached_bytes > self._block_cache_bytes and len(self._blocks) > 1:
             (month, _), evicted = self._blocks.popitem(last=False)
             self._cached_bytes -= evicted.nbytes
@@ -632,13 +669,15 @@ class ParquetMinuteBarReader(MinuteBarReader):
         """The cached block holding ``sid``'s bars for ``month``, or None."""
         key = (month, sid)
         try:
-            return self._sid_blocks[key]
+            block = self._sid_blocks[key]
         except KeyError:
             pass
+        else:
+            if block is not None:
+                self._blocks.move_to_end(block.key)
+            return block
         found = None
-        for rg in self._row_groups_for(month, [sid]):
-            self._cache_blocks(month, [rg])
-            block = self._blocks[(month, rg)]
+        for block in self._blocks_for(month, [sid]):
             if sid in block.spans:
                 found = block
                 break
@@ -665,6 +704,7 @@ class ParquetMinuteBarReader(MinuteBarReader):
             if rows is None:
                 rows = block.add_lookup(sid)
                 self._cached_bytes += rows.nbytes
+                self._evict()
             row = rows[pos - block.first_pos]
             if row >= 0:
                 return block.values[row, FIELD_INDEX[field]]
@@ -677,7 +717,7 @@ class ParquetMinuteBarReader(MinuteBarReader):
         if lifetime is None:
             return pd.NaT
         first, last = lifetime
-        pos = int(np.searchsorted(self._index.nanos, pd.Timestamp(dt).value, "right"))
+        pos = int(np.searchsorted(self._index.nanos, _nanos(dt), "right"))
         pos = min(pos - 1, last)
         if pos < first:
             return pd.NaT
@@ -696,30 +736,65 @@ class ParquetMinuteBarReader(MinuteBarReader):
     def load_raw_arrays(self, columns, start_date, end_date, assets):
         """Load (minutes, assets) float64 arrays of each field in ``columns``.
 
-        Missing prices are NaN and missing volumes are 0.
+        The rows are the trading minutes from ``start_date`` through
+        ``end_date``, which need not be trading minutes themselves (e.g. the
+        first minute of a lunch break). Missing prices are NaN and missing
+        volumes are 0.
         """
-        start, first_month = self._locate(start_date)
-        end, last_month = self._locate(end_date)
+        minute_nanos = self._index.nanos
+        start_nanos, end_nanos = _nanos(start_date), _nanos(end_date)
+        if start_nanos < minute_nanos[0] or end_nanos > minute_nanos[-1]:
+            raise NoDataOnDate(
+                f"{start_date} to {end_date} is not within the dataset's minutes"
+            )
+        start = int(minute_nanos.searchsorted(start_nanos))
+        end = int(minute_nanos.searchsorted(end_nanos, side="right")) - 1
         sids = as_sids(assets)
         for sid in sids:
             self._lifetime(int(sid))
         fields = [FIELD_INDEX[column] for column in columns]
-        n_minutes = end - start + 1
+        n_minutes = max(end - start + 1, 0)
         results = [
             np.full((n_minutes, len(sids)), 0.0 if column == "volume" else np.nan)
             for column in columns
         ]
-        for month in range(first_month, last_month + 1):
-            uncached = [sid for sid in sids if (month, sid) not in self._sid_blocks]
-            if uncached:
-                self._cache_blocks(month, self._row_groups_for(month, uncached))
-            for j, sid in enumerate(sids):
-                positions, values = self._sid_rows(month, int(sid))
-                lo = positions.searchsorted(start)
-                hi = positions.searchsorted(end, side="right")
-                if lo == hi:
-                    continue
-                rows = positions[lo:hi] - start
-                for out, field in zip(results, fields):
-                    out[rows, j] = values[lo:hi, field]
+        if not n_minutes:
+            return results
+
+        def scatter(block, sid, cols):
+            positions, values = block.rows(sid)
+            lo = positions.searchsorted(start)
+            hi = positions.searchsorted(end, side="right")
+            if lo == hi:
+                return
+            rows = positions[lo:hi] - start
+            for out, field in zip(results, fields):
+                out[rows[:, None], cols] = values[lo:hi, field][:, None]
+
+        month_of = self._index.month_of
+        for month in range(int(month_of(start)), int(month_of(end)) + 1):
+            # sid -> its columns in the output, for sids not known to be cached.
+            pending = {}
+            for j, sid in enumerate(sids.tolist()):
+                key = (month, sid)
+                if key in self._sid_blocks:
+                    block = self._sid_blocks[key]
+                    if block is not None:
+                        self._blocks.move_to_end(block.key)
+                        scatter(block, sid, [j])
+                else:
+                    pending.setdefault(sid, []).append(j)
+            if not pending:
+                continue
+            for block in self._blocks_for(month, list(pending)):
+                for sid in block.spans.keys() & pending.keys():
+                    self._sid_blocks[(month, sid)] = block
+                    scatter(block, sid, pending.pop(sid))
+            for sid in pending:
+                self._sid_blocks[(month, sid)] = None
         return results
+
+
+def _nanos(dt):
+    """Epoch nanoseconds of a timestamp; naive timestamps are taken as UTC."""
+    return dt.value if isinstance(dt, pd.Timestamp) else pd.Timestamp(dt).value

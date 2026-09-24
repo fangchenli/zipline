@@ -4,8 +4,7 @@ Everything the benchmarks need goes through this module: generating
 deterministic prices, writing them in a storage format ("backend"), and
 opening readers over the result. Supporting a new storage format means adding
 a backend here; the benchmarks are parameterized over ``DAILY_BACKENDS`` and
-``MINUTE_BACKENDS``. A bundle for a backend without minute support stores its
-minute bars with bcolz.
+``MINUTE_BACKENDS``.
 """
 
 import os
@@ -164,7 +163,7 @@ class Bundle:
         raise ValueError(self.backend)
 
     def minute_reader(self):
-        if self.backend == "bcolz" or self.backend not in MINUTE_BACKENDS:
+        if self.backend == "bcolz":
             return BcolzMinuteBarReader(self.minute_path)
         if self.backend == "parquet":
             return ParquetMinuteBarReader(self.minute_path)
@@ -238,7 +237,7 @@ def build_bundle(root, backend):
         DAILY_END,
     )
     write_minute(
-        backend if backend in MINUTE_BACKENDS else "bcolz",
+        backend,
         bundle.minute_path,
         calendar,
         minute_frames(calendar, minute_sids, MINUTE_START, MINUTE_END),

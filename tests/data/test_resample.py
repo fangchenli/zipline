@@ -33,6 +33,7 @@ from zipline.testing.fixtures import (
     WithBcolzEquityMinuteBarReader,
     WithBcolzFutureMinuteBarReader,
     WithEquityMinuteBarData,
+    WithEquityMinuteBarReader,
     ZiplineTestCase,
 )
 
@@ -729,7 +730,7 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader, ZiplineTestCase):
         )
 
 
-class TestReindexMinuteBars(WithBcolzEquityMinuteBarReader, ZiplineTestCase):
+class TestReindexMinuteBars(WithEquityMinuteBarReader, ZiplineTestCase):
     TRADING_CALENDAR_STRS = ("us_futures", "NYSE")
     TRADING_CALENDAR_PRIMARY_CAL = "us_futures"
 
@@ -741,7 +742,7 @@ class TestReindexMinuteBars(WithBcolzEquityMinuteBarReader, ZiplineTestCase):
     def test_load_raw_arrays(self):
         reindex_reader = ReindexMinuteBarReader(
             self.trading_calendar,
-            self.bcolz_equity_minute_bar_reader,
+            self.equity_minute_bar_reader,
             self.START_DATE,
             self.END_DATE,
         )
@@ -799,6 +800,12 @@ class TestReindexMinuteBars(WithBcolzEquityMinuteBarReader, ZiplineTestCase):
             opens[1].iloc[first_minute_loc],
             err_msg="The value for Equity 1, should be 10.0, at NYSE open.",
         )
+
+
+class TestReindexParquetMinuteBars(TestReindexMinuteBars):
+    """Reindexing a Parquet reader onto another calendar."""
+
+    EQUITY_MINUTE_BAR_FORMAT = "parquet"
 
 
 class TestReindexSessionBars(WithBcolzEquityDailyBarReader, ZiplineTestCase):
