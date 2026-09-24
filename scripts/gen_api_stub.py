@@ -21,6 +21,7 @@ import ast
 import inspect
 import textwrap
 import types
+import typing
 from pathlib import Path
 
 import zipline  # noqa: F401  (registers the API methods)
@@ -64,9 +65,13 @@ def algorithm_imports():
                 lines[alias.asname or alias.name] = f"import {alias.name}{as_}"
     for node in tree.body:
         if isinstance(node, ast.Assign):
-            for target in node.targets:
-                if isinstance(target, ast.Name):
-                    lines[target.id] = f"from zipline.algorithm import {target.id}"
+            defined = [t.id for t in node.targets if isinstance(t, ast.Name)]
+        elif isinstance(node, ast.ClassDef):
+            defined = [node.name]
+        else:
+            continue
+        for name in defined:
+            lines[name] = f"from zipline.algorithm import {name}"
     return lines
 
 
@@ -76,12 +81,11 @@ def annotation_names(annotation):
     return {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
 
 
-def function_stub(name, names):
-    """The stub of API method ``name``; adds the names its annotations use to
-    ``names``.
+def signature(function, names):
+    """``function``'s signature without ``self``, with its annotations'
+    sources; adds the names they use to ``names``.
     """
-    method = getattr(TradingAlgorithm, name)
-    sig = inspect.signature(method)
+    sig = inspect.signature(function)
 
     def source(annotation):
         if annotation is inspect.Signature.empty:
@@ -93,12 +97,29 @@ def function_stub(name, names):
         param.replace(annotation=source(param.annotation))
         for param in list(sig.parameters.values())[1:]  # drop self
     ]
-    sig = sig.replace(
+    return sig.replace(
         parameters=params, return_annotation=source(sig.return_annotation)
     )
+
+
+def function_stub(name, names):
+    """The stub of API method ``name``: its overloads, if it has any, or else
+    its signature. Adds the names its annotations use to ``names``.
+    """
+    method = getattr(TradingAlgorithm, name)
     doc = inspect.getdoc(method) or ""
     body = textwrap.indent(f'"""{doc}\n"""', "    ") if doc else "    ..."
-    return f"def {name}{sig}:\n{body}\n"
+    overloads = typing.get_overloads(inspect.unwrap(method))
+    if not overloads:
+        return f"def {name}{signature(method, names)}:\n{body}\n"
+    names.add("overload")
+    stubs = [
+        f"@overload\ndef {name}{signature(variant, names)}:\n"
+        + (body if i == 0 else "    ...")
+        + "\n"
+        for i, variant in enumerate(overloads)
+    ]
+    return "".join(stubs)
 
 
 def render():

@@ -32,7 +32,8 @@ def summarize(source):
                 node.body = node.body[1:]
                 # The formatter strips blank lines at the end.
                 docstring = docstring.strip()
-            functions[node.name] = (ast.dump(node), docstring)
+            # Overloads share a name.
+            functions.setdefault(node.name, []).append((ast.dump(node), docstring))
         elif isinstance(node, ast.AnnAssign):
             all_ = ast.literal_eval(node.value)
     return imports, all_, functions
