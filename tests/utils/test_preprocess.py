@@ -2,6 +2,7 @@
 Tests for zipline.utils.validate.
 """
 
+import inspect
 from operator import attrgetter
 from types import FunctionType
 from unittest import TestCase
@@ -64,17 +65,16 @@ class PreprocessTestCase(TestCase):
 
         self.assertEqual(decorated_errargs[0], undecorated_errargs[0])
 
-    def test_preprocess_co_filename(self):
-
-        def undecorated():
+    def test_preprocess_introspection(self):
+        # Source and signature inspection, e.g. IPython's ``??``, find the
+        # decorated function.
+        def undecorated(a, b=1, *, c=2):
             pass
 
-        decorated = preprocess()(undecorated)
+        decorated = preprocess(a=call(int))(undecorated)
 
-        self.assertEqual(
-            undecorated.__code__.co_filename,
-            decorated.__code__.co_filename,
-        )
+        self.assertEqual(inspect.getsource(decorated), inspect.getsource(undecorated))
+        self.assertEqual(inspect.signature(decorated), inspect.signature(undecorated))
 
     def test_preprocess_preserves_docstring(self):
 
@@ -108,6 +108,28 @@ class PreprocessTestCase(TestCase):
             return a, b, c
 
         self.assertEqual(func(*args, **kwargs), (1, 2, 3))
+
+    def test_preprocess_keyword_only(self):
+        @preprocess(a=call(str), b=call(float))
+        def func(a, *, b=2):
+            return a, b
+
+        self.assertEqual(func(1), ("1", 2.0))
+        self.assertEqual(func(1, b=3), ("1", 3.0))
+
+    def test_preprocess_var_args(self):
+        @preprocess(
+            args=call(lambda args: tuple(2 * arg for arg in args)),
+            kwargs=call(lambda kwargs: {k: 2 * v for k, v in kwargs.items()}),
+        )
+        def func(a, *args, **kwargs):
+            return a, args, kwargs
+
+        self.assertEqual(func(1), (1, (), {}))
+        self.assertEqual(func(1, 2, 3, x=4), (1, (4, 6), {"x": 8}))
+        with self.assertRaises(TypeError) as e:
+            func()
+        self.assertEqual(e.exception.args[0], "func() missing a required argument: 'a'")
 
     def test_preprocess_bad_processor_name(self):
         a_processor = preprocess(a=int)
