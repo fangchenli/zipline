@@ -4,12 +4,12 @@ import numpy as np
 import pandas as pd
 
 from zipline.data.bcolz_daily_bars import BcolzDailyBarReader, BcolzDailyBarWriter
-from zipline.data.convert_bcolz import convert_daily_bars, convert_minute_bars
-from zipline.data.minute_bars import (
+from zipline.data.bcolz_minute_bars import (
     US_EQUITIES_MINUTES_PER_DAY,
     BcolzMinuteBarReader,
     BcolzMinuteBarWriter,
 )
+from zipline.data.convert_bcolz import convert_daily_bars, convert_minute_bars
 from zipline.data.parquet_daily_bars import ParquetDailyBarReader
 from zipline.data.parquet_minute_bars import ParquetMinuteBarReader
 from zipline.testing.fixtures import (

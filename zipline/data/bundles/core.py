@@ -25,9 +25,6 @@ from zipline.utils.preprocess import preprocess
 from zipline.utils.sqlite_utils import check_and_create_engine
 
 from ..adjustments import SQLiteAdjustmentReader, SQLiteAdjustmentWriter
-from ..bcolz_daily_bars import BcolzDailyBarReader
-from ..convert_bcolz import convert_daily_bars, convert_minute_bars
-from ..minute_bars import BcolzMinuteBarReader
 from ..parquet_daily_bars import ParquetDailyBarReader, ParquetDailyBarWriter
 from ..parquet_minute_bars import ParquetMinuteBarReader, ParquetMinuteBarWriter
 
@@ -145,6 +142,21 @@ def ingestions_for_bundle(bundle, environ=None):
     )
 
 
+def _require_bcolz(bundle):
+    """Check that the optional bcolz support, for ``bundle``'s ingestions made
+    before zipline 2.0, is installed.
+    """
+    try:
+        import bcolz  # noqa: F401
+    except ImportError as e:
+        raise ImportError(
+            f"Bundle {bundle!r} was ingested by zipline before 2.0 and stores its "
+            "bars with bcolz, which needs the optional bcolz support: "
+            "pip install 'zipline[bcolz]'. `zipline convert -b "
+            f"{bundle}` then converts it to Parquet."
+        ) from e
+
+
 def convert(bundle, environ=None, delete_bcolz=False, show_progress=False):
     """Convert a bundle's bcolz daily and minute bars to Parquet.
 
@@ -173,14 +185,20 @@ def convert(bundle, environ=None, delete_bcolz=False, show_progress=False):
     converted = []
     for ingestion in ingestions_for_bundle(bundle, environ):
         timestr = to_bundle_ingest_dirname(ingestion)
-        for bcolz_relative, relative, convert_bars in (
-            (bcolz_daily_equity_relative, daily_equity_relative, convert_daily_bars),
-            (bcolz_minute_equity_relative, minute_equity_relative, convert_minute_bars),
+        for bcolz_relative, relative, kind in (
+            (bcolz_daily_equity_relative, daily_equity_relative, "daily"),
+            (bcolz_minute_equity_relative, minute_equity_relative, "minute"),
         ):
             src = pth.data_path(bcolz_relative(bundle, timestr), environ=environ)
             dest = pth.data_path(relative(bundle, timestr), environ=environ)
             if not os.path.isdir(src) or os.path.exists(dest):
                 continue
+            _require_bcolz(bundle)
+            from ..convert_bcolz import convert_daily_bars, convert_minute_bars
+
+            convert_bars = (
+                convert_daily_bars if kind == "daily" else convert_minute_bars
+            )
             log.info("Converting {} to Parquet.", src)
             tmp = dest + ".converting"
             # Left over from an interrupted conversion.
@@ -617,18 +635,32 @@ def _make_bundle_core():
             timestamp = pd.Timestamp.now("UTC")
         timestr = most_recent_data(name, timestamp, environ=environ)
         daily_path = daily_equity_path(name, timestr, environ=environ)
+        minute_path = minute_equity_path(name, timestr, environ=environ)
+        if not (os.path.exists(daily_path) and os.path.exists(minute_path)):
+            # Ingested before zipline 2.0, with bars stored by bcolz.
+            _require_bcolz(name)
+            warnings.warn(
+                f"Bundle {name!r} stores its bars with bcolz, which is deprecated "
+                "and will not be supported in a future version of zipline. Run "
+                f"`zipline convert -b {name}` to convert it to Parquet.",
+                FutureWarning,
+                stacklevel=2,
+            )
         if os.path.exists(daily_path):
             daily_bar_reader = ParquetDailyBarReader(daily_path)
         else:
+            from ..bcolz_daily_bars import BcolzDailyBarReader
+
             daily_bar_reader = BcolzDailyBarReader(
                 pth.data_path(
                     bcolz_daily_equity_relative(name, timestr), environ=environ
                 )
             )
-        minute_path = minute_equity_path(name, timestr, environ=environ)
         if os.path.exists(minute_path):
             minute_bar_reader = ParquetMinuteBarReader(minute_path)
         else:
+            from ..bcolz_minute_bars import BcolzMinuteBarReader
+
             minute_bar_reader = BcolzMinuteBarReader(
                 pth.data_path(
                     bcolz_minute_equity_relative(name, timestr), environ=environ

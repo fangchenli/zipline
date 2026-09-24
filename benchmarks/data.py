@@ -16,13 +16,7 @@ import pandas as pd
 
 from zipline.assets import AssetDBWriter, AssetFinder
 from zipline.data.adjustments import SQLiteAdjustmentReader, SQLiteAdjustmentWriter
-from zipline.data.bcolz_daily_bars import BcolzDailyBarReader, BcolzDailyBarWriter
 from zipline.data.data_portal import DataPortal
-from zipline.data.minute_bars import (
-    US_EQUITIES_MINUTES_PER_DAY,
-    BcolzMinuteBarReader,
-    BcolzMinuteBarWriter,
-)
 from zipline.data.parquet_daily_bars import (
     ParquetDailyBarReader,
     ParquetDailyBarWriter,
@@ -33,8 +27,8 @@ from zipline.data.parquet_minute_bars import (
 )
 from zipline.utils.calendar_utils import get_calendar
 
-DAILY_BACKENDS = ["bcolz", "parquet"]
-MINUTE_BACKENDS = ["bcolz", "parquet"]
+DAILY_BACKENDS = ["parquet"]
+MINUTE_BACKENDS = ["parquet"]
 BACKENDS = sorted(set(DAILY_BACKENDS) | set(MINUTE_BACKENDS))
 
 CALENDAR = "XNYS"
@@ -156,15 +150,11 @@ class Bundle:
         return AssetFinder(self.assets_path)
 
     def daily_reader(self):
-        if self.backend == "bcolz":
-            return BcolzDailyBarReader(self.daily_path)
         if self.backend == "parquet":
             return ParquetDailyBarReader(self.daily_path)
         raise ValueError(self.backend)
 
     def minute_reader(self):
-        if self.backend == "bcolz":
-            return BcolzMinuteBarReader(self.minute_path)
         if self.backend == "parquet":
             return ParquetMinuteBarReader(self.minute_path)
         raise ValueError(self.backend)
@@ -185,25 +175,14 @@ class Bundle:
 
 
 def write_daily(backend, path, calendar, frames, start, end):
-    if backend == "bcolz":
-        BcolzDailyBarWriter(path, calendar, start, end).write(frames)
-    elif backend == "parquet":
+    if backend == "parquet":
         ParquetDailyBarWriter(path, calendar, start, end).write(frames)
     else:
         raise ValueError(backend)
 
 
 def write_minute(backend, path, calendar, frames, start, end):
-    if backend == "bcolz":
-        os.makedirs(path, exist_ok=True)
-        BcolzMinuteBarWriter(
-            path,
-            calendar,
-            start,
-            end,
-            minutes_per_day=US_EQUITIES_MINUTES_PER_DAY,
-        ).write(frames)
-    elif backend == "parquet":
+    if backend == "parquet":
         ParquetMinuteBarWriter(path, calendar, start, end).write(frames)
     else:
         raise ValueError(backend)

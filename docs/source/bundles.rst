@@ -93,7 +93,9 @@ Zipline 2.0 stores pricing data as Parquet. Bundles ingested by earlier
 versions stored it with bcolz, and they still load, but the bcolz formats will
 be removed in a future version. Since old data can't always be ingested again
 (the Quandl WIKI dataset, for example, stopped updating in 2018), the
-``convert`` command rewrites a bundle's bcolz data as Parquet in place:
+``convert`` command rewrites a bundle's bcolz data as Parquet in place. Reading
+bcolz data needs the optional bcolz support, installed with
+``pip install 'zipline[bcolz]'``:
 
 .. code-block:: bash
 

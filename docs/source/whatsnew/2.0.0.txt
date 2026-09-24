@@ -82,6 +82,13 @@ API and Behaviour Changes
   minutes (minute) of the bundle's calendar.
 - The ``minutes_per_day`` argument of
   :func:`~zipline.data.bundles.register` is deprecated and ignored.
+- bcolz is no longer a required dependency. Reading bundles ingested by
+  earlier versions, whose bars are stored with bcolz, needs the ``bcolz`` extra
+  (``pip install 'zipline[bcolz]'``); loading such a bundle warns that bcolz
+  support is deprecated and suggests ``zipline convert``. The bcolz minute bar
+  classes moved from ``zipline.data.minute_bars`` to
+  ``zipline.data.bcolz_minute_bars``; ``zipline.data.minute_bars`` keeps the
+  format-neutral ``MinuteBarReader`` base class.
 
 Enhancements
 ~~~~~~~~~~~~
