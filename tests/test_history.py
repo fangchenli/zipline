@@ -23,6 +23,7 @@ from parameterized import parameterized
 import zipline.testing.fixtures as zf
 from zipline._protocol import BarData, handle_non_market_minutes
 from zipline.assets import Asset, Equity
+from zipline.data.parquet_minute_bars import ParquetMinuteBarReader
 from zipline.errors import (
     HistoryInInitialize,
     HistoryWindowStartsBeforeData,
@@ -33,6 +34,7 @@ from zipline.testing import (
     create_minute_df_for_asset,
     str_to_seconds,
 )
+from zipline.testing.predicates import assert_is_instance
 
 OHLC = ["open", "high", "low", "close"]
 OHLCP = OHLC + ["price"]
@@ -1601,6 +1603,21 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
 class NoPrefetchMinuteEquityHistoryTestCase(MinuteEquityHistoryTestCase):
     DATA_PORTAL_MINUTE_HISTORY_PREFETCH = 0
     DATA_PORTAL_DAILY_HISTORY_PREFETCH = 0
+
+
+class ParquetMinuteEquityHistoryTestCase(
+    zf.WithParquetEquityMinuteBarReader, MinuteEquityHistoryTestCase
+):
+    """The minute history tests, reading equity minute bars from Parquet."""
+
+    def test_data_portal_reads_parquet(self):
+        assert_is_instance(self.equity_minute_bar_reader, ParquetMinuteBarReader)
+
+
+class ParquetNoPrefetchMinuteEquityHistoryTestCase(
+    zf.WithParquetEquityMinuteBarReader, NoPrefetchMinuteEquityHistoryTestCase
+):
+    """The minute history tests without prefetching, reading from Parquet."""
 
 
 class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):

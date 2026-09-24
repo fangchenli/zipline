@@ -89,6 +89,14 @@ Enhancements
   2-8x faster, daily backtests about 2x faster and writing is slightly faster.
   Bundles ingest daily bars into this format; bundles ingested by earlier
   versions, with bcolz daily bars, still load.
+- New Parquet storage format for minute bars,
+  :class:`~zipline.data.parquet_minute_bars.ParquetMinuteBarWriter` and
+  :class:`~zipline.data.parquet_minute_bars.ParquetMinuteBarReader`. Only
+  minutes with a bar are stored, in monthly partitions; prices are stored as
+  float64 rather than bcolz's scaled uint32, so there is no rounding to three
+  decimals or volume limit, and early closes need no special handling. Minute
+  backtests run as fast as with bcolz, and loading minute windows for many
+  assets is about 3x faster.
 
 Bug Fixes
 ~~~~~~~~~

@@ -28,10 +28,14 @@ from zipline.data.parquet_daily_bars import (
     ParquetDailyBarReader,
     ParquetDailyBarWriter,
 )
+from zipline.data.parquet_minute_bars import (
+    ParquetMinuteBarReader,
+    ParquetMinuteBarWriter,
+)
 from zipline.utils.calendar_utils import get_calendar
 
 DAILY_BACKENDS = ["bcolz", "parquet"]
-MINUTE_BACKENDS = ["bcolz"]
+MINUTE_BACKENDS = ["bcolz", "parquet"]
 BACKENDS = sorted(set(DAILY_BACKENDS) | set(MINUTE_BACKENDS))
 
 CALENDAR = "XNYS"
@@ -160,7 +164,11 @@ class Bundle:
         raise ValueError(self.backend)
 
     def minute_reader(self):
-        return BcolzMinuteBarReader(self.minute_path)
+        if self.backend == "bcolz" or self.backend not in MINUTE_BACKENDS:
+            return BcolzMinuteBarReader(self.minute_path)
+        if self.backend == "parquet":
+            return ParquetMinuteBarReader(self.minute_path)
+        raise ValueError(self.backend)
 
     def adjustment_reader(self):
         return SQLiteAdjustmentReader(self.adjustments_path)
@@ -196,6 +204,8 @@ def write_minute(backend, path, calendar, frames, start, end):
             end,
             minutes_per_day=US_EQUITIES_MINUTES_PER_DAY,
         ).write(frames)
+    elif backend == "parquet":
+        ParquetMinuteBarWriter(path, calendar, start, end).write(frames)
     else:
         raise ValueError(backend)
 
