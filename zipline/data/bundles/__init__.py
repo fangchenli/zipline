@@ -2,6 +2,7 @@
 from . import quandl  # noqa
 from . import csvdir  # noqa
 from . import massive  # noqa
+from . import alpaca  # noqa
 
 from .core import (
     UnknownBundle,

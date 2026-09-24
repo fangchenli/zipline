@@ -209,6 +209,45 @@ exchange's calendar.
    Massive's terms allow individual use only. The bundle stores what it
    downloads on your machine; don't share it.
 
+.. _alpaca-data-bundle:
+
+Alpaca Bundle
+`````````````
+
+The ``alpaca`` bundle downloads US equities from `Alpaca
+<https://alpaca.markets>`_'s market data API: unadjusted daily bars from the
+consolidated (SIP) feed since 2016, splits, cash dividends, and asset metadata
+for the stocks and ETFs listed on US exchanges, including those that were since
+acquired or removed. It needs the API keys of a free paper trading account:
+
+.. code-block:: bash
+
+   $ APCA_API_KEY_ID=<key id> APCA_API_SECRET_KEY=<secret key> zipline ingest -b alpaca
+
+Alpaca's free plan allows 200 requests a minute. The first ingestion
+downloads the bars from 2016 and the corporate actions since, which takes
+about an hour; they are kept in ``$ZIPLINE_ROOT/cache/alpaca``, and later
+ingestions only download new sessions and the last three months of corporate
+actions, which Alpaca sometimes reports late. ``ALPACA_START_DATE`` sets the
+first session to ingest, and ``ALPACA_CALLS_PER_MINUTE`` the rate limit of a
+paid plan (0 means unlimited); :func:`zipline.data.bundles.alpaca.alpaca_equities`
+sets these in code.
+
+Each bar is labelled with the ticker it traded under that day. A ticker is
+followed through its later renames to the merger or removal that ended the
+security, or else to the asset listed under it today. So a renamed company
+(e.g. FB to META) keeps one sid, found by either ticker on the dates it used
+it, a ticker reused by another company gets a new sid, and a one-for-one
+merger into a new holding company that keeps the ticker continues the
+security. Securities keep their sids in every ingestion. Stocks that left
+their exchange without a merger or removal, e.g. for trading over the
+counter, are left out.
+
+.. note::
+
+   Alpaca's terms don't allow redistributing its data. The bundle stores what
+   it downloads on your machine; don't share it.
+
 .. _quandl-data-bundle:
 
 Quandl WIKI Bundle

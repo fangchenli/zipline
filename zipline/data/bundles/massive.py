@@ -38,6 +38,7 @@ from .vendor import (
     completed_sessions,
     equities_frame,
     exchanges_frame,
+    parse_dates,
 )
 
 log = logging.getLogger(__name__)
@@ -350,7 +351,7 @@ def _listings(records):
     )
 
     def dates(column):
-        return pd.to_datetime(records[column], utc=True).dt.tz_localize(None)
+        return parse_dates(records[column], utc=True)
 
     # Securities without a FIGI are told apart by their issuer, or else name.
     fallback = records["ticker"] + ":" + records["cik"].fillna(records["name"])
@@ -467,7 +468,7 @@ def _splits(session, tickers, sids, start, end):
     if not results:
         return None
     splits = pd.DataFrame(results)
-    splits["effective_date"] = pd.to_datetime(splits["execution_date"])
+    splits["effective_date"] = parse_dates(splits["execution_date"])
     splits = _with_sids(splits, tickers, sids, "effective_date")
     # The price multiplier for bars before the split; 0.5 for a 2-for-1
     # split.
@@ -506,10 +507,10 @@ def _dividends(session, tickers, sids, start, end):
         {
             "ticker": dividends["ticker"],
             "amount": dividends["cash_amount"].astype("float64"),
-            "ex_date": pd.to_datetime(dividends["ex_dividend_date"]),
-            "record_date": pd.to_datetime(dividends["record_date"]),
-            "declared_date": pd.to_datetime(dividends["declaration_date"]),
-            "pay_date": pd.to_datetime(dividends["pay_date"]),
+            "ex_date": parse_dates(dividends["ex_dividend_date"]),
+            "record_date": parse_dates(dividends["record_date"]),
+            "declared_date": parse_dates(dividends["declaration_date"]),
+            "pay_date": parse_dates(dividends["pay_date"]),
         }
     )
     dividends = _with_sids(dividends, tickers, sids, "ex_date")

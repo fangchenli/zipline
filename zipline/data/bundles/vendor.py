@@ -15,6 +15,7 @@ has the parts that don't depend on the vendor:
   from bars labelled with a security and a ticker, with ticker changes as
   symbol mappings.
 - :func:`completed_sessions` lists the sessions whose bars are final.
+- :func:`parse_dates` reads the dates in vendor data, which has typos.
 """
 
 import logging
@@ -304,6 +305,20 @@ def exchanges_frame(exchanges, calendar_name, country_code):
             "country_code": country_code,
         }
     )
+
+
+def parse_dates(values, utc=False):
+    """Parse dates, e.g. ``"2020-01-02"``, as datetime64[ns], naive UTC
+    for ``utc`` timestamps such as ``"2020-01-02T05:00:00Z"``.
+
+    Dates that can't be parsed or are out of range, like the year 3026 in
+    one of Alpaca's dividends, are NaT.
+    """
+    dates = pd.to_datetime(pd.Series(values), errors="coerce", utc=utc)
+    if utc:
+        dates = dates.dt.tz_localize(None)
+    in_range = dates.between(pd.Timestamp.min, pd.Timestamp.max)
+    return dates.where(in_range).astype("datetime64[ns]")
 
 
 def completed_sessions(calendar, start_session, end_session, now, delay):
