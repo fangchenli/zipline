@@ -10,6 +10,7 @@ from os.path import (
 
 import numpy as np
 import pandas as pd
+import pytest
 from numpy import (
     arange,
     array,
@@ -244,7 +245,7 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
             handle_data=late_attach,
         )
 
-        with self.assertRaises(AttachPipelineAfterInitialize):
+        with pytest.raises(AttachPipelineAfterInitialize):
             algo.run()
 
         def barf(context, data):
@@ -256,7 +257,7 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
             handle_data=barf,
         )
 
-        with self.assertRaises(AttachPipelineAfterInitialize):
+        with pytest.raises(AttachPipelineAfterInitialize):
             algo.run()
 
     def test_pipeline_output_after_initialize(self):
@@ -281,7 +282,7 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
             before_trading_start=before_trading_start,
         )
 
-        with self.assertRaises(PipelineOutputDuringInitialize):
+        with pytest.raises(PipelineOutputDuringInitialize):
             algo.run()
 
     def test_get_output_nonexistent_pipeline(self):
@@ -305,7 +306,7 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
             before_trading_start=before_trading_start,
         )
 
-        with self.assertRaises(NoSuchPipeline):
+        with pytest.raises(NoSuchPipeline):
             algo.run()
 
     @parameterized.expand(
@@ -353,9 +354,9 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
                 existed_yesterday = self.exists(date - self.trading_day, asset)
                 if exists_today and existed_yesterday:
                     latest = results.loc[asset, "close"]
-                    self.assertEqual(latest, self.expected_close(date, asset))
+                    assert latest == self.expected_close(date, asset)
                 else:
-                    self.assertNotIn(asset, results.index)
+                    assert asset not in results.index
 
         before_trading_start = handle_data
 
@@ -390,15 +391,15 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
                 exists_today = self.exists(date, asset)
                 existed_yesterday = self.exists(date - self.trading_day, asset)
                 if exists_today and existed_yesterday:
-                    self.assertEqual(
-                        closes.loc[asset, "close"], self.expected_close(date, asset)
+                    assert closes.loc[asset, "close"] == self.expected_close(
+                        date, asset
                     )
-                    self.assertEqual(
-                        volumes.loc[asset, "volume"], self.expected_volume(date, asset)
+                    assert volumes.loc[asset, "volume"] == self.expected_volume(
+                        date, asset
                     )
                 else:
-                    self.assertNotIn(asset, closes.index)
-                    self.assertNotIn(asset, volumes.index)
+                    assert asset not in closes.index
+                    assert asset not in volumes.index
 
         column_to_loader = {
             USEquityPricing.close: self.pipeline_close_loader,
@@ -424,7 +425,7 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
             attach_pipeline(Pipeline(), "test")
 
         algo = self.make_algo(initialize=initialize)
-        with self.assertRaises(DuplicatePipelineName):
+        with pytest.raises(DuplicatePipelineName):
             algo.run()
 
 
@@ -568,7 +569,7 @@ class PipelineAlgorithmTestCase(
         for dict_ in vwaps.values():
             # Each value is a dict mapping sid -> expected series.
             for series in dict_.values():
-                self.assertTrue((vwap_dates == series.index).all())
+                assert (vwap_dates == series.index).all()
 
         # Spot check expectations near the AAPL split.
         # length 1 vwap for the morning before the split should be the close
@@ -646,11 +647,11 @@ class PipelineAlgorithmTestCase(
             for asset in assets:
                 should_pass_filter = expect_over_300[asset]
                 if set_screen and not should_pass_filter:
-                    self.assertNotIn(asset, results.index)
+                    assert asset not in results.index
                     continue
 
                 asset_results = results.loc[asset]
-                self.assertEqual(asset_results["filter"], should_pass_filter)
+                assert asset_results["filter"] == should_pass_filter
                 for length in vwaps:
                     computed = results.loc[asset, vwap_key(length)]
                     expected = vwaps[length][asset].loc[today]
@@ -693,7 +694,7 @@ class PipelineAlgorithmTestCase(
 
         def before_trading_start(context, data):
             context.results = pipeline_output("test")
-            self.assertTrue(context.results.empty)
+            assert context.results.empty
             count[0] += 1
 
         self.run_algorithm(
@@ -709,7 +710,7 @@ class PipelineAlgorithmTestCase(
             ),
         )
 
-        self.assertTrue(count[0] > 0)
+        assert count[0] > 0
 
     def test_pipeline_beyond_daily_bars(self):
         """
@@ -738,7 +739,7 @@ class PipelineAlgorithmTestCase(
 
         def before_trading_start(context, data):
             context.results = pipeline_output("test")
-            self.assertTrue(context.results.empty)
+            assert context.results.empty
             count[0] += 1
 
         self.run_algorithm(
@@ -754,7 +755,7 @@ class PipelineAlgorithmTestCase(
             ),
         )
 
-        self.assertTrue(count[0] > 0)
+        assert count[0] > 0
 
 
 class PipelineSequenceTestCase(WithMakeAlgo, ZiplineTestCase):
@@ -799,4 +800,4 @@ class PipelineSequenceTestCase(WithMakeAlgo, ZiplineTestCase):
         # and the algorithm is being run for 3 days, so the first 3 calls
         # should be to the custom factor and the next 3 calls should be to BTS
         expected_result = ["CustomFactor call"] * 3 + ["BTS call"] * 3
-        self.assertEqual(trace, expected_result)
+        assert trace == expected_result

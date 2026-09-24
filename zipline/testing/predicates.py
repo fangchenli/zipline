@@ -1,7 +1,6 @@
 import datetime
 import inspect
 import re
-import unittest
 from collections import OrderedDict
 from contextlib import contextmanager
 from functools import partial, update_wrapper
@@ -109,44 +108,9 @@ class instance_of:
         )
 
 
-# unittest-style assertion functions, in the spirit of the removed
-# ``nose.tools``: each is a bound method of a throwaway TestCase.
-class _Asserter(unittest.TestCase):
-    maxDiff = None
-
-    def _nop(self):
-        pass
-
-
-_asserter = _Asserter("_nop")
-
-assert_almost_equal = assert_almost_equals = _asserter.assertAlmostEqual
-assert_false = _asserter.assertFalse
-assert_greater = _asserter.assertGreater
-assert_greater_equal = _asserter.assertGreaterEqual
-assert_in = _asserter.assertIn
-assert_is = _asserter.assertIs
-assert_is_instance = _asserter.assertIsInstance
-assert_is_none = _asserter.assertIsNone
-assert_is_not = _asserter.assertIsNot
-assert_is_not_none = _asserter.assertIsNotNone
-assert_less = _asserter.assertLess
-assert_less_equal = _asserter.assertLessEqual
-assert_multi_line_equal = _asserter.assertMultiLineEqual
-assert_not_almost_equal = assert_not_almost_equals = _asserter.assertNotAlmostEqual
-assert_not_equal = assert_not_equals = _asserter.assertNotEqual
-assert_not_in = _asserter.assertNotIn
-assert_not_is_instance = _asserter.assertNotIsInstance
-assert_raises = _asserter.assertRaises
-assert_raises_regexp = _asserter.assertRaisesRegex
-assert_regexp_matches = _asserter.assertRegex
-assert_true = _asserter.assertTrue
-assert_tuple_equal = _asserter.assertTupleEqual
-
-
 def assert_dict_contains_subset(subset, dictionary, msg=None):
     """Assert that every key/value pair in ``subset`` is in ``dictionary``."""
-    _asserter.assertEqual(dictionary, {**dictionary, **subset}, msg)
+    assert dictionary == {**dictionary, **subset}, msg
 
 
 def keywords(func):
@@ -302,32 +266,6 @@ def _assert_raises_helper(do_check, exc_type, msg):
         do_check(e)
     else:
         raise AssertionError(f"{_fmt_msg(msg)}{exc_type} was not raised")
-
-
-def assert_raises_regex(exc, pattern, msg=""):
-    """Assert that some exception is raised in a context and that the message
-    matches some pattern.
-
-    Parameters
-    ----------
-    exc : type or tuple[type]
-        The exception type or types to expect.
-    pattern : str or compiled regex
-        The pattern to search for in the str of the raised exception.
-    msg : str, optional
-        An extra assertion message to print if this fails.
-    """
-
-    def check_exception(e):
-        assert re.search(pattern, str(e)), (
-            f"{_fmt_msg(msg)}{pattern!r} not found in {str(e)!r}"
-        )
-
-    return _assert_raises_helper(
-        do_check=check_exception,
-        exc_type=exc,
-        msg=msg,
-    )
 
 
 def assert_raises_str(exc, expected_str, msg=""):

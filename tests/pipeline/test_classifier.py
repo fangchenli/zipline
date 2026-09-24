@@ -3,6 +3,7 @@ from functools import reduce
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Classifier
@@ -171,15 +172,15 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             inputs = ()
             window_length = 0
 
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(ValueError) as e:
             C().eq(missing)
-        errmsg = str(e.exception)
-        self.assertEqual(
-            errmsg,
-            f"Comparison against self.missing_value ({missing!r}) in C.eq().\n"
+        errmsg = str(e.value)
+        assert (
+            errmsg
+            == f"Comparison against self.missing_value ({missing!r}) in C.eq().\n"
             "Missing values have NaN semantics, so the requested comparison"
             " would always produce False.\n"
-            "Use the isnull() method to check for missing values.",
+            "Use the isnull() method to check for missing values."
         )
 
     @parameter_space(compval=[0, 1, 999], missing=[-1, 0, 999])
@@ -432,9 +433,9 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
         c = C()
 
         for bad_elems in ([missing], [missing, "random other value"]):
-            with self.assertRaises(ValueError) as e:
+            with pytest.raises(ValueError) as e:
                 c.element_of(bad_elems)
-            errmsg = str(e.exception)
+            errmsg = str(e.value)
             expected = (
                 "Found self.missing_value ('not in the array') in choices"
                 " supplied to C.element_of().\n"
@@ -443,7 +444,7 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
                 "Use the isnull() method to check for missing values.\n"
                 f"Received choices were {bad_elems}."
             )
-            self.assertEqual(errmsg, expected)
+            assert errmsg == expected
 
     @parameter_space(dtype_=Classifier.ALLOWED_DTYPES)
     def test_element_of_rejects_unhashable_type(self, dtype_):
@@ -456,10 +457,10 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
 
         c = C()
 
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
             c.element_of([{"a": 1}])
 
-        errmsg = str(e.exception)
+        errmsg = str(e.value)
         # The wording of the underlying TypeError varies across Python
         # versions, so take it from Python itself.
         try:
@@ -472,7 +473,7 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             "This caused the following error: "
             f"{hash_error!r}."
         )
-        self.assertEqual(errmsg, expected)
+        assert errmsg == expected
 
     @parameter_space(
         __fail_fast=True,
@@ -586,15 +587,15 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
 
         c = C()
 
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
             c.relabel(lambda x: 0 / 0)  # Function should never be called.
 
-        result = str(e.exception)
+        result = str(e.value)
         expected = (
             "relabel() is only defined on Classifiers producing strings "
             "but it was called on a Classifier of dtype int64."
         )
-        self.assertEqual(result, expected)
+        assert result == expected
 
     @parameter_space(
         compare_op=[op.gt, op.ge, op.le, op.lt],
@@ -607,14 +608,11 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             dtype = dtype_and_missing[0]
             missing_value = dtype_and_missing[1]
 
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
             compare_op(C(), object())
 
-        self.assertEqual(
-            str(e.exception),
-            "cannot compare classifiers with {}".format(
-                methods_to_ops[f"__{compare_op.__name__}__"],
-            ),
+        assert str(e.value) == "cannot compare classifiers with {}".format(
+            methods_to_ops[f"__{compare_op.__name__}__"],
         )
 
     @parameter_space(
@@ -784,4 +782,4 @@ class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
 class ReprTestCase(ZiplineTestCase):
     def test_quantiles_graph_repr(self):
         quantiles = TestingDataSet.float_col.latest.quantiles(5)
-        self.assertEqual(quantiles.graph_repr(), "Quantiles(5)")
+        assert quantiles.graph_repr() == "Quantiles(5)"

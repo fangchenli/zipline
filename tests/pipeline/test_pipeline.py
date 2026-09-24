@@ -6,6 +6,8 @@ import inspect
 from unittest import TestCase
 from unittest.mock import patch
 
+import pytest
+
 from zipline.pipeline import Factor, Filter, Pipeline
 from zipline.pipeline.data import Column, DataSet, USEquityPricing
 from zipline.pipeline.domain import (
@@ -44,36 +46,36 @@ class SomeOtherFilter(Filter):
 class PipelineTestCase(TestCase):
     def test_construction(self):
         p0 = Pipeline()
-        self.assertEqual(p0.columns, {})
-        self.assertIs(p0.screen, None)
+        assert p0.columns == {}
+        assert p0.screen is None
 
         columns = {"f": SomeFactor()}
         p1 = Pipeline(columns=columns)
-        self.assertEqual(p1.columns, columns)
+        assert p1.columns == columns
 
         screen = SomeFilter()
         p2 = Pipeline(screen=screen)
-        self.assertEqual(p2.columns, {})
-        self.assertEqual(p2.screen, screen)
+        assert p2.columns == {}
+        assert p2.screen == screen
 
         p3 = Pipeline(columns=columns, screen=screen)
-        self.assertEqual(p3.columns, columns)
-        self.assertEqual(p3.screen, screen)
+        assert p3.columns == columns
+        assert p3.screen == screen
 
     def test_construction_bad_input_types(self):
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             Pipeline(1)
 
         Pipeline({})
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             Pipeline({}, 1)
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             Pipeline({}, SomeFactor())
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             Pipeline({"open": USEquityPricing.open})
 
         Pipeline({}, SomeFactor() > 5)
@@ -83,15 +85,15 @@ class PipelineTestCase(TestCase):
         f = SomeFactor()
 
         p.add(f, "f")
-        self.assertEqual(p.columns, {"f": f})
+        assert p.columns == {"f": f}
 
         p.add(f > 5, "g")
-        self.assertEqual(p.columns, {"f": f, "g": f > 5})
+        assert p.columns == {"f": f, "g": f > 5}
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             p.add(f, 1)
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             p.add(USEquityPricing.open, "open")
 
     def test_overwrite(self):
@@ -100,52 +102,51 @@ class PipelineTestCase(TestCase):
         other_f = SomeOtherFactor()
 
         p.add(f, "f")
-        self.assertEqual(p.columns, {"f": f})
+        assert p.columns == {"f": f}
 
-        with self.assertRaises(KeyError) as e:
+        with pytest.raises(KeyError) as e:
             p.add(other_f, "f")
-        [message] = e.exception.args
-        self.assertEqual(message, "Column 'f' already exists.")
+        [message] = e.value.args
+        assert message == "Column 'f' already exists."
 
         p.add(other_f, "f", overwrite=True)
-        self.assertEqual(p.columns, {"f": other_f})
+        assert p.columns == {"f": other_f}
 
     def test_remove(self):
         f = SomeFactor()
         p = Pipeline(columns={"f": f})
 
-        with self.assertRaises(KeyError) as e:
+        with pytest.raises(KeyError) as e:
             p.remove("not_a_real_name")
 
-        self.assertEqual(f, p.remove("f"))
+        assert f == p.remove("f")
 
-        with self.assertRaises(KeyError) as e:
+        with pytest.raises(KeyError) as e:
             p.remove("f")
 
-        self.assertEqual(e.exception.args, ("f",))
+        assert e.value.args == ("f",)
 
     def test_set_screen(self):
         f, g = SomeFilter(), SomeOtherFilter()
 
         p = Pipeline()
-        self.assertEqual(p.screen, None)
+        assert p.screen is None
 
         p.set_screen(f)
-        self.assertEqual(p.screen, f)
+        assert p.screen == f
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             p.set_screen(f)
 
         p.set_screen(g, overwrite=True)
-        self.assertEqual(p.screen, g)
+        assert p.screen == g
 
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
             p.set_screen(f, g)
 
-        message = e.exception.args[0]
-        self.assertIn(
-            "expected a value of type bool or int for argument 'overwrite'",
-            message,
+        message = e.value.args[0]
+        assert (
+            "expected a value of type bool or int for argument 'overwrite'" in message
         )
 
     def test_show_graph(self):
@@ -158,11 +159,9 @@ class PipelineTestCase(TestCase):
         def mock_display_graph(g, format="svg", include_asset_exists=False):
             return (g, format, include_asset_exists)
 
-        self.assertEqual(
-            inspect.getfullargspec(display_graph),
-            inspect.getfullargspec(mock_display_graph),
-            msg="Mock signature doesn't match signature for display_graph.",
-        )
+        assert inspect.getfullargspec(display_graph) == inspect.getfullargspec(
+            mock_display_graph
+        ), "Mock signature doesn't match signature for display_graph."
 
         patch_display_graph = patch(
             "zipline.pipeline.graph.display_graph",
@@ -171,29 +170,26 @@ class PipelineTestCase(TestCase):
 
         with patch_display_graph:
             graph, format, include_asset_exists = p.show_graph()
-            self.assertIs(graph.outputs["f"], f)
+            assert graph.outputs["f"] is f
             # '' is a sentinel used for screen if it's not supplied.
-            self.assertEqual(
-                sorted(graph.outputs.keys()),
-                ["f", graph.screen_name],
-            )
-            self.assertEqual(format, "svg")
-            self.assertEqual(include_asset_exists, False)
+            assert sorted(graph.outputs.keys()) == ["f", graph.screen_name]
+            assert format == "svg"
+            assert include_asset_exists is False
 
         with patch_display_graph:
             graph, format, include_asset_exists = p.show_graph(format="png")
-            self.assertIs(graph.outputs["f"], f)
+            assert graph.outputs["f"] is f
             # '' is a sentinel used for screen if it's not supplied.
-            self.assertEqual(sorted(graph.outputs.keys()), ["f", graph.screen_name])
-            self.assertEqual(format, "png")
-            self.assertEqual(include_asset_exists, False)
+            assert sorted(graph.outputs.keys()) == ["f", graph.screen_name]
+            assert format == "png"
+            assert include_asset_exists is False
 
         with patch_display_graph:
             graph, format, include_asset_exists = p.show_graph(format="jpeg")
-            self.assertIs(graph.outputs["f"], f)
-            self.assertEqual(sorted(graph.outputs.keys()), ["f", graph.screen_name])
-            self.assertEqual(format, "jpeg")
-            self.assertEqual(include_asset_exists, False)
+            assert graph.outputs["f"] is f
+            assert sorted(graph.outputs.keys()) == ["f", graph.screen_name]
+            assert format == "jpeg"
+            assert include_asset_exists is False
 
         expected = (
             r".*\.show_graph\(\) expected a value in "
@@ -201,12 +197,12 @@ class PipelineTestCase(TestCase):
             r"but got 'fizzbuzz' instead."
         )
 
-        with self.assertRaisesRegex(ValueError, expected):
+        with pytest.raises(ValueError, match=expected):
             p.show_graph(format="fizzbuzz")
 
     def test_infer_domain_no_terms(self):
-        self.assertEqual(Pipeline().domain(default=GENERIC), GENERIC)
-        self.assertEqual(Pipeline().domain(default=US_EQUITIES), US_EQUITIES)
+        assert Pipeline().domain(default=GENERIC) == GENERIC
+        assert Pipeline().domain(default=US_EQUITIES) == US_EQUITIES
 
     def test_infer_domain_screen_only(self):
         class D(DataSet):
@@ -216,18 +212,11 @@ class PipelineTestCase(TestCase):
         filter_US = D.c.specialize(US_EQUITIES).latest
         filter_CA = D.c.specialize(CA_EQUITIES).latest
 
-        self.assertEqual(
-            Pipeline(screen=filter_generic).domain(default=GB_EQUITIES),
-            GB_EQUITIES,
+        assert (
+            Pipeline(screen=filter_generic).domain(default=GB_EQUITIES) == GB_EQUITIES
         )
-        self.assertEqual(
-            Pipeline(screen=filter_US).domain(default=GB_EQUITIES),
-            US_EQUITIES,
-        )
-        self.assertEqual(
-            Pipeline(screen=filter_CA).domain(default=GB_EQUITIES),
-            CA_EQUITIES,
-        )
+        assert Pipeline(screen=filter_US).domain(default=GB_EQUITIES) == US_EQUITIES
+        assert Pipeline(screen=filter_CA).domain(default=GB_EQUITIES) == CA_EQUITIES
 
     def test_infer_domain_outputs(self):
         class D(DataSet):
@@ -238,11 +227,11 @@ class PipelineTestCase(TestCase):
 
         result = Pipeline({"f": D_US.c.latest}).domain(default=GB_EQUITIES)
         expected = US_EQUITIES
-        self.assertEqual(result, expected)
+        assert result == expected
 
         result = Pipeline({"f": D_CA.c.latest}).domain(default=GB_EQUITIES)
         expected = CA_EQUITIES
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_conflict_between_outputs(self):
         class D(DataSet):
@@ -252,10 +241,10 @@ class PipelineTestCase(TestCase):
         D_CA = D.specialize(CA_EQUITIES)
 
         pipe = Pipeline({"f": D_US.c.latest, "g": D_CA.c.latest})
-        with self.assertRaises(AmbiguousDomain) as e:
+        with pytest.raises(AmbiguousDomain) as e:
             pipe.domain(default=GENERIC)
 
-        self.assertEqual(e.exception.domains, [CA_EQUITIES, US_EQUITIES])
+        assert e.value.domains == [CA_EQUITIES, US_EQUITIES]
 
     def test_conflict_between_output_and_screen(self):
         class D(DataSet):
@@ -266,7 +255,7 @@ class PipelineTestCase(TestCase):
         D_CA = D.specialize(CA_EQUITIES)
 
         pipe = Pipeline({"f": D_US.c.latest}, screen=D_CA.b.latest)
-        with self.assertRaises(AmbiguousDomain) as e:
+        with pytest.raises(AmbiguousDomain) as e:
             pipe.domain(default=GENERIC)
 
-        self.assertEqual(e.exception.domains, [CA_EQUITIES, US_EQUITIES])
+        assert e.value.domains == [CA_EQUITIES, US_EQUITIES]

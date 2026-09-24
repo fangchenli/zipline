@@ -16,6 +16,7 @@ from string import ascii_uppercase
 from unittest import TestCase
 
 import numpy
+import pytest
 from numpy import (
     arange,
     array,
@@ -96,7 +97,7 @@ class NumericalExpressionTestCase(TestCase):
         check_allclose(result, expected)
 
     def check_constant_output(self, expr, expected):
-        self.assertFalse(isnan(expected))
+        assert not isnan(expected)
         return self.check_output(expr, full((5, 5), expected, float))
 
     def test_validate_good(self):
@@ -116,39 +117,39 @@ class NumericalExpressionTestCase(TestCase):
         f, g, h = self.f, self.g, self.h
 
         # Too few inputs.
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             NumExprFactor("x_0", (), dtype=float64_dtype)
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             NumExprFactor("x_0 + x_1", (f,), dtype=float64_dtype)
 
         # Too many inputs.
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             NumExprFactor("x_0", (f, g), dtype=float64_dtype)
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             NumExprFactor("x_0 + x_1", (f, g, h), dtype=float64_dtype)
 
         # Invalid variable name.
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             NumExprFactor("x_0x_1", (f,), dtype=float64_dtype)
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             NumExprFactor("x_0x_1", (f, g), dtype=float64_dtype)
 
         # Variable index must start at 0.
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             NumExprFactor("x_1", (f,), dtype=float64_dtype)
 
         # Scalar operands must be numeric.
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             "2" + f
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             f + "2"
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             _ = f > "2"
 
         # Boolean binary operators must be between filters.
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             f + (f > 2)
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             _ = (f > f) > f
 
     @parameter_space(num_new_inputs=[1, 4])
@@ -205,62 +206,62 @@ class NumericalExpressionTestCase(TestCase):
                 self.check_output(expr, expected)
 
     def test_combine_datetimes(self):
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
             self.d + self.d
-        message = e.exception.args[0]
+        message = e.value.args[0]
         expected = (
             "Don't know how to compute datetime64[ns] + datetime64[ns].\n"
             "Arithmetic operators are only supported between Factors of dtype "
             "'float64'."
         )
-        self.assertEqual(message, expected)
+        assert message == expected
 
         # Confirm that * shows up in the error instead of +.
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
             self.d * self.d
-        message = e.exception.args[0]
+        message = e.value.args[0]
         expected = (
             "Don't know how to compute datetime64[ns] * datetime64[ns].\n"
             "Arithmetic operators are only supported between Factors of dtype "
             "'float64'."
         )
-        self.assertEqual(message, expected)
+        assert message == expected
 
     def test_combine_datetime_with_float(self):
         # Test with both float-type factors and numeric values.
         for float_value in (self.f, float64(1.0), 1.0):
             for op, sym in ((add, "+"), (mul, "*")):
-                with self.assertRaises(TypeError) as e:
+                with pytest.raises(TypeError) as e:
                     op(float_value, self.d)
-                message = e.exception.args[0]
+                message = e.value.args[0]
                 expected = (
                     f"Don't know how to compute float64 {sym} datetime64[ns].\n"
                     "Arithmetic operators are only supported between Factors"
                     " of dtype 'float64'."
                 )
-                self.assertEqual(message, expected)
+                assert message == expected
 
-                with self.assertRaises(TypeError) as e:
+                with pytest.raises(TypeError) as e:
                     op(self.d, float_value)
-                message = e.exception.args[0]
+                message = e.value.args[0]
                 expected = (
                     f"Don't know how to compute datetime64[ns] {sym} float64.\n"
                     "Arithmetic operators are only supported between Factors"
                     " of dtype 'float64'."
                 )
-                self.assertEqual(message, expected)
+                assert message == expected
 
     def test_negate_datetime(self):
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
             _ = -self.d
 
-        message = e.exception.args[0]
+        message = e.value.args[0]
         expected = (
             "Can't apply unary operator '-' to instance of "
             "'DateFactor' with dtype 'datetime64[ns]'.\n"
             "'-' is only supported for Factors of dtype 'float64'."
         )
-        self.assertEqual(message, expected)
+        assert message == expected
 
     def test_negate(self):
         f, g = self.f, self.g

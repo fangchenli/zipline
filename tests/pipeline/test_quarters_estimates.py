@@ -1,8 +1,10 @@
 import itertools
+import re
 from datetime import timedelta
 
 import numpy as np
 import pandas as pd
+import pytest
 from numpy.testing import assert_almost_equal, assert_array_equal
 from parameterized import parameterized
 from toolz import merge
@@ -34,7 +36,6 @@ from zipline.testing.fixtures import (
 from zipline.testing.predicates import (
     assert_equal,
     assert_frame_equal,
-    assert_raises_regex,
 )
 from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
 
@@ -357,20 +358,21 @@ class WithWrongLoaderDefinition(WithEstimates):
         }
         p = Pipeline(columns)
 
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(
+            ValueError, match=re.escape(INVALID_NUM_QTRS_MESSAGE % "-2,-1")
+        ):
             engine.run_pipeline(
                 p,
                 start_date=self.trading_days[0],
                 end_date=self.trading_days[-1],
             )
-            assert_raises_regex(e, INVALID_NUM_QTRS_MESSAGE % "-1,-2")
 
     def test_no_num_announcements_attr(self):
         dataset = QuartersEstimatesNoNumQuartersAttr(1)
         engine = self.make_engine()
         p = Pipeline({c.name: c.latest for c in dataset.columns})
 
-        with self.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             engine.run_pipeline(
                 p,
                 start_date=self.trading_days[0],
@@ -439,7 +441,7 @@ class WrongSplitsLoaderDefinition(WithEstimates, ZiplineTestCase):
             Estimates.estimate: "estimate",
         }
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             loader(
                 dummy_df,
                 {column.name: val for column, val in columns.items()},

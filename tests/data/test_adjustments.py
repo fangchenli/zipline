@@ -3,6 +3,7 @@ import sqlite3
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from zipline.data.adjustments import (
     SQLiteAdjustmentReader,
@@ -379,7 +380,7 @@ class LoadAdjustmentsFromSQLiteTestCase(ZiplineTestCase):
         assert_equal(set(result), {"volume"})
         assert_equal(self.as_tuples(result["volume"]), {1: [(0, 1, 1, 1, 2.0)]})
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             load_adjustments_from_sqlite(
                 db, self.dates, assets, True, True, True, "prices"
             )

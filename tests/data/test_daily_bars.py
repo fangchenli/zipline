@@ -18,6 +18,7 @@ from itertools import cycle, islice
 from sys import maxsize
 
 import numpy as np
+import pytest
 from numpy import (
     arange,
     nan,
@@ -213,10 +214,7 @@ class _DailyBarsTestCase(
         assert_equal(self.daily_bar_reader.data_frequency, "session")
 
     def test_read_first_trading_day(self):
-        self.assertEqual(
-            self.daily_bar_reader.first_trading_day,
-            self.sessions[0],
-        )
+        assert self.daily_bar_reader.first_trading_day == self.sessions[0]
 
     def test_sessions(self):
         assert_equal(self.daily_bar_reader.sessions, self.sessions)
@@ -359,7 +357,7 @@ class _DailyBarsTestCase(
     )
     def test_read_only_unknown_sids(self, query_assets):
         columns = [CLOSE, VOLUME]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             self.daily_bar_reader.load_raw_arrays(
                 columns,
                 TEST_QUERY_START,
@@ -450,13 +448,13 @@ class _DailyBarsTestCase(
             # Attempting to get data for an asset before its start date
             # should raise NoDataBeforeDate.
             if TEST_CALENDAR_START <= before_start <= TEST_CALENDAR_STOP:
-                with self.assertRaises(NoDataBeforeDate):
+                with pytest.raises(NoDataBeforeDate):
                     reader.get_value(asset, before_start, CLOSE)
 
             # Attempting to get data for an asset after its end date
             # should raise NoDataAfterDate.
             if TEST_CALENDAR_START <= after_end <= TEST_CALENDAR_STOP:
-                with self.assertRaises(NoDataAfterDate):
+                with pytest.raises(NoDataAfterDate):
                     reader.get_value(asset, after_end, CLOSE)
 
         # Retrieving data for "holes" (dates with no data, but within
@@ -529,9 +527,9 @@ class _DailyBarsTestCase(
         ).to_numpy(dtype=object)
         assert_equal(all_results, all_expected)
 
-        self.assertEqual(all_results.dtype, np.dtype(object))
+        assert all_results.dtype == np.dtype(object)
         for code in all_results:
-            self.assertIsInstance(code, str)
+            assert isinstance(code, str)
 
         # Check all possible subsets of assets.
         for indices in map(list, powerset(range(len(all_assets)))):
@@ -580,19 +578,19 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
             multiplier = 1 if column == "volume" else 1000
             for asset_id in self.assets:
                 for date in self.dates_for_asset(asset_id):
-                    self.assertEqual(
-                        data[idx],
-                        expected_bar_value_with_holes(
+                    assert (
+                        data[idx]
+                        == expected_bar_value_with_holes(
                             asset_id=asset_id,
                             date=date,
                             colname=column,
                             holes=self.holes,
                             missing_value=0,
                         )
-                        * multiplier,
+                        * multiplier
                     )
                     idx += 1
-            self.assertEqual(idx, len(data))
+            assert idx == len(data)
 
     def test_write_day_and_id(self):
         result = self.bcolz_daily_bar_ctable
@@ -601,8 +599,8 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
         days = result["day"]
         for asset_id in self.assets:
             for date in self.dates_for_asset(asset_id):
-                self.assertEqual(ids[idx], asset_id)
-                self.assertEqual(date, Timestamp(days[idx], unit="s"))
+                assert ids[idx] == asset_id
+                assert date == Timestamp(days[idx], unit="s")
                 idx += 1
 
     def test_write_attrs(self):
@@ -631,12 +629,9 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
             "9": 9,  # Starts on 6-12, 10th trading day of month.
             "11": 10,  # Starts on 6-15, 11th trading day of month.
         }
-        self.assertEqual(result.attrs["first_row"], expected_first_row)
-        self.assertEqual(result.attrs["last_row"], expected_last_row)
-        self.assertEqual(
-            result.attrs["calendar_offset"],
-            expected_calendar_offset,
-        )
+        assert result.attrs["first_row"] == expected_first_row
+        assert result.attrs["last_row"] == expected_last_row
+        assert result.attrs["calendar_offset"] == expected_calendar_offset
         cal = get_calendar(result.attrs["calendar_name"])
         first_session = Timestamp(result.attrs["start_session_ns"])
         end_session = Timestamp(result.attrs["end_session_ns"])
@@ -702,7 +697,7 @@ class BcolzDailyBarWriterMissingDataTestCase(
             "[Timestamp('2015-06-15 00:00:00')]\n"
             "Extra sessions: []"
         )
-        with self.assertRaisesRegex(AssertionError, expected_msg):
+        with pytest.raises(AssertionError, match=expected_msg):
             writer.write(bar_data)
 
 
@@ -809,21 +804,21 @@ class ParquetDailyBarWriterTestCase(WithTmpDir, WithTradingCalendars, ZiplineTes
     def test_invalid_data(self):
         frame = self.frame(self.sessions)
         frame.iloc[0, frame.columns.get_loc("open")] = -1.0
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             self.write([(1, frame)], invalid_data_behavior="raise")
 
     def test_rejects_non_sessions(self):
         frame = self.frame(DatetimeIndex([Timestamp("2016-01-02")]))  # Saturday
-        with self.assertRaisesRegex(ValueError, "not sessions"):
+        with pytest.raises(ValueError, match="not sessions"):
             self.write([(1, frame)])
 
     def test_rejects_unknown_asset(self):
-        with self.assertRaisesRegex(ValueError, "unknown asset id 2"):
+        with pytest.raises(ValueError, match="unknown asset id 2"):
             self.write([(2, self.frame(self.sessions))], assets={1})
 
     def test_refuses_to_overwrite(self):
         self.write([(1, self.frame(self.sessions))])
-        with self.assertRaisesRegex(ValueError, "is not empty"):
+        with pytest.raises(ValueError, match="is not empty"):
             self.write([(1, self.frame(self.sessions))])
 
     def test_newer_format_version(self):
@@ -835,7 +830,7 @@ class ParquetDailyBarWriterTestCase(WithTmpDir, WithTradingCalendars, ZiplineTes
         with open(metadata_path, "w") as f:
             json.dump(metadata, f)
         reader = ParquetDailyBarReader(self.path)
-        with self.assertRaisesRegex(ValueError, "format version"):
+        with pytest.raises(ValueError, match="format version"):
             reader.get_value(1, self.sessions[0], "close")
 
     def test_readable_as_dataset(self):
@@ -883,7 +878,7 @@ class _MultiCountryDailyBarTestCase(WithTmpDir, _DailyBarsTestCase):
         )
 
         for invalid_date in INVALID_DATES:
-            with self.assertRaises(NoDataOnDate):
+            with pytest.raises(NoDataOnDate):
                 self.daily_bar_reader.load_raw_arrays(
                     OHLCV,
                     invalid_date,
@@ -891,7 +886,7 @@ class _MultiCountryDailyBarTestCase(WithTmpDir, _DailyBarsTestCase):
                     self.assets,
                 )
 
-            with self.assertRaises(NoDataOnDate):
+            with pytest.raises(NoDataOnDate):
                 self.daily_bar_reader.get_value(
                     self.assets[0],
                     invalid_date,
@@ -906,7 +901,7 @@ class _MultiCountryDailyBarTestCase(WithTmpDir, _DailyBarsTestCase):
             self.asset_finder.equities_sids_for_country_code(country)[0]
             for country in ("US", "CA")
         )
-        with self.assertRaisesRegex(NotImplementedError, "multiple countries"):
+        with pytest.raises(NotImplementedError, match="multiple countries"):
             self.daily_bar_reader.load_raw_arrays(
                 OHLCV, TEST_QUERY_START, TEST_QUERY_STOP, [us, ca]
             )

@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 import talib
 from numpy.random import RandomState
 from parameterized import parameterized
@@ -107,9 +108,9 @@ class BollingerBandsTestCase(BaseUSEquityPipelineTestCase):
     def test_bollinger_bands_output_ordering(self):
         bbands = BollingerBands(window_length=5, k=2)
         lower, middle, upper = bbands
-        self.assertIs(lower, bbands.lower)
-        self.assertIs(middle, bbands.middle)
-        self.assertIs(upper, bbands.upper)
+        assert lower is bbands.lower
+        assert middle is bbands.middle
+        assert upper is bbands.upper
 
 
 class AroonTestCase(ZiplineTestCase):
@@ -345,11 +346,11 @@ class IchimokuKinkoHyoTestCase(ZiplineTestCase):
     def test_input_validation(self, arg):
         window_length = 52
 
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(ValueError) as e:
             IchimokuKinkoHyo(**{arg: window_length + 1})
 
         assert_equal(
-            str(e.exception),
+            str(e.value),
             f"{arg} must be <= the window_length: 53 > 52",
         )
 
@@ -459,19 +460,19 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
             "MACDSignal() expected a value greater than or equal to 1"
             " for argument %r, but got 0 instead."
         )
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(ValueError) as e:
             MovingAverageConvergenceDivergenceSignal(fast_period=0)
-        self.assertEqual(template % "fast_period", str(e.exception))
+        assert template % "fast_period" == str(e.value)
 
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(ValueError) as e:
             MovingAverageConvergenceDivergenceSignal(slow_period=0)
-        self.assertEqual(template % "slow_period", str(e.exception))
+        assert template % "slow_period" == str(e.value)
 
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(ValueError) as e:
             MovingAverageConvergenceDivergenceSignal(signal_period=0)
-        self.assertEqual(template % "signal_period", str(e.exception))
+        assert template % "signal_period" == str(e.value)
 
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(ValueError) as e:
             MovingAverageConvergenceDivergenceSignal(
                 fast_period=5,
                 slow_period=4,
@@ -481,7 +482,7 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
             "'slow_period' must be greater than 'fast_period', but got\n"
             "slow_period=4, fast_period=5"
         )
-        self.assertEqual(expected, str(e.exception))
+        assert expected == str(e.value)
 
     @parameter_space(
         seed=range(2),
@@ -530,7 +531,7 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
         signal_ewma = self.expected_ewma(fast_ewma - slow_ewma, signal_period)
 
         # Everything but the last row should be NaN.
-        self.assertTrue(signal_ewma.iloc[:-1].isnull().all().all())
+        assert signal_ewma.iloc[:-1].isnull().all().all()
 
         # We're testing a single compute call, which we expect to be equivalent
         # to the last row of the frame we calculated with pandas.
@@ -583,7 +584,7 @@ class RSITestCase(ZiplineTestCase):
         closes = np.linspace(46, 60, num=15)
         closes = closes.reshape(15, 1)
         rsi.compute(today, assets, out, closes)
-        self.assertEqual(out[0], 100.0)
+        assert out[0] == 100.0
 
     def test_rsi_all_negative_returns(self):
         """
@@ -599,7 +600,7 @@ class RSITestCase(ZiplineTestCase):
         closes = closes.reshape(15, 1)
 
         rsi.compute(today, assets, out, closes)
-        self.assertEqual(out[0], 0.0)
+        assert out[0] == 0.0
 
     def test_rsi_same_returns(self):
         """
@@ -635,7 +636,7 @@ class RSITestCase(ZiplineTestCase):
 
         closes = np.vstack((example_case, double)).T
         rsi.compute(today, assets, out, closes)
-        self.assertAlmostEqual(out[0], out[1])
+        assert out[0] == pytest.approx(out[1], abs=1e-7)
 
 
 class AnnualizedVolatilityTestCase(ZiplineTestCase):

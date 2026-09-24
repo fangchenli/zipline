@@ -17,6 +17,7 @@ from textwrap import dedent
 
 import numpy as np
 import pandas as pd
+import pytest
 from numpy import nan
 from parameterized import parameterized
 
@@ -585,14 +586,14 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
             """
         )
         algo = self.make_algo(script=algo_text)
-        with self.assertRaises(HistoryInInitialize):
+        with pytest.raises(HistoryInInitialize):
             algo.run()
 
     def test_negative_bar_count(self):
         """
         Negative bar counts leak future information.
         """
-        with self.assertRaisesRegex(ValueError, "bar_count must be >= 1, but got -1"):
+        with pytest.raises(ValueError, match="bar_count must be >= 1, but got -1"):
             self.data_portal.get_history_window(
                 [self.ASSET1],
                 pd.Timestamp("2015-01-07 14:35", tz="UTC"),
@@ -1245,9 +1246,9 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
         # Last 5 bars occur at the start of 2014-07-07.
         np.testing.assert_array_equal(window[-5:], expected[-5:])
 
-        self.assertEqual(window.index[14], pd.Timestamp("2014-07-03 17:00", tz="UTC"))
+        assert window.index[14] == pd.Timestamp("2014-07-03 17:00", tz="UTC")
 
-        self.assertEqual(window.index[-5], pd.Timestamp("2014-07-07 13:31", tz="UTC"))
+        assert window.index[-5] == pd.Timestamp("2014-07-07 13:31", tz="UTC")
 
     def test_minute_different_lifetimes(self):
         cal = self.trading_calendar
@@ -1313,7 +1314,7 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
             "window, start the backtest on or after 2014-01-06."
         )
         for field in OHLCP:
-            with self.assertRaisesRegex(HistoryWindowStartsBeforeData, exp_msg):
+            with pytest.raises(HistoryWindowStartsBeforeData, match=exp_msg):
                 self.data_portal.get_history_window(
                     [self.ASSET1],
                     first_day_minutes[5],
@@ -1352,23 +1353,23 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
                     "minute",
                 )[self.ASSET2]
 
-                self.assertEqual(len(window), 3)
+                assert len(window) == 3
 
                 if field == "open":
-                    self.assertEqual(window.iloc[0], 3)
-                    self.assertEqual(window.iloc[1], 393)
+                    assert window.iloc[0] == 3
+                    assert window.iloc[1] == 393
                 elif field == "high":
-                    self.assertEqual(window.iloc[0], 393)
-                    self.assertEqual(window.iloc[1], 783)
+                    assert window.iloc[0] == 393
+                    assert window.iloc[1] == 783
                 elif field == "low":
-                    self.assertEqual(window.iloc[0], 1)
-                    self.assertEqual(window.iloc[1], 391)
+                    assert window.iloc[0] == 1
+                    assert window.iloc[1] == 391
                 elif field == "close":
-                    self.assertEqual(window.iloc[0], 391)
-                    self.assertEqual(window.iloc[1], 781)
+                    assert window.iloc[0] == 391
+                    assert window.iloc[1] == 781
                 elif field == "volume":
-                    self.assertEqual(window.iloc[0], 7663500)
-                    self.assertEqual(window.iloc[1], 22873500)
+                    assert window.iloc[0] == 7663500
+                    assert window.iloc[1] == 22873500
 
                 last_val = -1
 
@@ -1430,26 +1431,26 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
                 "minute",
             )[self.ASSET2]
 
-            self.assertEqual(len(window), 3)
+            assert len(window) == 3
 
             if field == "open":
-                self.assertEqual(window.iloc[0], 393)
-                self.assertEqual(window.iloc[1], 783)
+                assert window.iloc[0] == 393
+                assert window.iloc[1] == 783
             elif field == "high":
-                self.assertEqual(window.iloc[0], 783)
-                self.assertEqual(window.iloc[1], 1173)
+                assert window.iloc[0] == 783
+                assert window.iloc[1] == 1173
             elif field == "low":
-                self.assertEqual(window.iloc[0], 391)
-                self.assertEqual(window.iloc[1], 781)
+                assert window.iloc[0] == 391
+                assert window.iloc[1] == 781
             elif field == "close":
-                self.assertEqual(window.iloc[0], 781)
-                self.assertEqual(window.iloc[1], 1171)
+                assert window.iloc[0] == 781
+                assert window.iloc[1] == 1171
             elif field == "price":
-                self.assertEqual(window.iloc[0], 781)
-                self.assertEqual(window.iloc[1], 1171)
+                assert window.iloc[0] == 781
+                assert window.iloc[1] == 1171
             elif field == "volume":
-                self.assertEqual(window.iloc[0], 22873500)
-                self.assertEqual(window.iloc[1], 38083500)
+                assert window.iloc[0] == 22873500
+                assert window.iloc[1] == 38083500
 
             last_val = -1
 
@@ -1585,11 +1586,9 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
                     "minute",
                 )[self.ASSET3]
 
-                self.assertEqual(
-                    len(window),
-                    bar_count,
+                assert len(window) == bar_count, (
                     f"Unexpected window length at {minute}. "
-                    f"Expected {bar_count}, but was {len(window)}.",
+                    f"Expected {bar_count}, but was {len(window)}."
                 )
                 np.testing.assert_allclose(
                     window.iloc[-1],
@@ -1727,13 +1726,13 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
             np.testing.assert_array_equal(np.full(2, np.nan), window[self.ASSET2][-2:])
 
             # third from last value should not be NaN
-            self.assertFalse(np.isnan(window[self.ASSET2].iloc[-3]))
+            assert not np.isnan(window[self.ASSET2].iloc[-3])
 
         volume_window = bar_data.history([self.ASSET1, self.ASSET2], "volume", 15, "1d")
 
         np.testing.assert_array_equal(np.zeros(2), volume_window[self.ASSET2][-2:])
 
-        self.assertNotEqual(0, volume_window[self.ASSET2].iloc[-3])
+        assert 0 != volume_window[self.ASSET2].iloc[-3]
 
     def test_daily_after_asset_stopped(self):
         # SHORT_ASSET trades on 1/5, 1/6, that's it.
@@ -1755,22 +1754,20 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
                 if idx == 0:
                     # one value, then one NaN.  base value for 1/6 is 3.
                     if field in OHLCP:
-                        self.assertEqual(
-                            3 + MINUTE_FIELD_INFO[field], asset_series.iloc[0]
-                        )
+                        assert 3 + MINUTE_FIELD_INFO[field] == asset_series.iloc[0]
 
-                        self.assertTrue(np.isnan(asset_series.iloc[1]))
+                        assert np.isnan(asset_series.iloc[1])
                     elif field == "volume":
-                        self.assertEqual(300, asset_series.iloc[0])
-                        self.assertEqual(0, asset_series.iloc[1])
+                        assert 300 == asset_series.iloc[0]
+                        assert 0 == asset_series.iloc[1]
                 else:
                     # both NaNs
                     if field in OHLCP:
-                        self.assertTrue(np.isnan(asset_series.iloc[0]))
-                        self.assertTrue(np.isnan(asset_series.iloc[1]))
+                        assert np.isnan(asset_series.iloc[0])
+                        assert np.isnan(asset_series.iloc[1])
                     elif field == "volume":
-                        self.assertEqual(0, asset_series.iloc[0])
-                        self.assertEqual(0, asset_series.iloc[1])
+                        assert 0 == asset_series.iloc[0]
+                        assert 0 == asset_series.iloc[1]
 
     def test_daily_splits_and_mergers(self):
         # self.SPLIT_ASSET and self.MERGER_ASSET had splits/mergers
@@ -1913,13 +1910,13 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
             np.testing.assert_array_equal(np.full(2, np.nan), window[self.ASSET2][-2:])
 
             # third from last value should not be NaN
-            self.assertFalse(np.isnan(window[self.ASSET2].iloc[-3]))
+            assert not np.isnan(window[self.ASSET2].iloc[-3])
 
         volume_window = bar_data.history([self.ASSET1, self.ASSET2], "volume", 15, "1d")
 
         np.testing.assert_array_equal(np.zeros(2), volume_window[self.ASSET2][-2:])
 
-        self.assertNotEqual(0, volume_window[self.ASSET2].iloc[-3])
+        assert 0 != volume_window[self.ASSET2].iloc[-3]
 
     def test_history_window_before_first_trading_day(self):
         # trading_start is 2/3/2014
@@ -1931,7 +1928,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
             "window, start the backtest on or after 2014-01-09."
         )
 
-        with self.assertRaisesRegex(HistoryWindowStartsBeforeData, exp_msg):
+        with pytest.raises(HistoryWindowStartsBeforeData, match=exp_msg):
             self.data_portal.get_history_window(
                 [self.ASSET1],
                 second_day,
@@ -1941,7 +1938,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
                 "daily",
             )[self.ASSET1]
 
-        with self.assertRaisesRegex(HistoryWindowStartsBeforeData, exp_msg):
+        with pytest.raises(HistoryWindowStartsBeforeData, match=exp_msg):
             self.data_portal.get_history_window(
                 [self.ASSET1],
                 second_day,
@@ -1954,7 +1951,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
         # Use a minute to force minute mode.
         first_minute = self.trading_calendar.first_minutes[self.TRADING_START_DT]
 
-        with self.assertRaisesRegex(HistoryWindowStartsBeforeData, exp_msg):
+        with pytest.raises(HistoryWindowStartsBeforeData, match=exp_msg):
             self.data_portal.get_history_window(
                 [self.ASSET2],
                 first_minute,

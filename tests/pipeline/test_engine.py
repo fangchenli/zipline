@@ -8,6 +8,7 @@ from itertools import product
 from operator import add, sub
 
 import numpy as np
+import pytest
 from numpy import (
     arange,
     array,
@@ -224,7 +225,7 @@ class ConstantInputTestCase(
         p = Pipeline()
 
         msg = "start_date must be before or equal to end_date .*"
-        with self.assertRaisesRegex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.engine.run_pipeline(p, self.dates[2], self.dates[1])
 
     def test_fail_usefully_on_insufficient_data(self):
@@ -242,7 +243,7 @@ class ConstantInputTestCase(
 
         # We shouldn't be able to compute dates[8], since we only know about 8
         # prior dates, and we need a window length of 10.
-        with self.assertRaises(NoFurtherDataError):
+        with pytest.raises(NoFurtherDataError):
             self.engine.run_pipeline(p, self.dates[8], self.dates[8])
 
     def test_input_dates_provided_by_default(self):
@@ -274,7 +275,7 @@ class ConstantInputTestCase(
         #  (i.e. start and end dates are the same) we should accurately get
         # data for the day prior.
         result = self.engine.run_pipeline(p, self.dates[1], self.dates[1])
-        self.assertEqual(result["f"].iloc[0], 1.0)
+        assert result["f"].iloc[0] == 1.0
 
     def test_screen(self):
         asset_ids = array(self.asset_ids)
@@ -315,7 +316,7 @@ class ConstantInputTestCase(
 
         for p in pipelines:
             result = self.engine.run_pipeline(p, dates[0], dates[-1])
-            self.assertEqual(set(result.columns), {"f"})
+            assert set(result.columns) == {"f"}
             assert_multi_index_is_product(self, result.index, dates, assets)
 
             check_arrays(
@@ -345,7 +346,7 @@ class ConstantInputTestCase(
         )
         results = self.engine.run_pipeline(pipeline, dates[0], dates[-1])
 
-        self.assertEqual(set(results.columns), {"short", "high", "long"})
+        assert set(results.columns) == {"short", "high", "long"}
         assert_multi_index_is_product(self, results.index, dates, assets)
 
         # row-wise sum over an array whose values are all (1 - 2)
@@ -514,8 +515,8 @@ class ConstantInputTestCase(
             dates_to_test[0],
             dates_to_test[-1],
         )
-        self.assertIsNotNone(result)
-        self.assertEqual({"sumdiff", "open", "close", "volume"}, set(result.columns))
+        assert result is not None
+        assert {"sumdiff", "open", "close", "volume"} == set(result.columns)
 
         result_index = self.asset_ids * len(dates_to_test)
         result_shape = (len(result_index),)
@@ -787,17 +788,13 @@ class ConstantInputTestCase(
 
         assert_frame_equal(result, expected)
 
-        self.assertEqual(
-            set(loader1.load_calls),
-            {
-                ColumnArgs.sorted_by_ds(Loader1DataSet1.col1, Loader1DataSet2.col1),
-                ColumnArgs.sorted_by_ds(Loader1DataSet1.col2, Loader1DataSet2.col2),
-            },
-        )
-        self.assertEqual(
-            set(loader2.load_calls),
-            {ColumnArgs.sorted_by_ds(Loader2DataSet.col1, Loader2DataSet.col2)},
-        )
+        assert set(loader1.load_calls) == {
+            ColumnArgs.sorted_by_ds(Loader1DataSet1.col1, Loader1DataSet2.col1),
+            ColumnArgs.sorted_by_ds(Loader1DataSet1.col2, Loader1DataSet2.col2),
+        }
+        assert set(loader2.load_calls) == {
+            ColumnArgs.sorted_by_ds(Loader2DataSet.col1, Loader2DataSet.col2)
+        }
 
 
 # Use very large sids that don't fit in that doesn't fit in an int32 as a
@@ -907,7 +904,7 @@ class FrameInputTestCase(
                     dates[start],
                     dates[stop],
                 )
-                self.assertEqual(set(results.columns), {"low", "high"})
+                assert set(results.columns) == {"low", "high"}
                 iloc_bounds = slice(start, stop + 1)  # +1 to include end date
 
                 low_results = results.unstack()["low"]
@@ -1260,8 +1257,8 @@ class ParameterizedFactorTestCase(
     del ewm_cases
 
     def test_ewm_aliasing(self):
-        self.assertIs(ExponentialWeightedMovingAverage, EWMA)
-        self.assertIs(ExponentialWeightedMovingStdDev, EWMSTD)
+        assert ExponentialWeightedMovingAverage is EWMA
+        assert ExponentialWeightedMovingStdDev is EWMSTD
 
     def test_dollar_volume(self):
         results = self.engine.run_pipeline(
@@ -1444,9 +1441,7 @@ class PopulateInitialWorkspaceTestCase(
             return ws
 
         def dispatcher(c):
-            self.assertIsNot(
-                c, column, "Shouldn't need to dispatch precomputed term input!"
-            )
+            assert c is not column, "Shouldn't need to dispatch precomputed term input!"
             return self.loader
 
         engine = SimplePipelineEngine(
@@ -1550,7 +1545,7 @@ class ChunkedPipelineTestCase(zf.WithSeededRandomPipelineEngine, zf.ZiplineTestC
             end_date=self.END_DATE,
             chunksize=22,
         )
-        self.assertTrue(chunked_result.equals(pipeline_result))
+        assert chunked_result.equals(pipeline_result)
 
     def test_concatenate_empty_chunks(self):
         # Test that we correctly handle concatenating chunked pipelines when
@@ -1609,7 +1604,7 @@ class MaximumRegressionTest(zf.WithSeededRandomPipelineEngine, zf.ZiplineTestCas
 
         # We should have one maximum every day.
         maxes_per_day = result.groupby(level=0)["maximum"].sum()
-        self.assertTrue((maxes_per_day == 1).all())
+        assert (maxes_per_day == 1).all()
 
         # The maximum computed by pipeline should match the maximum computed by
         # doing a groupby in pandas.
@@ -1646,25 +1641,22 @@ class ResolveDomainTestCase(zf.ZiplineTestCase):
 
         # the engine should resolve a pipeline that already has a domain
         # to that domain
-        self.assertIs(engine_jp.resolve_domain(pipe_us), US_EQUITIES)
+        assert engine_jp.resolve_domain(pipe_us) is US_EQUITIES
 
         # the engine should resolve a pipeline without a domain to the engine's
         # default
-        self.assertIs(engine_jp.resolve_domain(pipe_generic), JP_EQUITIES)
+        assert engine_jp.resolve_domain(pipe_generic) is JP_EQUITIES
 
         # a generic engine should resolve to the pipeline's domain
         # if it has one
-        self.assertIs(engine_generic.resolve_domain(pipe_us), US_EQUITIES)
+        assert engine_generic.resolve_domain(pipe_us) is US_EQUITIES
 
         # an engine with a default of GENERIC should raise a ValueError when
         # trying to infer a pipeline whose domain is also GENERIC
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             engine_generic.resolve_domain(pipe_generic)
 
         # infer domain from the column if the pipeline and engine have
         # a GENERIC domain
         pipe = Pipeline({"close": USEquityPricing.close.latest})
-        self.assertIs(
-            engine_generic.resolve_domain(pipe),
-            US_EQUITIES,
-        )
+        assert engine_generic.resolve_domain(pipe) is US_EQUITIES

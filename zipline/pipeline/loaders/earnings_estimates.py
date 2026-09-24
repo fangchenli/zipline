@@ -556,7 +556,7 @@ class EarningsEstimatesLoader(PipelineLoader):
         if any(num_qtr < 0 for num_qtr in groups):
             raise ValueError(
                 INVALID_NUM_QTRS_MESSAGE
-                % ",".join(str(qtr) for qtr in groups if qtr < 0)
+                % ",".join(str(qtr) for qtr in sorted(groups) if qtr < 0)
             )
         out = {}
         # To optimize performance, only work below on assets that are

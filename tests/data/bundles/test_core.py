@@ -4,6 +4,7 @@ import sys
 from unittest import mock
 
 import pandas as pd
+import pytest
 import sqlalchemy as sa
 import toolz.curried.operator as op
 from parameterized import parameterized
@@ -53,13 +54,6 @@ from zipline.testing.fixtures import (
 )
 from zipline.testing.predicates import (
     assert_equal,
-    assert_false,
-    assert_in,
-    assert_is,
-    assert_is_instance,
-    assert_is_none,
-    assert_raises,
-    assert_true,
 )
 from zipline.utils.cache import dataframe_cache
 from zipline.utils.calendar_utils import ExchangeCalendar, get_calendar
@@ -93,8 +87,8 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             def ingest(*args):
                 pass
 
-            assert_in(name, self.bundles)
-            assert_is(self.bundles[name].ingest, ingest)
+            assert name in self.bundles
+            assert self.bundles[name].ingest is ingest
 
         self._check_bundles(set("abcde"))
 
@@ -102,7 +96,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         def ingest(*args):
             pass
 
-        with self.assertWarnsRegex(DeprecationWarning, "minutes_per_day"):
+        with pytest.warns(DeprecationWarning, match="minutes_per_day"):
             self.register("bundle", ingest, minutes_per_day=390)
 
     def test_register_call(self):
@@ -113,8 +107,8 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         @subtest(((c,) for c in "abcde"), "name")
         def _(name):
             self.register(name, ingest)
-            assert_in(name, self.bundles)
-            assert_is(self.bundles[name].ingest, ingest)
+            assert name in self.bundles
+            assert self.bundles[name].ingest is ingest
 
         assert_equal(
             valmap(op.attrgetter("ingest"), self.bundles),
@@ -128,7 +122,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         for name in names:
             self.unregister(name)
 
-        assert_false(self.bundles)
+        assert not self.bundles
 
     def test_register_no_create(self):
         called = [False]
@@ -147,14 +141,14 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             show_progress,
             output_dir,
         ):
-            assert_is_none(asset_db_writer)
-            assert_is_none(minute_bar_writer)
-            assert_is_none(daily_bar_writer)
-            assert_is_none(adjustment_writer)
+            assert asset_db_writer is None
+            assert minute_bar_writer is None
+            assert daily_bar_writer is None
+            assert adjustment_writer is None
             called[0] = True
 
         self.ingest("bundle", self.environ)
-        assert_true(called[0])
+        assert called[0]
 
     def test_ingest(self):
         calendar = get_calendar("XNYS")
@@ -209,24 +203,24 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             show_progress,
             output_dir,
         ):
-            assert_is(environ, self.environ)
+            assert environ is self.environ
 
             asset_db_writer.write(equities=equities)
             minute_bar_writer.write(minute_bar_data)
             daily_bar_writer.write(daily_bar_data)
             adjustment_writer.write(splits=splits)
 
-            assert_is_instance(calendar, ExchangeCalendar)
-            assert_is_instance(cache, dataframe_cache)
-            assert_is_instance(show_progress, bool)
+            assert isinstance(calendar, ExchangeCalendar)
+            assert isinstance(cache, dataframe_cache)
+            assert isinstance(show_progress, bool)
 
         self.ingest("bundle", environ=self.environ)
         bundle = self.load("bundle", environ=self.environ)
         self.add_instance_callback(bundle.close)
 
         assert_equal(set(bundle.asset_finder.sids), set(sids))
-        assert_is_instance(bundle.equity_daily_bar_reader, ParquetDailyBarReader)
-        assert_is_instance(bundle.equity_minute_bar_reader, ParquetMinuteBarReader)
+        assert isinstance(bundle.equity_daily_bar_reader, ParquetDailyBarReader)
+        assert isinstance(bundle.equity_minute_bar_reader, ParquetMinuteBarReader)
 
         columns = "open", "high", "low", "close", "volume"
 
@@ -383,7 +377,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         self.add_instance_callback(bundle.close)
 
         reader = bundle.equity_minute_bar_reader
-        assert_is_instance(reader, ParquetMinuteBarReader)
+        assert isinstance(reader, ParquetMinuteBarReader)
         calendar = get_calendar("XNYS")
         assert_equal(
             reader.last_available_dt, calendar.session_last_minute(sessions[-1])
@@ -439,11 +433,11 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         """Bundles ingested before bars moved to Parquet still load."""
         sids, sessions, minutes, equities = self._make_bcolz_ingestion()
 
-        with self.assertWarnsRegex(FutureWarning, "zipline convert -b bundle"):
+        with pytest.warns(FutureWarning, match="zipline convert -b bundle"):
             bundle = self.load("bundle", environ=self.environ)
         self.add_instance_callback(bundle.close)
-        assert_is_instance(bundle.equity_daily_bar_reader, BcolzDailyBarReader)
-        assert_is_instance(bundle.equity_minute_bar_reader, BcolzMinuteBarReader)
+        assert isinstance(bundle.equity_daily_bar_reader, BcolzDailyBarReader)
+        assert isinstance(bundle.equity_minute_bar_reader, BcolzMinuteBarReader)
         self._check_bars(bundle, sids, sessions, minutes, equities)
 
     def test_bcolz_ingestion_without_bcolz(self):
@@ -452,9 +446,9 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         """
         self._make_bcolz_ingestion()
         with mock.patch.dict(sys.modules, {"bcolz": None}):
-            with self.assertRaisesRegex(ImportError, r"zipline\[bcolz\]"):
+            with pytest.raises(ImportError, match=r"zipline\[bcolz\]"):
                 self.load("bundle", environ=self.environ)
-            with self.assertRaisesRegex(ImportError, r"zipline\[bcolz\]"):
+            with pytest.raises(ImportError, match=r"zipline\[bcolz\]"):
                 convert("bundle", self.environ)
 
     @parameterized.expand([(False,), (True,)])
@@ -477,8 +471,8 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
 
         bundle = self.load("bundle", environ=self.environ)
         self.add_instance_callback(bundle.close)
-        assert_is_instance(bundle.equity_daily_bar_reader, ParquetDailyBarReader)
-        assert_is_instance(bundle.equity_minute_bar_reader, ParquetMinuteBarReader)
+        assert isinstance(bundle.equity_daily_bar_reader, ParquetDailyBarReader)
+        assert isinstance(bundle.equity_minute_bar_reader, ParquetMinuteBarReader)
         self._check_bars(bundle, sids, sessions, minutes, equities)
 
         # Converting again finds nothing to do.
@@ -494,16 +488,14 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             called[0] = True
 
         now = pd.Timestamp.now("UTC")
-        with self.assertRaisesRegex(
-            ValueError, "ingest .* creates writers .* downgrade"
-        ):
+        with pytest.raises(ValueError, match="ingest .* creates writers .* downgrade"):
             self.ingest(
                 "bundle",
                 self.environ,
                 assets_versions=versions,
                 timestamp=now - pd.Timedelta(seconds=1),
             )
-        assert_false(called[0])
+        assert not called[0]
         assert_equal(len(ingestions_for_bundle("bundle", self.environ)), 1)
 
         @self.register("bundle", create_writers=True)
@@ -520,10 +512,10 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             show_progress,
             output_dir,
         ):
-            self.assertIsNotNone(asset_db_writer)
-            self.assertIsNotNone(minute_bar_writer)
-            self.assertIsNotNone(daily_bar_writer)
-            self.assertIsNotNone(adjustment_writer)
+            assert asset_db_writer is not None
+            assert minute_bar_writer is not None
+            assert daily_bar_writer is not None
+            assert adjustment_writer is not None
 
             equities = make_simple_equity_info(
                 tuple(range(3)),
@@ -536,7 +528,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         # Explicitly use different timestamp; otherwise, test could run so fast
         # that first ingestion is re-used.
         self.ingest("bundle", self.environ, assets_versions=versions, timestamp=now)
-        assert_true(called[0])
+        assert called[0]
 
         ingestions = ingestions_for_bundle("bundle", self.environ)
         assert_equal(len(ingestions), 2)
@@ -558,10 +550,10 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
 
     @parameterized.expand([("clean",), ("load",)])
     def test_bundle_doesnt_exist(self, fnname):
-        with assert_raises(UnknownBundle) as e:
+        with pytest.raises(UnknownBundle) as e:
             getattr(self, fnname)("ayy", environ=self.environ)
 
-        assert_equal(e.exception.name, "ayy")
+        assert_equal(e.value.name, "ayy")
 
     def test_load_no_data(self):
         # register but do not ingest data
@@ -569,13 +561,10 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
 
         ts = pd.Timestamp("2014")
 
-        with assert_raises(ValueError) as e:
+        with pytest.raises(ValueError) as e:
             self.load("bundle", timestamp=ts, environ=self.environ)
 
-        assert_in(
-            f"no data for bundle 'bundle' on or before {ts}",
-            str(e.exception),
-        )
+        assert f"no data for bundle 'bundle' on or before {ts}" in str(e.value)
 
     def _list_bundle(self):
         return {
@@ -621,11 +610,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         self.ingest("bundle", environ=self.environ)
         assert_equal(len(_wrote_to), 1, msg="ingest was called more than once")
         ingestions = self._list_bundle()
-        assert_in(
-            _wrote_to[0],
-            ingestions,
-            msg="output_dir was not in the bundle directory",
-        )
+        assert _wrote_to[0] in ingestions, "output_dir was not in the bundle directory"
         return _wrote_to[0]
 
     def test_clean_keep_last(self):
@@ -678,7 +663,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             msg="keep_last=2 did not remove the correct number of ingestions",
         )
 
-        with assert_raises(BadClean):
+        with pytest.raises(BadClean):
             self.clean("bundle", keep_last=-1, environ=self.environ)
 
         assert_equal(

@@ -34,4 +34,4 @@ class TransactionTestCase(TestCase):
             "Transaction(asset=Equity(1), dt=2017-01-01 00:00:00, amount=100, price=10)"
         )
 
-        self.assertEqual(repr(txn), expected)
+        assert repr(txn) == expected

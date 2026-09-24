@@ -4,6 +4,7 @@ from itertools import cycle, islice
 
 import numpy as np
 import pandas as pd
+import pytest
 from parameterized import parameterized
 
 import zipline.testing.fixtures as zf
@@ -443,11 +444,11 @@ class InternationalEquityTestCase(
         )
 
     def test_cannot_convert_volume_data(self):
-        with self.assertRaises(TypeError) as exc:
+        with pytest.raises(TypeError) as exc:
             EquityPricing.volume.fx("EUR")
 
         assert_equal(
-            str(exc.exception),
+            str(exc.value),
             "The .fx() method cannot be called on EquityPricing.volume "
             "because it does not produce currency-denominated data.",
         )
@@ -457,9 +458,9 @@ class InternationalEquityTestCase(
         if np.isnan(value):
             # If we got a NaN, we should be outside the asset's
             # lifetime.
-            self.assertTrue(date <= asset.start_date or date > asset.end_date)
+            assert date <= asset.start_date or date > asset.end_date
         else:
-            self.assertTrue(asset.start_date < date <= asset.end_date)
+            assert asset.start_date < date <= asset.end_date
             bars = self.daily_bar_data[calendar.name]
             # Subtract a day because pipeline shows values as of the morning
             expected_value = bars[asset.sid].loc[date - calendar.day, col]

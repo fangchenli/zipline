@@ -4,6 +4,7 @@ Tests BoundColumn attributes and methods.
 
 import operator
 
+import pytest
 from pandas import DataFrame, Timestamp
 from parameterized import parameterized
 
@@ -92,13 +93,13 @@ class LatestTestCase(
     )
     def test_comparison_errors(self, op):
         for column in TDS.columns:
-            with self.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 op(column, 1000)
-            with self.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 op(1000, column)
-            with self.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 op(column, "test")
-            with self.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 op("test", column)
 
     def test_comparison_error_message(self):
@@ -108,22 +109,21 @@ class LatestTestCase(
             " (Did you mean to use '.latest'?)"
         )
 
-        with self.assertRaises(TypeError) as e:
+        with pytest.raises(TypeError) as e:
             _ = column < 1000
-        self.assertEqual(str(e.exception), err_msg)
+        assert str(e.value) == err_msg
 
         try:
             _ = column.latest < 1000
         except TypeError:
-            self.fail()
+            pytest.fail()
 
     def test_construction_error_message(self):
-        with self.assertRaises(ValueError) as exc:
+        with pytest.raises(ValueError) as exc:
             Column(dtype=datetime64ns_dtype, currency_aware=True)
 
-        self.assertEqual(
-            str(exc.exception),
-            "Columns cannot be constructed with currency_aware=True, "
+        assert (
+            str(exc.value) == "Columns cannot be constructed with currency_aware=True, "
             "dtype=datetime64[ns]. Currency aware columns must have a float64 "
-            "dtype.",
+            "dtype."
         )
