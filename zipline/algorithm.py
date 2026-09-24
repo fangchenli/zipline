@@ -12,14 +12,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import logging
 import warnings
 from collections import namedtuple
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from contextlib import ExitStack
 from copy import copy
-from datetime import time, timedelta, tzinfo
+from datetime import datetime, time, timedelta, tzinfo
 from itertools import chain, repeat
+from typing import TYPE_CHECKING, Any, Literal
 from zoneinfo import ZoneInfo
 
 import numpy as np
@@ -128,6 +131,22 @@ from zipline.utils.pandas_utils import clear_dataframe_indexer_caches
 from zipline.utils.preprocess import preprocess
 from zipline.utils.security_list import SecurityList
 from zipline.zipline_warnings import ZiplineDeprecationWarning
+
+if TYPE_CHECKING:
+    from zipline._protocol import BarData
+    from zipline.assets import ContinuousFuture
+
+    # Models are checked for the right asset types when set, which
+    # EquitySlippageModel and the like express, but only at runtime.
+    from zipline.finance.commission import CommissionModel
+    from zipline.finance.execution import ExecutionStyle
+    from zipline.finance.slippage import SlippageModel
+    from zipline.protocol import Order
+    from zipline.utils.events import EventRule
+
+#: What a trading control does when an order violates it: raise an error, or
+#: log one and let the order through.
+OnError = Literal["fail", "log"]
 
 log = logging.getLogger(__name__)
 
@@ -727,7 +746,7 @@ class TradingAlgorithm:
         }
 
     @api_method
-    def get_environment(self, field="platform"):
+    def get_environment(self, field: str = "platform") -> Any:
         """Query the execution environment.
 
         Parameters
@@ -786,19 +805,19 @@ class TradingAlgorithm:
     @api_method
     def fetch_csv(
         self,
-        url,
-        pre_func=None,
-        post_func=None,
-        date_column="date",
-        date_format=None,
-        timezone="UTC",
-        symbol=None,
-        mask=True,
-        symbol_column=None,
-        special_params_checker=None,
-        country_code=None,
-        **kwargs,
-    ):
+        url: str,
+        pre_func: Callable[[pd.DataFrame], pd.DataFrame] | None = None,
+        post_func: Callable[[pd.DataFrame], pd.DataFrame] | None = None,
+        date_column: str = "date",
+        date_format: str | None = None,
+        timezone: tzinfo | str = "UTC",
+        symbol: str | None = None,
+        mask: bool = True,
+        symbol_column: str | None = None,
+        special_params_checker: Callable[..., Any] | None = None,
+        country_code: str | None = None,
+        **kwargs: Any,
+    ) -> PandasRequestsCSV:
         """Fetch a csv from a remote url and register the data so that it is
         queryable from the ``data`` object.
 
@@ -892,8 +911,13 @@ class TradingAlgorithm:
 
     @api_method
     def schedule_function(
-        self, func, date_rule=None, time_rule=None, half_days=True, calendar=None
-    ):
+        self,
+        func: Callable[[Any, BarData], object],
+        date_rule: EventRule | None = None,
+        time_rule: EventRule | None = None,
+        half_days: bool = True,
+        calendar: object | None = None,
+    ) -> None:
         """
         Schedule a function to be called repeatedly in the future.
 
@@ -961,7 +985,7 @@ class TradingAlgorithm:
         )
 
     @api_method
-    def record(self, *args, **kwargs):
+    def record(self, *args: Any, **kwargs: Any) -> None:
         """Track and record values each day.
 
         Parameters
@@ -976,18 +1000,19 @@ class TradingAlgorithm:
         :func:`~zipline.run_algorithm`.
         """
         # Make 2 objects both referencing the same iterator
-        args = [iter(args)] * 2
+        iterators = [iter(args)] * 2
 
         # Zip generates list entries by calling `next` on each iterator it
         # receives.  In this case the two iterators are the same object, so the
-        # call to next on args[0] will also advance args[1], resulting in zip
-        # returning (a,b) (c,d) (e,f) rather than (a,a) (b,b) (c,c) etc.
-        positionals = zip(*args)
+        # call to next on iterators[0] will also advance iterators[1],
+        # resulting in zip returning (a,b) (c,d) (e,f) rather than (a,a) (b,b)
+        # (c,c) etc.
+        positionals = zip(*iterators, strict=False)
         for name, value in chain(positionals, kwargs.items()):
             self._recorded_vars[name] = value
 
     @api_method
-    def set_benchmark(self, benchmark):
+    def set_benchmark(self, benchmark: Asset) -> None:
         """Set the benchmark asset.
 
         Parameters
@@ -1008,8 +1033,12 @@ class TradingAlgorithm:
     @api_method
     @preprocess(root_symbol_str=ensure_upper_case)
     def continuous_future(
-        self, root_symbol_str, offset=0, roll="volume", adjustment="mul"
-    ):
+        self,
+        root_symbol_str: str,
+        offset: int = 0,
+        roll: Literal["volume", "calendar"] = "volume",
+        adjustment: Literal["mul", "add"] | None = "mul",
+    ) -> ContinuousFuture:
         """Create a specifier for a continuous contract.
 
         Parameters
@@ -1044,7 +1073,7 @@ class TradingAlgorithm:
         symbol_str=ensure_upper_case,
         country_code=optionally(ensure_upper_case),
     )
-    def symbol(self, symbol_str, country_code=None):
+    def symbol(self, symbol_str: str, country_code: str | None = None) -> Equity:
         """Lookup an Equity by its ticker symbol.
 
         Parameters
@@ -1084,7 +1113,7 @@ class TradingAlgorithm:
         )
 
     @api_method
-    def symbols(self, *args, **kwargs):
+    def symbols(self, *args: str, **kwargs: Any) -> list[Equity]:
         """Lookup multuple Equities as a list.
 
         Parameters
@@ -1113,7 +1142,7 @@ class TradingAlgorithm:
         return [self.symbol(identifier, **kwargs) for identifier in args]
 
     @api_method
-    def sid(self, sid):
+    def sid(self, sid: int) -> Asset:
         """Lookup an Asset by its unique asset identifier.
 
         Parameters
@@ -1135,7 +1164,7 @@ class TradingAlgorithm:
 
     @api_method
     @preprocess(symbol=ensure_upper_case)
-    def future_symbol(self, symbol):
+    def future_symbol(self, symbol: str) -> Future:
         """Lookup a futures contract with a given symbol.
 
         Parameters
@@ -1228,7 +1257,14 @@ class TradingAlgorithm:
 
     @api_method
     @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
-    def order(self, asset, amount, limit_price=None, stop_price=None, style=None):
+    def order(
+        self,
+        asset: Asset,
+        amount: float,
+        limit_price: float | None = None,
+        stop_price: float | None = None,
+        style: ExecutionStyle | None = None,
+    ) -> str | None:
         """Place an order for a fixed number of shares.
 
         Parameters
@@ -1358,7 +1394,14 @@ class TradingAlgorithm:
 
     @api_method
     @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
-    def order_value(self, asset, value, limit_price=None, stop_price=None, style=None):
+    def order_value(
+        self,
+        asset: Asset,
+        value: float,
+        limit_price: float | None = None,
+        stop_price: float | None = None,
+        style: ExecutionStyle | None = None,
+    ) -> str | None:
         """
         Place an order for a fixed amount of money.
 
@@ -1479,7 +1522,7 @@ class TradingAlgorithm:
     @api_method
     @preprocess(tz=coerce_string(ZoneInfo))
     @expect_types(tz=optional(tzinfo))
-    def get_datetime(self, tz=None):
+    def get_datetime(self, tz: tzinfo | str | None = None) -> pd.Timestamp:
         """
         Returns the current simulation datetime.
 
@@ -1502,7 +1545,11 @@ class TradingAlgorithm:
         return dt
 
     @api_method
-    def set_slippage(self, us_equities=None, us_futures=None):
+    def set_slippage(
+        self,
+        us_equities: SlippageModel | None = None,
+        us_futures: SlippageModel | None = None,
+    ) -> None:
         """
         Set the slippage models for the simulation.
 
@@ -1544,7 +1591,11 @@ class TradingAlgorithm:
             self.blotter.slippage_models[Future] = us_futures
 
     @api_method
-    def set_commission(self, us_equities=None, us_futures=None):
+    def set_commission(
+        self,
+        us_equities: CommissionModel | None = None,
+        us_futures: CommissionModel | None = None,
+    ) -> None:
         """Sets the commission models for the simulation.
 
         Parameters
@@ -1587,7 +1638,7 @@ class TradingAlgorithm:
             self.blotter.commission_models[Future] = us_futures
 
     @api_method
-    def set_cancel_policy(self, cancel_policy):
+    def set_cancel_policy(self, cancel_policy: CancelPolicy) -> None:
         """Sets the order cancellation policy for the simulation.
 
         Parameters
@@ -1609,7 +1660,7 @@ class TradingAlgorithm:
         self.blotter.cancel_policy = cancel_policy
 
     @api_method
-    def set_symbol_lookup_date(self, dt):
+    def set_symbol_lookup_date(self, dt: datetime | str) -> None:
         """Set the date for which symbols will be resolved to their assets
         (symbols may map to different firms or underlying assets at
         different times)
@@ -1643,8 +1694,13 @@ class TradingAlgorithm:
     @api_method
     @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order_percent(
-        self, asset, percent, limit_price=None, stop_price=None, style=None
-    ):
+        self,
+        asset: Asset,
+        percent: float,
+        limit_price: float | None = None,
+        stop_price: float | None = None,
+        style: ExecutionStyle | None = None,
+    ) -> str | None:
         """Place an order in the specified asset corresponding to the given
         percent of the current portfolio value.
 
@@ -1693,8 +1749,13 @@ class TradingAlgorithm:
     @api_method
     @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order_target(
-        self, asset, target, limit_price=None, stop_price=None, style=None
-    ):
+        self,
+        asset: Asset,
+        target: float,
+        limit_price: float | None = None,
+        stop_price: float | None = None,
+        style: ExecutionStyle | None = None,
+    ) -> str | None:
         """Place an order to adjust a position to a target number of shares. If
         the position doesn't already exist, this is equivalent to placing a new
         order. If the position does exist, this is equivalent to placing an
@@ -1762,8 +1823,13 @@ class TradingAlgorithm:
     @api_method
     @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order_target_value(
-        self, asset, target, limit_price=None, stop_price=None, style=None
-    ):
+        self,
+        asset: Asset,
+        target: float,
+        limit_price: float | None = None,
+        stop_price: float | None = None,
+        style: ExecutionStyle | None = None,
+    ) -> str | None:
         """Place an order to adjust a position to a target value. If
         the position doesn't already exist, this is equivalent to placing a new
         order. If the position does exist, this is equivalent to placing an
@@ -1826,8 +1892,13 @@ class TradingAlgorithm:
     @api_method
     @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order_target_percent(
-        self, asset, target, limit_price=None, stop_price=None, style=None
-    ):
+        self,
+        asset: Asset,
+        target: float,
+        limit_price: float | None = None,
+        stop_price: float | None = None,
+        style: ExecutionStyle | None = None,
+    ) -> str | None:
         """Place an order to adjust a position to a target percent of the
         current portfolio value. If the position doesn't already exist, this is
         equivalent to placing a new order. If the position does exist, this is
@@ -1893,7 +1964,7 @@ class TradingAlgorithm:
     @api_method
     @expect_types(share_counts=pd.Series)
     @expect_dtypes(share_counts=int64_dtype)
-    def batch_market_order(self, share_counts):
+    def batch_market_order(self, share_counts: pd.Series) -> pd.Index:
         """Place a batch market order for multiple assets.
 
         Parameters
@@ -1917,7 +1988,9 @@ class TradingAlgorithm:
         "get_open_orders. Use `asset` instead."
     )
     @api_method
-    def get_open_orders(self, asset=None):
+    def get_open_orders(
+        self, asset: Asset | None = None
+    ) -> dict[Asset, list[Order]] | list[Order]:
         """Retrieve all of the current open orders.
 
         Parameters
@@ -1946,7 +2019,7 @@ class TradingAlgorithm:
         return []
 
     @api_method
-    def get_order(self, order_id):
+    def get_order(self, order_id: str) -> Order | None:
         """Lookup an order based on the order id returned from one of the
         order functions.
 
@@ -1964,7 +2037,7 @@ class TradingAlgorithm:
             return self.blotter.orders[order_id].to_api_obj()
 
     @api_method
-    def cancel_order(self, order_param):
+    def cancel_order(self, order_param: str | Order) -> None:
         """Cancel an open order.
 
         Parameters
@@ -1980,7 +2053,9 @@ class TradingAlgorithm:
 
     @api_method
     @require_initialized(HistoryInInitialize())
-    def history(self, bar_count, frequency, field, ffill=True):
+    def history(
+        self, bar_count: int, frequency: str, field: str, ffill: bool = True
+    ) -> Any:
         """DEPRECATED: use ``data.history`` instead."""
         warnings.warn(
             "The `history` method is deprecated.  Use `data.history` instead.",
@@ -2049,7 +2124,7 @@ class TradingAlgorithm:
             )
 
     @api_method
-    def set_max_leverage(self, max_leverage):
+    def set_max_leverage(self, max_leverage: float) -> None:
         """Set a limit on the maximum leverage of the algorithm.
 
         Parameters
@@ -2062,7 +2137,7 @@ class TradingAlgorithm:
         self.register_account_control(control)
 
     @api_method
-    def set_min_leverage(self, min_leverage, grace_period):
+    def set_min_leverage(self, min_leverage: float, grace_period: pd.Timedelta) -> None:
         """Set a limit on the minimum leverage of the algorithm.
 
         Parameters
@@ -2090,8 +2165,12 @@ class TradingAlgorithm:
 
     @api_method
     def set_max_position_size(
-        self, asset=None, max_shares=None, max_notional=None, on_error="fail"
-    ):
+        self,
+        asset: Asset | None = None,
+        max_shares: int | None = None,
+        max_notional: float | None = None,
+        on_error: OnError = "fail",
+    ) -> None:
         """Set a limit on the number of shares and/or dollar value held for the
         given sid. Limits are treated as absolute values and are enforced at
         the time that the algo attempts to place an order for sid. This means
@@ -2123,8 +2202,12 @@ class TradingAlgorithm:
 
     @api_method
     def set_max_order_size(
-        self, asset=None, max_shares=None, max_notional=None, on_error="fail"
-    ):
+        self,
+        asset: Asset | None = None,
+        max_shares: int | None = None,
+        max_notional: float | None = None,
+        on_error: OnError = "fail",
+    ) -> None:
         """Set a limit on the number of shares and/or dollar value of any single
         order placed for sid.  Limits are treated as absolute values and are
         enforced at the time that the algo attempts to place an order for sid.
@@ -2151,7 +2234,7 @@ class TradingAlgorithm:
         self.register_trading_control(control)
 
     @api_method
-    def set_max_order_count(self, max_count, on_error="fail"):
+    def set_max_order_count(self, max_count: int, on_error: OnError = "fail") -> None:
         """Set a limit on the number of orders that can be placed in a single
         day.
 
@@ -2164,7 +2247,11 @@ class TradingAlgorithm:
         self.register_trading_control(control)
 
     @api_method
-    def set_do_not_order_list(self, restricted_list, on_error="fail"):
+    def set_do_not_order_list(
+        self,
+        restricted_list: Iterable[Asset] | SecurityList,
+        on_error: OnError = "fail",
+    ) -> None:
         """Set a restriction on which assets can be ordered.
 
         Parameters
@@ -2200,7 +2287,9 @@ class TradingAlgorithm:
         restrictions=Restrictions,
         on_error=str,
     )
-    def set_asset_restrictions(self, restrictions, on_error="fail"):
+    def set_asset_restrictions(
+        self, restrictions: Restrictions, on_error: OnError = "fail"
+    ) -> None:
         """Set a restriction on which assets can be ordered.
 
         Parameters
@@ -2217,7 +2306,7 @@ class TradingAlgorithm:
         self.restrictions |= restrictions
 
     @api_method
-    def set_long_only(self, on_error="fail"):
+    def set_long_only(self, on_error: OnError = "fail") -> None:
         """Set a rule specifying that this algorithm cannot take short
         positions.
         """
@@ -2233,7 +2322,13 @@ class TradingAlgorithm:
         name=str,
         chunks=(int, Iterable, type(None)),
     )
-    def attach_pipeline(self, pipeline, name, chunks=None, eager=True):
+    def attach_pipeline(
+        self,
+        pipeline: Pipeline,
+        name: str,
+        chunks: int | Iterable[int] | None = None,
+        eager: bool = True,
+    ) -> Pipeline:
         """Register a pipeline to be computed at the start of each day.
 
         Parameters
@@ -2279,7 +2374,7 @@ class TradingAlgorithm:
 
     @api_method
     @require_initialized(PipelineOutputDuringInitialize())
-    def pipeline_output(self, name):
+    def pipeline_output(self, name: str) -> pd.DataFrame:
         """
         Get results of the pipeline attached by with name ``name``.
 
