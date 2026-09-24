@@ -300,7 +300,9 @@ def _encode_continuous_future_sid(root_symbol, offset, roll_style, adjustment_st
 Lifetimes = namedtuple("Lifetimes", "sid start end")
 
 
-def _expect_type[T: Asset](asset: Asset | ContinuousFuture | None, type_: type[T]) -> T:
+def expect_asset_type[T: Asset](
+    asset: Asset | ContinuousFuture | None, type_: type[T]
+) -> T:
     """Check that an asset retrieved by sid, e.g. of a symbol's owner, is the
     kind of asset its table holds."""
     if not isinstance(asset, type_):
@@ -909,7 +911,7 @@ class AssetFinder:
         for start, end, sid, _ in owners:
             if start <= as_of_date < end:
                 # find the equity that owned it on the given asof date
-                asset = _expect_type(self.retrieve_asset(sid), Equity)
+                asset = expect_asset_type(self.retrieve_asset(sid), Equity)
 
                 # if this asset owned the symbol on this asof date and we are
                 # only searching one country, return that asset
@@ -1174,7 +1176,7 @@ class AssetFinder:
         # If no data found, raise an exception
         if not data:
             raise SymbolNotFound(symbol=symbol)
-        return _expect_type(self.retrieve_asset(data.sid), Future)
+        return expect_asset_type(self.retrieve_asset(data.sid), Future)
 
     def lookup_by_supplementary_field(
         self, field_name: str, value: str, as_of_date: pd.Timestamp | None
@@ -1205,13 +1207,13 @@ class AssetFinder:
                 )
             # exactly one equity has ever held this value, we may resolve
             # without the date
-            return _expect_type(self.retrieve_asset(owners[0].sid), Equity)
+            return expect_asset_type(self.retrieve_asset(owners[0].sid), Equity)
 
         as_of_date = _as_naive_date(as_of_date)
         for start, end, sid, _ in owners:
             if start <= as_of_date < end:
                 # find the equity that owned it on the given asof date
-                return _expect_type(self.retrieve_asset(sid), Equity)
+                return expect_asset_type(self.retrieve_asset(sid), Equity)
 
         # no equity held the value on the given asof date
         raise ValueNotFoundForField(field=field_name, value=value)
@@ -1309,7 +1311,7 @@ class AssetFinder:
         except KeyError:
             contract_sids = self._get_contract_sids(root_symbol)
             contracts = deque(
-                _expect_type(asset, Future)
+                expect_asset_type(asset, Future)
                 for asset in self.retrieve_all(contract_sids)
             )
             chain_predicate = self._future_chain_predicates.get(root_symbol, None)
