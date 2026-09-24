@@ -51,7 +51,6 @@ ext_modules = [
         "zipline.data._minute_bar_internal",
         ["zipline/data/_minute_bar_internal.pyx"],
     ),
-    Extension("zipline.data._resample", ["zipline/data/_resample.pyx"]),
 ]
 
 for ext in ext_modules:

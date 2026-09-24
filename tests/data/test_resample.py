@@ -14,6 +14,7 @@
 from collections import OrderedDict
 from numbers import Real
 
+import numpy as np
 import pandas as pd
 from numpy import array, full, isnan, nan
 from numpy.testing import assert_almost_equal
@@ -26,6 +27,7 @@ from zipline.data.resample import (
     ReindexMinuteBarReader,
     ReindexSessionBarReader,
     minute_frame_to_session_frame,
+    minute_to_session,
 )
 from zipline.testing import parameter_space
 from zipline.testing.fixtures import (
@@ -959,3 +961,31 @@ class TestReindexSessionBars(WithEquityDailyBarReader, ZiplineTestCase):
             "The calendar for the reindex reader should be the "
             "specified futures calendar.",
         )
+
+
+class MinuteToSessionTestCase(ZiplineTestCase):
+    """Resampling a column of minutes into sessions."""
+
+    close_locs = np.array([2, 5, 8], dtype=np.intp)
+
+    def resample(self, column, data):
+        return minute_to_session(
+            column, self.close_locs, np.array(data, dtype=float), np.empty(3)
+        )
+
+    def test_prices(self):
+        data = [nan, 2.0, 1.0, 5.0, nan, 4.0, nan, nan, nan]
+        np.testing.assert_array_equal(self.resample("open", data), [2, 5, nan])
+        np.testing.assert_array_equal(self.resample("high", data), [2, 5, nan])
+        np.testing.assert_array_equal(self.resample("low", data), [1, 4, nan])
+        np.testing.assert_array_equal(self.resample("close", data), [1, 4, nan])
+
+    def test_negative_prices(self):
+        # e.g. crude oil futures in April 2020.
+        data = [-5.0, -3.0, -4.0, 1.0, -2.0, 3.0, -1.0, -1.5, -2.5]
+        np.testing.assert_array_equal(self.resample("high", data), [-3, 3, -1])
+        np.testing.assert_array_equal(self.resample("low", data), [-5, -2, -2.5])
+
+    def test_volume(self):
+        data = [1.0, 2.0, 3.0, 0.0, 0.0, 0.0, 2.0**32, 2.0**32, 1.0]
+        np.testing.assert_array_equal(self.resample("volume", data), [6, 0, 2**33 + 1])
