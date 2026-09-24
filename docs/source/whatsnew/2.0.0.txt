@@ -89,6 +89,12 @@ API and Behaviour Changes
   classes moved from ``zipline.data.minute_bars`` to
   ``zipline.data.bcolz_minute_bars``; ``zipline.data.minute_bars`` keeps the
   format-neutral ``MinuteBarReader`` base class.
+- The HDF5 daily bar format (``zipline.data.hdf5_daily_bars``) is removed;
+  store daily bars as Parquet. ``MultiCountryDailyBarReader``, which combines
+  one daily bar reader per country, moved to
+  ``zipline.data.multi_country_daily_bars`` and now takes any readers that
+  provide ``sids``, such as
+  :class:`~zipline.data.parquet_daily_bars.ParquetDailyBarReader`.
 
 Enhancements
 ~~~~~~~~~~~~

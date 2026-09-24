@@ -33,7 +33,7 @@ from zipline.utils.calendar_utils import (
     register_calendar_alias,
 )
 from zipline.utils.memoize import classlazyval
-from zipline.utils.paths import ensure_directory, ensure_directory_containing
+from zipline.utils.paths import ensure_directory
 
 from ..data.adjustments import (
     SQLiteAdjustmentReader,
@@ -48,11 +48,6 @@ from ..data.fx import (
     HDF5FXRateReader,
     HDF5FXRateWriter,
     InMemoryFXRateReader,
-)
-from ..data.hdf5_daily_bars import (
-    HDF5DailyBarReader,
-    HDF5DailyBarWriter,
-    MultiCountryDailyBarReader,
 )
 from ..data.minute_bars import (
     FUTURES_MINUTES_PER_DAY,
@@ -80,7 +75,6 @@ from .core import (
     make_simple_equity_info,
     tmp_asset_finder,
     tmp_dir,
-    write_hdf5_daily_bars,
 )
 from .debug import debug_mro_failure
 
@@ -1327,118 +1321,6 @@ def _trading_days_for_minute_bars(calendar, start_date, end_date, lookback_days)
 
 # TODO_SS: This currently doesn't define any relationship between country_code
 #          and calendar, which would be useful downstream.
-
-
-class WithWriteHDF5DailyBars(WithEquityDailyBarData, WithTmpDir):
-    """
-    Fixture class defining the capability of writing HDF5 daily bars to disk.
-
-    Uses cls.make_equity_daily_bar_data (inherited from WithEquityDailyBarData)
-    to determine the data to write.
-
-    Methods
-    -------
-    write_hdf5_daily_bars(cls, path, country_codes)
-        Creates an HDF5 file on disk and populates it with pricing data.
-
-    Attributes
-    ----------
-    HDF5_DAILY_BAR_CHUNK_SIZE
-    """
-
-    HDF5_DAILY_BAR_CHUNK_SIZE = 30
-
-    @classmethod
-    def write_hdf5_daily_bars(cls, path, country_codes):
-        """
-        Write HDF5 pricing data using an HDF5DailyBarWriter.
-
-        Parameters
-        ----------
-        path : str
-            Location (relative to cls.tmpdir) at which to write data.
-        country_codes : list[str]
-            List of country codes to write.
-
-        Returns
-        -------
-        written : h5py.File
-             A read-only h5py.File pointing at the written data. The returned
-             file is registered to be closed automatically during class
-             teardown.
-        """
-        ensure_directory_containing(path)
-        writer = HDF5DailyBarWriter(path, cls.HDF5_DAILY_BAR_CHUNK_SIZE)
-        write_hdf5_daily_bars(
-            writer,
-            cls.asset_finder,
-            country_codes,
-            cls.make_equity_daily_bar_data,
-            cls.make_equity_daily_bar_currency_codes,
-        )
-
-        # Open the file and mark it for closure during teardown.
-        return cls.enter_class_context(writer.h5_file(mode="r"))
-
-
-class WithHDF5EquityMultiCountryDailyBarReader(WithWriteHDF5DailyBars):
-    """
-    Fixture providing cls.hdf5_daily_bar_path and
-    cls.hdf5_equity_daily_bar_reader class level fixtures.
-
-    After init_class_fixtures has been called:
-    - `cls.hdf5_daily_bar_path` is populated with
-      `cls.tmpdir.getpath(cls.HDF5_DAILY_BAR_PATH)`.
-    - The file at `cls.hdf5_daily_bar_path` is populated with data returned
-      from `cls.make_equity_daily_bar_data`. By default this calls
-      :func:`zipline.pipeline.loaders.synthetic.make_equity_daily_bar_data`.
-
-    - `cls.hdf5_equity_daily_bar_reader` is a daily bar reader pointing
-      to the file that was just written to.
-
-    Attributes
-    ----------
-    HDF5_DAILY_BAR_PATH : str
-        The path inside the tmpdir where this will be written.
-    HDF5_DAILY_BAR_COUNTRY_CODE : str
-        The ISO 3166 alpha-2 country code for the country to write/read.
-
-    Methods
-    -------
-    make_hdf5_daily_bar_path() -> string
-        A class method that returns the path for the rootdir of the daily
-        bars ctable. By default this is a subdirectory HDF5_DAILY_BAR_PATH in
-        the shared temp directory.
-
-    See Also
-    --------
-    WithDataPortal
-    zipline.testing.create_daily_bar_data
-    """
-
-    HDF5_DAILY_BAR_PATH = "daily_equity_pricing.h5"
-    HDF5_DAILY_BAR_COUNTRY_CODES = alias("EQUITY_DAILY_BAR_COUNTRY_CODES")
-
-    @classmethod
-    def make_hdf5_daily_bar_path(cls):
-        return cls.tmpdir.getpath(cls.HDF5_DAILY_BAR_PATH)
-
-    @classmethod
-    def init_class_fixtures(cls):
-        super().init_class_fixtures()
-
-        cls.hdf5_daily_bar_path = path = cls.make_hdf5_daily_bar_path()
-
-        f = cls.write_hdf5_daily_bars(path, cls.HDF5_DAILY_BAR_COUNTRY_CODES)
-
-        cls.single_country_hdf5_equity_daily_bar_readers = {
-            country_code: HDF5DailyBarReader.from_file(f, country_code)
-            for country_code in f
-        }
-
-        cls.hdf5_equity_daily_bar_reader = MultiCountryDailyBarReader(
-            cls.single_country_hdf5_equity_daily_bar_readers
-        )
 
 
 class WithEquityMinuteBarData(WithAssetFinder, WithTradingCalendars):

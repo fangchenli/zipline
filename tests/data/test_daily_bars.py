@@ -20,8 +20,6 @@ from sys import maxsize
 import numpy as np
 from numpy import (
     arange,
-    array,
-    float64,
     nan,
 )
 from pandas import (
@@ -42,15 +40,7 @@ from zipline.data.bar_reader import (
     NoDataOnDate,
 )
 from zipline.data.bcolz_daily_bars import BcolzDailyBarWriter
-from zipline.data.hdf5_daily_bars import (
-    CLOSE,
-    DEFAULT_SCALING_FACTORS,
-    HIGH,
-    LOW,
-    OPEN,
-    VOLUME,
-    coerce_to_uint32,
-)
+from zipline.data.multi_country_daily_bars import MultiCountryDailyBarReader
 from zipline.data.parquet_daily_bars import (
     FORMAT_VERSION,
     ParquetDailyBarReader,
@@ -69,16 +59,18 @@ from zipline.testing.fixtures import (
     WithAssetFinder,
     WithBcolzEquityDailyBarReader,
     WithEquityDailyBarData,
-    WithHDF5EquityMultiCountryDailyBarReader,
     WithParquetEquityDailyBarReader,
     WithSeededRandomState,
     WithTmpDir,
     WithTradingCalendars,
     ZiplineTestCase,
 )
-from zipline.testing.predicates import assert_equal, assert_sequence_equal
+from zipline.testing.predicates import assert_equal
 from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.classproperty import classproperty
+
+CLOSE = "close"
+VOLUME = "volume"
 
 TEST_CALENDAR_START = Timestamp("2015-06-01")
 TEST_CALENDAR_STOP = Timestamp("2015-06-30")
@@ -858,40 +850,27 @@ class ParquetDailyBarWriterTestCase(WithTmpDir, WithTradingCalendars, ZiplineTes
         assert_equal(reader.sessions, self.sessions)
 
 
-class _HDF5DailyBarTestCase(
-    WithHDF5EquityMultiCountryDailyBarReader, _DailyBarsTestCase
-):
+class _MultiCountryDailyBarTestCase(WithTmpDir, _DailyBarsTestCase):
+    """The daily bar tests on a MultiCountryDailyBarReader over one Parquet
+    dataset per country.
+    """
+
     @classmethod
     def init_class_fixtures(cls):
         super().init_class_fixtures()
-
-        cls.daily_bar_reader = cls.hdf5_equity_daily_bar_reader
-
-    @property
-    def single_country_reader(self):
-        return self.single_country_hdf5_equity_daily_bar_readers[
-            self.DAILY_BARS_TEST_QUERY_COUNTRY_CODE
-        ]
-
-    def test_asset_end_dates(self):
-        assert_sequence_equal(self.single_country_reader.sids, self.assets)
-
-        for ix, sid in enumerate(self.single_country_reader.sids):
-            assert_equal(
-                self.single_country_reader.asset_end_dates[ix],
-                self.asset_end(sid).asm8,
-                msg=(f"asset_end_dates value for sid={sid} differs from expected"),
+        readers = {}
+        for country_code in cls.EQUITY_DAILY_BAR_COUNTRY_CODES:
+            sids = cls.asset_finder.equities_sids_for_country_code(country_code)
+            path = cls.tmpdir.getpath(f"daily_bars_{country_code}.parquet")
+            days = cls.equity_daily_bar_days
+            ParquetDailyBarWriter(path, cls.trading_calendar, days[0], days[-1]).write(
+                cls.make_equity_daily_bar_data(country_code=country_code, sids=sids),
+                currency_codes=cls.make_equity_daily_bar_currency_codes(
+                    country_code, sids
+                ),
             )
-
-    def test_asset_start_dates(self):
-        assert_sequence_equal(self.single_country_reader.sids, self.assets)
-
-        for ix, sid in enumerate(self.single_country_reader.sids):
-            assert_equal(
-                self.single_country_reader.asset_start_dates[ix],
-                self.asset_start(sid).asm8,
-                msg=(f"asset_start_dates value for sid={sid} differs from expected"),
-            )
+            readers[country_code] = ParquetDailyBarReader(path)
+        cls.daily_bar_reader = MultiCountryDailyBarReader(readers)
 
     def test_invalid_date(self):
         INVALID_DATES = (
@@ -919,34 +898,24 @@ class _HDF5DailyBarTestCase(
                     "close",
                 )
 
+    def test_countries(self):
+        assert_equal(set(self.daily_bar_reader.countries), {"US", "CA"})
 
-class HDF5DailyBarUSTestCase(_HDF5DailyBarTestCase):
+    def test_multi_country_reads_unsupported(self):
+        us, ca = (
+            self.asset_finder.equities_sids_for_country_code(country)[0]
+            for country in ("US", "CA")
+        )
+        with self.assertRaisesRegex(NotImplementedError, "multiple countries"):
+            self.daily_bar_reader.load_raw_arrays(
+                OHLCV, TEST_QUERY_START, TEST_QUERY_STOP, [us, ca]
+            )
+
+
+class MultiCountryDailyBarUSTestCase(_MultiCountryDailyBarTestCase):
     DAILY_BARS_TEST_QUERY_COUNTRY_CODE = "US"
 
 
-class HDF5DailyBarCanadaTestCase(_HDF5DailyBarTestCase):
+class MultiCountryDailyBarCanadaTestCase(_MultiCountryDailyBarTestCase):
     TRADING_CALENDAR_PRIMARY_CAL = "TSX"
     DAILY_BARS_TEST_QUERY_COUNTRY_CODE = "CA"
-
-
-class TestCoerceToUint32Price(ZiplineTestCase):
-    """Test the coerce_to_uint32() function used by the HDF5DailyBarWriter."""
-
-    @parameterized.expand(
-        [
-            (OPEN, array([1, 1000, 100000, 100500, 1000005, 130230], dtype="u4")),
-            (HIGH, array([1, 1000, 100000, 100500, 1000005, 130230], dtype="u4")),
-            (LOW, array([1, 1000, 100000, 100500, 1000005, 130230], dtype="u4")),
-            (CLOSE, array([1, 1000, 100000, 100500, 1000005, 130230], dtype="u4")),
-            (VOLUME, array([0, 1, 100, 100, 1000, 130], dtype="u4")),
-        ]
-    )
-    def test_coerce_to_uint32_price(self, field, expected):
-        # NOTE: 130.23 is not perfectly representable as a double, but we
-        # shouldn't truncate and be off by an entire cent
-        coerced = coerce_to_uint32(
-            array([0.001, 1, 100, 100.5, 1000.005, 130.23], dtype=float64),
-            DEFAULT_SCALING_FACTORS[field],
-        )
-
-        assert_equal(coerced, expected)
