@@ -31,6 +31,7 @@ from pandas import (
     Series,
     Timestamp,
     concat,
+    read_parquet,
 )
 from parameterized import parameterized
 from toolz import merge
@@ -830,7 +831,7 @@ class ParquetDailyBarWriterTestCase(WithTmpDir, WithTradingCalendars, ZiplineTes
 
     def test_newer_format_version(self):
         self.write([(1, self.frame(self.sessions))])
-        metadata_path = f"{self.path}/metadata.json"
+        metadata_path = f"{self.path}/_metadata.json"
         with open(metadata_path) as f:
             metadata = json.load(f)
         metadata["version"] = FORMAT_VERSION + 1
@@ -839,6 +840,12 @@ class ParquetDailyBarWriterTestCase(WithTmpDir, WithTradingCalendars, ZiplineTes
         reader = ParquetDailyBarReader(self.path)
         with self.assertRaisesRegex(ValueError, "format version"):
             reader.get_value(1, self.sessions[0], "close")
+
+    def test_readable_as_dataset(self):
+        self.write([(1, self.frame(self.sessions)), (2, self.frame(self.sessions))])
+        frame = read_parquet(self.path, columns=["sid", "day", "close"])
+        assert_equal(len(frame), 2 * len(self.sessions))
+        assert_equal(sorted(frame["sid"].unique()), [1, 2])
 
     def test_opens_lazily(self):
         reader = ParquetDailyBarReader(self.path)
