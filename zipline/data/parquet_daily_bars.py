@@ -429,6 +429,11 @@ class ParquetDailyBarReader(CurrencyAwareSessionBarReader):
     def last_available_dt(self):
         return self.sessions[-1]
 
+    @property
+    def sids(self):
+        """The sids the dataset has bars for, in ascending order."""
+        return np.sort(self._assets.index.to_numpy())
+
     @cached_property
     def first_trading_day(self):
         """The first session with a bar for any asset, or None."""
