@@ -2,7 +2,6 @@ from textwrap import dedent
 
 import pytest
 from pandas import DataFrame
-from parameterized import parameterized
 
 from zipline.assets import Equity, Future
 from zipline.errors import IncompatibleCommissionModel
@@ -490,7 +489,8 @@ class CommissionAlgorithmTests(WithMakeAlgo, ZiplineTestCase):
 
         self.verify_capital_used(results, [-1018, -1000, -1000])
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "min_trade_cost, expected_commission",
         [
             # The commission is (10 * 0.05) + 1.3 = 1.8, and the capital used is
             # the same as the commission cost because no capital is actually spent
@@ -500,7 +500,7 @@ class CommissionAlgorithmTests(WithMakeAlgo, ZiplineTestCase):
             (1, 1.8),
             # Minimum not hit by first trade, so use the minimum.
             (3, 3.0),
-        ]
+        ],
     )
     def test_per_contract(self, min_trade_cost, expected_commission):
         results = self.get_results(

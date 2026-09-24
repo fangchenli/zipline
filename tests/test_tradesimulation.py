@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import pandas as pd
+import pytest
 
 import zipline.testing.fixtures as zf
 from zipline.finance import metrics
@@ -21,7 +22,6 @@ from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.finance.trading import SimulationParameters
 from zipline.gens.sim_engine import BEFORE_TRADING_START_BAR
 from zipline.gens.tradesimulation import AlgorithmSimulator
-from zipline.testing.core import parameter_space
 
 
 class TestBeforeTradingStartTiming(
@@ -40,12 +40,9 @@ class TestBeforeTradingStartTiming(
     START_DATE = pd.Timestamp("2016-03-10")
     END_DATE = pd.Timestamp("2016-03-15")
 
-    @parameter_space(
-        num_sessions=[1, 2, 3],
-        data_frequency=["daily", "minute"],
-        emission_rate=["daily", "minute"],
-        __fail_fast=True,
-    )
+    @pytest.mark.parametrize("num_sessions", [1, 2, 3])
+    @pytest.mark.parametrize("data_frequency", ["daily", "minute"])
+    @pytest.mark.parametrize("emission_rate", ["daily", "minute"])
     def test_before_trading_start_runs_at_8_45(
         self, num_sessions, data_frequency, emission_rate
     ):

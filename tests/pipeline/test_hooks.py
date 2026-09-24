@@ -19,7 +19,6 @@ from zipline.pipeline.hooks.progress import (
 )
 from zipline.pipeline.hooks.testing import TestingHooks
 from zipline.pipeline.term import AssetExists, ComputableTerm, LoadableTerm
-from zipline.testing import parameter_space
 from zipline.testing.fixtures import (
     WithSeededRandomPipelineEngine,
     ZiplineTestCase,
@@ -59,10 +58,8 @@ class HooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         # Clear out the global testing hook after each test run.
         self.add_instance_callback(self.global_testing_hook.clear)
 
-    @parameter_space(
-        nhooks=[0, 1, 2],
-        chunked=[True, False],
-    )
+    @pytest.mark.parametrize("nhooks", [0, 1, 2])
+    @pytest.mark.parametrize("chunked", [True, False])
     def test_engine_calls_hooks(self, nhooks, chunked):
         # Pass multiple hooks to make sure we call methods on all of them.
         hooks = [TestingHooks() for _ in range(nhooks)]
@@ -406,7 +403,7 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
         assert all_chunks == expected_chunks
 
-    @parameter_space(chunked=[True, False])
+    @pytest.mark.parametrize("chunked", [True, False])
     def test_error_handling(self, chunked):
         publisher = TestingProgressPublisher()
         hooks = [ProgressHooks.with_static_publisher(publisher)]

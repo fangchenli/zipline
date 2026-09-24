@@ -4,7 +4,6 @@ Tests for Factor terms.
 
 from functools import partial
 from itertools import product
-from unittest import TestCase
 
 import numpy as np
 import pandas as pd
@@ -25,7 +24,6 @@ from numpy import (
     where,
 )
 from numpy.random import randn, seed
-from parameterized import parameterized
 from scipy.stats.mstats import winsorize as scipy_winsorize
 from toolz import compose
 
@@ -50,7 +48,6 @@ from zipline.pipeline.factors.factor import (
 from zipline.testing import (
     check_allclose,
     check_arrays,
-    parameter_space,
     permute_rows,
 )
 from zipline.testing.fixtures import (
@@ -103,11 +100,10 @@ class Mask(Filter):
     window_length = 0
 
 
-for_each_factor_dtype = parameterized.expand(
-    [
-        ("datetime64[ns]", datetime64ns_dtype),
-        ("float", float64_dtype),
-    ]
+for_each_factor_dtype = pytest.mark.parametrize(
+    "factor_dtype",
+    [datetime64ns_dtype, float64_dtype],
+    ids=["datetime64[ns]", "float"],
 )
 
 
@@ -155,7 +151,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         with pytest.raises(UnknownRankMethod):
             self.f.rank("not a real rank method")
 
-    @parameter_space(method_name=["isnan", "notnan", "isfinite"])
+    @pytest.mark.parametrize("method_name", ["isnan", "notnan", "isfinite"])
     def test_float64_only_ops(self, method_name):
         class NotFloat(Factor):
             dtype = datetime64ns_dtype
@@ -167,7 +163,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         with pytest.raises(TypeError):
             meth()
 
-    @parameter_space(custom_missing_value=[-1, 0])
+    @pytest.mark.parametrize("custom_missing_value", [-1, 0])
     def test_isnull_int_dtype(self, custom_missing_value):
 
         class CustomMissingValue(Factor):
@@ -219,7 +215,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         )
 
     @for_each_factor_dtype
-    def test_rank_ascending(self, name, factor_dtype):
+    def test_rank_ascending(self, factor_dtype):
 
         f = F(dtype=factor_dtype)
 
@@ -299,7 +295,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         check({"ordinal": f.rank(ascending=True)})
 
     @for_each_factor_dtype
-    def test_rank_descending(self, name, factor_dtype):
+    def test_rank_descending(self, factor_dtype):
 
         f = F(dtype=factor_dtype)
 
@@ -376,7 +372,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         check({"ordinal": f.rank(ascending=False)})
 
     @for_each_factor_dtype
-    def test_rank_after_mask(self, name, factor_dtype):
+    def test_rank_after_mask(self, factor_dtype):
 
         f = F(dtype=factor_dtype)
         # data = arange(25).reshape(5, 5).transpose() % 4
@@ -449,7 +445,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         )
 
     @for_each_factor_dtype
-    def test_grouped_rank_ascending(self, name, factor_dtype=float64_dtype):
+    def test_grouped_rank_ascending(self, factor_dtype):
 
         f = F(dtype=factor_dtype)
         c = C()
@@ -568,7 +564,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         check({"ordinal": f.rank(groupby=str_c, ascending=True)})
 
     @for_each_factor_dtype
-    def test_grouped_rank_descending(self, name, factor_dtype):
+    def test_grouped_rank_descending(self, factor_dtype):
 
         f = F(dtype=factor_dtype)
         c = C()
@@ -682,12 +678,13 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         check({"ordinal": f.rank(groupby=c, ascending=False)})
         check({"ordinal": f.rank(groupby=str_c, ascending=False)})
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "seed_value, window_length",
         [
             (100, 15),
             (101, 4),
             (102, 100),
-        ]
+        ],
     )
     def test_returns(self, seed_value, window_length):
 
@@ -707,12 +704,13 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         check_allclose(expected, out)
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "seed_value, window_length",
         [
             (100, 15),
             (101, 4),
             (102, 100),
-        ]
+        ],
     )
     def test_percentchange(self, seed_value, window_length):
 
@@ -758,7 +756,10 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             ascending_values,
         )
 
-    @parameterized.expand(gen_ranking_cases())
+    @pytest.mark.parametrize(
+        "seed_value, method, use_mask, set_missing, ascending",
+        list(gen_ranking_cases()),
+    )
     def test_masked_rankdata_2d(
         self, seed_value, method, use_mask, set_missing, ascending
     ):
@@ -1101,9 +1102,10 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             with pytest.raises(BadPercentileBounds):
                 f.winsorize(min_percentile=min_, max_percentile=max_)
 
-    @parameter_space(
-        seed_value=[1, 2],
-        normalizer_name_and_func=[
+    @pytest.mark.parametrize("seed_value", [1, 2])
+    @pytest.mark.parametrize(
+        "normalizer_name_and_func",
+        [
             ("demean", {}, lambda row: row - nanmean(row)),
             ("zscore", {}, lambda row: (row - nanmean(row)) / nanstd(row)),
             (
@@ -1115,7 +1117,10 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                 ),
             ),
         ],
-        add_nulls_to_factor=(
+    )
+    @pytest.mark.parametrize(
+        "add_nulls_to_factor",
+        (
             False,
             True,
         ),
@@ -1224,7 +1229,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             mask=self.build_mask(nomask),
         )
 
-    @parameter_space(method_name=["demean", "zscore"])
+    @pytest.mark.parametrize("method_name", ["demean", "zscore"])
     def test_cant_normalize_non_float(self, method_name):
         class DateFactor(Factor):
             dtype = datetime64ns_dtype
@@ -1243,7 +1248,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         assert errmsg == expected
 
-    @parameter_space(seed=[1, 2, 3])
+    @pytest.mark.parametrize("seed", [1, 2, 3])
     def test_quantiles_unmasked(self, seed):
         permute = partial(permute_rows, seed)
 
@@ -1310,7 +1315,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             mask=self.build_mask(self.ones_mask(shape=shape)),
         )
 
-    @parameter_space(seed=[1, 2, 3])
+    @pytest.mark.parametrize("seed", [1, 2, 3])
     def test_quantiles_masked(self, seed):
         permute = partial(permute_rows, seed)
 
@@ -1487,7 +1492,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         assert f.deciles(mask=m) is f.quantiles(bins=10, mask=m)
         assert f.deciles() is not f.deciles(mask=m)
 
-    @parameter_space(seed=[1, 2, 3])
+    @pytest.mark.parametrize("seed", [1, 2, 3])
     def test_clip(self, seed):
         rand = np.random.RandomState(seed)
         shape = (5, 5)
@@ -1533,7 +1538,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         )
 
 
-class ReprTestCase(TestCase):
+class ReprTestCase:
     """
     Tests for term reprs.
     """
@@ -1611,11 +1616,11 @@ class ReprTestCase(TestCase):
         assert recursive_repr == "Rank(...)"
 
 
-class TestWindowSafety(TestCase):
+class TestWindowSafety:
     def test_zscore_is_window_safe(self):
         assert F().zscore().window_safe
 
-    @parameter_space(__fail_fast=True, is_window_safe=[True, False])
+    @pytest.mark.parametrize("is_window_safe", [True, False])
     def test_window_safety_propagates_to_recarray_fields(self, is_window_safe):
 
         class MultipleOutputs(CustomFactor):
@@ -1649,7 +1654,7 @@ class TestWindowSafety(TestCase):
 
 
 class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
-    @parameter_space(dtype_=(float64_dtype, datetime64ns_dtype))
+    @pytest.mark.parametrize("dtype_", (float64_dtype, datetime64ns_dtype))
     def test_reversability(self, dtype_):
         class F(Factor):
             inputs = ()
@@ -1719,9 +1724,10 @@ def check_arrays_close(result, expected):
 
 
 class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
-    @parameter_space(
-        seed=[1, 2, 3],
-        mask=[
+    @pytest.mark.parametrize("seed", [1, 2, 3])
+    @pytest.mark.parametrize(
+        "mask",
+        [
             np.zeros((10, 5), dtype=bool),
             ones((10, 5), dtype=bool),
             eye(10, 5, dtype=bool),
@@ -1768,9 +1774,10 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             check=check_arrays_close,
         )
 
-    @parameter_space(
-        seed=[4, 5, 6],
-        mask=[
+    @pytest.mark.parametrize("seed", [4, 5, 6])
+    @pytest.mark.parametrize(
+        "mask",
+        [
             np.zeros((10, 5), dtype=bool),
             ones((10, 5), dtype=bool),
             eye(10, 5, dtype=bool),
@@ -1803,9 +1810,10 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
         assert_equal(result["demean"], result["alt_demean"])
         assert_equal(result["zscore"], result["alt_zscore"])
 
-    @parameter_space(
-        seed=[100, 200, 300],
-        mask=[
+    @pytest.mark.parametrize("seed", [100, 200, 300])
+    @pytest.mark.parametrize(
+        "mask",
+        [
             np.zeros((10, 5), dtype=bool),
             ones((10, 5), dtype=bool),
             eye(10, 5, dtype=bool),
@@ -1838,20 +1846,17 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             mask=self.build_mask(ones(shape)),
         )
 
-    @parameter_space(
-        seed=[40, 41, 42],
-        mask=[
+    @pytest.mark.parametrize("seed", [40, 41, 42])
+    @pytest.mark.parametrize(
+        "mask",
+        [
             np.zeros((10, 5), dtype=bool),
             ones((10, 5), dtype=bool),
             eye(10, 5, dtype=bool),
             ~eye(10, 5, dtype=bool),
         ],
-        # Three ways to mask:
-        # 1. Don't mask.
-        # 2. Mask by passing mask parameter to summary methods.
-        # 3. Mask by having non-True values in the root mask.
-        mask_mode=("none", "param", "root"),
     )
+    @pytest.mark.parametrize("mask_mode", ("none", "param", "root"))
     def test_summaries_after_fillna(self, seed, mask, mask_mode):
         rand = np.random.RandomState(seed)
         shape = (10, 5)

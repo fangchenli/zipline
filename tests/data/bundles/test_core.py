@@ -7,7 +7,6 @@ import pandas as pd
 import pytest
 import sqlalchemy as sa
 import toolz.curried.operator as op
-from parameterized import parameterized
 from toolz import valmap
 
 import zipline.utils.paths as pth
@@ -45,7 +44,6 @@ from zipline.pipeline.loaders.synthetic import (
 )
 from zipline.testing import (
     str_to_seconds,
-    subtest,
 )
 from zipline.testing.fixtures import (
     WithDefaultDateBounds,
@@ -57,7 +55,6 @@ from zipline.testing.predicates import (
 )
 from zipline.utils.cache import dataframe_cache
 from zipline.utils.calendar_utils import ExchangeCalendar, get_calendar
-from zipline.utils.functional import apply
 
 _1_ns = pd.Timedelta(1, unit="ns")
 
@@ -80,9 +77,8 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         self.environ = {"ZIPLINE_ROOT": self.instance_tmpdir.path}
 
     def test_register_decorator(self):
-        @apply
-        @subtest(((c,) for c in "abcde"), "name")
-        def _(name):
+        for name in "abcde":
+
             @self.register(name)
             def ingest(*args):
                 pass
@@ -103,9 +99,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         def ingest(*args):
             pass
 
-        @apply
-        @subtest(((c,) for c in "abcde"), "name")
-        def _(name):
+        for name in "abcde":
             self.register(name, ingest)
             assert name in self.bundles
             assert self.bundles[name].ingest is ingest
@@ -451,7 +445,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             with pytest.raises(ImportError, match=r"zipline\[bcolz\]"):
                 convert("bundle", self.environ)
 
-    @parameterized.expand([(False,), (True,)])
+    @pytest.mark.parametrize("delete_bcolz", [False, True])
     def test_convert(self, delete_bcolz):
         sids, sessions, minutes, equities = self._make_bcolz_ingestion()
         (timestr,) = ingestions_for_bundle("bundle", environ=self.environ)
@@ -548,7 +542,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             check_version_info(eng, version_table, version)
             eng.dispose()
 
-    @parameterized.expand([("clean",), ("load",)])
+    @pytest.mark.parametrize("fnname", ["clean", "load"])
     def test_bundle_doesnt_exist(self, fnname):
         with pytest.raises(UnknownBundle) as e:
             getattr(self, fnname)("ayy", environ=self.environ)

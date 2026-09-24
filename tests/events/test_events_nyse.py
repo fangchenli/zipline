@@ -14,10 +14,9 @@
 # limitations under the License.
 from datetime import timedelta
 from functools import partial
-from unittest import TestCase
 
 import pandas as pd
-from parameterized import parameterized
+import pytest
 
 from zipline.utils.events import (
     AfterOpen,
@@ -26,12 +25,12 @@ from zipline.utils.events import (
     NthTradingDayOfWeek,
 )
 
-from .test_events import StatefulRulesTests, StatelessRulesTests, minutes_for_days
+from .test_events import _StatefulRulesTests, _StatelessRulesTests, minutes_for_days
 
 T = partial(pd.Timestamp, tz="UTC")
 
 
-class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
+class TestStatelessRulesNYSE(_StatelessRulesTests):
     CALENDAR_STRING = "NYSE"
 
     HALF_SESSION = pd.Timestamp("2014-07-03")
@@ -143,7 +142,7 @@ class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
 
         assert expected == results
 
-    @parameterized.expand([("week_start",), ("week_end",)])
+    @pytest.mark.parametrize("rule_type", ["week_start", "week_end"])
     def test_week_and_time_composed_rule(self, rule_type):
         week_rule = (
             NthTradingDayOfWeek(0)
@@ -195,5 +194,5 @@ class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
                 assert not before_close_rule.should_trigger(minute)
 
 
-class TestStatefulRulesNYSE(StatefulRulesTests, TestCase):
+class TestStatefulRulesNYSE(_StatefulRulesTests):
     CALENDAR_STRING = "NYSE"

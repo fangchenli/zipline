@@ -20,7 +20,6 @@ import pandas as pd
 import pytest
 from numpy import nan
 from numpy.testing import assert_almost_equal
-from parameterized import parameterized
 from toolz import concat
 
 from zipline._protocol import handle_non_market_minutes
@@ -1084,8 +1083,19 @@ class TestDailyBarData(
             if asset in (self.ASSET1, self.ASSET2):
                 assert self.equity_daily_bar_days[3] == last_traded_dt
 
-    @parameterized.expand(
-        [("split", 2, 3, 3, 1.5), ("merger", 2, 3, 3, 1.8), ("dividend", 2, 3, 3, 2.88)]
+    @pytest.mark.parametrize(
+        (
+            "adjustment_type",
+            "liquid_day_0_price",
+            "liquid_day_1_price",
+            "illiquid_day_0_price",
+            "illiquid_day_1_price_adjusted",
+        ),
+        [
+            ("split", 2, 3, 3, 1.5),
+            ("merger", 2, 3, 3, 1.8),
+            ("dividend", 2, 3, 3, 2.88),
+        ],
     )
     def test_get_value_adjustments(
         self,

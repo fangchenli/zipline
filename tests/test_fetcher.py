@@ -17,7 +17,6 @@ from unittest.mock import patch
 import numpy as np
 import pandas as pd
 import pytest
-from parameterized import parameterized
 
 from zipline.errors import UnsupportedOrderParameters
 from zipline.sources.requests_csv import mask_requests_args
@@ -315,13 +314,14 @@ def handle_data(context, data):
         assert 50 == results["scaled"].iloc[-1]
         assert 24 == results["price"].iloc[-1]  # fake value
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "testname, usecols",
         [
             ("unspecified", ""),
             ("none", "usecols=None"),
             ("without date", "usecols=['Value']"),
             ("with date", "usecols=('Value', 'Date')"),
-        ]
+        ],
     )
     def test_usecols(self, testname, usecols):
         self.responses.add(
@@ -403,7 +403,8 @@ def handle_data(context, data):
 
             assert expected == requests_kwargs
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "name, data, column_name",
         [
             ("symbol", FETCHER_UNIVERSE_DATA, None),
             (
@@ -411,7 +412,7 @@ def handle_data(context, data):
                 FETCHER_UNIVERSE_DATA_TICKER_COLUMN,
                 FETCHER_ALTERNATE_COLUMN_HEADER,
             ),
-        ]
+        ],
     )
     def test_fetcher_universe(self, name, data, column_name):
         # Patching fetch_url here rather than using responses because (a) it's

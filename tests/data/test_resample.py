@@ -16,10 +16,10 @@ from numbers import Real
 
 import numpy as np
 import pandas as pd
+import pytest
 from numpy import array, full, isnan, nan
 from numpy.testing import assert_almost_equal
 from pandas import DataFrame
-from parameterized import parameterized
 
 from zipline.data.resample import (
     DailyHistoryAggregator,
@@ -29,7 +29,6 @@ from zipline.data.resample import (
     minute_frame_to_session_frame,
     minute_to_session,
 )
-from zipline.testing import parameter_space
 from zipline.testing.fixtures import (
     WithEquityDailyBarReader,
     WithEquityMinuteBarData,
@@ -399,11 +398,8 @@ class MinuteToDailyAggregationTestCase(
             self.us_futures_calendar,
         )
 
-    @parameter_space(
-        field=OHLCV,
-        sid=ASSET_FINDER_EQUITY_SIDS,
-        __fail_fast=True,
-    )
+    @pytest.mark.parametrize("field", OHLCV)
+    @pytest.mark.parametrize("sid", ASSET_FINDER_EQUITY_SIDS)
     def test_equity_contiguous_minutes_individual(self, field, sid):
         asset = self.asset_finder.retrieve_asset(sid)
         minutes = EQUITY_CASES[asset].index
@@ -415,11 +411,8 @@ class MinuteToDailyAggregationTestCase(
             self.equity_daily_aggregator,
         )
 
-    @parameter_space(
-        field=OHLCV,
-        sid=ASSET_FINDER_FUTURE_SIDS,
-        __fail_fast=True,
-    )
+    @pytest.mark.parametrize("field", OHLCV)
+    @pytest.mark.parametrize("sid", ASSET_FINDER_FUTURE_SIDS)
     def test_future_contiguous_minutes_individual(self, field, sid):
         asset = self.asset_finder.retrieve_asset(sid)
         minutes = FUTURE_CASES[asset].index
@@ -468,7 +461,8 @@ class MinuteToDailyAggregationTestCase(
             err_msg=f"sid={asset} field={field}",
         )
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "name, field, sid",
         [
             ("open_sid_1", "open", 1),
             ("high_1", "high", 1),
@@ -495,7 +489,7 @@ class MinuteToDailyAggregationTestCase(
             ("low_5", "low", 5),
             ("close_5", "close", 5),
             ("volume_5", "volume", 5),
-        ]
+        ],
     )
     def test_skip_minutes_individual(self, name, field, sid):
         # Test skipping minutes, to exercise backfills.
@@ -530,7 +524,7 @@ class MinuteToDailyAggregationTestCase(
                 err_msg=f"sid={sid} field={field} dt={minute}",
             )
 
-    @parameterized.expand(OHLCV)
+    @pytest.mark.parametrize("field", OHLCV)
     def test_contiguous_minutes_multiple(self, field):
         # First test each minute in order.
         method_name = field + "s"
@@ -569,7 +563,7 @@ class MinuteToDailyAggregationTestCase(
                 err_msg=f"sid={asset} field={field}",
             )
 
-    @parameterized.expand(OHLCV)
+    @pytest.mark.parametrize("field", OHLCV)
     def test_skip_minutes_multiple(self, field):
         # Test skipping minutes, to exercise backfills.
         # Tests initial backfill and mid day backfill.

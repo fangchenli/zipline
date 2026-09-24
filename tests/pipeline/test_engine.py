@@ -33,7 +33,6 @@ from pandas import (
     Timestamp,
     date_range,
 )
-from parameterized import parameterized
 from toolz import merge
 
 import zipline.testing.fixtures as zf
@@ -84,7 +83,6 @@ from zipline.testing import (
     check_arrays,
     make_alternating_boolean_array,
     make_cascading_boolean_array,
-    parameter_space,
     product_upper_triangle,
 )
 from zipline.testing.core import create_simple_domain
@@ -124,10 +122,10 @@ class OpenCloseSumAndDiff(CustomFactor):
         out.diff[:] = open.sum(axis=0) - close.sum(axis=0)
 
 
-def assert_multi_index_is_product(testcase, index, *levels):
+def assert_multi_index_is_product(index, *levels):
     """Assert that a MultiIndex contains the product of `*levels`."""
-    testcase.assertIsInstance(index, MultiIndex, f"{index} is not a MultiIndex")
-    testcase.assertEqual(set(index), set(product(*levels)))
+    assert isinstance(index, MultiIndex), f"{index} is not a MultiIndex"
+    assert set(index) == set(product(*levels))
 
 
 class ColumnArgs(tuple):
@@ -317,7 +315,7 @@ class ConstantInputTestCase(
         for p in pipelines:
             result = self.engine.run_pipeline(p, dates[0], dates[-1])
             assert set(result.columns) == {"f"}
-            assert_multi_index_is_product(self, result.index, dates, assets)
+            assert_multi_index_is_product(result.index, dates, assets)
 
             check_arrays(
                 result["f"].unstack().values,
@@ -347,7 +345,7 @@ class ConstantInputTestCase(
         results = self.engine.run_pipeline(pipeline, dates[0], dates[-1])
 
         assert set(results.columns) == {"short", "high", "long"}
-        assert_multi_index_is_product(self, results.index, dates, assets)
+        assert_multi_index_is_product(results.index, dates, assets)
 
         # row-wise sum over an array whose values are all (1 - 2)
         check_arrays(
@@ -1159,11 +1157,12 @@ class ParameterizedFactorTestCase(
             lambda subarray: DataFrame(subarray).ewm(span=span).std().iloc[-1, 0]
         )[window_length:]
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "window_length",
         [
-            (3,),
-            (5,),
-        ]
+            3,
+            5,
+        ],
     )
     def test_ewm_stats(self, window_length):
 
@@ -1224,7 +1223,7 @@ class ParameterizedFactorTestCase(
     def ewm_cases():
         return product([EWMSTD, EWMA], [3, 5, 10])
 
-    @parameterized.expand(ewm_cases())
+    @pytest.mark.parametrize("type_, span", list(ewm_cases()))
     def test_from_span(self, type_, span):
         from_span = type_.from_span(
             inputs=[EquityPricing.close],
@@ -1234,7 +1233,7 @@ class ParameterizedFactorTestCase(
         implied_span = self.decay_rate_to_span(from_span.params["decay_rate"])
         assert_almost_equal(span, implied_span)
 
-    @parameterized.expand(ewm_cases())
+    @pytest.mark.parametrize("type_, halflife", list(ewm_cases()))
     def test_from_halflife(self, type_, halflife):
         from_hl = EWMA.from_halflife(
             inputs=[EquityPricing.close],
@@ -1244,7 +1243,7 @@ class ParameterizedFactorTestCase(
         implied_hl = self.decay_rate_to_halflife(from_hl.params["decay_rate"])
         assert_almost_equal(halflife, implied_hl)
 
-    @parameterized.expand(ewm_cases())
+    @pytest.mark.parametrize("type_, com", list(ewm_cases()))
     def test_from_com(self, type_, com):
         from_com = EWMA.from_center_of_mass(
             inputs=[EquityPricing.close],
@@ -1385,7 +1384,8 @@ class WindowSafetyPropagationTestCase(
 class PopulateInitialWorkspaceTestCase(
     WithConstantInputs, zf.WithAssetFinder, zf.WithTradingCalendars, zf.ZiplineTestCase
 ):
-    @parameter_space(window_length=[3, 5], pipeline_length=[5, 10])
+    @pytest.mark.parametrize("window_length", [3, 5])
+    @pytest.mark.parametrize("pipeline_length", [5, 10])
     def test_populate_initial_workspace(self, window_length, pipeline_length):
         column = EquityPricing.low
         base_term = column.latest

@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest import TestCase
 
 import pytest
 
@@ -30,7 +29,7 @@ from zipline.utils.argcheck import (
 )
 
 
-class TestArgCheck(TestCase):
+class TestArgCheck:
     def test_not_callable(self):
         """
         Check the results of a non-callable object.

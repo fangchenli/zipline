@@ -29,7 +29,6 @@ from zipline.testing import (
     AssetIDPlusDay,
     OpenPrice,
     check_arrays,
-    parameter_space,
 )
 from zipline.testing.fixtures import (
     WithSeededRandomPipelineEngine,
@@ -61,7 +60,8 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         # Random input for factors.
         cls.col = TestingDataSet.float_col
 
-    @parameter_space(my_asset_column=[0, 1, 2], window_length_=[1, 2, 3])
+    @pytest.mark.parametrize("my_asset_column", [0, 1, 2])
+    @pytest.mark.parametrize("window_length_", [1, 2, 3])
     def test_slice(self, my_asset_column, window_length_):
         """
         Test that slices can be created by indexing into a term, and that they
@@ -93,7 +93,8 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             self.pipeline_end_date,
         )
 
-    @parameter_space(unmasked_column=[0, 1, 2], slice_column=[0, 1, 2])
+    @pytest.mark.parametrize("unmasked_column", [0, 1, 2])
+    @pytest.mark.parametrize("slice_column", [0, 1, 2])
     def test_slice_with_masking(self, unmasked_column, slice_column):
         """
         Test that masking a factor that uses slices as inputs does not mask the
@@ -363,7 +364,8 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             # `compute` function of our custom factors above.
             self.run_pipeline(Pipeline(columns=columns), start_date, end_date)
 
-    @parameter_space(returns_length=[2, 3], correlation_length=[3, 4])
+    @pytest.mark.parametrize("returns_length", [2, 3])
+    @pytest.mark.parametrize("correlation_length", [3, 4])
     def test_factor_correlation_methods(self, returns_length, correlation_length):
         """
         Ensure that `Factor.pearsonr` and `Factor.spearmanr` are consistent
@@ -457,7 +459,8 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
                 correlation_length=correlation_length,
             )
 
-    @parameter_space(returns_length=[2, 3], regression_length=[3, 4])
+    @pytest.mark.parametrize("returns_length", [2, 3])
+    @pytest.mark.parametrize("regression_length", [3, 4])
     def test_factor_regression_method(self, returns_length, regression_length):
         """
         Ensure that `Factor.linear_regression` is consistent with the built-in

@@ -60,7 +60,7 @@ __ https://docs.pytest.org/
    $ uv run pytest tests/test_algorithm.py
    $ uv run pytest "tests/test_algorithm.py::TestMiscellaneousAPI::test_zipline_api_resolves_dynamically"
 
-Most tests are ``unittest``-style classes that subclass ``ZiplineTestCase`` together with fixture mixins from ``zipline/testing/fixtures.py``. Don't override ``setUp``/``setUpClass``; implement ``init_class_fixtures`` / ``init_instance_fixtures`` instead, and register cleanup with ``enter_class_context`` / ``enter_instance_context``. Test classes whose names start with an underscore are abstract bases and aren't collected.
+Tests are plain pytest tests: they use ``assert``, ``pytest.raises`` and ``pytest.mark.parametrize``. Most are classes that subclass ``ZiplineTestCase`` together with fixture mixins from ``zipline/testing/fixtures.py``. Don't override ``setup_method``/``setup_class``; implement ``init_class_fixtures`` / ``init_instance_fixtures`` instead, and register cleanup with ``enter_class_context`` / ``enter_instance_context``. Test classes whose names start with an underscore are abstract bases and aren't collected.
 
 
 Type stubs

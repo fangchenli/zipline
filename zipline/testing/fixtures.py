@@ -3,7 +3,6 @@ import sqlite3
 import warnings
 from contextlib import ExitStack
 from typing import TYPE_CHECKING, Literal
-from unittest import TestCase
 
 import numpy as np
 import pandas as pd
@@ -92,15 +91,16 @@ class DebugMROMeta(FinalMeta):
                 raise
 
 
-class ZiplineTestCase(TestCase, metaclass=DebugMROMeta):
+class ZiplineTestCase(metaclass=DebugMROMeta):
     """
-    Shared extensions to core unittest.TestCase.
+    Base class for test classes built from fixture mixins.
 
-    Overrides the default unittest setUp/tearDown functions with versions that
-    use ExitStack to correctly clean up resources, even in the face of
-    exceptions that occur during setUp/setUpClass.
+    pytest calls ``setup_class``/``teardown_class`` around each class and
+    ``setup_method``/``teardown_method`` around each test, which use ExitStack
+    to correctly clean up resources, even in the face of exceptions that occur
+    during setup.
 
-    Subclasses **should not override setUp or setUpClass**!
+    Subclasses **should not override setup_method or setup_class**!
 
     Instead, they should implement `init_instance_fixtures` for per-test-method
     resources, and `init_class_fixtures` for per-class resources.
@@ -113,7 +113,7 @@ class ZiplineTestCase(TestCase, metaclass=DebugMROMeta):
 
     @final
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         # Hold a set of all the "static" attributes on the class. These are
         # things that are not populated after the class was created like
         # methods or other class level attributes.
@@ -128,7 +128,7 @@ class ZiplineTestCase(TestCase, metaclass=DebugMROMeta):
                 " without calling super()."
             )
         except BaseException:  # Clean up even on KeyboardInterrupt
-            cls.tearDownClass()
+            cls.teardown_class()
             raise
 
     @classmethod
@@ -150,7 +150,7 @@ class ZiplineTestCase(TestCase, metaclass=DebugMROMeta):
 
     @final
     @classmethod
-    def tearDownClass(cls):
+    def teardown_class(cls):
         # We need to get this before it's deleted by the loop.
         stack = cls._class_teardown_stack
         for name in set(vars(cls)) - cls._static_class_attributes:
@@ -165,7 +165,7 @@ class ZiplineTestCase(TestCase, metaclass=DebugMROMeta):
     @classmethod
     def enter_class_context(cls, context_manager):
         """
-        Enter a context manager to be exited during the tearDownClass
+        Enter a context manager to be exited during teardown_class
         """
         if cls._in_setup:
             raise ValueError(
@@ -178,7 +178,7 @@ class ZiplineTestCase(TestCase, metaclass=DebugMROMeta):
     @classmethod
     def add_class_callback(cls, callback, *args, **kwargs):
         """
-        Register a callback to be executed during tearDownClass.
+        Register a callback to be executed during teardown_class.
 
         Parameters
         ----------
@@ -193,7 +193,7 @@ class ZiplineTestCase(TestCase, metaclass=DebugMROMeta):
         return cls._class_teardown_stack.callback(callback, *args, **kwargs)
 
     @final
-    def setUp(self):
+    def setup_method(self, method):
         type(self)._in_setup = True
         self._pre_setup_attrs = set(vars(self))
         self._instance_teardown_stack = ExitStack()
@@ -207,7 +207,7 @@ class ZiplineTestCase(TestCase, metaclass=DebugMROMeta):
                 " init_instance_fixtures without calling super()."
             )
         except BaseException:  # Clean up even on KeyboardInterrupt
-            self.tearDown()
+            self.teardown_method(method)
             raise
         finally:
             type(self)._in_setup = False
@@ -216,7 +216,7 @@ class ZiplineTestCase(TestCase, metaclass=DebugMROMeta):
         self._init_instance_fixtures_was_called = True
 
     @final
-    def tearDown(self):
+    def teardown_method(self, method):
         # We need to get this before it's deleted by the loop.
         stack = self._instance_teardown_stack
         for attr in set(vars(self)) - self._pre_setup_attrs:
@@ -226,14 +226,14 @@ class ZiplineTestCase(TestCase, metaclass=DebugMROMeta):
     @final
     def enter_instance_context(self, context_manager):
         """
-        Enter a context manager that should be exited during tearDown.
+        Enter a context manager that should be exited during teardown_method.
         """
         return self._instance_teardown_stack.enter_context(context_manager)
 
     @final
     def add_instance_callback(self, callback):
         """
-        Register a callback to be executed during tearDown.
+        Register a callback to be executed during teardown_method.
 
         Parameters
         ----------

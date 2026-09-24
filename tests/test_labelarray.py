@@ -8,7 +8,7 @@ import pytest
 from toolz import take
 
 from zipline.lib.labelarray import LabelArray
-from zipline.testing import ZiplineTestCase, check_arrays, parameter_space
+from zipline.testing import ZiplineTestCase, check_arrays
 from zipline.testing.predicates import assert_equal
 
 
@@ -48,13 +48,10 @@ class LabelArrayTestCase(ZiplineTestCase):
 
         assert str(e.value) == "Direct construction of LabelArrays is not supported."
 
-    @parameter_space(
-        __fail_fast=True,
-        compval=["", "a", "z", "not in the array"],
-        shape=[(27,), (3, 9), (3, 3, 3)],
-        array_astype=(bytes, str, object),
-        missing_value=("", "a", "not in the array", None),
-    )
+    @pytest.mark.parametrize("compval", ["", "a", "z", "not in the array"])
+    @pytest.mark.parametrize("shape", [(27,), (3, 9), (3, 3, 3)])
+    @pytest.mark.parametrize("array_astype", (bytes, str, object))
+    @pytest.mark.parametrize("missing_value", ("", "a", "not in the array", None))
     def test_compare_to_str(self, compval, shape, array_astype, missing_value):
 
         strs = self.strs.reshape(shape).astype(array_astype)
@@ -110,9 +107,9 @@ class LabelArrayTestCase(ZiplineTestCase):
         assert (arr == other) is False
         assert (arr != other) is True
 
-    @parameter_space(
-        __fail_fast=True,
-        f=[
+    @pytest.mark.parametrize(
+        "f",
+        [
             lambda s: str(len(s)),
             lambda s: s[0],
             lambda s: "".join(reversed(s)),
@@ -136,7 +133,7 @@ class LabelArrayTestCase(ZiplineTestCase):
 
         assert_equal(numpy_transformed, la_transformed)
 
-    @parameter_space(missing=["A", None])
+    @pytest.mark.parametrize("missing", ["A", None])
     def test_map_ignores_missing_value(self, missing):
         data = np.array([missing, "B", "C"], dtype=object)
         la = LabelArray(data, missing_value=missing)
@@ -148,9 +145,9 @@ class LabelArrayTestCase(ZiplineTestCase):
         expected = LabelArray([missing, "C", "D"], missing_value=missing)
         assert_equal(result.as_string_array(), expected.as_string_array())
 
-    @parameter_space(
-        __fail_fast=True,
-        f=[
+    @pytest.mark.parametrize(
+        "f",
+        [
             lambda s: 0,
             lambda s: 0.0,
             lambda s: object(),
@@ -177,10 +174,7 @@ class LabelArrayTestCase(ZiplineTestCase):
         with pytest.raises(TypeError):
             la.map(lambda x: None)
 
-    @parameter_space(
-        __fail_fast=True,
-        missing_value=("", "a", "not in the array", None),
-    )
+    @pytest.mark.parametrize("missing_value", ("", "a", "not in the array", None))
     def test_compare_to_str_array(self, missing_value):
         strs = self.strs
         shape = strs.shape
@@ -227,9 +221,9 @@ class LabelArrayTestCase(ZiplineTestCase):
                 comparator(strs, value) & notmissing,
             )
 
-    @parameter_space(
-        __fail_fast=True,
-        slice_=[
+    @pytest.mark.parametrize(
+        "slice_",
+        [
             0,
             1,
             -1,
@@ -335,11 +329,8 @@ class LabelArrayTestCase(ZiplineTestCase):
                 else:
                     assert ret is NotImplemented
 
-    @parameter_space(
-        __fail_fast=True,
-        val=["", "a", "not in the array", None],
-        missing_value=["", "a", "not in the array", None],
-    )
+    @pytest.mark.parametrize("val", ["", "a", "not in the array", None])
+    @pytest.mark.parametrize("missing_value", ["", "a", "not in the array", None])
     def test_setitem_scalar(self, val, missing_value):
         arr = LabelArray(self.strs, missing_value=missing_value)
 

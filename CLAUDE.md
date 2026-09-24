@@ -33,7 +33,7 @@ uv run --group bench asv run --python=same --quick      # smoke-run the benchmar
 uv run --group bench asv continuous master HEAD        # compare performance vs master
 ```
 
-Tests use plain `assert`, `pytest.raises`/`pytest.warns` and `pytest.approx`, not unittest's `self.assert*` methods or nose-style helpers; `zipline.testing.predicates` keeps the structural `assert_equal` family and `assert_raises_str` (exact message match). Test classes are still `unittest`-style, some parameterized with `parameterized`, and pytest collects them directly.
+Tests use plain `assert`, `pytest.raises`/`pytest.warns` and `pytest.approx`, not unittest's `self.assert*` methods or nose-style helpers; `zipline.testing.predicates` keeps the structural `assert_equal` family and `assert_raises_str` (exact message match). Nothing uses `unittest.TestCase`: test classes are plain pytest classes, parameterized with `pytest.mark.parametrize` and using pytest fixtures such as `caplog` (with `zipline.testing.log_records` to read what zipline logged). pytest collects classes named `Test*`, `*Test`, `*TestCase` or `*Tests` (`python_classes` in `pyproject.toml`). Parametrize over lists, not sets: xdist workers must collect tests in the same order, and set order depends on the hash seed.
 
 Benchmarks live in `benchmarks/` (asv). They run against a synthetic bundle built by `benchmarks/data.py`, which is also where a new storage backend gets added to `BACKENDS`. Quick runs take one sample and are only a smoke test; use `asv continuous` for real comparisons.
 
@@ -60,6 +60,6 @@ CI runs `uv run pytest -n auto` with pytest's default warning handling, and some
 ## Testing conventions
 
 - Test classes subclass `ZiplineTestCase` plus fixture mixins from `zipline/testing/fixtures.py` (e.g. `WithDataPortal`, `WithMakeAlgo`, `WithAssetFinder`, `WithSeededRandomPipelineEngine`). Mixins are configured with class attributes (`START_DATE`, `ASSET_FINDER_EQUITY_SIDS`, `make_equity_info`, ...) that you override.
-- **Do not override `setUp`/`setUpClass`/`tearDown`** (they are `@final`). Implement `init_class_fixtures` / `init_instance_fixtures`, always call `super()`, and register cleanup via `enter_class_context`/`enter_instance_context` or `add_*_callback`.
-- As under nose, test classes whose names start with `_` are abstract bases and are not collected (`tests/conftest.py`). pandas' `assert_frame_equal` is wrapped by `zipline.testing.predicates.assert_equal`, which disables the `freq` check that newer pandas added.
+- **Do not override `setup_method`/`setup_class`/`teardown_method`/`teardown_class`** (they are `@final`; pytest calls them). Implement `init_class_fixtures` / `init_instance_fixtures`, always call `super()`, and register cleanup via `enter_class_context`/`enter_instance_context` or `add_*_callback`.
+- Test classes whose names start with `_` are abstract bases and are not collected (`tests/conftest.py`). pandas' `assert_frame_equal` is wrapped by `zipline.testing.predicates.assert_equal`, which disables the `freq` check that newer pandas added.
 - `tests/test_examples.py` compares `zipline/examples/*` output against expected results stored in `tests/resources/example_data.tar.gz`; regenerate with `tests/resources/rebuild_example_data` when example behavior intentionally changes.

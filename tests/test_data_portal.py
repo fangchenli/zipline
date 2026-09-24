@@ -15,6 +15,7 @@
 from collections import OrderedDict
 
 import pandas as pd
+import pytest
 from numpy import append, array, full, nan
 from numpy.testing import assert_almost_equal
 from pandas import Timedelta
@@ -25,7 +26,6 @@ from zipline.data.minute_bars import (
     FUTURES_MINUTES_PER_DAY,
     US_EQUITIES_MINUTES_PER_DAY,
 )
-from zipline.testing import parameter_space
 from zipline.testing.fixtures import (
     WithDataPortal,
     WithTradingSessions,
@@ -409,7 +409,8 @@ class DataPortalTestBase(WithDataPortal, WithTradingSessions):
         ]
         assert_almost_equal(expected.values.tolist(), result)
 
-    @parameter_space(data_frequency=["daily", "minute"], field=["close", "price"])
+    @pytest.mark.parametrize("data_frequency", ["daily", "minute"])
+    @pytest.mark.parametrize("field", ["close", "price"])
     def test_get_adjustments(self, data_frequency, field):
         asset = self.asset_finder.retrieve_asset(self.DIVIDEND_ASSET_SID)
         calendar = self.trading_calendars[Equity]
@@ -527,7 +528,8 @@ class DataPortalTestBase(WithDataPortal, WithTradingSessions):
         splits = self.data_portal.get_splits([], self.trading_days[2])
         assert [] == splits
 
-    @parameter_space(frequency=HISTORY_FREQUENCIES, field=OHLCV_FIELDS)
+    @pytest.mark.parametrize("frequency", sorted(HISTORY_FREQUENCIES))
+    @pytest.mark.parametrize("field", sorted(OHLCV_FIELDS))
     def test_price_rounding(self, frequency, field):
         equity = self.asset_finder.retrieve_asset(2)
         future = self.asset_finder.retrieve_asset(10001)

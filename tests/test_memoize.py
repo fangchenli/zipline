@@ -4,12 +4,11 @@ Tests for zipline.utils.memoize.
 
 import gc
 from collections import defaultdict
-from unittest import TestCase
 
 from zipline.utils.memoize import remember_last
 
 
-class TestRememberLast(TestCase):
+class TestRememberLast:
     def test_remember_last(self):
 
         # Store the count in a list so we can mutate it from inside `func`.

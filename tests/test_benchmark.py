@@ -29,7 +29,7 @@ from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.testing import (
     MockDailyBarReader,
     create_minute_bar_data,
-    parameter_space,
+    log_records,
     tmp_equity_minute_bar_reader,
 )
 from zipline.testing.fixtures import (
@@ -272,7 +272,7 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
     def resolve_spec(self, spec):
         return spec.resolve(self.asset_finder, self.START_DATE, self.END_DATE)
 
-    def test_no_benchmark(self):
+    def test_no_benchmark(self, caplog):
         """Test running with no benchmark provided.
 
         We should have no benchmark sid and have a returns series of all zeros.
@@ -284,13 +284,15 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
             benchmark_file=None,
         )
 
-        with self.assertLogs("zipline", logging.WARNING) as logs:
+        with caplog.at_level(logging.WARNING, logger="zipline"):
             sid, returns = self.resolve_spec(spec)
 
         assert sid is None
         assert returns is None
 
-        warnings = [record.getMessage() for record in logs.records]
+        warnings = [
+            record.getMessage() for record in log_records(caplog, logging.WARNING)
+        ]
         expected = [
             "No benchmark configured. Assuming algorithm calls set_benchmark.",
             "Pass --benchmark-sid, --benchmark-symbol, or --benchmark-file to set a source of benchmark returns.",  # noqa
@@ -298,7 +300,7 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
         ]
         assert_equal(warnings, expected)
 
-    def test_no_benchmark_explicitly_disabled(self):
+    def test_no_benchmark_explicitly_disabled(self, caplog):
         """Test running with no benchmark provided, with no_benchmark flag."""
         spec = BenchmarkSpec.from_cli_params(
             no_benchmark=True,
@@ -307,14 +309,15 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
             benchmark_file=None,
         )
 
-        with self.assertNoLogs("zipline", logging.WARNING):
+        with caplog.at_level(logging.WARNING, logger="zipline"):
             sid, returns = self.resolve_spec(spec)
+        assert not log_records(caplog, logging.WARNING)
 
         assert sid is None
         assert_series_equal(returns, self.zero_returns)
 
-    @parameter_space(case=[("A", 1), ("B", 2)])
-    def test_benchmark_symbol(self, case):
+    @pytest.mark.parametrize("case", [("A", 1), ("B", 2)])
+    def test_benchmark_symbol(self, caplog, case):
         """Test running with no benchmark provided, with no_benchmark flag."""
         symbol, expected_sid = case
 
@@ -325,14 +328,15 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
             benchmark_file=None,
         )
 
-        with self.assertNoLogs("zipline", logging.WARNING):
+        with caplog.at_level(logging.WARNING, logger="zipline"):
             sid, returns = self.resolve_spec(spec)
+        assert not log_records(caplog, logging.WARNING)
 
         assert_equal(sid, expected_sid)
         assert returns is None
 
-    @parameter_space(input_sid=[1, 2])
-    def test_benchmark_sid(self, input_sid):
+    @pytest.mark.parametrize("input_sid", [1, 2])
+    def test_benchmark_sid(self, caplog, input_sid):
         """Test running with no benchmark provided, with no_benchmark flag."""
         spec = BenchmarkSpec.from_cli_params(
             no_benchmark=False,
@@ -341,13 +345,14 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
             benchmark_file=None,
         )
 
-        with self.assertNoLogs("zipline", logging.WARNING):
+        with caplog.at_level(logging.WARNING, logger="zipline"):
             sid, returns = self.resolve_spec(spec)
+        assert not log_records(caplog, logging.WARNING)
 
         assert_equal(sid, input_sid)
         assert returns is None
 
-    def test_benchmark_file(self):
+    def test_benchmark_file(self, caplog):
         """Test running with a benchmark file."""
         csv_file_path = self.tmpdir.getpath("b.csv")
         with open(csv_file_path, "w") as csv_file:
@@ -367,8 +372,9 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
             benchmark_file=csv_file_path,
         )
 
-        with self.assertNoLogs("zipline", logging.WARNING):
+        with caplog.at_level(logging.WARNING, logger="zipline"):
             sid, returns = self.resolve_spec(spec)
+        assert not log_records(caplog, logging.WARNING)
 
         assert sid is None
 

@@ -11,7 +11,7 @@ from zipline.data.adjustments import (
     load_adjustments_from_sqlite,
 )
 from zipline.data.in_memory_daily_bars import InMemoryDailyBarReader
-from zipline.testing import parameter_space
+from zipline.testing import log_records
 from zipline.testing.fixtures import (
     WithInstanceTmpDir,
     WithTradingCalendars,
@@ -81,7 +81,7 @@ class TestSQLiteAdjustmentsWriter(
         for k, v in dfs.items():
             assert_equal(len(v), 0, msg=f"{k} dataframe should be empty")
 
-    def test_calculate_dividend_ratio(self):
+    def test_calculate_dividend_ratio(self, caplog):
         first_date_ix = 200
         dates = self.trading_calendar.sessions[first_date_ix : first_date_ix + 3]
 
@@ -140,7 +140,7 @@ class TestSQLiteAdjustmentsWriter(
             ix += len(dividends)
             dividends[col] = extra_dates
 
-        with self.assertLogs("zipline", logging.WARNING) as logs:
+        with caplog.at_level(logging.WARNING, logger="zipline"):
             self.writer_from_close(close).write(dividends=dividends)
         dfs = self.component_dataframes()
         dividend_payouts = dfs.pop("dividend_payouts")
@@ -170,7 +170,9 @@ class TestSQLiteAdjustmentsWriter(
         assert_equal(dividend_ratios, expected_dividend_ratios)
 
         assert_equal(
-            sorted(record.getMessage() for record in logs.records),
+            sorted(
+                record.getMessage() for record in log_records(caplog, logging.WARNING)
+            ),
             sorted(
                 [
                     "Couldn't compute ratio for dividend sid=2, ex_date=1990-10-18,"
@@ -256,7 +258,7 @@ class TestSQLiteAdjustmentsWriter(
 
         assert_equal(output, input_)
 
-    @parameter_space(convert_dates=[True, False])
+    @pytest.mark.parametrize("convert_dates", [True, False])
     def test_empty_frame_dtypes(self, convert_dates):
         """Test that dataframe dtypes are preserved for empty tables."""
         sids = np.arange(5)
@@ -327,7 +329,7 @@ class LoadAdjustmentsFromSQLiteTestCase(ZiplineTestCase):
 
     def db(self, splits=(), mergers=(), dividends=(), max_variables=None):
         db = sqlite3.connect(":memory:")
-        self.addCleanup(db.close)
+        self.add_instance_callback(db.close)
         if max_variables is not None:
             db.setlimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER, max_variables)
         for table, rows in (

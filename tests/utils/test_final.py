@@ -1,5 +1,4 @@
 from abc import ABCMeta, abstractmethod
-from unittest import TestCase
 
 import pytest
 
@@ -10,9 +9,9 @@ from zipline.utils.final import (
 from zipline.utils.metautils import compose_types
 
 
-class FinalMetaTestCase(TestCase):
+class FinalMetaTestCase:
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         class ClassWithFinal(metaclass=FinalMeta):
             a = final("ClassWithFinal: a")
             b = "ClassWithFinal: b"
@@ -168,7 +167,7 @@ class FinalMetaTestCase(TestCase):
 
 class FinalABCMetaTestCase(FinalMetaTestCase):
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         FinalABCMeta = compose_types(FinalMeta, ABCMeta)
 
         class ABCWithFinal(metaclass=FinalABCMeta):

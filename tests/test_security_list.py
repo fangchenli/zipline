@@ -2,7 +2,6 @@ from datetime import timedelta
 
 import pandas as pd
 import pytest
-from parameterized import parameterized
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.errors import TradingControlViolation
@@ -177,14 +176,15 @@ class SecurityListTestCase(WithMakeAlgo, ZiplineTestCase):
             symbol="AAPL",
         )
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "name, algo_class",
         [
             (
                 "using_set_do_not_order_list",
                 RestrictedAlgoWithoutCheckSetDoNotOrderList,
             ),
             ("using_set_restrictions", RestrictedAlgoWithoutCheck),
-        ]
+        ],
     )
     def test_algo_with_rl_violation(self, name, algo_class):
         algo = self.make_algo(algo_class=algo_class, symbol="BZQ")

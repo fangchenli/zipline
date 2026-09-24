@@ -1,12 +1,10 @@
-from unittest import TestCase
-
 import pytest
 from pandas import Timedelta, Timestamp
 
 from zipline.utils.cache import CachedObject, Expired, ExpiringCache, LRUCache
 
 
-class CachedObjectTestCase(TestCase):
+class CachedObjectTestCase:
     def test_cached_object(self):
         expiry = Timestamp("2014")
         before = expiry - Timedelta("1 minute")
@@ -28,7 +26,7 @@ class CachedObjectTestCase(TestCase):
                 always_expired.unwrap(dt)
 
 
-class ExpiringCacheTestCase(TestCase):
+class ExpiringCacheTestCase:
     def test_expiring_cache(self):
         expiry_1 = Timestamp("2014")
         before_1 = expiry_1 - Timedelta("1 minute")
@@ -66,7 +64,7 @@ class ExpiringCacheTestCase(TestCase):
         assert e.value.args == ("baz",)
 
 
-class LRUCacheTestCase(TestCase):
+class LRUCacheTestCase:
     def test_evicts_least_recently_used(self):
         cache = LRUCache(2)
         cache["a"] = 1

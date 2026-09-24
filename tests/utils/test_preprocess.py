@@ -5,12 +5,10 @@ Tests for zipline.utils.validate.
 import inspect
 from operator import attrgetter
 from types import FunctionType
-from unittest import TestCase
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import pytest
 from numpy import arange, array, dtype
-from parameterized import parameterized
 
 from zipline.utils.input_validation import (
     ensure_timezone,
@@ -33,14 +31,15 @@ def noop(func, argname, argvalue):
 qualname = attrgetter("__qualname__")
 
 
-class PreprocessTestCase(TestCase):
-    @parameterized.expand(
+class PreprocessTestCase:
+    @pytest.mark.parametrize(
+        "name, args, kwargs",
         [
             ("too_many", (1, 2, 3), {}),
             ("too_few", (1,), {}),
             ("collision", (1,), {"a": 1}),
             ("unexpected", (1,), {"q": 1}),
-        ]
+        ],
     )
     def test_preprocess_doesnt_change_TypeErrors(self, name, args, kwargs):
         """
@@ -93,14 +92,15 @@ class PreprocessTestCase(TestCase):
 
         assert arglebargle.__name__ == "arglebargle"
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "args, kwargs",
         [
             ((1, 2), {}),
             ((1, 2), {"c": 3}),
             ((1,), {"b": 2}),
             ((), {"a": 1, "b": 2}),
             ((), {"a": 1, "b": 2, "c": 3}),
-        ]
+        ],
     )
     def test_preprocess_no_processors(self, args, kwargs):
 
@@ -161,14 +161,15 @@ class PreprocessTestCase(TestCase):
 
         assert e.value.args[0] == message
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "args, kwargs",
         [
             ((1, 2), {}),
             ((1, 2), {"c": 3}),
             ((1,), {"b": 2}),
             ((), {"a": 1, "b": 2}),
             ((), {"a": 1, "b": 2, "c": 3}),
-        ]
+        ],
     )
     def test_preprocess_on_function(self, args, kwargs):
 
@@ -184,14 +185,15 @@ class PreprocessTestCase(TestCase):
 
             assert func(*args, **kwargs) == ("1", 2.0, 4)
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "args, kwargs",
         [
             ((1, 2), {}),
             ((1, 2), {"c": 3}),
             ((1,), {"b": 2}),
             ((), {"a": 1, "b": 2}),
             ((), {"a": 1, "b": 2, "c": 3}),
-        ]
+        ],
     )
     def test_preprocess_on_method(self, args, kwargs):
         decorators = [

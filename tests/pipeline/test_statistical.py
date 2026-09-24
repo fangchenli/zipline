@@ -49,7 +49,6 @@ from zipline.testing import (
     check_arrays,
     make_alternating_boolean_array,
     make_cascading_boolean_array,
-    parameter_space,
 )
 from zipline.testing.predicates import assert_equal, assert_frame_equal
 from zipline.utils.numpy_utils import (
@@ -132,7 +131,8 @@ class StatisticalBuiltInsTestCase(
             dtype=bool_dtype,
         )
 
-    @parameter_space(returns_length=[2, 3], correlation_length=[3, 4])
+    @pytest.mark.parametrize("returns_length", [2, 3])
+    @pytest.mark.parametrize("correlation_length", [3, 4])
     def test_correlation_factors(self, returns_length, correlation_length):
         """
         Tests for the built-in factors `RollingPearsonOfReturns` and
@@ -230,7 +230,8 @@ class StatisticalBuiltInsTestCase(
             )
             assert_frame_equal(spearman_results, expected_spearman_results)
 
-    @parameter_space(returns_length=[2, 3], regression_length=[3, 4])
+    @pytest.mark.parametrize("returns_length", [2, 3])
+    @pytest.mark.parametrize("regression_length", [3, 4])
     def test_regression_of_returns_factor(self, returns_length, regression_length):
         """
         Tests for the built-in factor `RollingLinearRegressionOfReturns`.
@@ -551,7 +552,8 @@ class StatisticalMethodsTestCase(zf.WithSeededRandomPipelineEngine, zf.ZiplineTe
         # Random input for factors.
         cls.col = TestingDataSet.float_col
 
-    @parameter_space(returns_length=[2, 3], correlation_length=[3, 4])
+    @pytest.mark.parametrize("returns_length", [2, 3])
+    @pytest.mark.parametrize("correlation_length", [3, 4])
     def test_factor_correlation_methods(self, returns_length, correlation_length):
         """
         Ensure that `Factor.pearsonr` and `Factor.spearmanr` are consistent
@@ -654,7 +656,8 @@ class StatisticalMethodsTestCase(zf.WithSeededRandomPipelineEngine, zf.ZiplineTe
                 correlation_length=correlation_length,
             )
 
-    @parameter_space(returns_length=[2, 3], regression_length=[3, 4])
+    @pytest.mark.parametrize("returns_length", [2, 3])
+    @pytest.mark.parametrize("regression_length", [3, 4])
     def test_factor_regression_method(self, returns_length, regression_length):
         """
         Ensure that `Factor.linear_regression` is consistent with the built-in
@@ -731,7 +734,7 @@ class StatisticalMethodsTestCase(zf.WithSeededRandomPipelineEngine, zf.ZiplineTe
                 regression_length=regression_length,
             )
 
-    @parameter_space(correlation_length=[2, 3, 4])
+    @pytest.mark.parametrize("correlation_length", [2, 3, 4])
     def test_factor_correlation_methods_two_factors(self, correlation_length):
         """
         Tests for `Factor.pearsonr` and `Factor.spearmanr` when passed another
@@ -838,7 +841,7 @@ class StatisticalMethodsTestCase(zf.WithSeededRandomPipelineEngine, zf.ZiplineTe
         )
         assert_frame_equal(spearman_results, expected_spearman_results)
 
-    @parameter_space(regression_length=[2, 3, 4])
+    @pytest.mark.parametrize("regression_length", [2, 3, 4])
     def test_factor_regression_method_two_factors(self, regression_length):
         """
         Tests for `Factor.linear_regression` when passed another 2D factor
@@ -955,7 +958,7 @@ class VectorizedBetaTestCase(zf.ZiplineTestCase):
         assert_equal(result, expected, array_decimal=7)
         return result
 
-    @parameter_space(seed=[1, 2, 3], __fail_fast=True)
+    @pytest.mark.parametrize("seed", [1, 2, 3])
     def test_matches_empyrical_beta_aligned(self, seed):
         rand = np.random.RandomState(seed)
 
@@ -967,12 +970,9 @@ class VectorizedBetaTestCase(zf.ZiplineTestCase):
         result = self.compare_with_empyrical(dependents, independent)
         assert (np.abs(result - true_betas) < 0.01).all()
 
-    @parameter_space(
-        seed=[1, 2],
-        pct_dependent=[0.3],
-        pct_independent=[0.75],
-        __fail_fast=True,
-    )
+    @pytest.mark.parametrize("seed", [1, 2])
+    @pytest.mark.parametrize("pct_dependent", [0.3])
+    @pytest.mark.parametrize("pct_independent", [0.75])
     def test_nan_handling_matches_empyrical(self, seed, pct_dependent, pct_independent):
         rand = np.random.RandomState(seed)
 
@@ -995,7 +995,7 @@ class VectorizedBetaTestCase(zf.ZiplineTestCase):
         # have any nans in the output even though we had some in the input.
         assert not np.isnan(result).any()
 
-    @parameter_space(nan_offset=[-1, 0, 1])
+    @pytest.mark.parametrize("nan_offset", [-1, 0, 1])
     def test_produce_nans_when_too_much_missing_data(self, nan_offset):
         rand = np.random.RandomState(42)
 
@@ -1102,12 +1102,9 @@ class VectorizedCorrelationTestCase(zf.ZiplineTestCase):
     def naive_columnwise_spearman(self, left, right):
         return self.naive_columnwise_func(spearmanr, left, right)
 
-    @parameter_space(
-        seed=[1, 2, 42],
-        nan_offset=[-1, 0, 1],
-        nans=["dependent", "independent", "both"],
-        __fail_fast=True,
-    )
+    @pytest.mark.parametrize("seed", [1, 2, 42])
+    @pytest.mark.parametrize("nan_offset", [-1, 0, 1])
+    @pytest.mark.parametrize("nans", ["dependent", "independent", "both"])
     def test_produce_nans_when_too_much_missing_data(self, seed, nans, nan_offset):
         rand = np.random.RandomState(seed)
 

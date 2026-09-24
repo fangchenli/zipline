@@ -6,7 +6,6 @@ import re
 from collections import Counter
 from itertools import product
 from operator import neg
-from unittest import TestCase
 
 import pandas as pd
 import pytest
@@ -39,7 +38,6 @@ from zipline.pipeline.expression import NUMEXPR_MATH_FUNCS
 from zipline.pipeline.factors import RecarrayField
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import AssetExists, LoadableTerm
-from zipline.testing import parameter_space
 from zipline.testing.fixtures import WithTradingSessions, ZiplineTestCase
 from zipline.testing.predicates import (
     assert_equal,
@@ -278,7 +276,7 @@ class DependencyResolutionTestCase(WithTradingSessions, ZiplineTestCase):
         SomeFactor(inputs=[SomeOtherFactor()], window_length=1)
 
 
-class ObjectIdentityTestCase(TestCase):
+class ObjectIdentityTestCase:
     def assertSameObject(self, *objs):
         first = objs[0]
         for obj in objs:
@@ -671,7 +669,7 @@ class ObjectIdentityTestCase(TestCase):
                 int_column = Column(dtype=int64_dtype, missing_value=3)
 
 
-class SubDataSetTestCase(TestCase):
+class SubDataSetTestCase:
     def test_subdataset(self):
         some_dataset_map = {column.name: column for column in SomeDataSet.columns}
         sub_dataset_map = {column.name: column for column in SubDataSet.columns}
@@ -710,10 +708,8 @@ class SubDataSetTestCase(TestCase):
                 f"subclass column {k!r} should have the same dtype as the parent"
             )
 
-    @parameter_space(
-        dtype_=[categorical_dtype, int64_dtype],
-        outputs_=[("a",), ("a", "b")],
-    )
+    @pytest.mark.parametrize("dtype_", [categorical_dtype, int64_dtype])
+    @pytest.mark.parametrize("outputs_", [("a",), ("a", "b")])
     def test_reject_multi_output_classifiers(self, dtype_, outputs_):
         """
         Multi-output CustomClassifiers don't work because they use special

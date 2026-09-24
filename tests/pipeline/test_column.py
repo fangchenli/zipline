@@ -6,7 +6,6 @@ import operator
 
 import pytest
 from pandas import DataFrame, Timestamp
-from parameterized import parameterized
 
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Pipeline
@@ -83,13 +82,14 @@ class LatestTestCase(
             expected_col_result = self.expected_latest(column, cal_slice)
             assert_frame_equal(col_result, expected_col_result)
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "op",
         [
-            (operator.gt,),
-            (operator.ge,),
-            (operator.lt,),
-            (operator.le,),
-        ]
+            operator.gt,
+            operator.ge,
+            operator.lt,
+            operator.le,
+        ],
     )
     def test_comparison_errors(self, op):
         for column in TDS.columns:

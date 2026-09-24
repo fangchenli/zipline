@@ -3,7 +3,6 @@ Tests for zipline.utils.numpy_utils.
 """
 
 from datetime import datetime
-from unittest import TestCase
 
 from numpy import (
     array,
@@ -69,7 +68,7 @@ def everything_but(k, d):
     return concat(keyfilter(ne(k), d).values())
 
 
-class TypeCheckTestCase(TestCase):
+class TypeCheckTestCase:
     def test_is_float(self):
         for good_value in CASES[float]:
             assert is_float(good_value)
@@ -92,7 +91,7 @@ class TypeCheckTestCase(TestCase):
             assert not is_datetime(bad_value)
 
 
-class ArrayUtilsTestCase(TestCase):
+class ArrayUtilsTestCase:
     def test_bytes_array_to_native_str_object_array(self):
         a = array([b"abc", b"def"], dtype="S3")
         result = bytes_array_to_native_str_object_array(a)

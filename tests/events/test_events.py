@@ -16,11 +16,9 @@ import datetime
 import random
 import warnings
 from inspect import isabstract
-from unittest import TestCase
 
 import pandas as pd
 import pytest
-from parameterized import parameterized
 
 import zipline.utils.events
 from zipline.utils.calendar_utils import get_calendar
@@ -55,12 +53,13 @@ def param_range(*args):
     return ([n] for n in range(*args))
 
 
-class TestUtils(TestCase):
-    @parameterized.expand(
+class TestUtils:
+    @pytest.mark.parametrize(
+        "name, f",
         [
             ("_build_date", _build_date),
             ("_build_time", _build_time),
-        ]
+        ],
     )
     def test_build_none(self, name, f):
         with pytest.raises(ValueError):
@@ -121,8 +120,8 @@ class TestUtils(TestCase):
         assert _build_time(None, kwargs) == datetime.time(**kwargs)
 
 
-class TestEventManager(TestCase):
-    def setUp(self):
+class TestEventManager:
+    def setup_method(self):
         self.em = EventManager()
         self.event1 = Event(Always())
         self.event2 = Event(Always())
@@ -157,7 +156,7 @@ class TestEventManager(TestCase):
         assert CountingRule.count == 5
 
 
-class TestEventRule(TestCase):
+class TestEventRule:
     def test_is_abstract(self):
         with pytest.raises(TypeError):
             EventRule()
@@ -203,11 +202,11 @@ def minutes_for_days(cal, ordered_days=False):
     return [cal.session_minutes(session_picker(cnt)) for cnt in range(500)]
 
 
-class RuleTestCase:
+class _RuleTestCase:
     CALENDAR_STRING = "foo"
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         # On the AfterOpen and BeforeClose tests, we want ensure that the
         # functions are pure, and that running them with the same input will
         # provide the same output, regardless of whether the function is run 1
@@ -248,10 +247,10 @@ class RuleTestCase:
         )
 
 
-class StatelessRulesTests(RuleTestCase):
+class _StatelessRulesTests(_RuleTestCase):
     @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
+    def setup_class(cls):
+        super().setup_class()
 
         cls.class_ = StatelessRule
         cls.cal = get_calendar(cls.CALENDAR_STRING)
@@ -416,13 +415,14 @@ class StatelessRulesTests(RuleTestCase):
             assert composed.second is rule2
             assert not any(map(should_trigger, minute))
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "name, rule_type",
         [
             ("month_start", NthTradingDayOfMonth),
             ("month_end", NDaysBeforeLastTradingDayOfMonth),
             ("week_start", NthTradingDayOfWeek),
             ("week_end", NthTradingDayOfWeek),
-        ]
+        ],
     )
     def test_pass_float_to_day_of_period_rule(self, name, rule_type):
         with warnings.catch_warnings(record=True) as raised_warnings:
@@ -451,12 +451,12 @@ class StatelessRulesTests(RuleTestCase):
             NthTradingDayOfMonth(24)
 
 
-class StatefulRulesTests(RuleTestCase):
+class _StatefulRulesTests(_RuleTestCase):
     CALENDAR_STRING = "NYSE"
 
     @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
+    def setup_class(cls):
+        super().setup_class()
 
         cls.class_ = StatefulRule
         cls.cal = get_calendar(cls.CALENDAR_STRING)

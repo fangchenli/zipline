@@ -19,12 +19,13 @@ from operator import itemgetter
 
 import matplotlib
 import pandas as pd
+import pytest
 from click.testing import CliRunner
 
 import zipline.__main__ as main
 from zipline import examples
 from zipline.data.bundles import convert, register, unregister
-from zipline.testing import parameter_space, test_resource_path
+from zipline.testing import test_resource_path
 from zipline.testing.fixtures import (
     WithTmpDir,
     ZiplineTestCase,
@@ -97,9 +98,9 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             ] = 0.0
         return expected_perf
 
-    @parameter_space(
-        example_name=sorted(EXAMPLE_MODULES),
-        benchmark_returns=[read_checked_in_benchmark_data(), None],
+    @pytest.mark.parametrize("example_name", list(sorted(EXAMPLE_MODULES)))
+    @pytest.mark.parametrize(
+        "benchmark_returns", [read_checked_in_benchmark_data(), None]
     )
     def test_example(self, example_name, benchmark_returns):
         actual_perf = examples.run_example(

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pandas as pd
-from parameterized import parameterized
+import pytest
 
 from zipline.assets import Equity
 from zipline.finance.blotter import SimulationBlotter
@@ -105,13 +105,14 @@ class BlotterTestCase(
     def CREATE_BARDATA_DATA_FREQUENCY(cls):
         return cls.sim_params.data_frequency
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "style_obj, expected_lmt, expected_stp",
         [
             (MarketOrder(), None, None),
             (LimitOrder(10), 10, None),
             (StopOrder(10), None, 10),
             (StopLimitOrder(10, 20), 10, 20),
-        ]
+        ],
     )
     def test_blotter_order_types(self, style_obj, expected_lmt, expected_stp):
         style_obj.asset = self.asset_24

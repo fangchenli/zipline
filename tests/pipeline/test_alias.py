@@ -7,7 +7,7 @@ from zipline.utils.numpy_utils import float64_dtype, int64_dtype
 from .base import BaseUSEquityPipelineTestCase
 
 
-class BaseAliasTestCase:
+class _BaseAliasTestCase:
     """Mixin with alias tests; subclasses set ``Term``."""
 
     def test_alias(self):
@@ -41,20 +41,20 @@ class BaseAliasTestCase:
             )
 
 
-class TestFactorAlias(BaseAliasTestCase, BaseUSEquityPipelineTestCase):
+class TestFactorAlias(_BaseAliasTestCase, BaseUSEquityPipelineTestCase):
     class Term(Factor):
         dtype = float64_dtype
         inputs = ()
         window_length = 0
 
 
-class TestFilterAlias(BaseAliasTestCase, BaseUSEquityPipelineTestCase):
+class TestFilterAlias(_BaseAliasTestCase, BaseUSEquityPipelineTestCase):
     class Term(Filter):
         inputs = ()
         window_length = 0
 
 
-class TestClassifierAlias(BaseAliasTestCase, BaseUSEquityPipelineTestCase):
+class TestClassifierAlias(_BaseAliasTestCase, BaseUSEquityPipelineTestCase):
     class Term(Classifier):
         dtype = int64_dtype
         inputs = ()
