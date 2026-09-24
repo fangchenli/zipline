@@ -75,8 +75,13 @@ API and Behaviour Changes
   clear message when accessed outside of a running simulation.
 - A bundle's ingest function now receives a
   :class:`~zipline.data.parquet_daily_bars.ParquetDailyBarWriter` as
-  ``daily_bar_writer``. Its ``write`` method may be called only once, and daily
-  bar dates must be sessions of the bundle's calendar.
+  ``daily_bar_writer`` and a
+  :class:`~zipline.data.parquet_minute_bars.ParquetMinuteBarWriter` as
+  ``minute_bar_writer``. Their ``write`` methods may be called only once, each
+  sid may appear only once, and dates must be sessions (daily) or trading
+  minutes (minute) of the bundle's calendar.
+- The ``minutes_per_day`` argument of
+  :func:`~zipline.data.bundles.register` is deprecated and ignored.
 
 Enhancements
 ~~~~~~~~~~~~
@@ -96,7 +101,8 @@ Enhancements
   float64 rather than bcolz's scaled uint32, so there is no rounding to three
   decimals or volume limit, and early closes need no special handling. Minute
   backtests run as fast as with bcolz, and loading minute windows for many
-  assets is about 3x faster.
+  assets is about 3x faster. Bundles ingest minute bars into this format;
+  bundles ingested by earlier versions, with bcolz minute bars, still load.
 
 Bug Fixes
 ~~~~~~~~~

@@ -202,24 +202,25 @@ docs for write.
 `````````````````````
 
 ``minute_bar_writer`` is an instance of
-:class:`~zipline.data.minute_bars.BcolzMinuteBarWriter`. This writer is used to
-convert data to zipline's internal bcolz format to later be read by a
-:class:`~zipline.data.minute_bars.BcolzMinuteBarReader`. If minute data is
-provided, users should call
-:meth:`~zipline.data.minute_bars.BcolzMinuteBarWriter.write` with an iterable of
-(sid, dataframe) tuples. The ``show_progress`` argument should also be forwarded
-to this method. If the data source does not provide minute level data, then
-there is no need to call the write method. It is also acceptable to pass an
-empty iterator to :meth:`~zipline.data.minute_bars.BcolzMinuteBarWriter.write`
-to signal that there is no minutely data.
+:class:`~zipline.data.parquet_minute_bars.ParquetMinuteBarWriter`. This writer
+stores minute bars as a Parquet dataset, later read by a
+:class:`~zipline.data.parquet_minute_bars.ParquetMinuteBarReader`. If minute
+data is provided, users should call
+:meth:`~zipline.data.parquet_minute_bars.ParquetMinuteBarWriter.write` once with
+an iterable of (sid, dataframe) tuples, where each dataframe is indexed by
+minute and has ``open``, ``high``, ``low``, ``close`` and ``volume`` columns.
+Minutes must be trading minutes of the bundle's calendar; naive minutes are
+taken as UTC. Only minutes with a bar need to be provided. The
+``show_progress`` argument should also be forwarded to this method. If the data
+source does not provide minute level data, then there is no need to call the
+write method.
 
 .. note::
 
    The data passed to
-   :meth:`~zipline.data.minute_bars.BcolzMinuteBarWriter.write` may be a lazy
-   iterator or generator to avoid loading all of the minute data into memory at
-   a single time. A given sid may also appear multiple times in the data as long
-   as the dates are strictly increasing.
+   :meth:`~zipline.data.parquet_minute_bars.ParquetMinuteBarWriter.write` may be
+   a lazy iterator or generator to avoid loading all of the minute data into
+   memory at a single time. Writing sids in ascending order makes reads faster.
 
 ``daily_bar_writer``
 ````````````````````
@@ -243,8 +244,8 @@ will happen to service daily history requests.
    Like the ``minute_bar_writer``, the data passed to
    :meth:`~zipline.data.parquet_daily_bars.ParquetDailyBarWriter.write` may be a
    lazy iterable or generator to avoid loading all of the data into memory at
-   once. Unlike the ``minute_bar_writer``, a sid may only appear once in the
-   data iterable, and the method may only be called once.
+   once. For both writers, a sid may only appear once in the data iterable, and
+   the method may only be called once.
 
 ``adjustment_writer``
 `````````````````````
