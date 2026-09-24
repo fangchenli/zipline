@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 from abc import ABC, abstractmethod
 from sys import float_info
 
@@ -20,7 +21,6 @@ from numpy import isfinite
 
 import zipline.utils.math_utils as zp_math
 from zipline.errors import BadOrderParameters
-from zipline.utils.compat import consistent_round
 
 
 class ExecutionStyle(ABC):
@@ -198,13 +198,22 @@ def asymmetric_round_price(price, prefer_round_down, tick_size, diff=0.95):
     epsilon = float_info.epsilon * 10
     diff = diff - epsilon
 
-    # relies on rounding half away from zero, unlike numpy's bankers' rounding
-    rounded = tick_size * consistent_round(
+    # Rounds halves up, unlike numpy's and Python's round-half-to-even.
+    rounded = tick_size * _round_half_up(
         (price - (diff if prefer_round_down else -diff)) / tick_size
     )
     if zp_math.tolerant_equals(rounded, 0.0):
         return 0.0
     return rounded
+
+
+def _round_half_up(value):
+    """Round ``value`` to the nearest integer, and halves up (towards
+    positive infinity).
+    """
+    if value % 1 >= 0.5:
+        return math.ceil(value)
+    return round(value)
 
 
 def check_stoplimit_prices(price, label):

@@ -3,6 +3,7 @@ Tests for SimplePipelineEngine
 """
 
 from collections import ChainMap, OrderedDict
+from functools import cached_property
 from itertools import product
 from operator import add, sub
 
@@ -88,7 +89,6 @@ from zipline.testing import (
 from zipline.testing.core import create_simple_domain
 from zipline.testing.predicates import assert_equal, assert_frame_equal
 from zipline.utils.exploding_object import NamedExplodingObject
-from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import bool_dtype, datetime64ns_dtype
 
 
@@ -826,7 +826,7 @@ class FrameInputTestCase(
         cls.assets = cls.asset_finder.retrieve_all(cls.asset_ids)
         cls.domain = US_EQUITIES
 
-    @lazyval
+    @cached_property
     def base_mask(self):
         return self.make_frame(True)
 

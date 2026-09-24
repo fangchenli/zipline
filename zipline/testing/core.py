@@ -1,4 +1,5 @@
 import gzip
+import inspect
 import json
 import operator
 import os
@@ -47,7 +48,6 @@ from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils import security_list
 from zipline.utils.calendar_utils import get_calendar
-from zipline.utils.compat import getargspec
 from zipline.utils.input_validation import expect_dimensions
 from zipline.utils.numpy_utils import as_column, isnat
 from zipline.utils.pandas_utils import timedelta_to_integral_seconds
@@ -1088,10 +1088,10 @@ def parameter_space(__fail_fast=_FAIL_FAST_DEFAULT, **params):
 
     def decorator(f):
 
-        argspec = getargspec(f)
+        argspec = inspect.getfullargspec(f)
         if argspec.varargs:
             raise AssertionError("parameter_space() doesn't support *args")
-        if argspec.keywords:
+        if argspec.varkw:
             raise AssertionError("parameter_space() doesn't support **kwargs")
         if argspec.defaults:
             raise AssertionError("parameter_space() doesn't support defaults.")

@@ -3,10 +3,9 @@ Utilities for validating inputs to user-facing API functions.
 """
 
 from functools import wraps
+from inspect import getfullargspec
 from textwrap import dedent
 from uuid import uuid4
-
-from zipline.utils.compat import getargspec
 
 NO_DEFAULT = object()
 
@@ -59,7 +58,13 @@ def preprocess(*_unused, **processors):
         raise TypeError("preprocess() doesn't accept positional arguments")
 
     def _decorator(f):
-        args, varargs, varkw, defaults = argspec = getargspec(f)
+        argspec = getfullargspec(f)
+        args, varargs, varkw, defaults = (
+            argspec.args,
+            argspec.varargs,
+            argspec.varkw,
+            argspec.defaults,
+        )
         if defaults is None:
             defaults = ()
         no_defaults = (NO_DEFAULT,) * (len(args) - len(defaults))

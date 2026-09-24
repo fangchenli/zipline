@@ -2,6 +2,7 @@
 Tests for zipline.pipeline.Pipeline
 """
 
+import inspect
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -15,7 +16,6 @@ from zipline.pipeline.domain import (
     AmbiguousDomain,
 )
 from zipline.pipeline.graph import display_graph
-from zipline.utils.compat import getargspec
 from zipline.utils.numpy_utils import float64_dtype
 
 
@@ -159,8 +159,8 @@ class PipelineTestCase(TestCase):
             return (g, format, include_asset_exists)
 
         self.assertEqual(
-            getargspec(display_graph),
-            getargspec(mock_display_graph),
+            inspect.getfullargspec(display_graph),
+            inspect.getfullargspec(mock_display_graph),
             msg="Mock signature doesn't match signature for display_graph.",
         )
 

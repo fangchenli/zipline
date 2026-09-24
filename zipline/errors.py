@@ -12,9 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import cached_property
 from textwrap import dedent
-
-from zipline.utils.memoize import lazyval
 
 
 class ZiplineError(Exception):
@@ -24,7 +23,7 @@ class ZiplineError(Exception):
     def __init__(self, **kwargs):
         self.kwargs = kwargs
 
-    @lazyval
+    @cached_property
     def message(self):
         return str(self)
 
@@ -448,15 +447,15 @@ class SidsNotFound(ZiplineError):
     non-existent sid.
     """
 
-    @lazyval
+    @cached_property
     def plural(self):
         return len(self.sids) > 1
 
-    @lazyval
+    @cached_property
     def sids(self):
         return self.kwargs["sids"]
 
-    @lazyval
+    @cached_property
     def msg(self):
         if self.plural:
             return "No assets found for sids: {sids}."
@@ -468,7 +467,7 @@ class EquitiesNotFound(SidsNotFound):
     Raised when a call to `retrieve_equities` fails to find an asset.
     """
 
-    @lazyval
+    @cached_property
     def msg(self):
         if self.plural:
             return "No equities found for sids: {sids}."
@@ -480,7 +479,7 @@ class FutureContractsNotFound(SidsNotFound):
     Raised when a call to `retrieve_futures_contracts` fails to find an asset.
     """
 
-    @lazyval
+    @cached_property
     def msg(self):
         if self.plural:
             return "No future contracts found for sids: {sids}."

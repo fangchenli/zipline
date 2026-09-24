@@ -200,6 +200,9 @@ Maintenance and Refactorings
 - Removed ``pandas.Panel`` and other APIs removed from pandas, numpy and Python.
 - Removed the ``lru-dict``, ``multipledispatch`` and ``python-dateutil``
   dependencies, which the standard library, numpy and pandas cover.
+- Replaced ``zipline.utils.memoize.lazyval`` and ``classlazyval`` with
+  :func:`functools.cached_property`, and removed the unused
+  ``zipline.utils.compat`` and ``zipline.utils.pool`` modules.
 - Ported the asset database to SQLAlchemy 2.
 - Removed the unused ``zipline.utils.tradingcalendar`` and
   ``zipline.utils.data`` modules.

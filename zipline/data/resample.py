@@ -13,6 +13,7 @@
 # limitations under the License.
 from abc import ABC, abstractmethod
 from collections import OrderedDict
+from functools import cached_property
 
 import numpy as np
 import pandas as pd
@@ -27,7 +28,6 @@ from zipline.data._resample import (
 from zipline.data.bar_reader import NoDataOnDate
 from zipline.data.minute_bars import MinuteBarReader
 from zipline.data.session_bars import SessionBarReader
-from zipline.utils.memoize import lazyval
 
 _MINUTE_TO_SESSION_OHCLV_HOW = OrderedDict(
     (
@@ -571,14 +571,14 @@ class MinuteResampleSessionBarReader(SessionBarReader):
         # for real world use.
         return self._get_resampled([field], dt, dt, [sid])[0][0][0]
 
-    @lazyval
+    @cached_property
     def sessions(self):
         cal = self._calendar
         first = self._minute_bar_reader.first_trading_day
         last = cal.minute_to_session(self._minute_bar_reader.last_available_dt)
         return cal.sessions_in_range(first, last)
 
-    @lazyval
+    @cached_property
     def last_available_dt(self):
         return self.trading_calendar.minute_to_session(
             self._minute_bar_reader.last_available_dt
@@ -666,7 +666,7 @@ class ReindexBarReader(ABC):
     def trading_calendar(self):
         return self._trading_calendar
 
-    @lazyval
+    @cached_property
     def sessions(self):
         return self.trading_calendar.sessions_in_range(
             self._first_trading_session, self._last_trading_session

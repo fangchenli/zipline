@@ -16,6 +16,7 @@ from abc import (
     ABC,
     abstractmethod,
 )
+from functools import cached_property
 
 from numpy import concatenate
 from pandas import isnull
@@ -28,7 +29,6 @@ from zipline.lib._int64window import AdjustedArrayWindow as Int64Window
 from zipline.lib.adjustment import Float64Add, Float64Multiply
 from zipline.utils.cache import ExpiringCache, LRUCache
 from zipline.utils.math_utils import number_of_decimal_places
-from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import float64_dtype
 from zipline.utils.pandas_utils import find_in_sorted_index
 
@@ -549,7 +549,7 @@ class MinuteHistoryLoader(HistoryLoader):
     def _frequency(self):
         return "minute"
 
-    @lazyval
+    @cached_property
     def _calendar(self):
         mm = self.trading_calendar.minutes
         first_trading_day = self._reader.first_trading_day
