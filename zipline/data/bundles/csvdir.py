@@ -2,11 +2,10 @@
 Module for building a complete dataset from local directory with csv files.
 """
 
+import logging
 import os
-import sys
 
 import pandas as pd
-from logbook import Logger, StreamHandler
 from numpy import empty
 from pandas import DataFrame, Index, NaT, Timedelta, read_csv
 
@@ -15,9 +14,7 @@ from zipline.utils.cli import maybe_show_progress
 
 from . import core as bundles
 
-handler = StreamHandler(sys.stdout, format_string=" | {record.message}")
-logger = Logger(__name__)
-logger.handlers.append(handler)
+logger = logging.getLogger(__name__)
 
 
 def csvdir_equities(tframes=None, csvdir=None):
@@ -195,7 +192,7 @@ def _pricing_iter(csvdir, symbols, metadata, divs_splits, show_progress):
     ) as it:
         files = os.listdir(csvdir)
         for sid, symbol in enumerate(it):
-            logger.debug(f"{symbol}: sid {sid}")
+            logger.info("%s: sid %s", symbol, sid)
 
             try:
                 fname = [fname for fname in files if f"{symbol}.csv" in fname][0]

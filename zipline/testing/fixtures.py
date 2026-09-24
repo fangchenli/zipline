@@ -8,7 +8,6 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 import responses
-from logbook import Logger, NullHandler
 from pandas.errors import PerformanceWarning
 from toolz import flip, groupby, merge
 
@@ -309,32 +308,6 @@ class WithDefaultDateBounds(_FixtureMixin, metaclass=DebugMROMeta):
 
     START_DATE = pd.Timestamp("2006-01-03")
     END_DATE = pd.Timestamp("2006-12-29")
-
-
-class WithLogger(_FixtureMixin):
-    """
-    ZiplineTestCase mixin providing cls.log_handler as an instance-level
-    fixture.
-
-    After init_instance_fixtures has been called `self.log_handler` will be a
-    new ``logbook.NullHandler``.
-
-    Methods
-    -------
-    make_log_handler() -> logbook.LogHandler
-        A class method which constructs the new log handler object. By default
-        this will construct a ``NullHandler``.
-    """
-
-    make_log_handler = NullHandler
-
-    @classmethod
-    def init_class_fixtures(cls):
-        super().init_class_fixtures()
-        cls.log = Logger()
-        cls.log_handler = cls.enter_class_context(
-            cls.make_log_handler().applicationbound(),
-        )
 
 
 class WithAssetFinder(WithDefaultDateBounds):
@@ -2158,7 +2131,7 @@ class WithCreateBarData(WithDataPortal):
         )
 
 
-class WithMakeAlgo(WithBenchmarkReturns, WithSimParams, WithLogger, WithDataPortal):
+class WithMakeAlgo(WithBenchmarkReturns, WithSimParams, WithDataPortal):
     """
     ZiplineTestCase mixin that provides a ``make_algo`` method.
     """

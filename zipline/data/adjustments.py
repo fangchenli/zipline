@@ -1,3 +1,4 @@
+import logging
 import sqlite3
 from collections import namedtuple
 from errno import ENOENT
@@ -5,7 +6,6 @@ from os import remove
 
 import numpy as np
 import pandas as pd
-from logbook import Logger
 from numpy import integer as any_integer
 from pandas import Timestamp
 
@@ -23,7 +23,7 @@ from zipline.utils.sqlite_utils import coerce_string_to_conn, group_into_chunks
 
 from ._adjustments import load_adjustments_from_sqlite
 
-log = Logger(__name__)
+log = logging.getLogger(__name__)
 
 
 SQLITE_ADJUSTMENT_TABLENAMES = frozenset(["splits", "dividends", "mergers"])
@@ -512,21 +512,19 @@ class SQLiteAdjustmentWriter:
         non_nan_ratio_mask = ~np.isnan(ratio)
         for ix in np.flatnonzero(~non_nan_ratio_mask):
             log.warning(
-                "Couldn't compute ratio for dividend"
-                " sid={sid}, ex_date={ex_date:%Y-%m-%d}, amount={amount:.3f}",
-                sid=input_sids[ix],
-                ex_date=pd.Timestamp(input_dates[ix]),
-                amount=amount[ix],
+                "Couldn't compute ratio for dividend sid=%s, ex_date=%s, amount=%.3f",
+                input_sids[ix],
+                pd.Timestamp(input_dates[ix]).date(),
+                amount[ix],
             )
 
         positive_ratio_mask = ratio > 0
         for ix in np.flatnonzero(~positive_ratio_mask & non_nan_ratio_mask):
             log.warning(
-                "Dividend ratio <= 0 for dividend"
-                " sid={sid}, ex_date={ex_date:%Y-%m-%d}, amount={amount:.3f}",
-                sid=input_sids[ix],
-                ex_date=pd.Timestamp(input_dates[ix]),
-                amount=amount[ix],
+                "Dividend ratio <= 0 for dividend sid=%s, ex_date=%s, amount=%.3f",
+                input_sids[ix],
+                pd.Timestamp(input_dates[ix]).date(),
+                amount[ix],
             )
 
         valid_ratio_mask = non_nan_ratio_mask & positive_ratio_mask

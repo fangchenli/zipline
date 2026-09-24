@@ -101,6 +101,17 @@ API and Behaviour Changes
   :class:`~zipline.data.fx.ParquetFXRateWriter`, which take the same data.
   h5py is no longer a dependency, and PyTables is only needed with the
   ``bcolz`` extra.
+- Zipline logs through the standard library's :mod:`logging` module instead of
+  Logbook, which is no longer a dependency. Loggers are named after their
+  modules (e.g. ``zipline.finance.metrics.tracker``), so
+  ``logging.getLogger("zipline")`` configures all of them. As is usual for a
+  library, Zipline installs no handlers: ``run_algorithm`` shows only warnings
+  and errors unless logging is configured, e.g. with
+  ``logging.basicConfig(level=logging.INFO)``, while the command line
+  interface shows info messages too. Log records no longer carry the
+  simulation time as ``algo_dt``. The ``WithLogger`` test fixture and
+  ``zipline.testing.make_test_handler`` are removed; use
+  :meth:`unittest.TestCase.assertLogs` instead.
 
 Enhancements
 ~~~~~~~~~~~~

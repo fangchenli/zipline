@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import warnings
 from collections import namedtuple
 from collections.abc import Iterable
@@ -21,7 +22,6 @@ from datetime import time, timedelta, tzinfo
 from itertools import chain, repeat
 from zoneinfo import ZoneInfo
 
-import logbook
 import numpy as np
 import pandas as pd
 
@@ -129,7 +129,7 @@ from zipline.utils.preprocess import preprocess
 from zipline.utils.security_list import SecurityList
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
-log = logbook.Logger("ZiplineLog")
+log = logging.getLogger(__name__)
 
 # For creating and storing pipeline instances
 AttachedPipeline = namedtuple("AttachedPipeline", "pipe chunks eager")

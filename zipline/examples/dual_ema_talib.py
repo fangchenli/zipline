@@ -85,11 +85,11 @@ def handle_data(context, data):
 # Note: this function can be removed if running
 # this algorithm on quantopian.com
 def analyze(context, results):
-    import logbook
+    import logging
+
     import matplotlib.pyplot as plt
 
-    logbook.StderrHandler().push_application()
-    log = logbook.Logger("Algorithm")
+    log = logging.getLogger(__name__)
 
     fig = plt.figure()
     ax1 = fig.add_subplot(211)

@@ -15,8 +15,6 @@
 from contextlib import ExitStack
 from copy import copy
 
-from logbook import Logger, Processor
-
 from zipline.finance.order import ORDER_STATUS
 from zipline.gens.sim_engine import (
     BAR,
@@ -27,8 +25,6 @@ from zipline.gens.sim_engine import (
 )
 from zipline.protocol import BarData
 from zipline.utils.api_support import ZiplineAPI
-
-log = Logger("Trade Simulation")
 
 
 class AlgorithmSimulator:
@@ -73,18 +69,6 @@ class AlgorithmSimulator:
         self.clock = clock
 
         self.benchmark_source = benchmark_source
-
-        # =============
-        # Logging Setup
-        # =============
-
-        # Processor function for injecting the algo_dt into
-        # user prints/logs.
-        def inject_algo_dt(record):
-            if "algo_dt" not in record.extra:
-                record.extra["algo_dt"] = self.simulation_dt
-
-        self.processor = Processor(inject_algo_dt)
 
     def get_simulation_dt(self):
         return self.simulation_dt
@@ -189,7 +173,6 @@ class AlgorithmSimulator:
 
         with ExitStack() as stack:
             stack.callback(on_exit)
-            stack.enter_context(self.processor)
             stack.enter_context(ZiplineAPI(self.algo))
 
             if algo.data_frequency == "minute":

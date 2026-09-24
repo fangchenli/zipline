@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
+import logging
 import os
 from abc import ABC, abstractmethod
 from glob import glob
@@ -21,7 +22,6 @@ from types import MappingProxyType
 from typing import Literal
 
 import bcolz
-import logbook
 import numpy as np
 import pandas as pd
 import tables
@@ -48,7 +48,7 @@ from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.cli import maybe_show_progress
 from zipline.utils.memoize import lazyval
 
-logger = logbook.Logger("MinuteBars")
+logger = logging.getLogger(__name__)
 
 
 DEFAULT_EXPECTEDLEN = US_EQUITIES_MINUTES_PER_DAY * 252 * 15
@@ -148,8 +148,8 @@ def convert_cols(cols, scale_factor, sid, invalid_data_behavior):
 
             if invalid_data_behavior == "warn":
                 logger.warning(
-                    "Values for sid={}, col={} contain some too large for "
-                    "uint32 (max={}), filtering them out",
+                    "Values for sid=%s, col=%s contain some too large for "
+                    "uint32 (max=%s), filtering them out",
                     sid,
                     col_name,
                     max_val,
@@ -860,10 +860,10 @@ class BcolzMinuteBarWriter:
             except OSError:
                 continue
             if table.len <= truncate_slice_end:
-                logger.info("{0} not past truncate date={1}.", file_name, date)
+                logger.info("%s not past truncate date=%s.", file_name, date)
                 continue
 
-            logger.info("Truncating {0} at end_date={1}", file_name, date.date())
+            logger.info("Truncating %s at end_date=%s", file_name, date.date())
 
             table.resize(truncate_slice_end)
 

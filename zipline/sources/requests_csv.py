@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import warnings
 from abc import ABC, abstractmethod
 from collections import namedtuple
@@ -10,7 +11,6 @@ from zoneinfo import ZoneInfo
 import numpy
 import pandas as pd
 import requests
-from logbook import Logger
 from pandas import read_csv
 
 from zipline.errors import (
@@ -21,7 +21,7 @@ from zipline.errors import (
 )
 from zipline.protocol import DATASOURCE_TYPE, Event
 
-logger = Logger("Requests Source Logger")
+logger = logging.getLogger(__name__)
 
 
 def roll_dts_to_midnight(dts, trading_day):
@@ -390,7 +390,7 @@ class PandasCSV(ABC):
             no_sid_count = length_before_drop - len(df)
             if no_sid_count:
                 logger.warning(
-                    f"Dropped {no_sid_count} rows from fetched csv.",
+                    "Dropped %s rows from fetched csv.",
                     no_sid_count,
                     extra={"syslog": True},
                 )

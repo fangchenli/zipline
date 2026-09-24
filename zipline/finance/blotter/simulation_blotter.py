@@ -12,10 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 from collections import defaultdict
 from copy import copy
-
-from logbook import Logger
 
 from zipline.assets import Asset, Equity, Future
 from zipline.extensions import register
@@ -35,8 +34,7 @@ from zipline.utils.input_validation import expect_types
 
 from .blotter import Blotter
 
-log = Logger("Blotter")
-warning_logger = Logger("AlgoWarning")
+log = logging.getLogger(__name__)
 
 
 @register(Blotter, "default")
@@ -196,7 +194,7 @@ class SimulationBlotter(Blotter):
                 # Message appropriately depending on whether there's
                 # been a partial fill or not.
                 if order.filled > 0:
-                    warning_logger.warning(
+                    log.warning(
                         f"Your order for {order.amount} shares of "
                         f"{order.asset.symbol} has been partially filled. "
                         f"{order.filled} shares were successfully "
@@ -205,7 +203,7 @@ class SimulationBlotter(Blotter):
                         "were canceled."
                     )
                 elif order.filled < 0:
-                    warning_logger.warning(
+                    log.warning(
                         f"Your order for {order.amount} shares of "
                         f"{order.asset.symbol} has been partially filled. "
                         f"{-1 * order.filled} shares were successfully "
@@ -214,7 +212,7 @@ class SimulationBlotter(Blotter):
                         "were canceled."
                     )
                 else:
-                    warning_logger.warning(
+                    log.warning(
                         f"Your order for {order.amount} shares of "
                         f"{order.asset.symbol} failed to fill by the end of day "
                         "and was canceled."

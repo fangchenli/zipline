@@ -31,15 +31,15 @@ Position Tracking
 
 """
 
+import logging
 from math import copysign
 
-import logbook
 import numpy as np
 
 import zipline.protocol as zp
 from zipline.assets import Future
 
-log = logbook.Logger("Performance")
+log = logging.getLogger(__name__)
 
 
 class Position:

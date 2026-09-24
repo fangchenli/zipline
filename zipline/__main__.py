@@ -1,10 +1,10 @@
 import builtins
 import errno
+import logging
 import os
 from functools import wraps
 
 import click
-import logbook
 import pandas as pd
 
 import zipline
@@ -47,8 +47,12 @@ __IPYTHON__ = getattr(builtins, "__IPYTHON__", False)
 @click.pass_context
 def main(ctx, extension, strict_extensions, default_extension, x):
     """Top level zipline entry point."""
-    # install a logbook handler before performing any other operations
-    logbook.StderrHandler().push_application()
+    # Show zipline's progress messages, and those of algorithms and
+    # extensions, before performing any other operations.
+    logging.basicConfig(
+        format="[%(asctime)s] %(levelname)s: %(name)s: %(message)s",
+        level=logging.INFO,
+    )
     create_args(x, zipline.extension_args)
     load_extensions(
         default_extension,
