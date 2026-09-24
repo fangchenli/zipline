@@ -31,7 +31,7 @@ def debug_mro_failure(name, bases):
         )
     else:
         try:
-            nx.write_dot(graph.subgraph(cycle), output_file)
+            nx.nx_pydot.write_dot(graph.subgraph(cycle), output_file)
             subprocess.check_call(["dot", "-T", "svg", "-O", output_file])
             lines.append("GraphViz rendering written to " + output_file + ".svg")
         except Exception as e:
@@ -54,7 +54,7 @@ def _build_linearization_graph(g, child, bases):
 def add_direct_edges(g, child, bases):
     # Enforce that bases are ordered in the order that the appear in child's
     # class declaration.
-    g.add_path([b.__name__ for b in bases], label=child.__name__ + "(O)")
+    nx.add_path(g, [b.__name__ for b in bases], label=child.__name__ + "(O)")
 
     # Add direct edges.
     for base in bases:
@@ -65,7 +65,8 @@ def add_direct_edges(g, child, bases):
 def add_implicit_edges(g, child, bases):
     # Enforce that bases' previous linearizations are preserved.
     for base in bases:
-        g.add_path(
+        nx.add_path(
+            g,
             [b.__name__ for b in base.mro()],
             label=base.__name__ + "(L)",
         )
