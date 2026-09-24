@@ -209,7 +209,9 @@ DEFAULT_BUNDLE = "quandl"
     metavar="FILENAME",
     show_default=True,
     help="The location to write the perf data. If this is '-' the perf will"
-    " be written to stdout.",
+    " be written to stdout. Files ending in '.parquet' are written as Parquet"
+    " (read them with zipline.utils.results.read_results); other files are"
+    " pickled.",
 )
 @click.option(
     "--trading-calendar",

@@ -6,6 +6,10 @@ Running a Backtest
 
 .. autofunction:: zipline.run_algorithm(...)
 
+.. autofunction:: zipline.utils.results.write_results
+
+.. autofunction:: zipline.utils.results.read_results
+
 Algorithm API
 ~~~~~~~~~~~~~
 

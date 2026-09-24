@@ -19,7 +19,9 @@ from operator import itemgetter
 
 import matplotlib
 import pandas as pd
+from click.testing import CliRunner
 
+import zipline.__main__ as main
 from zipline import examples
 from zipline.data.bundles import convert, register, unregister
 from zipline.testing import parameter_space, test_resource_path
@@ -30,6 +32,7 @@ from zipline.testing.fixtures import (
 )
 from zipline.testing.predicates import assert_equal
 from zipline.utils.cache import dataframe_cache
+from zipline.utils.results import read_results
 
 # Otherwise the next line sometimes complains about being run too late.
 _multiprocess_can_split_ = False
@@ -133,6 +136,52 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
         assert_equal(
             expected_perf["positions"].apply(sorted, key=itemgetter("sid")),
             actual_perf["positions"].apply(sorted, key=itemgetter("sid")),
+        )
+
+    def test_run_writes_parquet(self):
+        output = self.tmpdir.getpath("buyapple.parquet")
+        result = CliRunner().invoke(
+            main.main,
+            [
+                "--no-default-extension",
+                "run",
+                "--algofile",
+                os.path.join(os.path.dirname(examples.__file__), "buyapple.py"),
+                "--start",
+                "2014-01-01",
+                "--end",
+                "2014-11-01",
+                "--capital-base",
+                "1e7",
+                "--bundle",
+                "test",
+                "--no-benchmark",
+                "--output",
+                output,
+            ],
+            env={"ZIPLINE_ROOT": self.tmpdir.getpath("example_data/root")},
+            catch_exceptions=False,
+        )
+        assert_equal(result.exit_code, 0, msg=result.output)
+
+        actual_perf = read_results(output)
+        expected_perf = self.no_benchmark_expected_perf["buyapple"]
+        columns = [
+            column for column in examples._cols_to_check if column != "positions"
+        ]
+        assert_equal(
+            actual_perf[columns],
+            expected_perf[columns],
+            check_dtype=False,
+            check_column_type=False,
+        )
+        # Parquet stores each position's asset as its sid.
+        assert_equal(
+            actual_perf["positions"].tolist(),
+            [
+                [{**position, "sid": position["sid"].sid} for position in positions]
+                for positions in expected_perf["positions"]
+            ],
         )
 
 

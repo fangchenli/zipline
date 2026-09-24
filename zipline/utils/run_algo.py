@@ -30,6 +30,7 @@ from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.date_utils import to_session_label
+from zipline.utils.results import write_results
 
 log = logbook.Logger(__name__)
 
@@ -237,7 +238,10 @@ def _run(
     if output == "-":
         click.echo(str(perf))
     elif output != os.devnull:  # make the zipline magic not write any data
-        perf.to_pickle(output)
+        if os.fspath(output).lower().endswith(".parquet"):
+            write_results(perf, output)
+        else:
+            perf.to_pickle(output)
 
     return perf
 

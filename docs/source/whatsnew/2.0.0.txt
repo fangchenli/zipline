@@ -125,6 +125,14 @@ Enhancements
 - New ``zipline convert`` command and :func:`zipline.data.bundles.convert`
   function, which rewrite the bcolz daily and minute bars of bundles ingested
   by earlier versions as Parquet.
+- Backtest results can be saved as Parquet: ``zipline run -o`` writes Parquet
+  when the file name ends in ``.parquet`` (other names are still pickled), and
+  :func:`~zipline.utils.results.write_results` and
+  :func:`~zipline.utils.results.read_results` save and load the results of
+  ``run_algorithm``. Unlike pickles, the files don't depend on the pandas
+  version and other tools can read them; in the ``orders``, ``transactions``
+  and ``positions`` columns, assets are stored as sids and order statuses as
+  their names.
 
 Bug Fixes
 ~~~~~~~~~
