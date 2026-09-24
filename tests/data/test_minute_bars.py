@@ -767,7 +767,10 @@ class BcolzMinuteBarTestCase(
             "close": array([40.0, 41.0]),
             "volume": array([50.0, 51.0]),
         }
-        dts = array([minute_0, minute_1], dtype="datetime64[s]")
+        dts = array(
+            [minute_0.tz_convert(None), minute_1.tz_convert(None)],
+            dtype="datetime64[s]",
+        )
         self.writer.write_cols(sid, dts, cols)
 
         open_price = self.reader.get_value(sid, minute_0, "open")

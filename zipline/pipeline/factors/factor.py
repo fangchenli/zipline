@@ -9,7 +9,7 @@ from operator import attrgetter
 from textwrap import dedent
 from typing import Any
 
-from numpy import asarray, empty_like, inf, isnan, nan, where
+from numpy import asarray, empty_like, errstate, inf, isnan, nan, where
 from scipy.stats import rankdata
 
 from zipline.errors import (
@@ -1843,7 +1843,9 @@ def demean(row):
 
 
 def zscore(row):
-    return (row - nanmean(row)) / nanstd(row)
+    # A row with no spread gives NaN.
+    with errstate(divide="ignore", invalid="ignore"):
+        return (row - nanmean(row)) / nanstd(row)
 
 
 def winsorize(row, min_percentile, max_percentile):

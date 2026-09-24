@@ -30,7 +30,10 @@ def write_metadata(rootdir, metadata):
 
 def directory_has_files(rootdir):
     """Whether ``rootdir`` exists and contains anything."""
-    return os.path.isdir(rootdir) and any(os.scandir(rootdir))
+    if not os.path.isdir(rootdir):
+        return False
+    with os.scandir(rootdir) as entries:
+        return next(entries, None) is not None
 
 
 def read_metadata(rootdir, format_name, format_version, description):

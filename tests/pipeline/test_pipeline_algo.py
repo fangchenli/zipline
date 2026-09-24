@@ -549,6 +549,7 @@ class PipelineAlgorithmTestCase(
 
         # length -> asset -> expected vwap
         vwaps = {length: {} for length in window_lengths}
+        sessions = self.trading_calendar.sessions
         for length in window_lengths:
             for asset in AAPL, MSFT, BRK_A:
                 raw_vwap = rolling_vwap(raw[asset], length)
@@ -557,9 +558,10 @@ class PipelineAlgorithmTestCase(
                 # labelled by the date on which they'll be seen in the
                 # algorithm. (We can't show the close price for day N until day
                 # N + 1.)
-                vwaps[length][asset] = concat(
-                    [raw_vwap[: split_loc - 1], adj_vwap[split_loc - 1 :]]
-                ).shift(1, self.trading_calendar.day)
+                vwap = concat([raw_vwap[: split_loc - 1], adj_vwap[split_loc - 1 :]])
+                vwaps[length][asset] = vwap.set_axis(
+                    sessions[sessions.get_indexer(vwap.index) + 1]
+                )
 
         # Make sure all the expected vwaps have the same dates.
         vwap_dates = vwaps[1][self.AAPL].index

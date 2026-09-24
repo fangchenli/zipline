@@ -25,16 +25,24 @@ logger = logging.getLogger(__name__)
 
 
 def roll_dts_to_midnight(dts, trading_day):
+    """The trading day after the day of each of ``dts``, counting times
+    after 4pm in New York as the next day, as UTC midnights.
+    """
     if len(dts) == 0:
         return dts
 
-    return (
-        pd.DatetimeIndex(
-            (dts.tz_convert("US/Eastern") - pd.Timedelta(hours=16)).date,
-            tz="UTC",
-        )
-        + trading_day
+    days = (
+        (dts.tz_convert("US/Eastern") - pd.Timedelta(hours=16))
+        .tz_localize(None)
+        .to_numpy()
+        .astype("datetime64[D]")
     )
+    # ``day + trading_day`` for every day at once: roll non-trading days
+    # back to the trading day before them, then step one trading day.
+    next_days = numpy.busday_offset(
+        days, 1, roll="backward", busdaycal=trading_day.calendar
+    )
+    return pd.DatetimeIndex(next_days.astype("datetime64[ns]"), tz="UTC")
 
 
 RequestPair = namedtuple("RequestPair", ("requests_kwargs", "url"))
