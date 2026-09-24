@@ -218,7 +218,9 @@ class Filter(RestrictedDTypeMixin, ComputableTerm):
         return Filter
 
     @expect_types(if_true=ComputableTerm, if_false=ComputableTerm)
-    def if_else(self, if_true, if_false):
+    def if_else[P: (Factor, Filter, Classifier)](
+        self, if_true: P, if_false: ComputableTerm
+    ) -> P:
         """
         Create a term that selects values from one of two choices.
 
